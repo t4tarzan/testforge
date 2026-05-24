@@ -9,6 +9,11 @@ import { runSecurityAnalysis } from './analyzers/security-analyzer.js';
 import { runUnitAnalysis } from './analyzers/unit-analyzer.js';
 import { runLoadAnalysis } from './analyzers/load-analyzer.js';
 import { runAccessibilityAnalysis } from './analyzers/accessibility-analyzer.js';
+import {
+  runVisionAnalysis,
+  runScopeAnalysis,
+  runStackAnalysis,
+} from './analyzers/strategic-analyzer.js';
 
 const PORT = Number(process.env.TESTFORGE_MCP_PORT) || 3001;
 const TMP_DIR = process.env.TMP_DIR || '/tmp/testforge-repos';
@@ -71,6 +76,25 @@ async function main() {
         fileContents: codebase.fileContents,
       }).catch(() => ({ score: 0, findings: [], imagesWithoutAlt: 0, formsWithoutLabels: 0 }));
 
+      // ── Strategic Analysis (unique differentiator) ──────────────────────
+      const visionReport = await runVisionAnalysis(
+        codebase.fileContents,
+        codebase.dependencies,
+        codebase.devDependencies
+      );
+
+      const scopeReport = await runScopeAnalysis(
+        codebase.fileContents,
+        codebase.dependencies
+      );
+
+      const stackReport = await runStackAnalysis(
+        codebase.fileContents,
+        codebase.dependencies,
+        codebase.devDependencies,
+        codebase.techStack
+      );
+
       // Clean up
       rmSync(projectPath, { recursive: true, force: true });
 
@@ -111,6 +135,25 @@ async function main() {
           issues: a11yReport.findings?.length || 0,
           imagesWithoutAlt: a11yReport.imagesWithoutAlt || 0,
           formsWithoutLabels: a11yReport.formsWithoutLabels || 0,
+        },
+        vision: {
+          score: visionReport.score,
+          summary: visionReport.summary,
+          findings: visionReport.findings,
+        },
+        scope: {
+          coverage: scopeReport.coverage,
+          documentedFeatures: scopeReport.documentedFeatures,
+          implementedFeatures: scopeReport.implementedFeatures,
+          missingFeatures: scopeReport.missingFeatures,
+          findings: scopeReport.findings,
+        },
+        stack: {
+          score: stackReport.score,
+          strengths: stackReport.strengths,
+          weaknesses: stackReport.weaknesses,
+          recommendations: stackReport.recommendations,
+          findings: stackReport.findings,
         },
       });
     } catch (err: any) {

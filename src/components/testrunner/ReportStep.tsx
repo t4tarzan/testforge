@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   CheckCircle2, FileJson, FileText, FileDown, Shield,
-  RotateCcw
+  RotateCcw, Eye, Target, Layers, Sparkles
 } from 'lucide-react';
 
 interface ReportStepProps {
@@ -37,12 +37,17 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
     );
   }
 
-  const { codebase = {}, security = {}, unit = {}, load = {}, accessibility = {} } = results;
+  const { codebase = {}, security = {}, unit = {}, load = {}, accessibility = {}, vision = {}, scope = {}, stack = {} } = results;
+  
+  // Comprehensive score across ALL dimensions (including strategic)
   const overallScore = Math.round(
-    (accessibility.score || 70) * 0.3 +
-    Math.max(0, 100 - (security.critical || 0) * 20 - (security.high || 0) * 5) * 0.3 +
-    Math.max(0, 100 - (load.maxUsers < 50 ? 30 : 0)) * 0.2 +
-    (unit.coverage || 50) * 0.2
+    (accessibility.score || 70) * 0.10 +
+    Math.max(0, 100 - (security.critical || 0) * 20 - (security.high || 0) * 5) * 0.15 +
+    Math.max(0, 100 - (load.maxUsers < 50 ? 30 : 0)) * 0.10 +
+    (unit.coverage || 50) * 0.10 +
+    (vision.score || 50) * 0.25 +
+    (scope.coverage || 30) * 0.15 +
+    (stack.score || 60) * 0.15
   );
 
   const scoreColor = overallScore >= 80 ? '#5A8F5E' : overallScore >= 50 ? '#E8A838' : '#D4524A';
@@ -124,10 +129,12 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
             {[
               { label: 'Files', value: codebase.totalFiles },
               { label: 'Endpoints', value: codebase.endpoints },
-              { label: 'Security Issues', value: security.findings, sub: `${security.critical || 0} critical` },
-              { label: 'Test Coverage', value: `${unit.coverage || 0}%` },
-              { label: 'A11y Score', value: `${accessibility.score || 0}/100` },
-              { label: 'Max Users', value: load.maxUsers || 'N/A' },
+              { label: 'Vision', value: `${vision.score || '—'}/100`, sub: vision.score < 50 ? 'Needs work' : '' },
+              { label: 'Scope', value: `${scope.coverage || 0}%` },
+              { label: 'Security', value: security.findings, sub: `${security.critical || 0} critical` },
+              { label: 'Test Cov.', value: `${unit.coverage || 0}%` },
+              { label: 'Stack', value: `${stack.score || '—'}/100` },
+              { label: 'A11y', value: `${accessibility.score || 0}/100` },
             ].map((stat) => (
               <div key={stat.label}>
                 <div className="text-2xl font-bold text-[#1A1A1A]">{stat.value}</div>
@@ -170,6 +177,93 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Vision & Goal Alignment — unique differentiator */}
+      {vision.score !== undefined && (
+        <div className="bg-white border border-[#D9D9D3] rounded-2xl p-6 mb-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Eye size={18} className="text-[#4A90D9]" />
+            <h3 className="font-semibold text-[#1A1A1A]">Vision & Goal Alignment</h3>
+            <span className={`ml-auto font-mono text-sm font-bold ${vision.score >= 70 ? 'text-[#5A8F5E]' : vision.score >= 40 ? 'text-[#E8A838]' : 'text-[#D4524A]'}`}>{vision.score}/100</span>
+          </div>
+          <p className="text-sm text-[#6B6B6B] mb-3">{vision.summary}</p>
+          {vision.findings?.map((f: any, i: number) => (
+            <div key={i} className="flex items-start gap-2 text-sm py-1.5">
+              <SeverityBadge severity={f.severity} />
+              <span className="text-[#333333]">{f.title}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Scope Coverage */}
+      {scope.coverage !== undefined && (
+        <div className="bg-white border border-[#D9D9D3] rounded-2xl p-6 mb-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Target size={18} className="text-[#E8A838]" />
+            <h3 className="font-semibold text-[#1A1A1A]">Scope Coverage</h3>
+            <span className="ml-auto font-mono text-sm font-bold text-[#5A8F5E]">{scope.coverage}%</span>
+          </div>
+          <div className="grid grid-cols-3 gap-3 text-center mb-3">
+            <div className="bg-[#F5F5F0] rounded-lg p-3">
+              <div className="text-xl font-bold text-[#1A1A1A]">{scope.documentedFeatures}</div>
+              <div className="text-[11px] text-[#6B6B6B]">Documented</div>
+            </div>
+            <div className="bg-[#E8F0E8] rounded-lg p-3">
+              <div className="text-xl font-bold text-[#5A8F5E]">{scope.implementedFeatures}</div>
+              <div className="text-[11px] text-[#6B6B6B]">Implemented</div>
+            </div>
+            <div className="bg-[#FFF0F0] rounded-lg p-3">
+              <div className="text-xl font-bold text-[#D4524A]">{scope.missingFeatures?.length || 0}</div>
+              <div className="text-[11px] text-[#6B6B6B]">Missing</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stack Analysis */}
+      {stack.score !== undefined && (
+        <div className="bg-white border border-[#D9D9D3] rounded-2xl p-6 mb-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Layers size={18} className="text-[#5A8F5E]" />
+            <h3 className="font-semibold text-[#1A1A1A]">Stack Choice Analysis</h3>
+            <span className={`ml-auto font-mono text-sm font-bold ${stack.score >= 70 ? 'text-[#5A8F5E]' : 'text-[#E8A838]'}`}>{stack.score}/100</span>
+          </div>
+          {stack.strengths?.length > 0 && (
+            <div className="mb-3">
+              <p className="text-xs font-mono text-[#5A8F5E] uppercase mb-2">Strengths</p>
+              {stack.strengths.slice(0, 4).map((s: string, i: number) => (
+                <div key={i} className="flex items-start gap-2 text-sm py-1">
+                  <span className="text-[#5A8F5E] mt-0.5">✓</span>
+                  <span className="text-[#333333]">{s}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {stack.weaknesses?.length > 0 && (
+            <div className="mb-3">
+              <p className="text-xs font-mono text-[#D4524A] uppercase mb-2">Weaknesses</p>
+              {stack.weaknesses.map((w: string, i: number) => (
+                <div key={i} className="flex items-start gap-2 text-sm py-1">
+                  <span className="text-[#D4524A] mt-0.5">✗</span>
+                  <span className="text-[#333333]">{w}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {stack.recommendations?.length > 0 && (
+            <div>
+              <p className="text-xs font-mono text-[#6B6B6B] uppercase mb-2">Recommendations</p>
+              {stack.recommendations.slice(0, 3).map((r: string, i: number) => (
+                <div key={i} className="flex items-start gap-2 text-sm py-1">
+                  <Sparkles size={14} className="text-[#4A90D9] mt-0.5 flex-shrink-0" />
+                  <span className="text-[#6B6B6B]">{r}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
