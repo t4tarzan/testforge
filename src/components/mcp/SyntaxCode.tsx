@@ -16,7 +16,7 @@ function highlightSyntax(code: string): string {
     .replace(/(\/\/.*$)/gm, '<span class="text-[#5A5A5A]">$1</span>')
     .replace(/(#.*$)/gm, '<span class="text-[#5A5A5A]">$1</span>')
     // Strings (both double and single quoted)
-    .replace(/"([^"]*)":/g, '<span class="text-[#7AAF7E]">"$1"</span>:')
+    .replace(/"([^"]*)":/g, '<span class="text-[#7a6fad]">"$1"</span>:')
     .replace(/"([^"]*)"/g, '<span class="text-[#C9A96E]">"$1"</span>')
     .replace(/'([^']*)'/g, '<span class="text-[#C9A96E]">\'$1\'</span>')
     // Keywords (true, false, null)
@@ -46,8 +46,8 @@ export default function SyntaxCode({ code, language = 'json' }: SyntaxCodeProps)
   };
 
   return (
-    <div className="bg-[#1A1A1A] rounded-[10px] overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 bg-[#2A2A2A]">
+    <div className="bg-[#12101A] rounded-[10px] overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-2 bg-[#1E1B2E]">
         <span className="font-mono font-medium text-[11px] uppercase text-[#9A9A9A]">
           {language}
         </span>
@@ -57,8 +57,8 @@ export default function SyntaxCode({ code, language = 'json' }: SyntaxCodeProps)
         >
           {copied ? (
             <>
-              <Check size={14} className="text-[#5A8F5E]" />
-              <span className="font-mono font-medium text-[11px] text-[#5A8F5E]">Copied!</span>
+              <Check size={14} className="text-[#574a7d]" />
+              <span className="font-mono font-medium text-[11px] text-[#574a7d]">Copied!</span>
             </>
           ) : (
             <>

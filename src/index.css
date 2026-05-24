@@ -6,22 +6,22 @@
 
 @layer base {
   :root {
-    --sage-500: #5A8F5E;
-    --sage-600: #4A7A4E;
-    --sage-400: #7AAF7E;
-    --sage-300: #A3C9A5;
-    --sage-100: #E8F0E8;
-    --cream: #F5F5F0;
-    --cream-dark: #EBEBE5;
-    --ink: #1A1A1A;
-    --ink-light: #2A2A2A;
+    --violet-500: #574a7d;
+    --violet-600: #453a68;
+    --violet-400: #7a6db5;
+    --violet-300: #a99bff;
+    --violet-100: #E8E5FF;
+    --cream: #F7F7FB;
+    --cream-dark: #ECEBF5;
+    --ink: #12101A;
+    --ink-light: #1E1B2E;
     --charcoal: #333333;
     --slate: #6B6B6B;
     --silver: #9A9A9A;
     --white: #FFFFFF;
     --border-light: #D9D9D3;
     --border-dark: #3A3A3A;
-    --status-pass: #5A8F5E;
+    --status-pass: #574a7d;
     --status-fail: #D4524A;
     --status-running: #E8A838;
     --status-pending: #9A9A9A;
@@ -29,7 +29,7 @@
     --sev-critical: #D4524A;
     --sev-high: #E87D3A;
     --sev-medium: #E8A838;
-    --sev-low: #5A8F5E;
+    --sev-low: #574a7d;
 
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
@@ -150,16 +150,16 @@
 
   .bg-grid-pattern {
     background-image:
-      linear-gradient(to right, var(--sage-300) 15%, transparent 15%),
-      linear-gradient(to bottom, var(--sage-300) 15%, transparent 15%);
+      linear-gradient(to right, var(--violet-300) 15%, transparent 15%),
+      linear-gradient(to bottom, var(--violet-300) 15%, transparent 15%);
     background-size: 40px 40px;
     opacity: 0.15;
   }
 
   .bg-grid-pattern-dark {
     background-image:
-      linear-gradient(to right, var(--sage-500) 8%, transparent 8%),
-      linear-gradient(to bottom, var(--sage-500) 8%, transparent 8%);
+      linear-gradient(to right, var(--violet-500) 8%, transparent 8%),
+      linear-gradient(to bottom, var(--violet-500) 8%, transparent 8%);
     background-size: 40px 40px;
     opacity: 0.08;
   }
@@ -170,7 +170,7 @@
     font-weight: 500;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--sage-500);
+    color: var(--violet-500);
   }
 
   .section-label-light {
@@ -179,14 +179,14 @@
     font-weight: 500;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--sage-400);
+    color: var(--violet-400);
   }
 
   .step-number {
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.8125rem;
     font-weight: 400;
-    color: var(--sage-500);
+    color: var(--violet-500);
   }
 }
 
@@ -240,16 +240,16 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--sage-300);
+  background: var(--violet-300);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--sage-400);
+  background: var(--violet-400);
 }
 
 /* Selection */
 ::selection {
-  background-color: var(--sage-300);
+  background-color: var(--violet-300);
   color: var(--ink);
 }

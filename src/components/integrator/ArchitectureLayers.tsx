@@ -29,7 +29,7 @@ const layers = [
     description: 'Generates ranked integration paths with success probabilities and test-validated action plans.',
     tags: ['Path Ranking', 'Success Probability', 'Migration Plans', 'Auto-PR'],
     icon: GitBranch,
-    color: '#5A8F5E',
+    color: '#574a7d',
   },
   {
     num: '04',
@@ -37,7 +37,7 @@ const layers = [
     description: 'Verifies each recommended action. Runs dry-run integrations and confirms no new conflicts.',
     tags: ['Dry-Run Tests', 'Conflict Verification', 'Rollback Plan', 'Sign-off'],
     icon: ShieldCheck,
-    color: '#7AAF7E',
+    color: '#7a6fad',
   },
 ]
 
@@ -89,21 +89,21 @@ export default function ArchitectureLayers() {
   }, { scope: sectionRef })
 
   return (
-    <section ref={sectionRef} className="relative px-6 lg:px-16 py-[120px] bg-[#1A1A1A] overflow-hidden">
+    <section ref={sectionRef} className="relative px-6 lg:px-16 py-[120px] bg-[#12101A] overflow-hidden">
       {/* Grid pattern */}
       <div className="absolute inset-0 bg-grid-pattern-dark pointer-events-none" />
 
       {/* Glow orbs */}
-      <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full bg-[#5A8F5E] opacity-[0.03] blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full bg-[#574a7d] opacity-[0.03] blur-[120px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full bg-[#4A90D9] opacity-[0.03] blur-[120px] pointer-events-none" />
 
       <div className="relative z-10 max-w-[1280px] mx-auto">
         {/* Label */}
         <div className="text-center mb-16">
-          <p className="text-label-mono text-[#A3C9A5] mb-4">// ARCHITECTURE</p>
+          <p className="text-label-mono text-[#a39fd4] mb-4">// ARCHITECTURE</p>
           <h2 className="text-display-md lg:text-display-lg text-white max-w-[700px] mx-auto">
             Four layers. One{' '}
-            <span className="text-[#5A8F5E]">intelligent</span> decision engine.
+            <span className="text-[#574a7d]">intelligent</span> decision engine.
           </h2>
         </div>
 
@@ -119,7 +119,7 @@ export default function ArchitectureLayers() {
                 <div
                   className="layer-card-h flex-1 rounded-2xl p-5 lg:p-6 flex flex-col"
                   style={{
-                    backgroundColor: 'rgba(42, 42, 42, 0.8)',
+                    backgroundColor: 'rgba(30, 27, 46, 0.8)',
                     border: '1px solid #3A3A3A',
                     borderTop: `4px solid ${layer.color}`,
                     backdropFilter: 'blur(16px)',
@@ -155,7 +155,7 @@ export default function ArchitectureLayers() {
                       <span
                         key={tag}
                         className="layer-tag font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-md border"
-                        style={{ borderColor: '#3A3A3A', color: '#A3C9A5' }}
+                        style={{ borderColor: '#3A3A3A', color: '#a39fd4' }}
                       >
                         {tag}
                       </span>
@@ -168,15 +168,15 @@ export default function ArchitectureLayers() {
                   <>
                     {/* Horizontal connector for desktop */}
                     <div className="hidden lg:flex items-center justify-center w-full h-12 relative">
-                      <div className="layer-connector absolute left-0 right-0 h-[2px] bg-gradient-to-r from-[#3A3A3A] via-[#5A8F5E] to-[#3A3A3A] origin-left" />
-                      <div className="relative z-10 w-8 h-8 rounded-full bg-[#2A2A2A] border border-[#5A8F5E] flex items-center justify-center">
-                        <ArrowRight size={14} className="text-[#5A8F5E]" />
+                      <div className="layer-connector absolute left-0 right-0 h-[2px] bg-gradient-to-r from-[#3A3A3A] via-[#574a7d] to-[#3A3A3A] origin-left" />
+                      <div className="relative z-10 w-8 h-8 rounded-full bg-[#1E1B2E] border border-[#574a7d] flex items-center justify-center">
+                        <ArrowRight size={14} className="text-[#574a7d]" />
                       </div>
                     </div>
 
                     {/* Vertical connector for mobile */}
                     <div className="flex lg:hidden items-center justify-center py-2">
-                      <div className="w-[2px] h-10 bg-gradient-to-b from-[#3A3A3A] via-[#5A8F5E] to-[#3A3A3A]" />
+                      <div className="w-[2px] h-10 bg-gradient-to-b from-[#3A3A3A] via-[#574a7d] to-[#3A3A3A]" />
                     </div>
                   </>
                 )}
@@ -187,13 +187,13 @@ export default function ArchitectureLayers() {
 
         {/* Flow explanation */}
         <div className="mt-16 text-center">
-          <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full border border-[#3A3A3A] bg-[#2A2A2A]/50">
+          <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full border border-[#3A3A3A] bg-[#1E1B2E]/50">
             <div className="w-2 h-2 rounded-full bg-[#4A90D9] animate-pulse" />
             <span className="font-mono text-xs text-[#9A9A9A] uppercase tracking-wider">
               Data flows left to right through all four layers
             </span>
-            <ArrowRight size={14} className="text-[#5A8F5E]" />
-            <div className="w-2 h-2 rounded-full bg-[#5A8F5E] animate-pulse" />
+            <ArrowRight size={14} className="text-[#574a7d]" />
+            <div className="w-2 h-2 rounded-full bg-[#574a7d] animate-pulse" />
           </div>
         </div>
       </div>

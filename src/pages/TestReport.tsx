@@ -18,12 +18,12 @@ const severityConfig: Record<string, { color: string; bg: string; label: string 
   critical: { color: 'text-[#D4524A]', bg: 'bg-[rgba(212,82,74,0.1)]', label: 'CRITICAL' },
   high: { color: 'text-[#E87D3A]', bg: 'bg-[rgba(232,125,58,0.1)]', label: 'HIGH' },
   medium: { color: 'text-[#E8A838]', bg: 'bg-[rgba(232,168,56,0.1)]', label: 'MEDIUM' },
-  low: { color: 'text-[#5A8F5E]', bg: 'bg-[rgba(90,143,94,0.1)]', label: 'LOW' },
+  low: { color: 'text-[#574a7d]', bg: 'bg-[rgba(90,143,94,0.1)]', label: 'LOW' },
 };
 
 // ── Status Config ──────────────────────────────────────────────────────────
 const statusConfig: Record<TestStatus, { icon: typeof CheckCircle2; color: string; bg: string; label: string }> = {
-  passed: { icon: CheckCircle2, color: 'text-[#5A8F5E]', bg: 'bg-[rgba(90,143,94,0.1)]', label: 'PASSED' },
+  passed: { icon: CheckCircle2, color: 'text-[#574a7d]', bg: 'bg-[rgba(90,143,94,0.1)]', label: 'PASSED' },
   failed: { icon: XCircle, color: 'text-[#D4524A]', bg: 'bg-[rgba(212,82,74,0.1)]', label: 'FAILED' },
   warning: { icon: AlertTriangle, color: 'text-[#E8A838]', bg: 'bg-[rgba(232,168,56,0.1)]', label: 'WARNING' },
 };
@@ -33,12 +33,12 @@ function ScoreRing({ score }: { score: number }) {
   const radius = 54;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
-  const color = score >= 80 ? '#5A8F5E' : score >= 50 ? '#E8A838' : '#D4524A';
+  const color = score >= 80 ? '#574a7d' : score >= 50 ? '#E8A838' : '#D4524A';
 
   return (
     <div className="relative w-32 h-32">
       <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
-        <circle cx="60" cy="60" r={radius} fill="none" stroke="#EBEBE5" strokeWidth="8" />
+        <circle cx="60" cy="60" r={radius} fill="none" stroke="#ECEBF5" strokeWidth="8" />
         <motion.circle
           cx="60"
           cy="60"
@@ -54,7 +54,7 @@ function ScoreRing({ score }: { score: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-heading font-bold text-[28px] text-[#1A1A1A]">
+        <span className="font-heading font-bold text-[28px] text-[#12101A]">
           <CountUp end={score} duration={1.5} />
         </span>
         <span className="font-mono text-[10px] uppercase text-[#9A9A9A] tracking-[0.08em]">Score</span>
@@ -77,7 +77,7 @@ function SeverityBadge({ severity }: { severity: string }) {
 function LogLine({ log }: { log: { level: string; time: string; message: string } }) {
   const colors: Record<string, string> = {
     info: 'text-[#6B6B6B]',
-    pass: 'text-[#5A8F5E]',
+    pass: 'text-[#574a7d]',
     fail: 'text-[#D4524A]',
     warn: 'text-[#E8A838]',
   };
@@ -101,7 +101,7 @@ function FindingCard({ finding, index }: { finding: Finding; index: number }) {
     >
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-[#F5F5F0] transition-colors"
+        className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-[#F7F7FB] transition-colors"
       >
         <SeverityBadge severity={finding.severity} />
         <div className="flex-1 min-w-0">
@@ -125,7 +125,7 @@ function FindingCard({ finding, index }: { finding: Finding; index: number }) {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-3 border-t border-[#D9D9D3] bg-[#F5F5F0] pt-3">
+            <div className="px-4 pb-3 border-t border-[#D9D9D3] bg-[#F7F7FB] pt-3">
               <p className="text-[12px] text-[#6B6B6B] font-mono uppercase tracking-wider mb-1">Fix</p>
               <p className="text-[13px] text-[#333333] font-body">{finding.fix}</p>
               {finding.exploitability && (
@@ -165,14 +165,14 @@ function StageSection({ result, index }: { result: TestResult; index: number }) 
     >
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-4 px-6 py-4 text-left hover:bg-[#F5F5F0] transition-colors"
+        className="w-full flex items-center gap-4 px-6 py-4 text-left hover:bg-[#F7F7FB] transition-colors"
       >
         <div className={`w-10 h-10 rounded-full ${config.bg} flex items-center justify-center flex-shrink-0`}>
           <StatusIcon size={20} className={config.color} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3">
-            <span className="font-body font-medium text-[15px] text-[#1A1A1A]">{result.stage}</span>
+            <span className="font-body font-medium text-[15px] text-[#12101A]">{result.stage}</span>
             <span className={`font-mono font-medium text-[11px] uppercase px-2 py-0.5 rounded ${config.bg} ${config.color}`}>
               {config.label}
             </span>
@@ -214,7 +214,7 @@ function StageSection({ result, index }: { result: TestResult; index: number }) 
               {/* Logs */}
               <div>
                 <p className="font-mono font-medium text-[11px] uppercase text-[#9A9A9A] tracking-wider mb-2">// Logs</p>
-                <div className="bg-[#F5F5F0] rounded-lg p-4 space-y-1">
+                <div className="bg-[#F7F7FB] rounded-lg p-4 space-y-1">
                   {result.logs.map((log, i) => (
                     <LogLine key={i} log={log} />
                   ))}
@@ -309,18 +309,18 @@ export default function TestReport() {
     { severity: 'critical', count: report.summary.criticalVulns, color: '#D4524A' },
     { severity: 'high', count: report.summary.highVulns, color: '#E87D3A' },
     { severity: 'medium', count: report.summary.mediumVulns, color: '#E8A838' },
-    { severity: 'low', count: report.summary.lowVulns, color: '#5A8F5E' },
+    { severity: 'low', count: report.summary.lowVulns, color: '#574a7d' },
   ];
 
   const totalSev = sevCounts.reduce((s, c) => s + c.count, 0);
 
   return (
-    <div className="min-h-[100dvh] bg-[#F5F5F0]">
+    <div className="min-h-[100dvh] bg-[#F7F7FB]">
       <div className="max-w-[1000px] mx-auto px-4 lg:px-8 py-8">
         {/* Loading */}
         {loading && (
           <div className="flex items-center justify-center py-20">
-            <Loader2 size={32} className="animate-spin text-[#5A8F5E]" />
+            <Loader2 size={32} className="animate-spin text-[#574a7d]" />
           </div>
         )}
 
@@ -331,14 +331,14 @@ export default function TestReport() {
           transition={{ duration: 0.4, ease: easeOutExpo }}
         >
           <div className="flex items-center gap-2 mb-2">
-            <GitBranch size={16} className="text-[#5A8F5E]" />
+            <GitBranch size={16} className="text-[#574a7d]" />
             <span className="font-mono text-[13px] text-[#9A9A9A]">{report.repo.owner}/{report.repo.name}</span>
             <span className="text-[#D9D9D3]">|</span>
             <span className="font-mono text-[13px] text-[#9A9A9A]">{report.branch}</span>
             <span className="text-[#D9D9D3]">|</span>
             <span className="font-mono text-[13px] text-[#9A9A9A]">{report.commit}</span>
           </div>
-          <h1 className="font-heading font-semibold text-[36px] text-[#1A1A1A] tracking-[-0.015em]">
+          <h1 className="font-heading font-semibold text-[36px] text-[#12101A] tracking-[-0.015em]">
             Test Report
           </h1>
           <p className="text-[16px] text-[#6B6B6B] font-body mt-1">
@@ -365,7 +365,7 @@ export default function TestReport() {
             {/* Stage counts */}
             <div className="grid grid-cols-3 gap-4">
               {[
-                { value: report.summary.passed, label: 'PASSED', color: 'text-[#5A8F5E]', bg: 'bg-[rgba(90,143,94,0.1)]' },
+                { value: report.summary.passed, label: 'PASSED', color: 'text-[#574a7d]', bg: 'bg-[rgba(90,143,94,0.1)]' },
                 { value: report.summary.warning, label: 'WARNINGS', color: 'text-[#E8A838]', bg: 'bg-[rgba(232,168,56,0.1)]' },
                 { value: report.summary.failed, label: 'FAILED', color: 'text-[#D4524A]', bg: 'bg-[rgba(212,82,74,0.1)]' },
               ].map((s) => (
@@ -388,7 +388,7 @@ export default function TestReport() {
                 </span>
                 <span className="font-mono text-[12px] text-[#6B6B6B]">{totalSev} findings</span>
               </div>
-              <div className="h-3 bg-[#EBEBE5] rounded-full overflow-hidden flex">
+              <div className="h-3 bg-[#ECEBF5] rounded-full overflow-hidden flex">
                 {sevCounts.map((s) => (
                   <motion.div
                     key={s.severity}
@@ -427,7 +427,7 @@ export default function TestReport() {
             <button
               key={btn.format}
               onClick={() => handleExport(btn.format)}
-              className="h-10 px-5 bg-white border border-[#D9D9D3] rounded-lg font-body font-medium text-[14px] text-[#333333] flex items-center gap-2 hover:bg-[#F5F5F0] hover:border-[#A3C9A5] transition-all duration-200"
+              className="h-10 px-5 bg-white border border-[#D9D9D3] rounded-lg font-body font-medium text-[14px] text-[#333333] flex items-center gap-2 hover:bg-[#F7F7FB] hover:border-[#a39fd4] transition-all duration-200"
             >
               <btn.icon size={16} /> Export {btn.format}
             </button>
@@ -438,7 +438,7 @@ export default function TestReport() {
                 initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0 }}
-                className="h-10 px-4 bg-[#E8F0E8] text-[#5A8F5E] rounded-lg font-body text-[14px] flex items-center"
+                className="h-10 px-4 bg-[#E8E5FF] text-[#574a7d] rounded-lg font-body text-[14px] flex items-center"
               >
                 <CheckCircle2 size={16} className="mr-2" /> {exportToast}
               </motion.span>
@@ -448,7 +448,7 @@ export default function TestReport() {
 
         {/* Test Stages */}
         <div className="mt-8">
-          <h2 className="font-mono font-medium text-[12px] uppercase text-[#5A8F5E] tracking-[0.08em] mb-4">
+          <h2 className="font-mono font-medium text-[12px] uppercase text-[#574a7d] tracking-[0.08em] mb-4">
             // TEST STAGES ({report.testResults.length})
           </h2>
           <div className="space-y-3">
@@ -466,8 +466,8 @@ export default function TestReport() {
           className="mt-8 bg-white border border-[#D9D9D3] rounded-[16px] p-8 mb-12"
         >
           <div className="flex items-center gap-3 mb-6">
-            <Shield size={20} className="text-[#5A8F5E]" />
-            <h2 className="font-heading font-medium text-[22px] text-[#1A1A1A]">Generated PRD</h2>
+            <Shield size={20} className="text-[#574a7d]" />
+            <h2 className="font-heading font-medium text-[22px] text-[#12101A]">Generated PRD</h2>
           </div>
           <p className="text-[15px] text-[#6B6B6B] font-body leading-relaxed mb-6">
             {report.prd.problemStatement}
@@ -476,7 +476,7 @@ export default function TestReport() {
           <div className="flex flex-wrap gap-2 mb-6">
             <span className="font-mono text-[11px] uppercase text-[#9A9A9A]">Affected:</span>
             {report.prd.affectedComponents.map((c) => (
-              <span key={c} className="px-2.5 py-1 bg-[#F5F5F0] rounded-full font-mono text-[11px] text-[#6B6B6B]">
+              <span key={c} className="px-2.5 py-1 bg-[#F7F7FB] rounded-full font-mono text-[11px] text-[#6B6B6B]">
                 {c}
               </span>
             ))}
@@ -486,10 +486,10 @@ export default function TestReport() {
           <div className="space-y-4">
             {report.prd.phases.map((phase) => (
               <div key={phase.phase} className="border border-[#D9D9D3] rounded-lg overflow-hidden">
-                <div className="px-4 py-3 bg-[#F5F5F0] flex items-center justify-between">
+                <div className="px-4 py-3 bg-[#F7F7FB] flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <span className="font-mono font-medium text-[13px] text-[#5A8F5E]">Phase {phase.phase}</span>
-                    <span className="font-body font-medium text-[14px] text-[#1A1A1A]">{phase.name}</span>
+                    <span className="font-mono font-medium text-[13px] text-[#574a7d]">Phase {phase.phase}</span>
+                    <span className="font-body font-medium text-[14px] text-[#12101A]">{phase.name}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="font-mono text-[11px] uppercase text-[#9A9A9A]">{phase.priority}</span>
@@ -498,7 +498,7 @@ export default function TestReport() {
                 </div>
                 <div className="divide-y divide-[#D9D9D3]">
                   {phase.items.map((item) => (
-                    <div key={item.id} className="px-4 py-3 flex items-center gap-3 hover:bg-[#F5F5F0] transition-colors">
+                    <div key={item.id} className="px-4 py-3 flex items-center gap-3 hover:bg-[#F7F7FB] transition-colors">
                       <SeverityBadge severity={item.severity} />
                       <span className="font-mono text-[11px] text-[#9A9A9A] flex-shrink-0">{item.id}</span>
                       <span className="flex-1 text-[14px] text-[#333333] font-body">{item.title}</span>

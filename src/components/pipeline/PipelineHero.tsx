@@ -112,7 +112,7 @@ function AnimatedHeadline({ text, highlightWord }: { text: string; highlightWord
       {words.map((word, wi) => (
         <span key={wi} className="inline-block mr-[0.3em]">
           {word === highlightWord ? (
-            <span className="text-[#5A8F5E]">
+            <span className="text-[#574a7d]">
               {word.split('').map((char, ci) => (
                 <motion.span
                   key={ci}
@@ -185,9 +185,9 @@ function PipelinePills() {
   }, []);
 
   const statusClasses: Record<StageStatus, string> = {
-    pending: 'bg-[#2A2A2A] text-[#9A9A9A]',
+    pending: 'bg-[#1E1B2E] text-[#9A9A9A]',
     running: 'bg-[rgba(232,168,56,0.15)] text-[#E8A838] animate-pulse',
-    passed: 'bg-[rgba(90,143,94,0.15)] text-[#5A8F5E]',
+    passed: 'bg-[rgba(90,143,94,0.15)] text-[#574a7d]',
     failed: 'bg-[rgba(212,82,74,0.15)] text-[#D4524A]',
   };
 
@@ -223,7 +223,7 @@ export default function PipelineHero({ onStartRun }: { onStartRun: () => void })
   }, []);
 
   return (
-    <section className="relative min-h-[85dvh] flex flex-col items-center justify-center bg-[#1A1A1A] overflow-hidden px-6 sm:px-12 lg:px-16 pt-[72px] pb-20">
+    <section className="relative min-h-[85dvh] flex flex-col items-center justify-center bg-[#12101A] overflow-hidden px-6 sm:px-12 lg:px-16 pt-[72px] pb-20">
       {/* Background image fallback */}
       <div
         className="absolute inset-0 z-0 opacity-20"
@@ -233,7 +233,7 @@ export default function PipelineHero({ onStartRun }: { onStartRun: () => void })
           backgroundPosition: 'center',
         }}
       />
-      <div className="absolute inset-0 z-0 bg-gradient-to-b from-[#1A1A1A]/60 via-[#1A1A1A]/80 to-[#1A1A1A]" />
+      <div className="absolute inset-0 z-0 bg-gradient-to-b from-[#12101A]/60 via-[#12101A]/80 to-[#12101A]" />
 
       {/* Particle field */}
       <div className="absolute inset-0 z-[2]">
@@ -247,7 +247,7 @@ export default function PipelineHero({ onStartRun }: { onStartRun: () => void })
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.1, duration: 0.5 }}
-          className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#7AAF7E] mb-6"
+          className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#7a6fad] mb-6"
         >
           // THE PIPELINE
         </motion.span>
@@ -280,7 +280,7 @@ export default function PipelineHero({ onStartRun }: { onStartRun: () => void })
         >
           <button
             onClick={onStartRun}
-            className="px-7 py-[14px] rounded-lg bg-[#5A8F5E] text-white font-body font-medium text-[16px] hover:bg-[#4A7A4E] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center gap-2 group"
+            className="px-7 py-[14px] rounded-lg bg-[#574a7d] text-white font-body font-medium text-[16px] hover:bg-[#4a3d6b] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center gap-2 group"
           >
             <Play size={16} />
             Start a Test Run
@@ -288,7 +288,7 @@ export default function PipelineHero({ onStartRun }: { onStartRun: () => void })
           </button>
           <button
             onClick={scrollToPipeline}
-            className="px-7 py-[14px] rounded-lg border border-[#3A3A3A] text-white font-body font-medium text-[16px] hover:bg-[#2A2A2A] hover:border-[#5A8F5E] transition-all duration-200"
+            className="px-7 py-[14px] rounded-lg border border-[#3A3A3A] text-white font-body font-medium text-[16px] hover:bg-[#1E1B2E] hover:border-[#574a7d] transition-all duration-200"
           >
             Explore Pipeline
           </button>

@@ -22,7 +22,7 @@ gsap.registerPlugin(ScrollTrigger)
 
 function SectionLabel({ text, light = false }: { text: string; light?: boolean }) {
   return (
-    <p className={`text-label-mono mb-4 ${light ? 'text-[#A3C9A5]' : 'text-[#5A8F5E]'}`}>
+    <p className={`text-label-mono mb-4 ${light ? 'text-[#a39fd4]' : 'text-[#574a7d]'}`}>
       // {text}
     </p>
   )
@@ -44,12 +44,12 @@ function HeroSection() {
   }, { scope: heroRef })
 
   return (
-    <section ref={heroRef} className="relative w-full bg-[#F5F5F0] overflow-hidden">
+    <section ref={heroRef} className="relative w-full bg-[#F7F7FB] overflow-hidden">
       <div className="bg-grid-pattern absolute inset-0 pointer-events-none" />
       <div className="container-tf relative z-10 pt-[140px] pb-[60px] lg:pt-[160px] text-center">
         <SectionLabel text="PRICING" />
         <h1 className="pricing-hero-headline text-display-xl text-[#333333] max-w-[800px] mx-auto mb-5">
-          Simple pricing, <span className="text-[#5A8F5E]">serious testing</span>.
+          Simple pricing, <span className="text-[#574a7d]">serious testing</span>.
         </h1>
         <p className="pricing-hero-sub text-body-lg text-[#6B6B6B] max-w-[560px] mx-auto mb-10">
           Start free. Scale as your testing needs grow. Every plan includes access to the multi-dimensional pipeline — because partial testing is broken testing.
@@ -122,7 +122,7 @@ function PricingCardsSection() {
         '30-day data retention',
         'Slack notifications',
       ],
-      badge: { text: '1st Month Discount', bg: '#E8F0E8', color: '#5A8F5E' },
+      badge: { text: '1st Month Discount', bg: '#E8E5FF', color: '#574a7d' },
       borderColor: '#D9D9D3',
       recommended: false,
     },
@@ -146,8 +146,8 @@ function PricingCardsSection() {
         'Accessibility testing',
         'Team collaboration (up to 10)',
       ],
-      badge: { text: 'Recommended', bg: '#5A8F5E', color: '#FFFFFF' },
-      borderColor: '#5A8F5E',
+      badge: { text: 'Recommended', bg: '#574a7d', color: '#FFFFFF' },
+      borderColor: '#574a7d',
       recommended: true,
     },
     {
@@ -171,18 +171,18 @@ function PricingCardsSection() {
         'SLA guarantees',
       ],
       badge: null,
-      borderColor: '#1A1A1A',
+      borderColor: '#12101A',
       recommended: false,
       dark: true,
     },
   ]
 
   return (
-    <section ref={sectionRef} className="relative w-full bg-[#F5F5F0] py-10 lg:py-16">
+    <section ref={sectionRef} className="relative w-full bg-[#F7F7FB] py-10 lg:py-16">
       <div className="container-tf">
         {/* Billing Toggle */}
         <div className="pricing-toggle flex justify-center mb-12">
-          <div className="inline-flex items-center bg-[#EBEBE5] border border-[#D9D9D3] rounded-lg p-1">
+          <div className="inline-flex items-center bg-[#ECEBF5] border border-[#D9D9D3] rounded-lg p-1">
             <button
               onClick={() => setIsYearly(false)}
               className={`px-5 py-2 rounded-md text-sm font-medium transition-all duration-300 ${
@@ -202,7 +202,7 @@ function PricingCardsSection() {
               }`}
             >
               Yearly
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-[#E8F0E8] text-[#5A8F5E]">
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-[#E8E5FF] text-[#574a7d]">
                 30% savings
               </span>
             </button>
@@ -216,9 +216,9 @@ function PricingCardsSection() {
               key={tier.name}
               className={`pricing-card relative rounded-2xl p-6 lg:p-8 transition-all duration-300 ${
                 tier.dark
-                  ? 'bg-[#1A1A1A] border border-[#1A1A1A] text-white'
+                  ? 'bg-[#12101A] border border-[#12101A] text-white'
                   : tier.recommended
-                  ? 'bg-white border-2 border-[#5A8F5E] shadow-[0_12px_32px_rgba(90,143,94,0.1)]'
+                  ? 'bg-white border-2 border-[#574a7d] shadow-[0_12px_32px_rgba(90,143,94,0.1)]'
                   : 'bg-white border border-[#D9D9D3] shadow-[0_1px_3px_rgba(0,0,0,0.04)]'
               }`}
               whileHover={{ y: -4 }}
@@ -238,7 +238,7 @@ function PricingCardsSection() {
                 <div className="flex items-center gap-2 mb-3">
                   <tier.icon
                     size={20}
-                    className={tier.dark ? 'text-[#A3C9A5]' : 'text-[#5A8F5E]'}
+                    className={tier.dark ? 'text-[#a39fd4]' : 'text-[#574a7d]'}
                   />
                   <h3 className={`font-heading font-semibold text-2xl ${tier.dark ? 'text-white' : 'text-[#333333]'}`}>
                     {tier.name}
@@ -278,7 +278,7 @@ function PricingCardsSection() {
 
                 {/* Yearly info */}
                 {tier.yearlyDiscount && isYearly && (
-                  <p className="text-body-sm text-[#5A8F5E]">{tier.yearlyDiscount}</p>
+                  <p className="text-body-sm text-[#574a7d]">{tier.yearlyDiscount}</p>
                 )}
                 {!isYearly && tier.monthlyPrice !== null && tier.monthlyPrice > 0 && (
                   <p className="text-body-sm text-[#9A9A9A]">
@@ -295,12 +295,12 @@ function PricingCardsSection() {
               <button
                 className={`w-full py-3 rounded-lg font-body font-medium text-base mb-6 transition-all duration-200 ${
                   tier.ctaStyle === 'primary'
-                    ? 'bg-[#5A8F5E] text-white hover:bg-[#4A7A4E] hover:scale-[1.02] active:scale-[0.98]'
+                    ? 'bg-[#574a7d] text-white hover:bg-[#4a3d6b] hover:scale-[1.02] active:scale-[0.98]'
                     : tier.ctaStyle === 'secondary'
-                    ? 'bg-[#1A1A1A] text-white hover:bg-[#333333] hover:scale-[1.02]'
+                    ? 'bg-[#12101A] text-white hover:bg-[#333333] hover:scale-[1.02]'
                     : tier.dark
                     ? 'border border-[#3A3A3A] text-white hover:bg-white/10'
-                    : 'border border-[#D9D9D3] text-[#333333] hover:bg-[#E8F0E8] hover:border-[#A3C9A5]'
+                    : 'border border-[#D9D9D3] text-[#333333] hover:bg-[#E8E5FF] hover:border-[#a39fd4]'
                 }`}
               >
                 {tier.cta}
@@ -312,7 +312,7 @@ function PricingCardsSection() {
                   <li key={i} className="flex items-start gap-2.5">
                     {feature.startsWith('Everything') ? (
                       <span className={`text-body-sm font-medium mt-0.5 ${
-                        tier.dark ? 'text-[#A3C9A5]' : 'text-[#5A8F5E]'
+                        tier.dark ? 'text-[#a39fd4]' : 'text-[#574a7d]'
                       }`}>
                         {feature}
                       </span>
@@ -321,7 +321,7 @@ function PricingCardsSection() {
                         <Check
                           size={16}
                           className={`mt-0.5 flex-shrink-0 ${
-                            tier.dark ? 'text-[#7AAF7E]' : 'text-[#5A8F5E]'
+                            tier.dark ? 'text-[#7a6fad]' : 'text-[#574a7d]'
                           }`}
                         />
                         <span className={`text-body-sm ${
@@ -431,7 +431,7 @@ function ComparisonTableSection() {
 
   const renderCell = (value: boolean | string) => {
     if (value === true) {
-      return <Check size={18} className="text-[#5A8F5E] mx-auto" />
+      return <Check size={18} className="text-[#574a7d] mx-auto" />
     }
     if (value === false) {
       return <Minus size={18} className="text-[#D9D9D3] mx-auto" />
@@ -440,11 +440,11 @@ function ComparisonTableSection() {
   }
 
   return (
-    <section ref={sectionRef} className="relative w-full bg-[#EBEBE5] py-20 lg:py-24">
+    <section ref={sectionRef} className="relative w-full bg-[#ECEBF5] py-20 lg:py-24">
       <div className="container-tf">
         <SectionLabel text="FULL COMPARISON" />
         <h2 className="text-display-md text-[#333333] mb-10">
-          Compare <span className="text-[#5A8F5E]">every feature</span>.
+          Compare <span className="text-[#574a7d]">every feature</span>.
         </h2>
 
         <div className="comparison-table bg-white border border-[#D9D9D3] rounded-xl overflow-x-auto max-w-[1200px] mx-auto">
@@ -454,20 +454,20 @@ function ComparisonTableSection() {
                 <th className="text-left px-5 py-4 font-semibold text-sm text-[#333333] w-[35%]">Feature</th>
                 <th className="text-center px-4 py-4 font-semibold text-sm text-[#333333]">Free</th>
                 <th className="text-center px-4 py-4 font-semibold text-sm text-[#333333]">Starter</th>
-                <th className="text-center px-4 py-4 font-semibold text-sm text-[#5A8F5E]">Standard</th>
+                <th className="text-center px-4 py-4 font-semibold text-sm text-[#574a7d]">Standard</th>
                 <th className="text-center px-4 py-4 font-semibold text-sm text-[#333333]">Enterprise</th>
               </tr>
             </thead>
             <tbody>
               {categories.map((cat) => (
                 <>
-                  <tr key={cat.name} className="bg-[#F5F5F0]">
+                  <tr key={cat.name} className="bg-[#F7F7FB]">
                     <td colSpan={5} className="px-5 py-2.5 font-semibold text-sm text-[#333333]">
                       {cat.name}
                     </td>
                   </tr>
                   {cat.features.map((feat) => (
-                    <tr key={feat.name} className="border-b border-[#F5F5F0]">
+                    <tr key={feat.name} className="border-b border-[#F7F7FB]">
                       <td className="px-5 py-3.5 text-sm text-[#6B6B6B]">{feat.name}</td>
                       <td className="text-center px-4 py-3.5">{renderCell(feat.free)}</td>
                       <td className="text-center px-4 py-3.5">{renderCell(feat.starter)}</td>
@@ -537,7 +537,7 @@ function FAQSection() {
   ]
 
   return (
-    <section ref={sectionRef} className="relative w-full bg-[#F5F5F0] py-20 lg:py-24">
+    <section ref={sectionRef} className="relative w-full bg-[#F7F7FB] py-20 lg:py-24">
       <div className="bg-grid-pattern absolute inset-0 pointer-events-none" />
       <div className="container-tf relative z-10">
         <div className="max-w-[800px] mx-auto">
@@ -549,7 +549,7 @@ function FAQSection() {
               <div key={i} className="faq-item">
                 <button
                   onClick={() => setOpenIndex(openIndex === i ? null : i)}
-                  className="w-full py-5 flex items-center justify-between text-left hover:bg-[#F5F5F0]/50 transition-colors duration-200"
+                  className="w-full py-5 flex items-center justify-between text-left hover:bg-[#F7F7FB]/50 transition-colors duration-200"
                 >
                   <span className="font-medium text-base text-[#333333] pr-4">{faq.q}</span>
                   <motion.div
@@ -590,14 +590,14 @@ function FAQSection() {
 
 function CTASection() {
   return (
-    <section className="relative w-full bg-[#5A8F5E] py-20 lg:py-24">
+    <section className="relative w-full bg-[#574a7d] py-20 lg:py-24">
       <div className="container-tf text-center">
         <h2 className="text-display-md text-white mb-4">Ready to test without limits?</h2>
         <p className="text-body-lg text-white/80 mb-8 max-w-[500px] mx-auto">
           Join 100,000+ developers who ship with confidence.
         </p>
         <div className="flex flex-wrap justify-center gap-4">
-          <button className="px-7 py-[14px] rounded-lg bg-white text-[#5A8F5E] font-body font-medium text-base hover:bg-[#F5F5F0] hover:scale-[1.02] transition-all duration-200 flex items-center gap-2 group">
+          <button className="px-7 py-[14px] rounded-lg bg-white text-[#574a7d] font-body font-medium text-base hover:bg-[#F7F7FB] hover:scale-[1.02] transition-all duration-200 flex items-center gap-2 group">
             Get Started Free
             <ArrowRight size={16} className="transition-transform duration-200 group-hover:translate-x-1" />
           </button>

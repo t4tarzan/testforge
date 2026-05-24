@@ -34,9 +34,9 @@ const executionTrendData = [
 ]
 
 const testDistributionData = [
-  { name: 'Unit', value: 40, color: '#5A8F5E' },
-  { name: 'Integration', value: 25, color: '#7AAF7E' },
-  { name: 'E2E', value: 15, color: '#A3C9A5' },
+  { name: 'Unit', value: 40, color: '#574a7d' },
+  { name: 'Integration', value: 25, color: '#7a6fad' },
+  { name: 'E2E', value: 15, color: '#a39fd4' },
   { name: 'Other', value: 20, color: '#D9D9D3' },
 ]
 
@@ -103,7 +103,7 @@ const teamContributors = [
 ]
 
 const sprintQualityData = [
-  { name: 'Pass', value: 78, color: '#5A8F5E' },
+  { name: 'Pass', value: 78, color: '#574a7d' },
   { name: 'Flaky', value: 15, color: '#E8A838' },
   { name: 'Fail', value: 7, color: '#D4524A' },
 ]
@@ -133,7 +133,7 @@ const performanceRegressionData = Array.from({ length: 14 }, (_, i) => ({
 
 function SectionLabel({ text, light = false }: { text: string; light?: boolean }) {
   return (
-    <p className={`text-label-mono mb-4 ${light ? 'text-[#A3C9A5]' : 'text-[#5A8F5E]'}`}>
+    <p className={`text-label-mono mb-4 ${light ? 'text-[#a39fd4]' : 'text-[#574a7d]'}`}>
       // {text}
     </p>
   )
@@ -170,24 +170,24 @@ function HeroSection({ analysisData }: { analysisData: AnalysisResults | null })
 
   // Use real data when available, fall back to demo stats
   const stats = analysisData ? [
-    { label: 'Quality Score', value: Math.round((analysisData.vision?.score || 50) * 0.3 + (analysisData.stack?.score || 60) * 0.2 + (analysisData.security?.findings ? Math.max(0, 100 - (analysisData.security.critical || 0) * 20) : 50) * 0.3 + (analysisData.unit?.coverage || 50) * 0.2), suffix: '', color: '#5A8F5E', badge: 'Live' },
-    { label: 'Files Analyzed', value: analysisData.codebase?.totalFiles || 0, suffix: '', color: '#5A8F5E', trend: `${analysisData.codebase?.totalLines?.toLocaleString() || 0} lines`, trendUp: true },
-    { label: 'Security Findings', value: analysisData.security?.findings || 0, suffix: '', color: '#5A8F5E', trend: `${analysisData.security?.critical || 0} critical`, trendUp: false },
-    { label: 'Vision Score', value: analysisData.vision?.score || 0, suffix: '/100', color: '#5A8F5E', trend: analysisData.vision?.summary?.slice(0, 30) || '', trendUp: (analysisData.vision?.score || 0) >= 60 },
+    { label: 'Quality Score', value: Math.round((analysisData.vision?.score || 50) * 0.3 + (analysisData.stack?.score || 60) * 0.2 + (analysisData.security?.findings ? Math.max(0, 100 - (analysisData.security.critical || 0) * 20) : 50) * 0.3 + (analysisData.unit?.coverage || 50) * 0.2), suffix: '', color: '#574a7d', badge: 'Live' },
+    { label: 'Files Analyzed', value: analysisData.codebase?.totalFiles || 0, suffix: '', color: '#574a7d', trend: `${analysisData.codebase?.totalLines?.toLocaleString() || 0} lines`, trendUp: true },
+    { label: 'Security Findings', value: analysisData.security?.findings || 0, suffix: '', color: '#574a7d', trend: `${analysisData.security?.critical || 0} critical`, trendUp: false },
+    { label: 'Vision Score', value: analysisData.vision?.score || 0, suffix: '/100', color: '#574a7d', trend: analysisData.vision?.summary?.slice(0, 30) || '', trendUp: (analysisData.vision?.score || 0) >= 60 },
   ] : [
-    { label: 'Overall Quality Score', value: 94, suffix: '', color: '#5A8F5E', badge: 'A+' },
-    { label: 'Tests This Week', value: 12847, suffix: '', color: '#5A8F5E', trend: '+23%', trendUp: true },
-    { label: 'Failure Rate', value: 2.1, suffix: '%', color: '#5A8F5E', trend: '-1.3pp', trendUp: true },
-    { label: 'Avg Resolution', value: 4.2, suffix: 'h', color: '#5A8F5E', trend: '-2.1h', trendUp: true },
+    { label: 'Overall Quality Score', value: 94, suffix: '', color: '#574a7d', badge: 'A+' },
+    { label: 'Tests This Week', value: 12847, suffix: '', color: '#574a7d', trend: '+23%', trendUp: true },
+    { label: 'Failure Rate', value: 2.1, suffix: '%', color: '#574a7d', trend: '-1.3pp', trendUp: true },
+    { label: 'Avg Resolution', value: 4.2, suffix: 'h', color: '#574a7d', trend: '-2.1h', trendUp: true },
   ];
 
   return (
-    <section ref={heroRef} className="relative w-full bg-[#1A1A1A] overflow-hidden">
+    <section ref={heroRef} className="relative w-full bg-[#12101A] overflow-hidden">
       <div className="bg-grid-pattern-dark absolute inset-0 pointer-events-none" />
       <div className="container-tf relative z-10 pt-[140px] pb-[60px] lg:pt-[160px]">
         <SectionLabel text="ANALYTICS & INSIGHTS" light />
         <h1 className="dash-hero-headline text-display-xl text-white max-w-[700px] mb-5">
-          See what others <span className="text-[#5A8F5E]">can&apos;t</span>.
+          See what others <span className="text-[#574a7d]">can&apos;t</span>.
         </h1>
         <p className="dash-hero-sub text-body-lg text-[#9A9A9A] max-w-[600px] mb-12">
           Predictive models, quality scorecards, and real-time intelligence that turn testing data into engineering decisions.
@@ -198,7 +198,7 @@ function HeroSection({ analysisData }: { analysisData: AnalysisResults | null })
           {stats.map((stat) => (
             <motion.div
               key={stat.label}
-              className="dash-stat-card bg-[#2A2A2A] border border-[#3A3A3A] rounded-xl p-6"
+              className="dash-stat-card bg-[#1E1B2E] border border-[#3A3A3A] rounded-xl p-6"
               whileHover={{ y: -4, borderColor: 'rgba(90,143,94,0.3)' }}
               transition={{ duration: 0.2 }}
             >
@@ -213,7 +213,7 @@ function HeroSection({ analysisData }: { analysisData: AnalysisResults | null })
                 </span>
                 {stat.suffix && <span className="text-body-md text-[#9A9A9A]">{stat.suffix}</span>}
                 {stat.badge && (
-                  <span className="px-2 py-0.5 rounded text-xs font-mono font-medium bg-[#E8F0E8] text-[#5A8F5E]">
+                  <span className="px-2 py-0.5 rounded text-xs font-mono font-medium bg-[#E8E5FF] text-[#574a7d]">
                     {stat.badge}
                   </span>
                 )}
@@ -221,11 +221,11 @@ function HeroSection({ analysisData }: { analysisData: AnalysisResults | null })
               {stat.trend && (
                 <div className="flex items-center gap-1 mt-2">
                   {stat.trendUp ? (
-                    <ArrowUpRight size={14} className="text-[#5A8F5E]" />
+                    <ArrowUpRight size={14} className="text-[#574a7d]" />
                   ) : (
                     <ArrowDownRight size={14} className="text-[#D4524A]" />
                   )}
-                  <span className="font-mono text-xs text-[#5A8F5E]">{stat.trend} vs last week</span>
+                  <span className="font-mono text-xs text-[#574a7d]">{stat.trend} vs last week</span>
                 </div>
               )}
             </motion.div>
@@ -262,7 +262,7 @@ function ScoreRing({ score, size = 200, animated = false }: { score: number; siz
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#5A8F5E"
+          stroke="#574a7d"
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -271,7 +271,7 @@ function ScoreRing({ score, size = 200, animated = false }: { score: number; siz
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-heading font-bold text-[56px] lg:text-[64px] text-[#5A8F5E]">
+        <span className="font-heading font-bold text-[56px] lg:text-[64px] text-[#574a7d]">
           {animated ? <CountUp end={score} duration={1.5} /> : 0}
         </span>
         <span className="font-mono font-medium text-base text-[#6B6B6B]">A+</span>
@@ -308,7 +308,7 @@ function QualityScorecardSection() {
   }, { scope: sectionRef })
 
   return (
-    <section ref={sectionRef} className="relative w-full bg-[#F5F5F0] py-20 lg:py-24">
+    <section ref={sectionRef} className="relative w-full bg-[#F7F7FB] py-20 lg:py-24">
       <div className="bg-grid-pattern absolute inset-0 pointer-events-none" />
       <div className="container-tf relative z-10">
         <SectionLabel text="QUALITY SCORECARD" />
@@ -323,7 +323,7 @@ function QualityScorecardSection() {
                   <Line
                     type="monotone"
                     dataKey="score"
-                    stroke="#5A8F5E"
+                    stroke="#574a7d"
                     strokeWidth={2}
                     dot={false}
                   />
@@ -339,7 +339,7 @@ function QualityScorecardSection() {
             <h3 className="font-heading font-medium text-lg text-[#333333] mb-6">Testing Dimensions</h3>
             <div className="space-y-3">
               {dimensionScores.map((dim) => {
-                let barColor = '#5A8F5E'
+                let barColor = '#574a7d'
                 if (dim.score < 50) barColor = '#D4524A'
                 else if (dim.score < 80) barColor = '#E8A838'
 
@@ -419,7 +419,7 @@ function PredictiveModelsSection() {
           <BarChart data={testPrioritizationData} layout="vertical">
             <XAxis type="number" hide />
             <YAxis dataKey="component" type="category" hide />
-            <Bar dataKey="score" fill="#5A8F5E" radius={[0, 4, 4, 0]} barSize={12} />
+            <Bar dataKey="score" fill="#574a7d" radius={[0, 4, 4, 0]} barSize={12} />
           </BarChart>
         </ResponsiveContainer>
       ),
@@ -441,11 +441,11 @@ function PredictiveModelsSection() {
   ]
 
   return (
-    <section ref={sectionRef} className="relative w-full bg-[#EBEBE5] py-20 lg:py-24">
+    <section ref={sectionRef} className="relative w-full bg-[#ECEBF5] py-20 lg:py-24">
       <div className="container-tf">
         <SectionLabel text="PREDICTIVE MODELS" />
         <h2 className="text-display-lg text-[#333333] mb-10">
-          <span className="text-[#5A8F5E]">Predict</span> failures before they happen.
+          <span className="text-[#574a7d]">Predict</span> failures before they happen.
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-7 max-w-[1200px]">
@@ -458,12 +458,12 @@ function PredictiveModelsSection() {
               <div className="mb-4">{model.chart}</div>
               <div className="flex items-center gap-2 mb-2">
                 <h3 className="text-heading-sm text-[#333333]">{model.title}</h3>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-[#E8F0E8] text-[#5A8F5E]">
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-[#E8E5FF] text-[#574a7d]">
                   {model.accuracy} accuracy
                 </span>
               </div>
               <p className="text-body-sm text-[#6B6B6B] mb-4">{model.description}</p>
-              <p className="font-mono text-[13px] text-[#5A8F5E]">{model.metric}</p>
+              <p className="font-mono text-[13px] text-[#574a7d]">{model.metric}</p>
             </motion.div>
           ))}
         </div>
@@ -492,7 +492,7 @@ function RealTimeMetricsSection() {
   }, { scope: sectionRef })
 
   return (
-    <section ref={sectionRef} className="relative w-full bg-[#F5F5F0] py-20 lg:py-24">
+    <section ref={sectionRef} className="relative w-full bg-[#F7F7FB] py-20 lg:py-24">
       <div className="bg-grid-pattern absolute inset-0 pointer-events-none" />
       <div className="container-tf relative z-10">
         <SectionLabel text="REAL-TIME METRICS" />
@@ -507,12 +507,12 @@ function RealTimeMetricsSection() {
             </div>
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={executionTrendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E8F0E8" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E8E5FF" />
                 <XAxis dataKey="day" tick={{ fontSize: 12, fill: '#6B6B6B' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 12, fill: '#6B6B6B' }} axisLine={false} tickLine={false} />
                 <Tooltip content={<ChartTooltip />} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Line type="monotone" dataKey="passed" name="Passed" stroke="#5A8F5E" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="passed" name="Passed" stroke="#574a7d" strokeWidth={2} dot={{ r: 3 }} />
                 <Line type="monotone" dataKey="failed" name="Failed" stroke="#D4524A" strokeWidth={2} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
@@ -553,11 +553,11 @@ function RealTimeMetricsSection() {
             </div>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={pipelineStageData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#E8F0E8" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E8E5FF" />
                 <XAxis type="number" tick={{ fontSize: 12, fill: '#6B6B6B' }} axisLine={false} tickLine={false} />
                 <YAxis dataKey="stage" type="category" tick={{ fontSize: 11, fill: '#6B6B6B' }} axisLine={false} tickLine={false} width={50} />
                 <Tooltip content={<ChartTooltip />} />
-                <Bar dataKey="duration" fill="#5A8F5E" radius={[0, 4, 4, 0]} barSize={14} />
+                <Bar dataKey="duration" fill="#574a7d" radius={[0, 4, 4, 0]} barSize={14} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -570,11 +570,11 @@ function RealTimeMetricsSection() {
             </div>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={coverageByModuleData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E8F0E8" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E8E5FF" />
                 <XAxis dataKey="module" tick={{ fontSize: 12, fill: '#6B6B6B' }} axisLine={false} tickLine={false} />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#6B6B6B' }} axisLine={false} tickLine={false} />
                 <Tooltip content={<ChartTooltip />} />
-                <Bar dataKey="coverage" fill="#5A8F5E" radius={[4, 4, 0, 0]} barSize={32} />
+                <Bar dataKey="coverage" fill="#574a7d" radius={[4, 4, 0, 0]} barSize={32} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -604,7 +604,7 @@ function TeamInsightsSection() {
   }, { scope: sectionRef })
 
   return (
-    <section ref={sectionRef} className="relative w-full bg-[#EBEBE5] py-20 lg:py-24">
+    <section ref={sectionRef} className="relative w-full bg-[#ECEBF5] py-20 lg:py-24">
       <div className="container-tf">
         <SectionLabel text="TEAM INSIGHTS" />
         <h2 className="text-display-md text-[#333333] mb-10">Engineering intelligence for teams.</h2>
@@ -635,7 +635,7 @@ function TeamInsightsSection() {
                 <span className="font-heading font-bold text-2xl text-[#333333]">B+</span>
               </div>
             </div>
-            <p className="text-body-sm text-[#5A8F5E] text-center mt-2">
+            <p className="text-body-sm text-[#574a7d] text-center mt-2">
               Sprint 24 quality trend: +8% vs Sprint 23
             </p>
           </div>
@@ -646,12 +646,12 @@ function TeamInsightsSection() {
             <div className="space-y-3">
               {teamContributors.map((person) => (
                 <div key={person.name} className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#E8F0E8] flex items-center justify-center">
-                    <span className="text-[10px] font-mono font-medium text-[#5A8F5E]">{person.initials}</span>
+                  <div className="w-8 h-8 rounded-full bg-[#E8E5FF] flex items-center justify-center">
+                    <span className="text-[10px] font-mono font-medium text-[#574a7d]">{person.initials}</span>
                   </div>
                   <span className="text-sm font-medium text-[#333333] flex-1">{person.name}</span>
                   <span className="text-xs font-mono text-[#9A9A9A]">{person.tests} tests</span>
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-[#E8F0E8] text-[#5A8F5E]">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-[#E8E5FF] text-[#574a7d]">
                     {person.passRate}%
                   </span>
                 </div>
@@ -664,7 +664,7 @@ function TeamInsightsSection() {
             <h3 className="font-semibold text-sm text-[#333333] mb-4">Velocity vs Quality</h3>
             <ResponsiveContainer width="100%" height={180}>
               <ScatterChart>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E8F0E8" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E8E5FF" />
                 <XAxis type="number" dataKey="velocity" name="Velocity" tick={{ fontSize: 11, fill: '#6B6B6B' }} axisLine={false} tickLine={false} label={{ value: 'Commits/week', position: 'bottom', fontSize: 10, fill: '#9A9A9A' }} />
                 <YAxis type="number" dataKey="quality" name="Quality" tick={{ fontSize: 11, fill: '#6B6B6B' }} axisLine={false} tickLine={false} label={{ value: 'Score', angle: -90, position: 'left', fontSize: 10, fill: '#9A9A9A' }} />
                 <Scatter
@@ -678,11 +678,11 @@ function TeamInsightsSection() {
                     { velocity: 55, quality: 90 },
                     { velocity: 38, quality: 84 },
                   ]}
-                  fill="#5A8F5E"
+                  fill="#574a7d"
                 />
               </ScatterChart>
             </ResponsiveContainer>
-            <p className="text-body-sm text-[#5A8F5E] mt-1 text-center">
+            <p className="text-body-sm text-[#574a7d] mt-1 text-center">
               Higher velocity correlates with +12% quality
             </p>
           </div>
@@ -711,7 +711,7 @@ function HistoricalAnalysisSection() {
   }, { scope: sectionRef })
 
   return (
-    <section ref={sectionRef} className="relative w-full bg-[#F5F5F0] py-20 lg:py-24">
+    <section ref={sectionRef} className="relative w-full bg-[#F7F7FB] py-20 lg:py-24">
       <div className="bg-grid-pattern absolute inset-0 pointer-events-none" />
       <div className="container-tf relative z-10">
         <SectionLabel text="HISTORICAL ANALYSIS" />
@@ -720,12 +720,12 @@ function HistoricalAnalysisSection() {
         <div className="history-chart-container bg-white border border-[#D9D9D3] rounded-xl p-6">
           <ResponsiveContainer width="100%" height={400}>
             <LineChart data={historicalData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E8F0E8" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#E8E5FF" />
               <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#6B6B6B' }} axisLine={false} tickLine={false} />
               <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#6B6B6B' }} axisLine={false} tickLine={false} />
               <Tooltip content={<ChartTooltip />} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Line type="monotone" dataKey="testCount" name="Test Count" stroke="#5A8F5E" strokeWidth={2} dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="testCount" name="Test Count" stroke="#574a7d" strokeWidth={2} dot={{ r: 4 }} />
               <Line type="monotone" dataKey="failureRate" name="Failure Rate" stroke="#D4524A" strokeWidth={2} dot={{ r: 4 }} />
               <Line type="monotone" dataKey="coverage" name="Coverage %" stroke="#4A90D9" strokeWidth={2} dot={{ r: 4 }} />
               <Line type="monotone" dataKey="quality" name="Quality Score" stroke="#E87D3A" strokeWidth={2} dot={{ r: 4 }} />
@@ -743,11 +743,11 @@ function HistoricalAnalysisSection() {
 
 function CTASection() {
   return (
-    <section className="relative w-full bg-[#5A8F5E] py-20 lg:py-24">
+    <section className="relative w-full bg-[#574a7d] py-20 lg:py-24">
       <div className="container-tf text-center">
         <h2 className="text-display-md text-white mb-8">Data-driven testing starts here.</h2>
         <div className="flex flex-wrap justify-center gap-4">
-          <button className="px-7 py-[14px] rounded-lg bg-white text-[#5A8F5E] font-body font-medium text-base hover:bg-[#F5F5F0] hover:scale-[1.02] transition-all duration-200">
+          <button className="px-7 py-[14px] rounded-lg bg-white text-[#574a7d] font-body font-medium text-base hover:bg-[#F7F7FB] hover:scale-[1.02] transition-all duration-200">
             Get Started Free
           </button>
           <button className="px-7 py-[14px] rounded-lg border border-white text-white font-body font-medium text-base hover:bg-white/10 transition-all duration-200">
@@ -774,16 +774,16 @@ export default function Dashboard() {
     <div className="min-h-[100dvh]">
       {/* Real data banner */}
       {analysisData && (
-        <div className="bg-gradient-to-r from-[#E8F0E8] to-[#F5F5F0] border-b border-[#A3C9A5] px-4 py-3">
+        <div className="bg-gradient-to-r from-[#E8E5FF] to-[#F7F7FB] border-b border-[#a39fd4] px-4 py-3">
           <div className="max-w-[1280px] mx-auto flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <BarChart3 size={18} className="text-[#5A8F5E]" />
-              <span className="font-mono text-xs text-[#5A8F5E]">
+              <BarChart3 size={18} className="text-[#574a7d]" />
+              <span className="font-mono text-xs text-[#574a7d]">
                 📊 Live data from <strong>{analysisData.repo?.split('/').pop()}</strong>
                 — {analysisData.codebase?.totalFiles} files · {analysisData.security?.findings} findings · Vision {analysisData.vision?.score}/100
               </span>
             </div>
-            <Link to="/run-test" className="flex items-center gap-1.5 px-4 py-1.5 bg-[#5A8F5E] text-white rounded-lg text-xs font-medium hover:bg-[#4A7A4E] transition-colors">
+            <Link to="/run-test" className="flex items-center gap-1.5 px-4 py-1.5 bg-[#574a7d] text-white rounded-lg text-xs font-medium hover:bg-[#4a3d6b] transition-colors">
               Run New Test <ArrowRight size={14} />
             </Link>
           </div>

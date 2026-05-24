@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 
 export default function IntegrationCTA() {
   return (
-    <section className="relative bg-[#5A8F5E] py-24 lg:py-32 px-6 sm:px-12 lg:px-16 overflow-hidden">
+    <section className="relative bg-[#574a7d] py-24 lg:py-32 px-6 sm:px-12 lg:px-16 overflow-hidden">
       {/* Decorative pattern */}
       <div
         className="absolute inset-0 opacity-10"
@@ -43,7 +43,7 @@ export default function IntegrationCTA() {
           transition={{ delay: 0.2, duration: 0.6, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
           className="flex flex-col sm:flex-row items-center justify-center gap-4"
         >
-          <button className="px-8 py-[14px] rounded-lg bg-white text-[#5A8F5E] font-body font-medium text-[16px] hover:bg-[#F5F5F0] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center gap-2 group">
+          <button className="px-8 py-[14px] rounded-lg bg-white text-[#574a7d] font-body font-medium text-[16px] hover:bg-[#F7F7FB] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center gap-2 group">
             Start Testing Free
             <ArrowRight size={16} className="transition-transform duration-200 group-hover:translate-x-1" />
           </button>

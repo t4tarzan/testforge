@@ -125,11 +125,11 @@ function WarningCallout({ title, children }: { title?: string; children: React.R
 
 function SuccessCallout({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
-    <div className="flex gap-3 bg-[rgba(90,143,94,0.06)] border-l-[3px] border-[#5A8F5E] px-6 py-4 my-4 rounded-r-lg">
-      <CheckCircle2 size={18} className="text-[#5A8F5E] flex-shrink-0 mt-0.5" />
+    <div className="flex gap-3 bg-[rgba(90,143,94,0.06)] border-l-[3px] border-[#574a7d] px-6 py-4 my-4 rounded-r-lg">
+      <CheckCircle2 size={18} className="text-[#574a7d] flex-shrink-0 mt-0.5" />
       <div>
         {title && (
-          <p className="font-body font-semibold text-[14px] text-[#5A8F5E] mb-1">
+          <p className="font-body font-semibold text-[14px] text-[#574a7d] mb-1">
             {title}
           </p>
         )}
@@ -165,14 +165,14 @@ function DocCodeBlock({ code, language = 'bash' }: { code: string; language?: st
   };
 
   return (
-    <div className="bg-[#1A1A1A] rounded-xl overflow-hidden my-4">
-      <div className="flex items-center justify-between px-4 py-2 bg-[#2A2A2A]">
+    <div className="bg-[#12101A] rounded-xl overflow-hidden my-4">
+      <div className="flex items-center justify-between px-4 py-2 bg-[#1E1B2E]">
         <span className="font-mono font-medium text-[11px] uppercase text-[#9A9A9A]">
           {language}
         </span>
         <button
           onClick={handleCopy}
-          className="font-mono font-medium text-[11px] text-[#9A9A9A] hover:text-[#5A8F5E] transition-colors"
+          className="font-mono font-medium text-[11px] text-[#9A9A9A] hover:text-[#574a7d] transition-colors"
         >
           {copied ? 'Copied!' : 'Copy'}
         </button>
@@ -201,7 +201,7 @@ function DocTable({
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="bg-[#F5F5F0]">
+            <tr className="bg-[#F7F7FB]">
               {headers.map((h, i) => (
                 <th
                   key={i}
@@ -216,7 +216,7 @@ function DocTable({
             {rows.map((row, i) => (
               <tr
                 key={i}
-                className="border-t border-[#D9D9D3] hover:bg-[#F5F5F0] transition-colors"
+                className="border-t border-[#D9D9D3] hover:bg-[#F7F7FB] transition-colors"
               >
                 {row.map((cell, j) => (
                   <td
@@ -240,7 +240,7 @@ function DocTable({
    ──────────────────────────────────────────── */
 function Code({ children }: { children: React.ReactNode }) {
   return (
-    <code className="font-mono text-[14px] text-[#D4524A] bg-[#F5F5F0] px-1.5 py-0.5 rounded">
+    <code className="font-mono text-[14px] text-[#D4524A] bg-[#F7F7FB] px-1.5 py-0.5 rounded">
       {children}
     </code>
   );
@@ -309,24 +309,24 @@ function DocContent({ pageId }: { pageId: string }) {
 function OverviewPage() {
   return (
     <div>
-      <h1 className="font-heading font-semibold text-[36px] text-[#1A1A1A] mb-6">
+      <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">
         TestForge Documentation
       </h1>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
         TestForge is an AI-powered autonomous testing platform that integrates
         directly into your development workflow. It analyzes your codebase,
         generates comprehensive tests across{' '}
-        <strong className="font-semibold text-[#1A1A1A]">13 dimensions</strong>,
+        <strong className="font-semibold text-[#12101A]">13 dimensions</strong>,
         and delivers actionable reports with fix suggestions.
       </p>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         What TestForge Does
       </h2>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
         TestForge connects to your Git repository, analyzes your entire
         codebase, and automatically generates and runs tests across{' '}
-        <strong className="font-semibold text-[#1A1A1A]">
+        <strong className="font-semibold text-[#12101A]">
           13 testing dimensions
         </strong>
         . Within minutes, you get:
@@ -342,29 +342,29 @@ function OverviewPage() {
         <li>Predictive risk analysis using ML models</li>
       </ul>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         How It Works
       </h2>
       <ol className="list-decimal list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
         <li>
-          <strong className="font-semibold text-[#1A1A1A]">Connect</strong> your
+          <strong className="font-semibold text-[#12101A]">Connect</strong> your
           Git repository (public repos supported, private coming soon)
         </li>
         <li>
-          <strong className="font-semibold text-[#1A1A1A]">Configure</strong>{' '}
+          <strong className="font-semibold text-[#12101A]">Configure</strong>{' '}
           which test dimensions to run (all 13 are selected by default)
         </li>
         <li>
-          <strong className="font-semibold text-[#1A1A1A]">Execute</strong> —
+          <strong className="font-semibold text-[#12101A]">Execute</strong> —
           TestForge clones, scans, and tests your code automatically
         </li>
         <li>
-          <strong className="font-semibold text-[#1A1A1A]">Review</strong> the
+          <strong className="font-semibold text-[#12101A]">Review</strong> the
           comprehensive report with findings, fixes, and generated PRDs
         </li>
       </ol>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Supported Technologies
       </h2>
       <DocTable
@@ -379,35 +379,35 @@ function OverviewPage() {
         ]}
       />
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Getting Help
       </h2>
       <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
         <li>
-          <strong className="font-semibold text-[#1A1A1A]">
+          <strong className="font-semibold text-[#12101A]">
             Quick questions?
           </strong>{' '}
           Ask in your IDE via our{' '}
-          <a href="#/mcp" className="text-[#5A8F5E] hover:underline">
+          <a href="#/mcp" className="text-[#574a7d] hover:underline">
             MCP integration
           </a>
         </li>
         <li>
-          <strong className="font-semibold text-[#1A1A1A]">Issues?</strong>{' '}
+          <strong className="font-semibold text-[#12101A]">Issues?</strong>{' '}
           Check the{' '}
-          <a href="#troubleshooting" className="text-[#5A8F5E] hover:underline">
+          <a href="#troubleshooting" className="text-[#574a7d] hover:underline">
             Troubleshooting
           </a>{' '}
           section
         </li>
         <li>
-          <strong className="font-semibold text-[#1A1A1A]">
+          <strong className="font-semibold text-[#12101A]">
             Feature requests?
           </strong>{' '}
           Email{' '}
           <a
             href="mailto:hello@testforge.dev"
-            className="text-[#5A8F5E] hover:underline"
+            className="text-[#574a7d] hover:underline"
           >
             hello@testforge.dev
           </a>
@@ -416,7 +416,7 @@ function OverviewPage() {
 
       <InfoCallout title="New to TestForge?">
         Start with the{' '}
-        <a href="#" className="text-[#5A8F5E] hover:underline">
+        <a href="#" className="text-[#574a7d] hover:underline">
           Quick Start Guide
         </a>{' '}
         to run your first test in under 3 minutes.
@@ -432,31 +432,31 @@ function OverviewPage() {
 function QuickStartPage() {
   return (
     <div>
-      <h1 className="font-heading font-semibold text-[36px] text-[#1A1A1A] mb-6">
+      <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">
         Quick Start Guide
       </h1>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
         Get your first test running in under 3 minutes.
       </p>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Step 1: Create an Account
       </h2>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
         Sign up at{' '}
-        <a href="#/auth" className="text-[#5A8F5E] hover:underline">
+        <a href="#/auth" className="text-[#574a7d] hover:underline">
           testforge.dev
         </a>{' '}
         with your email or GitHub account. No credit card required for the free
         tier.
       </p>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Step 2: Connect a Repository
       </h2>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
         From your{' '}
-        <a href="#/account" className="text-[#5A8F5E] hover:underline">
+        <a href="#/account" className="text-[#574a7d] hover:underline">
           dashboard
         </a>
         , click "Connect Repository" and enter a public Git URL. For testing,
@@ -467,12 +467,12 @@ function QuickStartPage() {
         language="text"
       />
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Step 3: Run Your First Test
       </h2>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
         Click "Start New Test" on the dashboard or go to{' '}
-        <a href="#/run-test" className="text-[#5A8F5E] hover:underline">
+        <a href="#/run-test" className="text-[#574a7d] hover:underline">
           /run-test
         </a>
         . Select your connected repository and click "Run Tests."
@@ -487,7 +487,7 @@ function QuickStartPage() {
         <li>Generate a comprehensive report</li>
       </ul>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Step 4: Review Results
       </h2>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
@@ -509,7 +509,7 @@ function QuickStartPage() {
 function YourFirstTestPage() {
   return (
     <div>
-      <h1 className="font-heading font-semibold text-[36px] text-[#1A1A1A] mb-6">
+      <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">
         Your First Test Walkthrough
       </h1>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
@@ -517,7 +517,7 @@ function YourFirstTestPage() {
         understanding the results.
       </p>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Choosing a Repository
       </h2>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
@@ -532,37 +532,37 @@ function YourFirstTestPage() {
         testing purposes.
       </p>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Understanding Test Configuration
       </h2>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
         When you start a test, you'll see the configuration screen:
       </p>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
-        <strong className="font-semibold text-[#1A1A1A]">Test Types</strong> —
+        <strong className="font-semibold text-[#12101A]">Test Types</strong> —
         All 13 dimensions are checked by default. Uncheck any you don't need to
         save time.
       </p>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
-        <strong className="font-semibold text-[#1A1A1A]">Coverage Depth</strong>{' '}
+        <strong className="font-semibold text-[#12101A]">Coverage Depth</strong>{' '}
         — Choose between:
       </p>
       <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
         <li>
-          <strong className="font-semibold text-[#1A1A1A]">Shallow</strong> (~2
+          <strong className="font-semibold text-[#12101A]">Shallow</strong> (~2
           min): Primary endpoints and happy paths
         </li>
         <li>
-          <strong className="font-semibold text-[#1A1A1A]">Deep</strong> (~5
+          <strong className="font-semibold text-[#12101A]">Deep</strong> (~5
           min): Full coverage including edge cases and error handling
         </li>
       </ul>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
-        <strong className="font-semibold text-[#1A1A1A]">Technology</strong> —
+        <strong className="font-semibold text-[#12101A]">Technology</strong> —
         Auto-detected from your repo. Verify it's correct.
       </p>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Reading the Results
       </h2>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
@@ -570,7 +570,7 @@ function YourFirstTestPage() {
       </p>
       <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
         <li>
-          <strong className="font-semibold text-[#5A8F5E]">PASS</strong>{' '}
+          <strong className="font-semibold text-[#574a7d]">PASS</strong>{' '}
           (green): All checks passed
         </li>
         <li>
@@ -587,7 +587,7 @@ function YourFirstTestPage() {
         Click any dimension card to expand and see the full terminal output.
       </p>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Understanding Your Score
       </h2>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
@@ -604,24 +604,24 @@ function YourFirstTestPage() {
         ]}
       />
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Next Steps
       </h2>
       <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
         <li>
-          <a href="#/mcp" className="text-[#5A8F5E] hover:underline">
+          <a href="#/mcp" className="text-[#574a7d] hover:underline">
             Set up the MCP server
           </a>{' '}
           to test from your IDE
         </li>
         <li>
-          <a href="#cicd-integration" className="text-[#5A8F5E] hover:underline">
+          <a href="#cicd-integration" className="text-[#574a7d] hover:underline">
             Configure CI/CD integration
           </a>{' '}
           for automated testing
         </li>
         <li>
-          <a href="#cli-reference" className="text-[#5A8F5E] hover:underline">
+          <a href="#cli-reference" className="text-[#574a7d] hover:underline">
             Review the CLI reference
           </a>{' '}
           for advanced usage
@@ -638,40 +638,40 @@ function YourFirstTestPage() {
 function WebPlatformPage() {
   return (
     <div>
-      <h1 className="font-heading font-semibold text-[36px] text-[#1A1A1A] mb-6">
+      <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">
         Web Platform
       </h1>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
         The easiest way to use TestForge is through the web interface at{' '}
         <a
           href="https://testforge.dev"
-          className="text-[#5A8F5E] hover:underline"
+          className="text-[#574a7d] hover:underline"
         >
           testforge.dev
         </a>
         .
       </p>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Sign Up
       </h2>
       <ol className="list-decimal list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
         <li>
           Go to{' '}
-          <a href="#/auth" className="text-[#5A8F5E] hover:underline">
+          <a href="#/auth" className="text-[#574a7d] hover:underline">
             /auth
           </a>
         </li>
         <li>Sign up with email or GitHub</li>
         <li>
           You'll land on the{' '}
-          <a href="#/account" className="text-[#5A8F5E] hover:underline">
+          <a href="#/account" className="text-[#574a7d] hover:underline">
             dashboard
           </a>
         </li>
       </ol>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Free Tier Limits
       </h2>
       <DocTable
@@ -696,7 +696,7 @@ function WebPlatformPage() {
 function CliInstallationPage() {
   return (
     <div>
-      <h1 className="font-heading font-semibold text-[36px] text-[#1A1A1A] mb-6">
+      <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">
         CLI Installation
       </h1>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
@@ -712,7 +712,7 @@ function CliInstallationPage() {
         language="bash"
       />
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Authentication
       </h2>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
@@ -723,7 +723,7 @@ function CliInstallationPage() {
         language="bash"
       />
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Basic Commands
       </h2>
       <DocTable
@@ -737,7 +737,7 @@ function CliInstallationPage() {
         ]}
       />
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Running Your First CLI Test
       </h2>
       <DocCodeBlock
@@ -754,7 +754,7 @@ function CliInstallationPage() {
 function McpServerPage() {
   return (
     <div>
-      <h1 className="font-heading font-semibold text-[36px] text-[#1A1A1A] mb-6">
+      <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">
         MCP Server Installation
       </h1>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
@@ -762,7 +762,7 @@ function McpServerPage() {
         language test generation.
       </p>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         One-Line Install
       </h2>
       <DocCodeBlock code="npx @testforge/mcp install" language="bash" />
@@ -770,24 +770,24 @@ function McpServerPage() {
         This installs the MCP server and guides you through IDE configuration.
       </p>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Manual Install
       </h2>
       <DocCodeBlock code="npm install -g @testforge/mcp" language="bash" />
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
         Then configure your IDE (see the{' '}
-        <a href="#/mcp" className="text-[#5A8F5E] hover:underline">
+        <a href="#/mcp" className="text-[#574a7d] hover:underline">
           MCP Integration page
         </a>{' '}
         for IDE-specific configs).
       </p>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Verify Installation
       </h2>
       <DocCodeBlock code="testforge-mcp --version" language="bash" />
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Start the Server
       </h2>
       <DocCodeBlock
@@ -795,7 +795,7 @@ function McpServerPage() {
         language="bash"
       />
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Environment Variables
       </h2>
       <DocTable
@@ -828,19 +828,19 @@ function McpServerPage() {
 function DockerPage() {
   return (
     <div>
-      <h1 className="font-heading font-semibold text-[36px] text-[#1A1A1A] mb-6">
+      <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">
         Docker Installation
       </h1>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
         Run TestForge in a Docker container for isolated, reproducible testing.
       </p>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Pull the Image
       </h2>
       <DocCodeBlock code="docker pull testforge/cli:latest" language="bash" />
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Run a Test
       </h2>
       <DocCodeBlock
@@ -848,7 +848,7 @@ function DockerPage() {
         language="bash"
       />
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Docker Compose
       </h2>
       <DocCodeBlock
@@ -866,30 +866,30 @@ function DockerPage() {
 function RepositorySetupPage() {
   return (
     <div>
-      <h1 className="font-heading font-semibold text-[36px] text-[#1A1A1A] mb-6">
+      <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">
         Repository Setup
       </h1>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Connecting a Repository
       </h2>
       <ol className="list-decimal list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
         <li>
           From your{' '}
-          <a href="#/account" className="text-[#5A8F5E] hover:underline">
+          <a href="#/account" className="text-[#574a7d] hover:underline">
             dashboard
           </a>
-          , navigate to <strong className="font-semibold text-[#1A1A1A]">Repositories</strong>
+          , navigate to <strong className="font-semibold text-[#12101A]">Repositories</strong>
         </li>
         <li>
-          Click <strong className="font-semibold text-[#1A1A1A]">Connect Repository</strong>
+          Click <strong className="font-semibold text-[#12101A]">Connect Repository</strong>
         </li>
         <li>Enter the public Git URL</li>
         <li>Select the default branch</li>
-        <li>Click <strong className="font-semibold text-[#1A1A1A]">Connect</strong></li>
+        <li>Click <strong className="font-semibold text-[#12101A]">Connect</strong></li>
       </ol>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Supported Git Hosts
       </h2>
       <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
@@ -898,7 +898,7 @@ function RepositorySetupPage() {
         <li>Bitbucket (public repositories)</li>
       </ul>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Repository Requirements
       </h2>
       <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
@@ -907,7 +907,7 @@ function RepositorySetupPage() {
         <li>Must not exceed 500MB in size</li>
       </ul>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Auto-Detection
       </h2>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
@@ -931,16 +931,16 @@ function RepositorySetupPage() {
 function TestTypeSelectionPage() {
   return (
     <div>
-      <h1 className="font-heading font-semibold text-[36px] text-[#1A1A1A] mb-6">
+      <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">
         Test Type Selection
       </h1>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
         TestForge runs{' '}
-        <strong className="font-semibold text-[#1A1A1A]">13 testing dimensions</strong>.
+        <strong className="font-semibold text-[#12101A]">13 testing dimensions</strong>.
         You can customize which to run for each test execution.
       </p>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         All 13 Dimensions
       </h2>
       <DocTable
@@ -976,11 +976,11 @@ function TestTypeSelectionPage() {
 function CicdIntegrationPage() {
   return (
     <div>
-      <h1 className="font-heading font-semibold text-[36px] text-[#1A1A1A] mb-6">
+      <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">
         CI/CD Integration
       </h1>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         GitHub Actions
       </h2>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
@@ -991,7 +991,7 @@ function CicdIntegrationPage() {
         language="yaml"
       />
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         GitLab CI
       </h2>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
@@ -1002,7 +1002,7 @@ function CicdIntegrationPage() {
         language="yaml"
       />
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Configuration Options
       </h2>
       <DocTable
@@ -1024,11 +1024,11 @@ function CicdIntegrationPage() {
 function EnvironmentVariablesPage() {
   return (
     <div>
-      <h1 className="font-heading font-semibold text-[36px] text-[#1A1A1A] mb-6">
+      <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">
         Environment Variables
       </h1>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Required Variables
       </h2>
       <DocTable
@@ -1037,12 +1037,12 @@ function EnvironmentVariablesPage() {
           [
             <Code>TESTFORGE_API_KEY</Code>,
             'Authentication key',
-            <a href="#/account" className="text-[#5A8F5E] hover:underline">Dashboard → API Keys</a>,
+            <a href="#/account" className="text-[#574a7d] hover:underline">Dashboard → API Keys</a>,
           ],
         ]}
       />
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Optional Variables
       </h2>
       <DocTable
@@ -1066,7 +1066,7 @@ function EnvironmentVariablesPage() {
 function TestTypesOverviewPage() {
   return (
     <div>
-      <h1 className="font-heading font-semibold text-[36px] text-[#1A1A1A] mb-6">
+      <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">
         Test Types Overview
       </h1>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
@@ -1102,7 +1102,7 @@ function TestTypesOverviewPage() {
 function SecurityTestingPage() {
   return (
     <div>
-      <h1 className="font-heading font-semibold text-[36px] text-[#1A1A1A] mb-6">
+      <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">
         Security Testing
       </h1>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
@@ -1110,30 +1110,30 @@ function SecurityTestingPage() {
         scanning based on the OWASP Top 10 framework.
       </p>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         What We Test
       </h2>
       <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
         <li>
-          <strong className="font-semibold text-[#1A1A1A]">
+          <strong className="font-semibold text-[#12101A]">
             SAST (Static Application Security Testing)
           </strong>{' '}
           — Analyzes source code for vulnerabilities without executing it
         </li>
         <li>
-          <strong className="font-semibold text-[#1A1A1A]">
+          <strong className="font-semibold text-[#12101A]">
             DAST (Dynamic Application Security Testing)
           </strong>{' '}
           — Tests the running application by sending malicious payloads
         </li>
         <li>
-          <strong className="font-semibold text-[#1A1A1A]">Fuzzing</strong> —
+          <strong className="font-semibold text-[#12101A]">Fuzzing</strong> —
           Sends random/invalid data to inputs to find crash or vulnerability
           points
         </li>
       </ul>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Vulnerability Categories
       </h2>
       <DocTable
@@ -1152,13 +1152,13 @@ function SecurityTestingPage() {
             'Security Misconfiguration, Insecure Dependencies',
           ],
           [
-            <span className="font-mono font-medium text-[#5A8F5E]">LOW</span>,
+            <span className="font-mono font-medium text-[#574a7d]">LOW</span>,
             'Missing Security Headers, Verbose Error Messages',
           ],
         ]}
       />
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         How to Interpret Findings
       </h2>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
@@ -1166,34 +1166,34 @@ function SecurityTestingPage() {
       </p>
       <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
         <li>
-          <strong className="font-semibold text-[#1A1A1A]">Location</strong> —
+          <strong className="font-semibold text-[#12101A]">Location</strong> —
           File path and line number where the vulnerability exists
         </li>
         <li>
-          <strong className="font-semibold text-[#1A1A1A]">
+          <strong className="font-semibold text-[#12101A]">
             Vulnerability Type
           </strong>{' '}
           — OWASP classification (e.g., A03:2021 – Injection)
         </li>
         <li>
-          <strong className="font-semibold text-[#1A1A1A]">Severity</strong> —
+          <strong className="font-semibold text-[#12101A]">Severity</strong> —
           Critical, High, Medium, or Low based on exploitability and impact
         </li>
         <li>
-          <strong className="font-semibold text-[#1A1A1A]">
+          <strong className="font-semibold text-[#12101A]">
             Proof of Concept
           </strong>{' '}
           — A sample payload or request that demonstrates the vulnerability
         </li>
         <li>
-          <strong className="font-semibold text-[#1A1A1A]">
+          <strong className="font-semibold text-[#12101A]">
             Remediation
           </strong>{' '}
           — Step-by-step fix instructions with code examples
         </li>
       </ul>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Remediation Workflow
       </h2>
       <ol className="list-decimal list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
@@ -1227,7 +1227,7 @@ function SecurityTestingPage() {
 function PerformanceTestingPage() {
   return (
     <div>
-      <h1 className="font-heading font-semibold text-[36px] text-[#1A1A1A] mb-6">
+      <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">
         Performance Testing
       </h1>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
@@ -1235,7 +1235,7 @@ function PerformanceTestingPage() {
         conditions to identify bottlenecks before they impact users.
       </p>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Load & Scale Testing
       </h2>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
@@ -1243,32 +1243,32 @@ function PerformanceTestingPage() {
       </p>
       <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
         <li>
-          <strong className="font-semibold text-[#1A1A1A]">
+          <strong className="font-semibold text-[#12101A]">
             Response Time
           </strong>{' '}
           — P50, P95, and P99 latency percentiles
         </li>
         <li>
-          <strong className="font-semibold text-[#1A1A1A]">
+          <strong className="font-semibold text-[#12101A]">
             Throughput
           </strong>{' '}
           — Requests per second your application can handle
         </li>
         <li>
-          <strong className="font-semibold text-[#1A1A1A]">
+          <strong className="font-semibold text-[#12101A]">
             Error Rate
           </strong>{' '}
           — Percentage of failed requests under load
         </li>
         <li>
-          <strong className="font-semibold text-[#1A1A1A]">
+          <strong className="font-semibold text-[#12101A]">
             Breaking Point
           </strong>{' '}
           — The concurrency level where your application fails
         </li>
       </ul>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         What We Measure
       </h2>
       <DocTable
@@ -1297,7 +1297,7 @@ function PerformanceTestingPage() {
 function CustomRulesPage() {
   return (
     <div>
-      <h1 className="font-heading font-semibold text-[36px] text-[#1A1A1A] mb-6">
+      <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">
         Custom Rules
       </h1>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
@@ -1305,7 +1305,7 @@ function CustomRulesPage() {
         requirements.
       </p>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Configuration File
       </h2>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
@@ -1316,7 +1316,7 @@ function CustomRulesPage() {
         language="json"
       />
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Rule Types
       </h2>
       <DocTable
@@ -1345,11 +1345,11 @@ function CustomRulesPage() {
 function CliReferencePage() {
   return (
     <div>
-      <h1 className="font-heading font-semibold text-[36px] text-[#1A1A1A] mb-6">
+      <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">
         CLI Reference
       </h1>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Global Options
       </h2>
       <DocCodeBlock
@@ -1357,11 +1357,11 @@ function CliReferencePage() {
         language="text"
       />
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Commands
       </h2>
 
-      <h3 className="font-heading font-semibold text-[20px] text-[#1A1A1A] mt-8 mb-3">
+      <h3 className="font-heading font-semibold text-[20px] text-[#12101A] mt-8 mb-3">
         testforge run {'<repo-url>'}
       </h3>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
@@ -1380,14 +1380,14 @@ function CliReferencePage() {
         language="bash"
       />
 
-      <h3 className="font-heading font-semibold text-[20px] text-[#1A1A1A] mt-8 mb-3">
+      <h3 className="font-heading font-semibold text-[20px] text-[#12101A] mt-8 mb-3">
         testforge status {'<run-id>'}
       </h3>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
         Check the status of a running or completed test.
       </p>
 
-      <h3 className="font-heading font-semibold text-[20px] text-[#1A1A1A] mt-8 mb-3">
+      <h3 className="font-heading font-semibold text-[20px] text-[#12101A] mt-8 mb-3">
         testforge report {'<run-id>'}
       </h3>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
@@ -1401,7 +1401,7 @@ function CliReferencePage() {
         language="text"
       />
 
-      <h3 className="font-heading font-semibold text-[20px] text-[#1A1A1A] mt-8 mb-3">
+      <h3 className="font-heading font-semibold text-[20px] text-[#12101A] mt-8 mb-3">
         testforge repos
       </h3>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
@@ -1415,7 +1415,7 @@ function CliReferencePage() {
         language="text"
       />
 
-      <h3 className="font-heading font-semibold text-[20px] text-[#1A1A1A] mt-8 mb-3">
+      <h3 className="font-heading font-semibold text-[20px] text-[#12101A] mt-8 mb-3">
         testforge config
       </h3>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
@@ -1438,7 +1438,7 @@ function CliReferencePage() {
 function ApiReferencePage() {
   return (
     <div>
-      <h1 className="font-heading font-semibold text-[36px] text-[#1A1A1A] mb-6">
+      <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">
         API Reference
       </h1>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
@@ -1446,7 +1446,7 @@ function ApiReferencePage() {
         reporting.
       </p>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Authentication
       </h2>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
@@ -1458,16 +1458,16 @@ function ApiReferencePage() {
         language="bash"
       />
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Base URL
       </h2>
       <DocCodeBlock code="https://api.testforge.dev/v1" language="text" />
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Endpoints
       </h2>
 
-      <h3 className="font-heading font-semibold text-[20px] text-[#1A1A1A] mt-8 mb-3">
+      <h3 className="font-heading font-semibold text-[20px] text-[#12101A] mt-8 mb-3">
         POST /runs
       </h3>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
@@ -1484,7 +1484,7 @@ function ApiReferencePage() {
         language="json"
       />
 
-      <h3 className="font-heading font-semibold text-[20px] text-[#1A1A1A] mt-8 mb-3">
+      <h3 className="font-heading font-semibold text-[20px] text-[#12101A] mt-8 mb-3">
         GET /runs/:id
       </h3>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
@@ -1496,7 +1496,7 @@ function ApiReferencePage() {
         language="json"
       />
 
-      <h3 className="font-heading font-semibold text-[20px] text-[#1A1A1A] mt-8 mb-3">
+      <h3 className="font-heading font-semibold text-[20px] text-[#12101A] mt-8 mb-3">
         GET /runs/:id/report
       </h3>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
@@ -1510,14 +1510,14 @@ function ApiReferencePage() {
         language="text"
       />
 
-      <h3 className="font-heading font-semibold text-[20px] text-[#1A1A1A] mt-8 mb-3">
+      <h3 className="font-heading font-semibold text-[20px] text-[#12101A] mt-8 mb-3">
         GET /repositories
       </h3>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
         List connected repositories.
       </p>
 
-      <h3 className="font-heading font-semibold text-[20px] text-[#1A1A1A] mt-8 mb-3">
+      <h3 className="font-heading font-semibold text-[20px] text-[#12101A] mt-8 mb-3">
         POST /repositories
       </h3>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
@@ -1529,7 +1529,7 @@ function ApiReferencePage() {
         language="json"
       />
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Rate Limits
       </h2>
       <DocTable
@@ -1541,7 +1541,7 @@ function ApiReferencePage() {
         ]}
       />
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Error Codes
       </h2>
       <DocTable
@@ -1565,18 +1565,18 @@ function ApiReferencePage() {
 function TroubleshootingPage() {
   return (
     <div>
-      <h1 className="font-heading font-semibold text-[36px] text-[#1A1A1A] mb-6">
+      <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">
         Troubleshooting
       </h1>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
         Common issues and solutions. If your problem isn't listed here, contact{' '}
-        <a href="mailto:support@testforge.dev" className="text-[#5A8F5E] hover:underline">
+        <a href="mailto:support@testforge.dev" className="text-[#574a7d] hover:underline">
           support@testforge.dev
         </a>
         .
       </p>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         "Repository not found" error
       </h2>
       <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
@@ -1585,7 +1585,7 @@ function TroubleshootingPage() {
         <li>Check that the branch name exists</li>
       </ul>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Tests timing out
       </h2>
       <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
@@ -1602,7 +1602,7 @@ function TroubleshootingPage() {
         </li>
       </ul>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         MCP server not responding
       </h2>
       <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
@@ -1620,7 +1620,7 @@ function TroubleshootingPage() {
         </li>
       </ul>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         "Rate limit exceeded" error
       </h2>
       <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
@@ -1629,7 +1629,7 @@ function TroubleshootingPage() {
         <li>Consider upgrading to Pro for higher limits</li>
       </ul>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#1A1A1A] mt-10 mb-4">
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Getting Help
       </h2>
       <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
@@ -1638,7 +1638,7 @@ function TroubleshootingPage() {
           Check{' '}
           <a
             href="https://github.com/testforge/issues"
-            className="text-[#5A8F5E] hover:underline"
+            className="text-[#574a7d] hover:underline"
           >
             GitHub Issues
           </a>
@@ -1647,7 +1647,7 @@ function TroubleshootingPage() {
           Email:{' '}
           <a
             href="mailto:support@testforge.dev"
-            className="text-[#5A8F5E] hover:underline"
+            className="text-[#574a7d] hover:underline"
           >
             support@testforge.dev
           </a>
@@ -1664,20 +1664,20 @@ function TroubleshootingPage() {
 function ChangelogPage() {
   return (
     <div>
-      <h1 className="font-heading font-semibold text-[36px] text-[#1A1A1A] mb-6">
+      <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">
         Changelog
       </h1>
 
       <div className="space-y-10">
         <div>
           <div className="flex items-center gap-3 mb-3">
-            <h2 className="font-heading font-semibold text-[22px] text-[#1A1A1A]">
+            <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
               v2.0.0
             </h2>
             <span className="font-mono text-[12px] text-[#9A9A9A]">
               2026-01-15
             </span>
-            <span className="font-mono font-medium text-[11px] uppercase px-2 py-0.5 rounded bg-[#E8F0E8] text-[#5A8F5E]">
+            <span className="font-mono font-medium text-[11px] uppercase px-2 py-0.5 rounded bg-[#E8E5FF] text-[#574a7d]">
               Latest
             </span>
           </div>
@@ -1697,7 +1697,7 @@ function ChangelogPage() {
 
         <div>
           <div className="flex items-center gap-3 mb-3">
-            <h2 className="font-heading font-semibold text-[22px] text-[#1A1A1A]">
+            <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
               v1.9.0
             </h2>
             <span className="font-mono text-[12px] text-[#9A9A9A]">
@@ -1715,7 +1715,7 @@ function ChangelogPage() {
 
         <div>
           <div className="flex items-center gap-3 mb-3">
-            <h2 className="font-heading font-semibold text-[22px] text-[#1A1A1A]">
+            <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
               v1.8.0
             </h2>
             <span className="font-mono text-[12px] text-[#9A9A9A]">
@@ -1787,7 +1787,7 @@ function RightTOC({ headings }: { headings: string[] }) {
                 }}
                 className={`block text-[13px] py-1 transition-colors duration-200
                   ${isH3 ? 'pl-4 text-[#6B6B6B]' : 'text-[#333333] font-medium'}
-                  ${isActive ? 'text-[#5A8F5E] border-l-2 border-[#5A8F5E] -ml-[1px] pl-3' : 'hover:text-[#1A1A1A]'}
+                  ${isActive ? 'text-[#574a7d] border-l-2 border-[#574a7d] -ml-[1px] pl-3' : 'hover:text-[#12101A]'}
                   ${isActive && isH3 ? 'pl-[calc(1rem-1px)]' : ''}
                 `}
               >
@@ -1808,23 +1808,23 @@ function McpIdeSetupPage() {
   return (
     <div className="space-y-10">
       <div>
-        <p className="text-label-mono text-[#5A8F5E] mb-3">// INSTALLATION</p>
-        <h1 className="text-display-md text-[#1A1A1A] mb-2">MCP IDE Setup</h1>
+        <p className="text-label-mono text-[#574a7d] mb-3">// INSTALLATION</p>
+        <h1 className="text-display-md text-[#12101A] mb-2">MCP IDE Setup</h1>
         <p className="text-body-lg text-[#6B6B6B]">
           Install the TestForge MCP server in your IDE for AI-powered testing directly from your editor.
         </p>
       </div>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">What is MCP?</h2>
+        <h2 className="text-heading-sm text-[#12101A] mb-4">What is MCP?</h2>
         <p className="text-body-md text-[#6B6B6B] mb-4">
           The <strong>Model Context Protocol (MCP)</strong> is an open standard that enables AI coding assistants (like Cursor, Claude Code, Windsurf) to communicate with external tools. TestForge implements MCP so your AI assistant can run tests, analyze code, and generate reports — without leaving your IDE.
         </p>
       </section>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">One-Command Installation</h2>
-        <div className="bg-[#1A1A1A] rounded-lg p-4 font-mono text-sm text-[#A3C9A5] overflow-x-auto mb-4">
+        <h2 className="text-heading-sm text-[#12101A] mb-4">One-Command Installation</h2>
+        <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm text-[#a39fd4] overflow-x-auto mb-4">
           npx @testforge/mcp install
         </div>
         <p className="text-body-md text-[#6B6B6B] mb-4">
@@ -1840,28 +1840,28 @@ function McpIdeSetupPage() {
       </section>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Manual Setup (Cursor)</h2>
+        <h2 className="text-heading-sm text-[#12101A] mb-4">Manual Setup (Cursor)</h2>
         <ol className="space-y-4 text-body-md text-[#6B6B6B]">
           <li className="flex gap-3">
-            <span className="font-mono text-[#5A8F5E] font-bold">1.</span>
+            <span className="font-mono text-[#574a7d] font-bold">1.</span>
             <span>Open Cursor Settings → Features → MCP</span>
           </li>
           <li className="flex gap-3">
-            <span className="font-mono text-[#5A8F5E] font-bold">2.</span>
+            <span className="font-mono text-[#574a7d] font-bold">2.</span>
             <span>Click <strong>Add New MCP Server</strong></span>
           </li>
           <li className="flex gap-3">
-            <span className="font-mono text-[#5A8F5E] font-bold">3.</span>
+            <span className="font-mono text-[#574a7d] font-bold">3.</span>
             <span>Configure with the following JSON:</span>
           </li>
         </ol>
-        <div className="bg-[#1A1A1A] rounded-lg p-4 font-mono text-sm mt-4 overflow-x-auto">
-          <pre className="text-[#A3C9A5]">{`{\n  "mcpServers": {\n    "testforge": {\n      "command": "npx",\n      "args": ["-y", "@testforge/mcp", "serve"],\n      "env": {\n        "TESTFORGE_MCP_PORT": "3001"\n      }\n    }\n  }\n}`}</pre>
+        <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm mt-4 overflow-x-auto">
+          <pre className="text-[#a39fd4]">{`{\n  "mcpServers": {\n    "testforge": {\n      "command": "npx",\n      "args": ["-y", "@testforge/mcp", "serve"],\n      "env": {\n        "TESTFORGE_MCP_PORT": "3001"\n      }\n    }\n  }\n}`}</pre>
         </div>
       </section>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Available MCP Tools</h2>
+        <h2 className="text-heading-sm text-[#12101A] mb-4">Available MCP Tools</h2>
         <div className="space-y-3">
           {[
             { tool: 'testforge_analyze', desc: 'Scan your codebase for endpoints, dependencies, tech stack, and structure' },
@@ -1870,7 +1870,7 @@ function McpIdeSetupPage() {
             { tool: 'testforge_report', desc: 'Generate a structured PRD report from test results' },
           ].map(t => (
             <div key={t.tool} className="border border-[#D9D9D3] rounded-lg p-4">
-              <code className="font-mono text-sm text-[#5A8F5E] font-medium">{t.tool}</code>
+              <code className="font-mono text-sm text-[#574a7d] font-medium">{t.tool}</code>
               <p className="text-body-md text-[#6B6B6B] mt-1">{t.desc}</p>
             </div>
           ))}
@@ -1878,13 +1878,13 @@ function McpIdeSetupPage() {
       </section>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Example: Test Your Project</h2>
+        <h2 className="text-heading-sm text-[#12101A] mb-4">Example: Test Your Project</h2>
         <p className="text-body-md text-[#6B6B6B] mb-4">Once installed, just ask your AI assistant:</p>
-        <div className="bg-[#E8F0E8] border border-[#A3C9A5] rounded-lg p-4 text-body-md text-[#333333]">
+        <div className="bg-[#E8E5FF] border border-[#a39fd4] rounded-lg p-4 text-body-md text-[#333333]">
           "Run a security scan on this project"
         </div>
         <p className="text-body-md text-[#6B6B6B] mt-4">Or more specifically:</p>
-        <div className="bg-[#E8F0E8] border border-[#A3C9A5] rounded-lg p-4 text-body-md text-[#333333] mt-2">
+        <div className="bg-[#E8E5FF] border border-[#a39fd4] rounded-lg p-4 text-body-md text-[#333333] mt-2">
           "Test this project for security issues, check unit test coverage, and generate a PRD report"
         </div>
       </section>
@@ -1899,15 +1899,15 @@ function SelfHostedFlyioPage() {
   return (
     <div className="space-y-10">
       <div>
-        <p className="text-label-mono text-[#5A8F5E] mb-3">// INSTALLATION</p>
-        <h1 className="text-display-md text-[#1A1A1A] mb-2">Self-Hosted on Fly.io</h1>
+        <p className="text-label-mono text-[#574a7d] mb-3">// INSTALLATION</p>
+        <h1 className="text-display-md text-[#12101A] mb-2">Self-Hosted on Fly.io</h1>
         <p className="text-body-lg text-[#6B6B6B]">
           Deploy your own TestForge MCP server on Fly.io — your code never leaves your infrastructure.
         </p>
       </div>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Why Self-Host?</h2>
+        <h2 className="text-heading-sm text-[#12101A] mb-4">Why Self-Host?</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           {[
             { icon: '🔒', title: 'Privacy First', desc: 'Your source code never leaves your machine. All analysis happens in your container.' },
@@ -1917,7 +1917,7 @@ function SelfHostedFlyioPage() {
           ].map(f => (
             <div key={f.title} className="border border-[#D9D9D3] rounded-lg p-4">
               <div className="text-2xl mb-2">{f.icon}</div>
-              <h3 className="font-medium text-[#1A1A1A] mb-1">{f.title}</h3>
+              <h3 className="font-medium text-[#12101A] mb-1">{f.title}</h3>
               <p className="text-sm text-[#6B6B6B]">{f.desc}</p>
             </div>
           ))}
@@ -1925,31 +1925,31 @@ function SelfHostedFlyioPage() {
       </section>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Quick Deploy (5 minutes)</h2>
+        <h2 className="text-heading-sm text-[#12101A] mb-4">Quick Deploy (5 minutes)</h2>
         <div className="space-y-6">
           <div>
-            <p className="font-mono text-xs text-[#5A8F5E] uppercase tracking-wider mb-2">Step 1: Clone the Repository</p>
-            <div className="bg-[#1A1A1A] rounded-lg p-4 font-mono text-sm text-[#A3C9A5] overflow-x-auto">
+            <p className="font-mono text-xs text-[#574a7d] uppercase tracking-wider mb-2">Step 1: Clone the Repository</p>
+            <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm text-[#a39fd4] overflow-x-auto">
               git clone https://github.com/t4tarzan/testforge.git<br/>
               cd testforge/mcp-server
             </div>
           </div>
           <div>
-            <p className="font-mono text-xs text-[#5A8F5E] uppercase tracking-wider mb-2">Step 2: Install Fly.io CLI</p>
-            <div className="bg-[#1A1A1A] rounded-lg p-4 font-mono text-sm text-[#A3C9A5] overflow-x-auto">
+            <p className="font-mono text-xs text-[#574a7d] uppercase tracking-wider mb-2">Step 2: Install Fly.io CLI</p>
+            <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm text-[#a39fd4] overflow-x-auto">
               curl -L https://fly.io/install.sh | sh
             </div>
           </div>
           <div>
-            <p className="font-mono text-xs text-[#5A8F5E] uppercase tracking-wider mb-2">Step 3: Login & Deploy</p>
-            <div className="bg-[#1A1A1A] rounded-lg p-4 font-mono text-sm text-[#A3C9A5] overflow-x-auto">
+            <p className="font-mono text-xs text-[#574a7d] uppercase tracking-wider mb-2">Step 3: Login & Deploy</p>
+            <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm text-[#a39fd4] overflow-x-auto">
               flyctl auth login<br/>
               flyctl launch --now
             </div>
           </div>
           <div>
-            <p className="font-mono text-xs text-[#5A8F5E] uppercase tracking-wider mb-2">Step 4: Verify</p>
-            <div className="bg-[#1A1A1A] rounded-lg p-4 font-mono text-sm text-[#A3C9A5] overflow-x-auto">
+            <p className="font-mono text-xs text-[#574a7d] uppercase tracking-wider mb-2">Step 4: Verify</p>
+            <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm text-[#a39fd4] overflow-x-auto">
               curl https://your-app.fly.dev/health
             </div>
           </div>
@@ -1957,15 +1957,15 @@ function SelfHostedFlyioPage() {
       </section>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Configuration</h2>
+        <h2 className="text-heading-sm text-[#12101A] mb-4">Configuration</h2>
         <p className="text-body-md text-[#6B6B6B] mb-4">Set these environment variables in your Fly.io app:</p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[#D9D9D3]">
-                <th className="text-left py-2 px-3 font-mono text-[#5A8F5E]">Variable</th>
-                <th className="text-left py-2 px-3 font-mono text-[#5A8F5E]">Default</th>
-                <th className="text-left py-2 px-3 font-mono text-[#5A8F5E]">Description</th>
+                <th className="text-left py-2 px-3 font-mono text-[#574a7d]">Variable</th>
+                <th className="text-left py-2 px-3 font-mono text-[#574a7d]">Default</th>
+                <th className="text-left py-2 px-3 font-mono text-[#574a7d]">Description</th>
               </tr>
             </thead>
             <tbody className="text-[#6B6B6B]">
@@ -1978,7 +1978,7 @@ function SelfHostedFlyioPage() {
       </section>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Your Server Endpoints</h2>
+        <h2 className="text-heading-sm text-[#12101A] mb-4">Your Server Endpoints</h2>
         <div className="space-y-3">
           {[
             { method: 'GET', path: '/health', desc: 'Health check — verify your server is running' },
@@ -1989,8 +1989,8 @@ function SelfHostedFlyioPage() {
             { method: 'GET', path: '/report/:id', desc: 'Get a generated test report' },
           ].map(e => (
             <div key={e.path} className="flex items-start gap-3 border border-[#D9D9D3] rounded-lg p-3">
-              <span className="font-mono text-xs px-2 py-0.5 rounded bg-[#E8F0E8] text-[#5A8F5E] font-medium flex-shrink-0">{e.method}</span>
-              <div><code className="font-mono text-sm text-[#1A1A1A]">{e.path}</code><p className="text-sm text-[#6B6B6B]">{e.desc}</p></div>
+              <span className="font-mono text-xs px-2 py-0.5 rounded bg-[#E8E5FF] text-[#574a7d] font-medium flex-shrink-0">{e.method}</span>
+              <div><code className="font-mono text-sm text-[#12101A]">{e.path}</code><p className="text-sm text-[#6B6B6B]">{e.desc}</p></div>
             </div>
           ))}
         </div>
@@ -2006,15 +2006,15 @@ function McpUsageGuidePage() {
   return (
     <div className="space-y-10">
       <div>
-        <p className="text-label-mono text-[#5A8F5E] mb-3">// GUIDES</p>
-        <h1 className="text-display-md text-[#1A1A1A] mb-2">MCP Usage Guide</h1>
+        <p className="text-label-mono text-[#574a7d] mb-3">// GUIDES</p>
+        <h1 className="text-display-md text-[#12101A] mb-2">MCP Usage Guide</h1>
         <p className="text-body-lg text-[#6B6B6B]">
           Learn how to use TestForge through the MCP protocol — automate testing from your IDE, CI/CD, or any MCP-compatible client.
         </p>
       </div>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Quick Start Flow</h2>
+        <h2 className="text-heading-sm text-[#12101A] mb-4">Quick Start Flow</h2>
         <div className="space-y-4">
           {[
             { step: '1', title: 'Install MCP Server', cmd: 'npx @testforge/mcp install' },
@@ -2024,10 +2024,10 @@ function McpUsageGuidePage() {
             { step: '5', title: 'Generate Report', cmd: '"Generate a PRD from the test results"' },
           ].map(s => (
             <div key={s.step} className="flex gap-4 border border-[#D9D9D3] rounded-lg p-4">
-              <div className="w-8 h-8 rounded-full bg-[#5A8F5E] text-white flex items-center justify-center font-bold text-sm flex-shrink-0">{s.step}</div>
+              <div className="w-8 h-8 rounded-full bg-[#574a7d] text-white flex items-center justify-center font-bold text-sm flex-shrink-0">{s.step}</div>
               <div>
-                <h3 className="font-medium text-[#1A1A1A]">{s.title}</h3>
-                {s.cmd && <div className="bg-[#E8F0E8] rounded px-3 py-1.5 mt-2 font-mono text-sm text-[#333333]">{s.cmd}</div>}
+                <h3 className="font-medium text-[#12101A]">{s.title}</h3>
+                {s.cmd && <div className="bg-[#E8E5FF] rounded px-3 py-1.5 mt-2 font-mono text-sm text-[#333333]">{s.cmd}</div>}
                 {s.desc && <p className="text-sm text-[#6B6B6B] mt-1">{s.desc}</p>}
               </div>
             </div>
@@ -2036,7 +2036,7 @@ function McpUsageGuidePage() {
       </section>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">MCP Protocol Endpoints</h2>
+        <h2 className="text-heading-sm text-[#12101A] mb-4">MCP Protocol Endpoints</h2>
         <p className="text-body-md text-[#6B6B6B] mb-4">If you want to integrate TestForge with your own MCP client, here are the available tools:</p>
         <div className="space-y-3">
           {[
@@ -2046,7 +2046,7 @@ function McpUsageGuidePage() {
             { tool: 'testforge_report', params: '{ testRunId: string, format?: "json"|"markdown" }', returns: 'Structured PRD report with phases' },
           ].map(t => (
             <div key={t.tool} className="border border-[#D9D9D3] rounded-lg p-4">
-              <code className="font-mono text-sm text-[#5A8F5E] font-medium">{t.tool}</code>
+              <code className="font-mono text-sm text-[#574a7d] font-medium">{t.tool}</code>
               <div className="mt-2 text-sm"><span className="text-[#9A9A9A]">Params: </span><code className="text-[#6B6B6B]">{t.params}</code></div>
               <div className="text-sm mt-1"><span className="text-[#9A9A9A]">Returns: </span><span className="text-[#6B6B6B]">{t.returns}</span></div>
             </div>
@@ -2055,17 +2055,17 @@ function McpUsageGuidePage() {
       </section>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Real-Time Progress with SSE</h2>
+        <h2 className="text-heading-sm text-[#12101A] mb-4">Real-Time Progress with SSE</h2>
         <p className="text-body-md text-[#6B6B6B] mb-4">TestForge streams progress updates via Server-Sent Events:</p>
-        <div className="bg-[#1A1A1A] rounded-lg p-4 font-mono text-sm text-[#A3C9A5] overflow-x-auto">
+        <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm text-[#a39fd4] overflow-x-auto">
           {`const events = new EventSource('http://localhost:3001/mcp/sse');\nevents.onmessage = (event) => {\n  const data = JSON.parse(event.data);\n  console.log(data.type, data.stage, data.progress + '%');\n};`}
         </div>
       </section>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">CI/CD Integration via MCP</h2>
+        <h2 className="text-heading-sm text-[#12101A] mb-4">CI/CD Integration via MCP</h2>
         <p className="text-body-md text-[#6B6B6B] mb-4">Call TestForge MCP tools from your CI/CD pipeline:</p>
-        <div className="bg-[#1A1A1A] rounded-lg p-4 font-mono text-sm text-[#A3C9A5] overflow-x-auto">
+        <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm text-[#a39fd4] overflow-x-auto">
           {`- name: TestForge Security Scan\n  run: |\n    curl -X POST https://your-server.fly.dev/analyze \\\\\\n      -H "Content-Type: application/json" \\\\\\n      -d '{"projectPath": "."}'`}
         </div>
       </section>
@@ -2080,29 +2080,29 @@ function ContainerDeploymentPage() {
   return (
     <div className="space-y-10">
       <div>
-        <p className="text-label-mono text-[#5A8F5E] mb-3">// GUIDES</p>
-        <h1 className="text-display-md text-[#1A1A1A] mb-2">Container Deployment</h1>
+        <p className="text-label-mono text-[#574a7d] mb-3">// GUIDES</p>
+        <h1 className="text-display-md text-[#12101A] mb-2">Container Deployment</h1>
         <p className="text-body-lg text-[#6B6B6B]">
           Deploy TestForge MCP server as a container — works with Fly.io, Docker, Railway, Render, or any container platform.
         </p>
       </div>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Docker Deployment</h2>
-        <div className="bg-[#1A1A1A] rounded-lg p-4 font-mono text-sm text-[#A3C9A5] overflow-x-auto">
+        <h2 className="text-heading-sm text-[#12101A] mb-4">Docker Deployment</h2>
+        <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm text-[#a39fd4] overflow-x-auto">
           {`docker build -t testforge-mcp .\ndocker run -p 3001:3001 \\\\\\n  -e DATABASE_URL=your_neon_url \\\\\\n  testforge-mcp`}
         </div>
       </section>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Docker Compose (with DB)</h2>
-        <div className="bg-[#1A1A1A] rounded-lg p-4 font-mono text-sm text-[#A3C9A5] overflow-x-auto">
+        <h2 className="text-heading-sm text-[#12101A] mb-4">Docker Compose (with DB)</h2>
+        <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm text-[#a39fd4] overflow-x-auto">
           {`version: '3.8'\nservices:\n  testforge:\n    build: ./mcp-server\n    ports:\n      - "3001:3001"\n    environment:\n      - DATABASE_URL=postgresql://user:pass@db:5432/testforge\n  db:\n    image: postgres:16\n    environment:\n      - POSTGRES_USER=user\n      - POSTGRES_PASSWORD=pass\n      - POSTGRES_DB=testforge`}
         </div>
       </section>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Other Container Platforms</h2>
+        <h2 className="text-heading-sm text-[#12101A] mb-4">Other Container Platforms</h2>
         <div className="space-y-4">
           {[
             { platform: 'Railway', steps: '1. Create new service → Deploy from GitHub repo\n2. Set DATABASE_URL env var\n3. Railway auto-detects Dockerfile and deploys' },
@@ -2111,7 +2111,7 @@ function ContainerDeploymentPage() {
             { platform: 'AWS ECS / Fargate', steps: '1. Push image to ECR\n2. Create ECS task definition with port 3001\n3. Create Fargate service with DATABASE_URL secret' },
           ].map(p => (
             <div key={p.platform} className="border border-[#D9D9D3] rounded-lg p-4">
-              <h3 className="font-medium text-[#1A1A1A] mb-2">{p.platform}</h3>
+              <h3 className="font-medium text-[#12101A] mb-2">{p.platform}</h3>
               <pre className="text-sm text-[#6B6B6B] whitespace-pre-line font-body">{p.steps}</pre>
             </div>
           ))}
@@ -2119,14 +2119,14 @@ function ContainerDeploymentPage() {
       </section>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Resource Requirements</h2>
+        <h2 className="text-heading-sm text-[#12101A] mb-4">Resource Requirements</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[#D9D9D3]">
-                <th className="text-left py-2 px-3 font-mono text-[#5A8F5E]">Resource</th>
-                <th className="text-left py-2 px-3 font-mono text-[#5A8F5E]">Minimum</th>
-                <th className="text-left py-2 px-3 font-mono text-[#5A8F5E]">Recommended</th>
+                <th className="text-left py-2 px-3 font-mono text-[#574a7d]">Resource</th>
+                <th className="text-left py-2 px-3 font-mono text-[#574a7d]">Minimum</th>
+                <th className="text-left py-2 px-3 font-mono text-[#574a7d]">Recommended</th>
               </tr>
             </thead>
             <tbody className="text-[#6B6B6B]">
@@ -2219,7 +2219,7 @@ export default function Docs() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-[#1A1A1A]/50 z-40 lg:hidden"
+            className="fixed inset-0 bg-[#12101A]/50 z-40 lg:hidden"
             onClick={() => setMobileOpen(false)}
           />
         )}
@@ -2228,7 +2228,7 @@ export default function Docs() {
       {/* Mobile hamburger */}
       <button
         onClick={() => setMobileOpen(!mobileOpen)}
-        className="fixed bottom-6 right-6 z-50 lg:hidden w-12 h-12 rounded-full bg-[#5A8F5E] text-white shadow-lg flex items-center justify-center"
+        className="fixed bottom-6 right-6 z-50 lg:hidden w-12 h-12 rounded-full bg-[#574a7d] text-white shadow-lg flex items-center justify-center"
       >
         {mobileOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
@@ -2258,9 +2258,9 @@ export default function Docs() {
             <input
               type="text"
               placeholder="Search documentation..."
-              className="w-full h-10 bg-[#F5F5F0] border border-[#D9D9D3] rounded-lg pl-10 pr-4
+              className="w-full h-10 bg-[#F7F7FB] border border-[#D9D9D3] rounded-lg pl-10 pr-4
                 font-body text-[14px] text-[#333333]
-                focus:outline-none focus:border-[#5A8F5E] transition-colors"
+                focus:outline-none focus:border-[#574a7d] transition-colors"
             />
           </div>
         </div>
@@ -2283,8 +2283,8 @@ export default function Docs() {
                           border-l-2 transition-all duration-200
                           ${
                             isActive
-                              ? 'text-[#5A8F5E] border-[#5A8F5E] bg-[rgba(90,143,94,0.04)]'
-                              : 'text-[#333333] border-transparent hover:bg-[#F5F5F0] hover:text-[#1A1A1A]'
+                              ? 'text-[#574a7d] border-[#574a7d] bg-[rgba(90,143,94,0.04)]'
+                              : 'text-[#333333] border-transparent hover:bg-[#F7F7FB] hover:text-[#12101A]'
                           }`}
                       >
                         {item}
@@ -2303,8 +2303,8 @@ export default function Docs() {
             Version
           </p>
           <select
-            className="w-full h-9 bg-[#F5F5F0] border border-[#D9D9D3] rounded-md px-3
-              font-body text-[13px] text-[#333333] focus:outline-none focus:border-[#5A8F5E]"
+            className="w-full h-9 bg-[#F7F7FB] border border-[#D9D9D3] rounded-md px-3
+              font-body text-[13px] text-[#333333] focus:outline-none focus:border-[#574a7d]"
           >
             <option>v2.0 (current)</option>
             <option>v1.9</option>

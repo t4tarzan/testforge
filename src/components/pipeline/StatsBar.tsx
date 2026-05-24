@@ -29,7 +29,7 @@ const StatCard = memo(function StatCard({ stat, index }: { stat: Stat; index: nu
       }}
       className="bg-white rounded-2xl p-8 text-center border border-[#D9D9D3] shadow-card"
     >
-      <div className="font-heading font-bold text-[42px] sm:text-[48px] text-[#5A8F5E] leading-none tracking-tight">
+      <div className="font-heading font-bold text-[42px] sm:text-[48px] text-[#574a7d] leading-none tracking-tight">
         <CountUp
           end={stat.value}
           duration={2.5}
@@ -49,7 +49,7 @@ const StatCard = memo(function StatCard({ stat, index }: { stat: Stat; index: nu
 
 export default function StatsBar() {
   return (
-    <section className="relative bg-[#F5F5F0] py-16 lg:py-20 px-6 sm:px-12 lg:px-16">
+    <section className="relative bg-[#F7F7FB] py-16 lg:py-20 px-6 sm:px-12 lg:px-16">
       <div className="max-w-[1200px] mx-auto">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
           {stats.map((stat, i) => (

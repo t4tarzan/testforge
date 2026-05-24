@@ -25,7 +25,7 @@ const FloatingParticles = () => {
       {particles.map((p, i) => (
         <motion.div
           key={i}
-          className="absolute rounded-full bg-[#5A8F5E]"
+          className="absolute rounded-full bg-[#574a7d]"
           style={{
             width: p.size,
             height: p.size,
@@ -53,35 +53,35 @@ const NodeWatermark = () => (
     className="absolute bottom-0 right-0 w-[500px] h-[500px] opacity-[0.03] pointer-events-none"
     style={{ transform: 'translate(30%, 30%)' }}
   >
-    <circle cx="50" cy="50" r="8" stroke="#5A8F5E" strokeWidth="1.5" fill="none" />
-    <circle cx="150" cy="50" r="8" stroke="#5A8F5E" strokeWidth="1.5" fill="none" />
-    <circle cx="50" cy="150" r="8" stroke="#5A8F5E" strokeWidth="1.5" fill="none" />
-    <circle cx="150" cy="150" r="8" stroke="#5A8F5E" strokeWidth="1.5" fill="none" />
-    <circle cx="100" cy="100" r="6" stroke="#5A8F5E" strokeWidth="1.5" fill="none" />
-    <line x1="58" y1="50" x2="142" y2="50" stroke="#5A8F5E" strokeWidth="1" />
-    <line x1="50" y1="58" x2="50" y2="142" stroke="#5A8F5E" strokeWidth="1" />
-    <line x1="58" y1="150" x2="142" y2="150" stroke="#5A8F5E" strokeWidth="1" />
-    <line x1="150" y1="58" x2="150" y2="142" stroke="#5A8F5E" strokeWidth="1" />
-    <line x1="57" y1="57" x2="93" y2="93" stroke="#5A8F5E" strokeWidth="1" />
-    <line x1="143" y1="57" x2="107" y2="93" stroke="#5A8F5E" strokeWidth="1" />
-    <line x1="57" y1="143" x2="93" y2="107" stroke="#5A8F5E" strokeWidth="1" />
-    <line x1="143" y1="143" x2="107" y2="107" stroke="#5A8F5E" strokeWidth="1" />
+    <circle cx="50" cy="50" r="8" stroke="#574a7d" strokeWidth="1.5" fill="none" />
+    <circle cx="150" cy="50" r="8" stroke="#574a7d" strokeWidth="1.5" fill="none" />
+    <circle cx="50" cy="150" r="8" stroke="#574a7d" strokeWidth="1.5" fill="none" />
+    <circle cx="150" cy="150" r="8" stroke="#574a7d" strokeWidth="1.5" fill="none" />
+    <circle cx="100" cy="100" r="6" stroke="#574a7d" strokeWidth="1.5" fill="none" />
+    <line x1="58" y1="50" x2="142" y2="50" stroke="#574a7d" strokeWidth="1" />
+    <line x1="50" y1="58" x2="50" y2="142" stroke="#574a7d" strokeWidth="1" />
+    <line x1="58" y1="150" x2="142" y2="150" stroke="#574a7d" strokeWidth="1" />
+    <line x1="150" y1="58" x2="150" y2="142" stroke="#574a7d" strokeWidth="1" />
+    <line x1="57" y1="57" x2="93" y2="93" stroke="#574a7d" strokeWidth="1" />
+    <line x1="143" y1="57" x2="107" y2="93" stroke="#574a7d" strokeWidth="1" />
+    <line x1="57" y1="143" x2="93" y2="107" stroke="#574a7d" strokeWidth="1" />
+    <line x1="143" y1="143" x2="107" y2="107" stroke="#574a7d" strokeWidth="1" />
   </svg>
 );
 
 // ── Logo ───────────────────────────────────────────────────────────────────
 const LogoIcon = () => (
   <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-    <circle cx="8" cy="8" r="3" stroke="#5A8F5E" strokeWidth="2" fill="none" />
-    <circle cx="24" cy="8" r="3" stroke="#5A8F5E" strokeWidth="2" fill="none" />
-    <circle cx="8" cy="24" r="3" stroke="#5A8F5E" strokeWidth="2" fill="none" />
-    <circle cx="24" cy="24" r="3" stroke="#5A8F5E" strokeWidth="2" fill="none" />
-    <line x1="11" y1="8" x2="21" y2="8" stroke="#5A8F5E" strokeWidth="1.5" />
-    <line x1="8" y1="11" x2="8" y2="21" stroke="#5A8F5E" strokeWidth="1.5" />
-    <line x1="11" y1="24" x2="21" y2="24" stroke="#5A8F5E" strokeWidth="1.5" />
-    <line x1="24" y1="11" x2="24" y2="21" stroke="#5A8F5E" strokeWidth="1.5" />
-    <line x1="10.1" y1="10.1" x2="21.9" y2="21.9" stroke="#5A8F5E" strokeWidth="1.5" />
-    <circle cx="16" cy="16" r="2" fill="#5A8F5E" />
+    <circle cx="8" cy="8" r="3" stroke="#574a7d" strokeWidth="2" fill="none" />
+    <circle cx="24" cy="8" r="3" stroke="#574a7d" strokeWidth="2" fill="none" />
+    <circle cx="8" cy="24" r="3" stroke="#574a7d" strokeWidth="2" fill="none" />
+    <circle cx="24" cy="24" r="3" stroke="#574a7d" strokeWidth="2" fill="none" />
+    <line x1="11" y1="8" x2="21" y2="8" stroke="#574a7d" strokeWidth="1.5" />
+    <line x1="8" y1="11" x2="8" y2="21" stroke="#574a7d" strokeWidth="1.5" />
+    <line x1="11" y1="24" x2="21" y2="24" stroke="#574a7d" strokeWidth="1.5" />
+    <line x1="24" y1="11" x2="24" y2="21" stroke="#574a7d" strokeWidth="1.5" />
+    <line x1="10.1" y1="10.1" x2="21.9" y2="21.9" stroke="#574a7d" strokeWidth="1.5" />
+    <circle cx="16" cy="16" r="2" fill="#574a7d" />
   </svg>
 );
 
@@ -121,10 +121,10 @@ const AuthInput = ({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full h-12 bg-white border rounded-[10px] pl-12 pr-12 font-body text-[15px] text-[#1A1A1A] placeholder:text-[#9A9A9A] transition-all duration-200 focus:outline-none ${
+        className={`w-full h-12 bg-white border rounded-[10px] pl-12 pr-12 font-body text-[15px] text-[#12101A] placeholder:text-[#9A9A9A] transition-all duration-200 focus:outline-none ${
           error
             ? 'border-[#D4524A] focus:border-[#D4524A] focus:shadow-[0_0_0_3px_rgba(212,82,74,0.1)]'
-            : 'border-[#D9D9D3] focus:border-[#5A8F5E] focus:shadow-[0_0_0_3px_rgba(90,143,94,0.1)]'
+            : 'border-[#D9D9D3] focus:border-[#574a7d] focus:shadow-[0_0_0_3px_rgba(90,143,94,0.1)]'
         }`}
       />
       {rightIcon && (
@@ -154,7 +154,7 @@ const PasswordStrength = ({ password }: { password: string }) => {
 
   const strength = getStrength(password);
   const labels = ['Weak', 'Fair', 'Good', 'Strong'];
-  const colors = ['#D4524A', '#E8A838', '#4A90D9', '#5A8F5E'];
+  const colors = ['#D4524A', '#E8A838', '#4A90D9', '#574a7d'];
 
   if (!password) return null;
 
@@ -166,7 +166,7 @@ const PasswordStrength = ({ password }: { password: string }) => {
             key={i}
             className="flex-1 h-1 rounded-full transition-all duration-300"
             style={{
-              backgroundColor: i <= strength ? colors[strength - 1] : '#EBEBE5',
+              backgroundColor: i <= strength ? colors[strength - 1] : '#ECEBF5',
             }}
           />
         ))}
@@ -193,7 +193,7 @@ const Toast = ({ message, type, onClose }: { message: string; type: 'error' | 's
       className={`flex items-center gap-2 px-4 py-3 rounded-lg border text-[14px] font-body ${
         type === 'error'
           ? 'bg-[rgba(212,82,74,0.08)] border-[rgba(212,82,74,0.2)] text-[#D4524A]'
-          : 'bg-[rgba(90,143,94,0.08)] border-[rgba(90,143,94,0.2)] text-[#5A8F5E]'
+          : 'bg-[rgba(90,143,94,0.08)] border-[rgba(90,143,94,0.2)] text-[#574a7d]'
       }`}
     >
       <AlertCircle size={16} />
@@ -285,7 +285,7 @@ export default function Auth() {
       initial={{ x: -30, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: easeOutExpo }}
-      className="hidden sm:flex w-[45%] lg:w-[45%] md:w-[40%] h-screen bg-[#1A1A1A] relative flex-col justify-between p-12 overflow-hidden"
+      className="hidden sm:flex w-[45%] lg:w-[45%] md:w-[40%] h-screen bg-[#12101A] relative flex-col justify-between p-12 overflow-hidden"
     >
       {/* Grid pattern */}
       <div
@@ -343,7 +343,7 @@ export default function Auth() {
             { value: 2, prefix: '< ', suffix: 'min', label: 'Avg Setup' },
           ].map((stat, i) => (
             <div key={i}>
-              <div className="font-heading font-bold text-[28px] text-[#7AAF7E]">
+              <div className="font-heading font-bold text-[28px] text-[#7a6fad]">
                 {stat.prefix || ''}
                 <CountUp end={stat.value} duration={1.5} decimals={stat.decimals || 0} />
                 {stat.suffix}
@@ -366,7 +366,7 @@ export default function Auth() {
             &ldquo;TestForge caught a critical SQL injection in our checkout flow that somehow made it through 3 code reviews. Absolutely essential tool.&rdquo;
           </p>
           <div className="flex items-center gap-3 mt-4">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#5A8F5E] to-[#7AAF7E] flex items-center justify-center text-white text-[13px] font-semibold">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#574a7d] to-[#7a6fad] flex items-center justify-center text-white text-[13px] font-semibold">
               MC
             </div>
             <div>
@@ -396,7 +396,7 @@ export default function Auth() {
         {/* Mobile logo */}
         <div className="sm:hidden flex items-center gap-3 mb-6">
           <LogoIcon />
-          <span className="font-heading font-semibold text-[18px] text-[#1A1A1A]">TestForge</span>
+          <span className="font-heading font-semibold text-[18px] text-[#12101A]">TestForge</span>
         </div>
 
         {/* Tab Switcher */}
@@ -411,7 +411,7 @@ export default function Auth() {
               }}
               className={`flex-1 pb-3 text-center font-body font-medium text-[15px] border-b-2 transition-all duration-200 ${
                 tab === t
-                  ? 'text-[#5A8F5E] border-[#5A8F5E]'
+                  ? 'text-[#574a7d] border-[#574a7d]'
                   : 'text-[#9A9A9A] border-transparent hover:text-[#333333] hover:border-[#D9D9D3]'
               }`}
             >
@@ -479,7 +479,7 @@ export default function Auth() {
                     onClick={() => setRememberMe(!rememberMe)}
                     className={`w-[18px] h-[18px] rounded-[5px] border-2 flex items-center justify-center transition-all duration-200 cursor-pointer ${
                       rememberMe
-                        ? 'bg-[#5A8F5E] border-[#5A8F5E]'
+                        ? 'bg-[#574a7d] border-[#574a7d]'
                         : 'border-[#D9D9D3] bg-white'
                     }`}
                   >
@@ -487,7 +487,7 @@ export default function Auth() {
                   </div>
                   <span className="text-[14px] text-[#6B6B6B] font-body">Remember me</span>
                 </label>
-                <button type="button" className="text-[13px] text-[#5A8F5E] font-medium font-body hover:underline">
+                <button type="button" className="text-[13px] text-[#574a7d] font-medium font-body hover:underline">
                   Forgot password?
                 </button>
               </motion.div>
@@ -499,7 +499,7 @@ export default function Auth() {
                 transition={{ delay: 0.15, duration: 0.3 }}
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-[52px] mt-6 bg-[#5A8F5E] text-white font-body font-medium text-[16px] rounded-[10px] hover:bg-[#4A7A4E] hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 disabled:opacity-80 flex items-center justify-center"
+                className="w-full h-[52px] mt-6 bg-[#574a7d] text-white font-body font-medium text-[16px] rounded-[10px] hover:bg-[#4a3d6b] hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 disabled:opacity-80 flex items-center justify-center"
               >
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -526,7 +526,7 @@ export default function Auth() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.25, duration: 0.3 }}
                 type="button"
-                className="w-full h-12 mt-4 bg-white border border-[#D9D9D3] rounded-[10px] flex items-center justify-center gap-3 text-[#333333] font-body font-medium text-[15px] hover:bg-[#F5F5F0] hover:border-[#A3C9A5] active:scale-[0.99] transition-all duration-200"
+                className="w-full h-12 mt-4 bg-white border border-[#D9D9D3] rounded-[10px] flex items-center justify-center gap-3 text-[#333333] font-body font-medium text-[15px] hover:bg-[#F7F7FB] hover:border-[#a39fd4] active:scale-[0.99] transition-all duration-200"
                 onClick={() => setToast({ message: 'GitHub OAuth coming soon!', type: 'error' })}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -599,7 +599,7 @@ export default function Auth() {
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="flex items-center gap-1 mt-1 text-[#5A8F5E] text-[13px] font-body"
+                  className="flex items-center gap-1 mt-1 text-[#574a7d] text-[13px] font-body"
                 >
                   <CheckCircle2 size={14} /> Passwords match
                 </motion.div>
@@ -616,7 +616,7 @@ export default function Auth() {
                   onClick={() => setAgreedToTerms(!agreedToTerms)}
                   className={`w-[18px] h-[18px] rounded-[5px] border-2 flex items-center justify-center transition-all duration-200 cursor-pointer flex-shrink-0 ${
                     agreedToTerms
-                      ? 'bg-[#5A8F5E] border-[#5A8F5E]'
+                      ? 'bg-[#574a7d] border-[#574a7d]'
                       : 'border-[#D9D9D3] bg-white'
                   }`}
                 >
@@ -624,9 +624,9 @@ export default function Auth() {
                 </div>
                 <span className="text-[14px] text-[#6B6B6B] font-body">
                   I agree to the{' '}
-                  <span className="text-[#5A8F5E] hover:underline cursor-pointer">Terms of Service</span>
+                  <span className="text-[#574a7d] hover:underline cursor-pointer">Terms of Service</span>
                   {' '}and{' '}
-                  <span className="text-[#5A8F5E] hover:underline cursor-pointer">Privacy Policy</span>
+                  <span className="text-[#574a7d] hover:underline cursor-pointer">Privacy Policy</span>
                 </span>
               </motion.label>
 
@@ -637,7 +637,7 @@ export default function Auth() {
                 transition={{ delay: 0.25, duration: 0.3 }}
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-[52px] mt-6 bg-[#5A8F5E] text-white font-body font-medium text-[16px] rounded-[10px] hover:bg-[#4A7A4E] hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 disabled:opacity-80 flex items-center justify-center"
+                className="w-full h-[52px] mt-6 bg-[#574a7d] text-white font-body font-medium text-[16px] rounded-[10px] hover:bg-[#4a3d6b] hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 disabled:opacity-80 flex items-center justify-center"
               >
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -664,7 +664,7 @@ export default function Auth() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.35, duration: 0.3 }}
                 type="button"
-                className="w-full h-12 mt-4 bg-white border border-[#D9D9D3] rounded-[10px] flex items-center justify-center gap-3 text-[#333333] font-body font-medium text-[15px] hover:bg-[#F5F5F0] hover:border-[#A3C9A5] active:scale-[0.99] transition-all duration-200"
+                className="w-full h-12 mt-4 bg-white border border-[#D9D9D3] rounded-[10px] flex items-center justify-center gap-3 text-[#333333] font-body font-medium text-[15px] hover:bg-[#F7F7FB] hover:border-[#a39fd4] active:scale-[0.99] transition-all duration-200"
                 onClick={() => setToast({ message: 'GitHub OAuth coming soon!', type: 'error' })}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">

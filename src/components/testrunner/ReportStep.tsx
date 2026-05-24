@@ -15,7 +15,7 @@ function SeverityBadge({ severity }: { severity: string }) {
     critical: 'bg-[rgba(212,82,74,0.1)] text-[#D4524A]',
     high: 'bg-[rgba(232,125,58,0.1)] text-[#E87D3A]',
     medium: 'bg-[rgba(232,168,56,0.1)] text-[#E8A838]',
-    low: 'bg-[rgba(90,143,94,0.1)] text-[#5A8F5E]',
+    low: 'bg-[rgba(90,143,94,0.1)] text-[#574a7d]',
   };
   return (
     <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-mono font-medium uppercase ${config[severity] || config.low}`}>
@@ -32,7 +32,7 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
     return (
       <div className="text-center py-12">
         <p className="text-[#6B6B6B]">No analysis results available.</p>
-        <button onClick={onRestart} className="mt-4 text-[#5A8F5E] font-medium">Try again</button>
+        <button onClick={onRestart} className="mt-4 text-[#574a7d] font-medium">Try again</button>
       </div>
     );
   }
@@ -50,7 +50,7 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
     (stack.score || 60) * 0.15
   );
 
-  const scoreColor = overallScore >= 80 ? '#5A8F5E' : overallScore >= 50 ? '#E8A838' : '#D4524A';
+  const scoreColor = overallScore >= 80 ? '#574a7d' : overallScore >= 50 ? '#E8A838' : '#D4524A';
 
   const handleExport = (format: string) => {
     setExportFormat(format);
@@ -73,9 +73,9 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
       
       content = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>TestForge Report</title>
         <style>body{font-family:-apple-system,sans-serif;max-width:800px;margin:40px auto;color:#333;line-height:1.6}
-        h1{color:#5A8F5E;border-bottom:2px solid #5A8F5E;padding-bottom:10px}
-        h2{color:#1A1A1A;margin-top:30px}.stat{display:inline-block;padding:10px 20px;margin:5px;background:#f5f5f0;border-radius:8px}
-        .stat b{display:block;font-size:24px;color:#5A8F5E}
+        h1{color:#574a7d;border-bottom:2px solid #574a7d;padding-bottom:10px}
+        h2{color:#12101A;margin-top:30px}.stat{display:inline-block;padding:10px 20px;margin:5px;background:#f5f5f0;border-radius:8px}
+        .stat b{display:block;font-size:24px;color:#574a7d}
         @media print{body{margin:20px}}</style></head><body>
         <h1>🧪 TestForge Analysis Report</h1>
         <p><strong>Repo:</strong> ${results.repo || 'Unknown'} · <strong>Branch:</strong> ${results.branch || 'main'}</p>
@@ -134,11 +134,11 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
     >
       {/* Header */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#E8F0E8] rounded-full mb-4">
-          <CheckCircle2 size={16} className="text-[#5A8F5E]" />
-          <span className="font-mono text-xs text-[#5A8F5E] font-medium">ANALYSIS COMPLETE</span>
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#E8E5FF] rounded-full mb-4">
+          <CheckCircle2 size={16} className="text-[#574a7d]" />
+          <span className="font-mono text-xs text-[#574a7d] font-medium">ANALYSIS COMPLETE</span>
         </div>
-        <h2 className="font-heading text-[28px] font-medium text-[#1A1A1A]">Test Report</h2>
+        <h2 className="font-heading text-[28px] font-medium text-[#12101A]">Test Report</h2>
         <p className="text-[#6B6B6B] mt-2">
           {results.repo && <span className="font-mono text-sm">{results.repo}</span>}
           {' · '}{codebase.totalFiles} files · {codebase.totalLines} lines
@@ -150,7 +150,7 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
         <div className="flex items-center gap-8">
           <div className="relative w-24 h-24 flex-shrink-0">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="42" fill="none" stroke="#EBEBE5" strokeWidth="8" />
+              <circle cx="50" cy="50" r="42" fill="none" stroke="#ECEBF5" strokeWidth="8" />
               <motion.circle
                 cx="50" cy="50" r="42" fill="none" stroke={scoreColor} strokeWidth="8"
                 strokeLinecap="round" strokeDasharray={2 * Math.PI * 42}
@@ -175,7 +175,7 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
               { label: 'A11y', value: `${accessibility.score || 0}/100` },
             ].map((stat) => (
               <div key={stat.label}>
-                <div className="text-2xl font-bold text-[#1A1A1A]">{stat.value}</div>
+                <div className="text-2xl font-bold text-[#12101A]">{stat.value}</div>
                 <div className="text-xs text-[#6B6B6B]">{stat.label}</div>
                 {stat.sub && <div className="text-[11px] text-[#D4524A]">{stat.sub}</div>}
               </div>
@@ -188,15 +188,15 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
       {security.items && security.items.length > 0 && (
         <div className="bg-white border border-[#D9D9D3] rounded-2xl p-6 mb-4">
           <div className="flex items-center gap-2 mb-4">
-            <Shield size={18} className="text-[#5A8F5E]" />
-            <h3 className="font-semibold text-[#1A1A1A]">Security Findings ({security.items.length})</h3>
+            <Shield size={18} className="text-[#574a7d]" />
+            <h3 className="font-semibold text-[#12101A]">Security Findings ({security.items.length})</h3>
           </div>
           <div className="space-y-2 max-h-[400px] overflow-y-auto">
             {security.items.slice(0, 15).map((finding: any, i: number) => (
               <div key={i} className="border border-[#D9D9D3] rounded-lg overflow-hidden">
                 <button
                   onClick={() => setExpandedFinding(expandedFinding === i ? null : i)}
-                  className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-[#F5F5F0] transition-colors"
+                  className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-[#F7F7FB] transition-colors"
                 >
                   <SeverityBadge severity={finding.severity} />
                   <div className="flex-1 min-w-0">
@@ -207,7 +207,7 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
                   </div>
                 </button>
                 {expandedFinding === i && finding.fixSuggestion && (
-                  <div className="px-4 pb-3 border-t border-[#D9D9D3] bg-[#F5F5F0] pt-3">
+                  <div className="px-4 pb-3 border-t border-[#D9D9D3] bg-[#F7F7FB] pt-3">
                     <p className="text-xs text-[#6B6B6B] font-mono uppercase mb-1">Fix</p>
                     <p className="text-sm text-[#333333]">{finding.fixSuggestion}</p>
                   </div>
@@ -223,8 +223,8 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
         <div className="bg-white border border-[#D9D9D3] rounded-2xl p-6 mb-4">
           <div className="flex items-center gap-2 mb-4">
             <Eye size={18} className="text-[#4A90D9]" />
-            <h3 className="font-semibold text-[#1A1A1A]">Vision & Goal Alignment</h3>
-            <span className={`ml-auto font-mono text-sm font-bold ${vision.score >= 70 ? 'text-[#5A8F5E]' : vision.score >= 40 ? 'text-[#E8A838]' : 'text-[#D4524A]'}`}>{vision.score}/100</span>
+            <h3 className="font-semibold text-[#12101A]">Vision & Goal Alignment</h3>
+            <span className={`ml-auto font-mono text-sm font-bold ${vision.score >= 70 ? 'text-[#574a7d]' : vision.score >= 40 ? 'text-[#E8A838]' : 'text-[#D4524A]'}`}>{vision.score}/100</span>
           </div>
           <p className="text-sm text-[#6B6B6B] mb-3">{vision.summary}</p>
           {vision.findings?.map((f: any, i: number) => (
@@ -241,16 +241,16 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
         <div className="bg-white border border-[#D9D9D3] rounded-2xl p-6 mb-4">
           <div className="flex items-center gap-2 mb-4">
             <Target size={18} className="text-[#E8A838]" />
-            <h3 className="font-semibold text-[#1A1A1A]">Scope Coverage</h3>
-            <span className="ml-auto font-mono text-sm font-bold text-[#5A8F5E]">{scope.coverage}%</span>
+            <h3 className="font-semibold text-[#12101A]">Scope Coverage</h3>
+            <span className="ml-auto font-mono text-sm font-bold text-[#574a7d]">{scope.coverage}%</span>
           </div>
           <div className="grid grid-cols-3 gap-3 text-center mb-3">
-            <div className="bg-[#F5F5F0] rounded-lg p-3">
-              <div className="text-xl font-bold text-[#1A1A1A]">{scope.documentedFeatures}</div>
+            <div className="bg-[#F7F7FB] rounded-lg p-3">
+              <div className="text-xl font-bold text-[#12101A]">{scope.documentedFeatures}</div>
               <div className="text-[11px] text-[#6B6B6B]">Documented</div>
             </div>
-            <div className="bg-[#E8F0E8] rounded-lg p-3">
-              <div className="text-xl font-bold text-[#5A8F5E]">{scope.implementedFeatures}</div>
+            <div className="bg-[#E8E5FF] rounded-lg p-3">
+              <div className="text-xl font-bold text-[#574a7d]">{scope.implementedFeatures}</div>
               <div className="text-[11px] text-[#6B6B6B]">Implemented</div>
             </div>
             <div className="bg-[#FFF0F0] rounded-lg p-3">
@@ -265,16 +265,16 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
       {stack.score !== undefined && (
         <div className="bg-white border border-[#D9D9D3] rounded-2xl p-6 mb-4">
           <div className="flex items-center gap-2 mb-4">
-            <Layers size={18} className="text-[#5A8F5E]" />
-            <h3 className="font-semibold text-[#1A1A1A]">Stack Choice Analysis</h3>
-            <span className={`ml-auto font-mono text-sm font-bold ${stack.score >= 70 ? 'text-[#5A8F5E]' : 'text-[#E8A838]'}`}>{stack.score}/100</span>
+            <Layers size={18} className="text-[#574a7d]" />
+            <h3 className="font-semibold text-[#12101A]">Stack Choice Analysis</h3>
+            <span className={`ml-auto font-mono text-sm font-bold ${stack.score >= 70 ? 'text-[#574a7d]' : 'text-[#E8A838]'}`}>{stack.score}/100</span>
           </div>
           {stack.strengths?.length > 0 && (
             <div className="mb-3">
-              <p className="text-xs font-mono text-[#5A8F5E] uppercase mb-2">Strengths</p>
+              <p className="text-xs font-mono text-[#574a7d] uppercase mb-2">Strengths</p>
               {stack.strengths.slice(0, 4).map((s: string, i: number) => (
                 <div key={i} className="flex items-start gap-2 text-sm py-1">
-                  <span className="text-[#5A8F5E] mt-0.5">✓</span>
+                  <span className="text-[#574a7d] mt-0.5">✓</span>
                   <span className="text-[#333333]">{s}</span>
                 </div>
               ))}
@@ -307,10 +307,10 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
 
       {/* Tech Stack */}
       <div className="bg-white border border-[#D9D9D3] rounded-2xl p-6 mb-4">
-        <h3 className="font-semibold text-[#1A1A1A] mb-3">Detected Tech Stack</h3>
+        <h3 className="font-semibold text-[#12101A] mb-3">Detected Tech Stack</h3>
         <div className="flex flex-wrap gap-2">
           {(codebase.techStack || ['Node.js']).map((tech: string) => (
-            <span key={tech} className="px-3 py-1.5 bg-[#E8F0E8] border border-[#A3C9A5] rounded-md font-mono text-xs text-[#5A8F5E]">
+            <span key={tech} className="px-3 py-1.5 bg-[#E8E5FF] border border-[#a39fd4] rounded-md font-mono text-xs text-[#574a7d]">
               {tech}
             </span>
           ))}
@@ -328,7 +328,7 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
             <button
               key={btn.format}
               onClick={() => handleExport(btn.format)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#D9D9D3] text-sm font-medium text-[#333333] hover:bg-[#F5F5F0] hover:border-[#A3C9A5] transition-all"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#D9D9D3] text-sm font-medium text-[#333333] hover:bg-[#F7F7FB] hover:border-[#a39fd4] transition-all"
             >
               <btn.icon size={16} />
               {exportFormat === btn.format ? 'Exported!' : btn.label}
@@ -337,7 +337,7 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
         </div>
         <button
           onClick={onRestart}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#6B6B6B] hover:text-[#12101A] transition-colors"
         >
           <RotateCcw size={16} />
           Test Another Repo

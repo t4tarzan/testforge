@@ -8,14 +8,14 @@ import { SEED_TEST_RESULTS, SEED_REPO } from '@/data/seedData';
 import type { TestResult, LogEntry, Finding } from '@/data/seedData';
 
 const STATUS_CONFIG = {
-  passed: { color: '#5A8F5E', bg: 'bg-[#5A8F5E]', border: 'border-l-[#5A8F5E]', label: 'PASS', icon: Check },
+  passed: { color: '#574a7d', bg: 'bg-[#574a7d]', border: 'border-l-[#574a7d]', label: 'PASS', icon: Check },
   failed: { color: '#D4524A', bg: 'bg-[#D4524A]', border: 'border-l-[#D4524A]', label: 'FAIL', icon: X },
   warning: { color: '#E8A838', bg: 'bg-[#E8A838]', border: 'border-l-[#E8A838]', label: 'WARN', icon: AlertTriangle },
 };
 
 const LOG_COLORS: Record<string, string> = {
   info: 'text-[#9A9A9A]',
-  pass: 'text-[#7AAF7E]',
+  pass: 'text-[#7a6fad]',
   fail: 'text-[#D4524A]',
   warn: 'text-[#E8A838]',
 };
@@ -24,7 +24,7 @@ const SEVERITY_CONFIG = {
   critical: { color: '#D4524A', bg: 'bg-[rgba(212,82,74,0.1)]', text: 'text-[#D4524A]' },
   high: { color: '#E87D3A', bg: 'bg-[rgba(232,125,58,0.1)]', text: 'text-[#E87D3A]' },
   medium: { color: '#E8A838', bg: 'bg-[rgba(232,168,56,0.1)]', text: 'text-[#E8A838]' },
-  low: { color: '#5A8F5E', bg: 'bg-[rgba(90,143,94,0.1)]', text: 'text-[#5A8F5E]' },
+  low: { color: '#574a7d', bg: 'bg-[rgba(90,143,94,0.1)]', text: 'text-[#574a7d]' },
 };
 
 type SimStage = {
@@ -261,7 +261,7 @@ export default function ExecuteStep({ onComplete }: ExecuteStepProps) {
     >
       {/* Title */}
       <div className="text-center mb-6">
-        <h2 className="font-heading text-[28px] font-medium text-[#1A1A1A] tracking-[-0.01em]">
+        <h2 className="font-heading text-[28px] font-medium text-[#12101A] tracking-[-0.01em]">
           Executing Test Suite
         </h2>
         <p className="text-[14px] text-[#6B6B6B] font-mono mt-1">
@@ -280,20 +280,20 @@ export default function ExecuteStep({ onComplete }: ExecuteStepProps) {
             initial={{ scale: 1.2 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.2 }}
-            className="font-mono text-[13px] text-[#5A8F5E] font-medium"
+            className="font-mono text-[13px] text-[#574a7d] font-medium"
           >
             {completedCount}/{stages.length} stages
           </motion.span>
         </div>
         <div className="flex items-center gap-2">
           {/* Speed toggle */}
-          <div className="flex bg-[#F5F5F0] rounded-lg p-0.5">
+          <div className="flex bg-[#F7F7FB] rounded-lg p-0.5">
             {(['1x', '2x', '4x'] as const).map((s) => (
               <button
                 key={s}
                 onClick={() => setSpeed(s)}
                 className={`px-3 py-1 rounded-md font-mono text-[12px] font-medium transition-all ${
-                  speed === s ? 'bg-[#5A8F5E] text-white' : 'text-[#6B6B6B] hover:text-[#333333]'
+                  speed === s ? 'bg-[#574a7d] text-white' : 'text-[#6B6B6B] hover:text-[#333333]'
                 }`}
               >
                 {s}
@@ -302,14 +302,14 @@ export default function ExecuteStep({ onComplete }: ExecuteStepProps) {
           </div>
           <button
             onClick={() => setIsPaused(!isPaused)}
-            className="p-2 rounded-lg border border-[#D9D9D3] hover:bg-[#F5F5F0] transition-colors"
+            className="p-2 rounded-lg border border-[#D9D9D3] hover:bg-[#F7F7FB] transition-colors"
             title={isPaused ? 'Resume' : 'Pause'}
           >
             {isPaused ? <Play size={14} /> : <Pause size={14} />}
           </button>
           <button
             onClick={skipToEnd}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#D9D9D3] text-[#6B6B6B] hover:bg-[#F5F5F0] font-mono text-[12px] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#D9D9D3] text-[#6B6B6B] hover:bg-[#F7F7FB] font-mono text-[12px] transition-colors"
           >
             <SkipForward size={12} />
             Skip
@@ -318,9 +318,9 @@ export default function ExecuteStep({ onComplete }: ExecuteStepProps) {
       </div>
 
       {/* Overall progress bar */}
-      <div className="h-2 bg-[#EBEBE5] rounded-full overflow-hidden mb-6">
+      <div className="h-2 bg-[#ECEBF5] rounded-full overflow-hidden mb-6">
         <motion.div
-          className="h-full bg-[#5A8F5E] rounded-full"
+          className="h-full bg-[#574a7d] rounded-full"
           style={{ width: `${overallProgress}%` }}
           transition={{ duration: 0.3 }}
         />
@@ -384,7 +384,7 @@ export default function ExecuteStep({ onComplete }: ExecuteStepProps) {
 
                   {/* Mini progress */}
                   <div className="w-[80px] flex-shrink-0 hidden sm:block">
-                    <div className="h-1 bg-[#EBEBE5] rounded-full overflow-hidden">
+                    <div className="h-1 bg-[#ECEBF5] rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-200"
                         style={{
@@ -415,7 +415,7 @@ export default function ExecuteStep({ onComplete }: ExecuteStepProps) {
                       transition={{ duration: 0.3 }}
                       className="overflow-hidden"
                     >
-                      <div className="bg-[#1A1A1A] rounded-b-xl p-3 font-mono text-[11px] leading-[1.7] max-h-[140px] overflow-y-auto">
+                      <div className="bg-[#12101A] rounded-b-xl p-3 font-mono text-[11px] leading-[1.7] max-h-[140px] overflow-y-auto">
                         {stage.result.logs.slice(0, stage.visibleLogs).map((log: LogEntry, i: number) => (
                           <div key={i} className={LOG_COLORS[log.level as keyof typeof LOG_COLORS]}>
                             [{log.level.toUpperCase()}] {log.message}
@@ -445,7 +445,7 @@ export default function ExecuteStep({ onComplete }: ExecuteStepProps) {
                   <span className="font-mono text-[11px] uppercase text-[#9A9A9A]">
                     Currently Running
                   </span>
-                  <h3 className="text-[16px] font-medium text-[#1A1A1A]">
+                  <h3 className="text-[16px] font-medium text-[#12101A]">
                     {currentStage.result.stage}
                   </h3>
                 </div>
@@ -492,7 +492,7 @@ export default function ExecuteStep({ onComplete }: ExecuteStepProps) {
           )}
 
           {/* Live Terminal */}
-          <div className="bg-[#1A1A1A] rounded-xl overflow-hidden">
+          <div className="bg-[#12101A] rounded-xl overflow-hidden">
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#3A3A3A]">
               <span className="font-mono text-[11px] uppercase text-[#9A9A9A] tracking-wider">
                 Live Logs
@@ -500,7 +500,7 @@ export default function ExecuteStep({ onComplete }: ExecuteStepProps) {
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-full bg-[#D4524A]" />
                 <div className="w-2.5 h-2.5 rounded-full bg-[#E8A838]" />
-                <div className="w-2.5 h-2.5 rounded-full bg-[#5A8F5E]" />
+                <div className="w-2.5 h-2.5 rounded-full bg-[#574a7d]" />
               </div>
             </div>
             <div
@@ -528,7 +528,7 @@ export default function ExecuteStep({ onComplete }: ExecuteStepProps) {
               )}
               {isRunning && !isPaused && (
                 <motion.span
-                  className="inline-block w-2 h-4 bg-[#5A8F5E] ml-1"
+                  className="inline-block w-2 h-4 bg-[#574a7d] ml-1"
                   animate={{ opacity: [1, 0] }}
                   transition={{ duration: 0.6, repeat: Infinity }}
                 />
@@ -555,7 +555,7 @@ export default function ExecuteStep({ onComplete }: ExecuteStepProps) {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.1 }}
-                      className="flex items-start gap-3 p-3 rounded-lg bg-[#F5F5F0] border border-[#D9D9D3] cursor-pointer hover:border-[#A3C9A5] transition-colors"
+                      className="flex items-start gap-3 p-3 rounded-lg bg-[#F7F7FB] border border-[#D9D9D3] cursor-pointer hover:border-[#a39fd4] transition-colors"
                       onClick={() => setActiveFinding(activeFinding === finding ? null : finding)}
                     >
                       <span className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase font-medium flex-shrink-0 ${sev.bg} ${sev.text}`}>
@@ -581,9 +581,9 @@ export default function ExecuteStep({ onComplete }: ExecuteStepProps) {
   );
 }
 
-function MetricCard({ label, value, color = '#5A8F5E' }: { label: string; value: string; color?: string }) {
+function MetricCard({ label, value, color = '#574a7d' }: { label: string; value: string; color?: string }) {
   return (
-    <div className="bg-[#F5F5F0] rounded-lg p-3 text-center">
+    <div className="bg-[#F7F7FB] rounded-lg p-3 text-center">
       <div className="font-heading text-[20px] font-bold" style={{ color }}>
         {value}
       </div>

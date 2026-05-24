@@ -3,7 +3,7 @@ import type { Stage } from './stagesData';
 
 const logColors: Record<string, string> = {
   INFO: '#9A9A9A',
-  PASS: '#5A8F5E',
+  PASS: '#574a7d',
   FAIL: '#D4524A',
   WARN: '#E8A838',
 };
@@ -53,12 +53,12 @@ const LiveLogs = memo(function LiveLogs({ stage, isRunning }: LiveLogsProps) {
   const linesToShow = displayedLines.length > 0 ? displayedLines : stage.logs.slice(0, 1);
 
   return (
-    <div className="bg-[#1A1A1A] rounded-lg p-5 overflow-hidden">
+    <div className="bg-[#12101A] rounded-lg p-5 overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-2 mb-3">
         <div className="w-3 h-3 rounded-full bg-[#D4524A]" />
         <div className="w-3 h-3 rounded-full bg-[#E8A838]" />
-        <div className="w-3 h-3 rounded-full bg-[#5A8F5E]" />
+        <div className="w-3 h-3 rounded-full bg-[#574a7d]" />
         <span className="font-mono text-[11px] text-[#9A9A9A] uppercase tracking-wider ml-2">
           {stage.name} — Live Output
         </span>

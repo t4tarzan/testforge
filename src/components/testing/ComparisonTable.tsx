@@ -22,7 +22,7 @@ const rowVariants = {
 
 export default function ComparisonTable() {
   return (
-    <section className="w-full bg-[#1A1A1A] py-24 lg:py-32">
+    <section className="w-full bg-[#12101A] py-24 lg:py-32">
       <div className="container-tf">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -32,7 +32,7 @@ export default function ComparisonTable() {
           className="text-center mb-16"
         >
           <h2 className="font-heading font-semibold text-[42px] leading-[1.15] tracking-tight text-white">
-            All <span className="text-[#5A8F5E]">thirteen</span>. Always running.
+            All <span className="text-[#574a7d]">thirteen</span>. Always running.
           </h2>
         </motion.div>
 
@@ -49,7 +49,7 @@ export default function ComparisonTable() {
                 <th className="text-left py-4 px-4 font-mono font-medium text-[13px] uppercase tracking-wider text-[#9A9A9A]">
                   Dimension
                 </th>
-                <th className="text-center py-4 px-4 font-mono font-medium text-[13px] uppercase tracking-wider text-[#5A8F5E]">
+                <th className="text-center py-4 px-4 font-mono font-medium text-[13px] uppercase tracking-wider text-[#574a7d]">
                   TestForge
                 </th>
                 <th className="text-center py-4 px-4 font-mono font-medium text-[13px] uppercase tracking-wider text-[#9A9A9A]">
@@ -65,7 +65,7 @@ export default function ComparisonTable() {
                 <motion.tr
                   key={row.dimension}
                   variants={rowVariants}
-                  className="border-b border-[#2A2A2A] hover:bg-[#2A2A2A]/50 transition-colors duration-150"
+                  className="border-b border-[#1E1B2E] hover:bg-[#1E1B2E]/50 transition-colors duration-150"
                 >
                   <td className="py-3.5 px-4 text-[15px] text-white font-medium">
                     {row.dimension}
@@ -81,15 +81,15 @@ export default function ComparisonTable() {
                         damping: 15,
                         delay: 0.1,
                       }}
-                      className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#5A8F5E]/20"
+                      className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#574a7d]/20"
                     >
-                      <Check size={14} className="text-[#5A8F5E]" />
+                      <Check size={14} className="text-[#574a7d]" />
                     </motion.div>
                   </td>
                   <td className="py-3.5 px-4 text-center">
                     {row.testsprite ? (
-                      <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#5A8F5E]/20">
-                        <Check size={14} className="text-[#5A8F5E]" />
+                      <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#574a7d]/20">
+                        <Check size={14} className="text-[#574a7d]" />
                       </div>
                     ) : (
                       <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#D4524A]/10">
@@ -99,8 +99,8 @@ export default function ComparisonTable() {
                   </td>
                   <td className="py-3.5 px-4 text-center">
                     {row.traditional ? (
-                      <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#5A8F5E]/20">
-                        <Check size={14} className="text-[#5A8F5E]" />
+                      <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#574a7d]/20">
+                        <Check size={14} className="text-[#574a7d]" />
                       </div>
                     ) : (
                       <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#D4524A]/10">

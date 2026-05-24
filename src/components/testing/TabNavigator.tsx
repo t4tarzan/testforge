@@ -49,8 +49,8 @@ export default function TabNavigator({ activeTab, onTabClick }: TabNavigatorProp
               onClick={() => onTabClick(dim.id)}
               className={`flex items-center gap-1.5 px-4 py-3.5 whitespace-nowrap font-medium text-[13px] transition-all duration-200 border-b-2 ${
                 isActive
-                  ? 'text-[#5A8F5E] border-[#5A8F5E]'
-                  : 'text-[#6B6B6B] border-transparent hover:text-[#5A8F5E] hover:border-[#A3C9A5]'
+                  ? 'text-[#574a7d] border-[#574a7d]'
+                  : 'text-[#6B6B6B] border-transparent hover:text-[#574a7d] hover:border-[#a39fd4]'
               }`}
             >
               <Icon size={15} />

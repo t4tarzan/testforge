@@ -142,7 +142,7 @@ function AnimatedStat({ value, suffix, isFloat }: { value: number; suffix: strin
 }
 
 function ComparisonIcon({ type }: { type: string }) {
-  if (type === 'check') return <Check size={18} className="text-[#5A8F5E]" />
+  if (type === 'check') return <Check size={18} className="text-[#574a7d]" />
   if (type === 'x') return <X size={18} className="text-[#D4524A] opacity-50" />
   return <Minus size={18} className="text-[#E8A838]" />
 }
@@ -150,7 +150,7 @@ function ComparisonIcon({ type }: { type: string }) {
 /* ──────────────────────── Section: Hero ──────────────────────── */
 function HeroSection() {
   return (
-    <section className="relative min-h-[100dvh] flex items-center px-6 lg:px-16 pt-[140px] pb-[100px] overflow-hidden bg-[#1A1A1A]">
+    <section className="relative min-h-[100dvh] flex items-center px-6 lg:px-16 pt-[140px] pb-[100px] overflow-hidden bg-[#12101A]">
       <NeuralNetworkCanvas />
 
       <div className="relative z-10 max-w-[1280px] mx-auto w-full">
@@ -158,7 +158,7 @@ function HeroSection() {
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
-          className="text-label-mono text-[#A3C9A5] mb-6"
+          className="text-label-mono text-[#a39fd4] mb-6"
         >
           // THE INTEGRATOR
         </motion.p>
@@ -169,7 +169,7 @@ function HeroSection() {
           transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
           className="text-display-lg lg:text-display-xl text-white max-w-[800px] mb-6"
         >
-          The <span className="text-[#5A8F5E]">brain</span> between testing and shipping.
+          The <span className="text-[#574a7d]">brain</span> between testing and shipping.
         </motion.h1>
 
         <motion.p
@@ -194,7 +194,7 @@ function HeroSection() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.6 + i * 0.06, duration: 0.4, ease: [0.34, 1.56, 0.64, 1] as [number, number, number, number] }}
-              className="font-mono text-[12px] uppercase tracking-wider px-4 py-2 rounded border border-[#3A3A3A] text-[#A3C9A5]"
+              className="font-mono text-[12px] uppercase tracking-wider px-4 py-2 rounded border border-[#3A3A3A] text-[#a39fd4]"
             >
               {badge}
             </motion.span>
@@ -206,7 +206,7 @@ function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8, duration: 0.5 }}
-          className="px-7 py-[14px] rounded-lg bg-[#5A8F5E] text-white font-body font-medium text-base hover:bg-[#4A7A4E] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center gap-2 group"
+          className="px-7 py-[14px] rounded-lg bg-[#574a7d] text-white font-body font-medium text-base hover:bg-[#4a3d6b] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center gap-2 group"
           onClick={() => {
             const el = document.getElementById('architecture')
             el?.scrollIntoView({ behavior: 'smooth' })
@@ -223,7 +223,7 @@ function HeroSection() {
 /* ──────────────────────── Section: Problem ──────────────────────── */
 function ProblemSection() {
   return (
-    <section className="relative px-6 lg:px-16 py-[120px] bg-[#F5F5F0] overflow-hidden">
+    <section className="relative px-6 lg:px-16 py-[120px] bg-[#F7F7FB] overflow-hidden">
       <div className="absolute inset-0 bg-grid-pattern pointer-events-none" />
 
       <div className="relative z-10 max-w-[1200px] mx-auto">
@@ -232,7 +232,7 @@ function ProblemSection() {
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true, margin: '-100px' }}
           transition={{ duration: 0.5 }}
-          className="text-label-mono text-[#5A8F5E] mb-4"
+          className="text-label-mono text-[#574a7d] mb-4"
         >
           // THE PROBLEM
         </motion.p>
@@ -294,7 +294,7 @@ function ProblemSection() {
 /* ──────────────────────── Section: Decision Flow ──────────────────────── */
 function DecisionFlowSection() {
   return (
-    <section className="relative px-6 lg:px-16 py-[120px] bg-[#F5F5F0] overflow-hidden">
+    <section className="relative px-6 lg:px-16 py-[120px] bg-[#F7F7FB] overflow-hidden">
       <div className="absolute inset-0 bg-grid-pattern pointer-events-none" />
 
       <div className="relative z-10 max-w-[1200px] mx-auto">
@@ -303,7 +303,7 @@ function DecisionFlowSection() {
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true, margin: '-100px' }}
           transition={{ duration: 0.5 }}
-          className="text-label-mono text-[#5A8F5E] mb-4"
+          className="text-label-mono text-[#574a7d] mb-4"
         >
           // DECISION FLOW
         </motion.p>
@@ -315,7 +315,7 @@ function DecisionFlowSection() {
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
           className="text-display-lg text-[#333333] mb-16"
         >
-          From chaos to <span className="text-[#5A8F5E]">clarity</span> in four steps.
+          From chaos to <span className="text-[#574a7d]">clarity</span> in four steps.
         </motion.h2>
 
         {/* Steps Row */}
@@ -339,13 +339,13 @@ function DecisionFlowSection() {
               className="flex flex-col items-center text-center"
             >
               {/* Circle */}
-              <div className="w-16 h-16 rounded-full border-2 border-[#5A8F5E] flex items-center justify-center mb-4 bg-[#5A8F5E]">
+              <div className="w-16 h-16 rounded-full border-2 border-[#574a7d] flex items-center justify-center mb-4 bg-[#574a7d]">
                 <span className="font-mono font-semibold text-[20px] text-white">{step.num}</span>
               </div>
               {/* Arrow (except last) */}
               {idx < decisionSteps.length - 1 && (
                 <div className="hidden lg:block absolute right-[-28px] top-8">
-                  <ArrowRight size={20} className="text-[#A3C9A5]" />
+                  <ArrowRight size={20} className="text-[#a39fd4]" />
                 </div>
               )}
               <h4 className="text-heading-sm text-[#333333] mb-2">{step.title}</h4>
@@ -359,8 +359,8 @@ function DecisionFlowSection() {
           <svg width="800" height="24" viewBox="0 0 800 24" className="opacity-40">
             {[200, 400, 600].map((x) => (
               <g key={x}>
-                <line x1={x - 60} y1="12" x2={x + 60} y2="12" stroke="#A3C9A5" strokeWidth="2" />
-                <polygon points={`${x + 60},8 ${x + 60},16 ${x + 72},12`} fill="#A3C9A5" />
+                <line x1={x - 60} y1="12" x2={x + 60} y2="12" stroke="#a39fd4" strokeWidth="2" />
+                <polygon points={`${x + 60},8 ${x + 60},16 ${x + 72},12`} fill="#a39fd4" />
               </g>
             ))}
           </svg>
@@ -384,7 +384,7 @@ function DecisionFlowSection() {
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-mono font-bold"
                     style={{
-                      backgroundColor: i === 0 ? '#9A9A9A' : '#5A8F5E',
+                      backgroundColor: i === 0 ? '#9A9A9A' : '#574a7d',
                     }}
                   >
                     {i + 1}
@@ -392,7 +392,7 @@ function DecisionFlowSection() {
                   <span className="text-body-sm text-[#6B6B6B] mt-2 whitespace-nowrap">{node}</span>
                 </div>
                 {i < 3 && (
-                  <div className="flex-1 h-[2px] bg-[#5A8F5E] mx-3 mt-[-20px]" />
+                  <div className="flex-1 h-[2px] bg-[#574a7d] mx-3 mt-[-20px]" />
                 )}
               </div>
             ))}
@@ -400,20 +400,20 @@ function DecisionFlowSection() {
 
           {/* Badges */}
           <div className="flex flex-wrap gap-3 mb-6">
-            <span className="font-mono text-[12px] uppercase tracking-wider px-4 py-2 rounded bg-[#E8F0E8] text-[#5A8F5E]">
+            <span className="font-mono text-[12px] uppercase tracking-wider px-4 py-2 rounded bg-[#E8E5FF] text-[#574a7d]">
               87% success probability
             </span>
-            <span className="font-mono text-[12px] uppercase tracking-wider px-4 py-2 rounded bg-[#E8F0E8] text-[#4A90D9]">
+            <span className="font-mono text-[12px] uppercase tracking-wider px-4 py-2 rounded bg-[#E8E5FF] text-[#4A90D9]">
               Estimated time: 23 min
             </span>
           </div>
 
           {/* Buttons */}
           <div className="flex flex-wrap gap-3">
-            <button className="px-6 py-3 rounded-lg bg-[#5A8F5E] text-white font-body font-medium text-sm hover:bg-[#4A7A4E] transition-all duration-200">
+            <button className="px-6 py-3 rounded-lg bg-[#574a7d] text-white font-body font-medium text-sm hover:bg-[#4a3d6b] transition-all duration-200">
               Accept & Execute
             </button>
-            <button className="px-6 py-3 rounded-lg border border-[#D9D9D3] text-[#333333] font-body font-medium text-sm hover:bg-[#E8F0E8] hover:border-[#A3C9A5] transition-all duration-200">
+            <button className="px-6 py-3 rounded-lg border border-[#D9D9D3] text-[#333333] font-body font-medium text-sm hover:bg-[#E8E5FF] hover:border-[#a39fd4] transition-all duration-200">
               View Alternatives
             </button>
             <button className="px-6 py-3 rounded-lg text-[#9A9A9A] font-body font-medium text-sm hover:text-[#6B6B6B] transition-all duration-200">
@@ -429,7 +429,7 @@ function DecisionFlowSection() {
 /* ──────────────────────── Section: Key Features ──────────────────────── */
 function KeyFeaturesSection() {
   return (
-    <section className="relative px-6 lg:px-16 py-[120px] bg-[#EBEBE5] overflow-hidden">
+    <section className="relative px-6 lg:px-16 py-[120px] bg-[#ECEBF5] overflow-hidden">
       <div className="absolute inset-0 bg-grid-pattern pointer-events-none" />
 
       <div className="relative z-10 max-w-[1200px] mx-auto">
@@ -438,7 +438,7 @@ function KeyFeaturesSection() {
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true, margin: '-100px' }}
           transition={{ duration: 0.5 }}
-          className="text-label-mono text-[#5A8F5E] mb-4"
+          className="text-label-mono text-[#574a7d] mb-4"
         >
           // KEY CAPABILITIES
         </motion.p>
@@ -450,7 +450,7 @@ function KeyFeaturesSection() {
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
           className="text-display-lg text-[#333333] mb-16"
         >
-          Intelligence that <span className="text-[#5A8F5E]">learns</span> your stack.
+          Intelligence that <span className="text-[#574a7d]">learns</span> your stack.
         </motion.h2>
 
         <motion.div
@@ -466,12 +466,12 @@ function KeyFeaturesSection() {
               <motion.div
                 key={feat.title}
                 variants={cardReveal}
-                whileHover={{ y: -4, boxShadow: '0 12px 32px rgba(90,143,94,0.1)', borderColor: '#A3C9A5' }}
+                whileHover={{ y: -4, boxShadow: '0 12px 32px rgba(90,143,94,0.1)', borderColor: '#a39fd4' }}
                 transition={{ duration: 0.3 }}
                 className="bg-white rounded-xl border border-[#D9D9D3] p-9 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
               >
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-5 bg-[#E8F0E8]">
-                  <IconComp size={22} className="text-[#5A8F5E]" />
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-5 bg-[#E8E5FF]">
+                  <IconComp size={22} className="text-[#574a7d]" />
                 </div>
                 <h3 className="text-heading-sm text-[#333333] mb-3">{feat.title}</h3>
                 <p className="text-body-md text-[#6B6B6B]">{feat.description}</p>
@@ -487,7 +487,7 @@ function KeyFeaturesSection() {
 /* ──────────────────────── Section: Comparison Table ──────────────────────── */
 function ComparisonSection() {
   return (
-    <section className="relative px-6 lg:px-16 py-[100px] bg-[#1A1A1A]">
+    <section className="relative px-6 lg:px-16 py-[100px] bg-[#12101A]">
       <div className="absolute inset-0 bg-grid-pattern-dark pointer-events-none" />
 
       <div className="relative z-10 max-w-[800px] mx-auto text-center">
@@ -498,7 +498,7 @@ function ComparisonSection() {
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
           className="text-display-md text-white mb-4"
         >
-          No other tool does <span className="text-[#5A8F5E]">this</span>.
+          No other tool does <span className="text-[#574a7d]">this</span>.
         </motion.h2>
 
         <motion.p
@@ -522,10 +522,10 @@ function ComparisonSection() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-[#3A3A3A]">
-                <th className="text-left px-5 py-4 font-body font-semibold text-[14px] text-white bg-[#2A2A2A]">Capability</th>
-                <th className="px-4 py-4 font-body font-semibold text-[14px] text-white bg-[#5A8F5E]/10">TestForge</th>
-                <th className="px-4 py-4 font-body font-semibold text-[14px] text-white bg-[#2A2A2A]">Traditional CI/CD</th>
-                <th className="px-4 py-4 font-body font-semibold text-[14px] text-white bg-[#2A2A2A]">TestSprite</th>
+                <th className="text-left px-5 py-4 font-body font-semibold text-[14px] text-white bg-[#1E1B2E]">Capability</th>
+                <th className="px-4 py-4 font-body font-semibold text-[14px] text-white bg-[#574a7d]/10">TestForge</th>
+                <th className="px-4 py-4 font-body font-semibold text-[14px] text-white bg-[#1E1B2E]">Traditional CI/CD</th>
+                <th className="px-4 py-4 font-body font-semibold text-[14px] text-white bg-[#1E1B2E]">TestSprite</th>
               </tr>
             </thead>
             <tbody>
@@ -539,7 +539,7 @@ function ComparisonSection() {
                   className="border-b border-[#3A3A3A] last:border-b-0"
                 >
                   <td className="text-left px-5 py-4 font-body text-[14px] text-[#9A9A9A]">{row.capability}</td>
-                  <td className="px-4 py-4 bg-[#5A8F5E]/5">
+                  <td className="px-4 py-4 bg-[#574a7d]/5">
                     <div className="flex justify-center">
                       <motion.div
                         initial={{ scale: 0 }}
@@ -588,7 +588,7 @@ function ComparisonSection() {
 /* ──────────────────────── Section: CTA ──────────────────────── */
 function CTASection() {
   return (
-    <section className="relative px-6 lg:px-16 py-[100px] bg-[#5A8F5E] text-center overflow-hidden">
+    <section className="relative px-6 lg:px-16 py-[100px] bg-[#574a7d] text-center overflow-hidden">
       {/* Subtle pattern overlay */}
       <div className="absolute inset-0 opacity-10">
         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
@@ -621,7 +621,7 @@ function CTASection() {
         >
           <motion.button
             variants={cardReveal}
-            className="px-8 py-[14px] rounded-lg bg-white text-[#5A8F5E] font-body font-medium text-base hover:bg-[#F5F5F0] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center gap-2 group"
+            className="px-8 py-[14px] rounded-lg bg-white text-[#574a7d] font-body font-medium text-base hover:bg-[#F7F7FB] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center gap-2 group"
           >
             Get Started Free
             <ArrowRight size={16} className="transition-transform duration-200 group-hover:translate-x-1" />
@@ -685,7 +685,7 @@ function ScrollProgressBar() {
     <div className="fixed top-0 left-0 right-0 z-[60] h-[2px] bg-transparent">
       <div
         ref={barRef}
-        className="h-full bg-[#5A8F5E]"
+        className="h-full bg-[#574a7d]"
         style={{ width: '0%', transition: 'width 0.1s linear' }}
       />
     </div>

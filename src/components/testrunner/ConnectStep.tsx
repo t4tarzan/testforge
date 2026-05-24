@@ -50,7 +50,7 @@ export default function ConnectStep({ onComplete }: ConnectStepProps) {
       transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
     >
       <div className="text-center mb-8">
-        <h2 className="font-heading text-[28px] font-medium text-[#1A1A1A] tracking-[-0.01em]">
+        <h2 className="font-heading text-[28px] font-medium text-[#12101A] tracking-[-0.01em]">
           Connect Your Repository
         </h2>
         <p className="text-[16px] text-[#6B6B6B] font-body mt-3 max-w-[480px] mx-auto">
@@ -64,14 +64,14 @@ export default function ConnectStep({ onComplete }: ConnectStepProps) {
             Repository URL
           </label>
           <div className="relative">
-            <GitBranch size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5A8F5E]" />
+            <GitBranch size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#574a7d]" />
             <input
               type="text"
               value={repoUrl}
               onChange={(e) => { setRepoUrl(e.target.value); setError(''); }}
               placeholder="https://github.com/owner/repo"
               disabled={loading}
-              className="w-full h-12 pl-11 pr-4 bg-[#F5F5F0] border border-[#D9D9D3] rounded-lg font-mono text-[14px] text-[#1A1A1A] focus:outline-none focus:border-[#5A8F5E] focus:ring-[3px] focus:ring-[rgba(90,143,94,0.1)] transition-all disabled:opacity-60"
+              className="w-full h-12 pl-11 pr-4 bg-[#F7F7FB] border border-[#D9D9D3] rounded-lg font-mono text-[14px] text-[#12101A] focus:outline-none focus:border-[#574a7d] focus:ring-[3px] focus:ring-[rgba(90,143,94,0.1)] transition-all disabled:opacity-60"
             />
           </div>
         </div>
@@ -83,14 +83,14 @@ export default function ConnectStep({ onComplete }: ConnectStepProps) {
             value={branch}
             onChange={(e) => setBranch(e.target.value)}
             disabled={loading}
-            className="w-full h-12 px-4 bg-[#F5F5F0] border border-[#D9D9D3] rounded-lg font-mono text-[13px] text-[#1A1A1A] focus:outline-none focus:border-[#5A8F5E] disabled:opacity-60"
+            className="w-full h-12 px-4 bg-[#F7F7FB] border border-[#D9D9D3] rounded-lg font-mono text-[13px] text-[#12101A] focus:outline-none focus:border-[#574a7d] disabled:opacity-60"
           />
         </div>
 
         <button
           onClick={handleConnect}
           disabled={loading || !repoUrl.trim()}
-          className="w-full h-[52px] bg-[#5A8F5E] text-white rounded-lg font-body font-medium text-[16px] flex items-center justify-center gap-2 hover:bg-[#4A7A4E] hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+          className="w-full h-[52px] bg-[#574a7d] text-white rounded-lg font-body font-medium text-[16px] flex items-center justify-center gap-2 hover:bg-[#4a3d6b] hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
         >
           {loading ? (
             <>
@@ -124,9 +124,9 @@ export default function ConnectStep({ onComplete }: ConnectStepProps) {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-[#1A1A1A] rounded-xl p-5 font-mono text-[13px] leading-[1.8] h-[180px] overflow-y-auto"
+            className="bg-[#12101A] rounded-xl p-5 font-mono text-[13px] leading-[1.8] h-[180px] overflow-y-auto"
           >
-            <div className="text-[#A3C9A5]">$ testforge analyze {repoUrl}</div>
+            <div className="text-[#a39fd4]">$ testforge analyze {repoUrl}</div>
             <div className="text-[#9A9A9A]">Cloning into /tmp/testforge-repos...</div>
             <div className="text-[#9A9A9A]">Scanning codebase structure...</div>
             <div className="text-[#9A9A9A]">Running security analysis...</div>
@@ -134,7 +134,7 @@ export default function ConnectStep({ onComplete }: ConnectStepProps) {
             <div className="text-[#9A9A9A]">Running load analysis...</div>
             <div className="text-[#9A9A9A]">Running accessibility analysis...</div>
             <motion.span
-              className="inline-block w-2 h-4 bg-[#5A8F5E] ml-0.5"
+              className="inline-block w-2 h-4 bg-[#574a7d] ml-0.5"
               animate={{ opacity: [1, 0] }}
               transition={{ duration: 0.5, repeat: Infinity }}
             />
@@ -153,7 +153,7 @@ export default function ConnectStep({ onComplete }: ConnectStepProps) {
                 <button
                   key={url}
                   onClick={() => setRepoUrl(url)}
-                  className="w-full text-left px-4 py-2.5 bg-[#F5F5F0] border border-[#D9D9D3] rounded-lg font-mono text-[13px] text-[#6B6B6B] hover:border-[#5A8F5E] hover:text-[#1A1A1A] transition-all truncate"
+                  className="w-full text-left px-4 py-2.5 bg-[#F7F7FB] border border-[#D9D9D3] rounded-lg font-mono text-[13px] text-[#6B6B6B] hover:border-[#574a7d] hover:text-[#12101A] transition-all truncate"
                 >
                   {url}
                 </button>

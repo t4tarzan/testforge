@@ -36,13 +36,13 @@ export default function CopyButton({ text, className = '', size = 'md' }: CopyBu
     <button
       onClick={handleCopy}
       className={`inline-flex items-center rounded-lg border border-[#3A3A3A] bg-white/[0.06] 
-        hover:bg-[rgba(90,143,94,0.15)] hover:border-[#5A8F5E] hover:text-[#7AAF7E]
+        hover:bg-[rgba(90,143,94,0.15)] hover:border-[#574a7d] hover:text-[#7a6fad]
         transition-all duration-200 active:scale-95 ${sizeClasses} ${className}`}
     >
       {copied ? (
         <>
-          <Check size={size === 'sm' ? 14 : 16} className="text-[#5A8F5E]" />
-          <span className="font-mono font-medium text-[12px] text-[#5A8F5E]">Copied!</span>
+          <Check size={size === 'sm' ? 14 : 16} className="text-[#574a7d]" />
+          <span className="font-mono font-medium text-[12px] text-[#574a7d]">Copied!</span>
         </>
       ) : (
         <>

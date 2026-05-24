@@ -18,7 +18,7 @@ function Hero() {
   return (
     <section
       ref={ref}
-      className="w-full min-h-[70vh] bg-[#F5F5F0] pt-[120px] pb-20 lg:pb-24 relative overflow-hidden"
+      className="w-full min-h-[70vh] bg-[#F7F7FB] pt-[120px] pb-20 lg:pb-24 relative overflow-hidden"
     >
       {/* Grid pattern background */}
       <div
@@ -33,7 +33,7 @@ function Hero() {
             initial={{ opacity: 0, x: -10 }}
             animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
-            className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#5A8F5E] mb-6 block"
+            className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#574a7d] mb-6 block"
           >
             // TESTING DIMENSIONS
           </motion.span>
@@ -46,7 +46,7 @@ function Hero() {
             className="font-heading font-semibold text-[64px] leading-[1.1] tracking-[-0.03em] text-[#333333] mb-6"
           >
             Thirteen ways to{' '}
-            <span className="text-[#5A8F5E]">break</span> your code.
+            <span className="text-[#574a7d]">break</span> your code.
           </motion.h1>
 
           {/* Subheadline */}
@@ -75,7 +75,7 @@ function Hero() {
                   cy="60"
                   r="54"
                   fill="none"
-                  stroke="#E8F0E8"
+                  stroke="#E8E5FF"
                   strokeWidth="4"
                 />
                 <motion.circle
@@ -83,7 +83,7 @@ function Hero() {
                   cy="60"
                   r="54"
                   fill="none"
-                  stroke="#A3C9A5"
+                  stroke="#a39fd4"
                   strokeWidth="4"
                   strokeLinecap="round"
                   strokeDasharray={2 * Math.PI * 54}
@@ -94,7 +94,7 @@ function Hero() {
               </svg>
               {/* Count */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="font-heading font-bold text-[48px] leading-none text-[#5A8F5E]">
+                <span className="font-heading font-bold text-[48px] leading-none text-[#574a7d]">
                   {isInView ? <CountUp end={13} duration={1} delay={0.5} /> : '0'}
                 </span>
               </div>
@@ -140,7 +140,7 @@ function BottomCTA() {
   return (
     <section
       ref={ref}
-      className="w-full bg-[#5A8F5E] py-24 lg:py-28 relative overflow-hidden"
+      className="w-full bg-[#574a7d] py-24 lg:py-28 relative overflow-hidden"
     >
       {/* Decorative grid */}
       <div
@@ -166,7 +166,7 @@ function BottomCTA() {
         >
           <a
             href="/"
-            className="px-7 py-[14px] rounded-lg bg-white text-[#5A8F5E] font-body font-medium text-[16px] hover:bg-[#F5F5F0] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center gap-2"
+            className="px-7 py-[14px] rounded-lg bg-white text-[#574a7d] font-body font-medium text-[16px] hover:bg-[#F7F7FB] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center gap-2"
           >
             Start Testing Free
             <ArrowRight size={16} />

@@ -28,7 +28,7 @@ const DemoVideo = memo(function DemoVideo() {
   };
 
   return (
-    <section className="relative bg-[#1A1A1A] py-24 lg:py-32 px-6 sm:px-12 lg:px-16 overflow-hidden">
+    <section className="relative bg-[#12101A] py-24 lg:py-32 px-6 sm:px-12 lg:px-16 overflow-hidden">
       <div className="max-w-[1000px] mx-auto">
         {/* Label */}
         <motion.span
@@ -36,7 +36,7 @@ const DemoVideo = memo(function DemoVideo() {
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#7AAF7E] mb-4 block text-center"
+          className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#7a6fad] mb-4 block text-center"
         >
           // SEE IT IN ACTION
         </motion.span>
@@ -58,7 +58,7 @@ const DemoVideo = memo(function DemoVideo() {
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
           transition={{ delay: 0.2, duration: 0.8, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
-          className="relative rounded-2xl overflow-hidden bg-[#2A2A2A] border border-[#3A3A3A] group"
+          className="relative rounded-2xl overflow-hidden bg-[#1E1B2E] border border-[#3A3A3A] group"
         >
           <div className="aspect-video relative">
             {/* Poster / Fallback Image */}
@@ -67,7 +67,7 @@ const DemoVideo = memo(function DemoVideo() {
                 className="absolute inset-0 bg-cover bg-center"
                 style={{ backgroundImage: 'url(/hero-pipeline-abstract.jpg)' }}
               >
-                <div className="absolute inset-0 bg-[#1A1A1A]/50" />
+                <div className="absolute inset-0 bg-[#12101A]/50" />
               </div>
             )}
 
@@ -94,7 +94,7 @@ const DemoVideo = memo(function DemoVideo() {
                 transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                 className="absolute inset-0 flex items-center justify-center z-10"
               >
-                <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-full bg-[#5A8F5E] flex items-center justify-center shadow-lg hover:bg-[#4A7A4E] hover:scale-110 transition-all duration-200">
+                <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-full bg-[#574a7d] flex items-center justify-center shadow-lg hover:bg-[#4a3d6b] hover:scale-110 transition-all duration-200">
                   <Play size={32} className="text-white ml-1" fill="white" />
                 </div>
               </motion.button>
@@ -106,20 +106,20 @@ const DemoVideo = memo(function DemoVideo() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={handlePlay}
-                    className="text-white hover:text-[#5A8F5E] transition-colors duration-200"
+                    className="text-white hover:text-[#574a7d] transition-colors duration-200"
                   >
                     {isPlaying ? <Pause size={20} /> : <Play size={20} />}
                   </button>
                   <button
                     onClick={() => setIsMuted(!isMuted)}
-                    className="text-white hover:text-[#5A8F5E] transition-colors duration-200"
+                    className="text-white hover:text-[#574a7d] transition-colors duration-200"
                   >
                     {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
                   </button>
                 </div>
                 <button
                   onClick={handleFullscreen}
-                  className="text-white hover:text-[#5A8F5E] transition-colors duration-200"
+                  className="text-white hover:text-[#574a7d] transition-colors duration-200"
                 >
                   <Maximize size={20} />
                 </button>

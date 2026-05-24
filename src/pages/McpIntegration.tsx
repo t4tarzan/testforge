@@ -78,14 +78,14 @@ function HeroSection() {
   return (
     <section
       ref={sectionRef}
-      className="relative bg-[#1A1A1A] pt-24 pb-20 overflow-hidden"
+      className="relative bg-[#12101A] pt-24 pb-20 overflow-hidden"
     >
       {/* Grid pattern */}
       <div
         className="absolute inset-0 opacity-[0.08]"
         style={{
-          backgroundImage: `linear-gradient(to right, #5A8F5E 1px, transparent 1px),
-                            linear-gradient(to bottom, #5A8F5E 1px, transparent 1px)`,
+          backgroundImage: `linear-gradient(to right, #574a7d 1px, transparent 1px),
+                            linear-gradient(to bottom, #574a7d 1px, transparent 1px)`,
           backgroundSize: '40px 40px',
         }}
       />
@@ -103,7 +103,7 @@ function HeroSection() {
           initial={{ opacity: 0 }}
           animate={inView ? { opacity: 1 } : {}}
           transition={{ duration: 0.4 }}
-          className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#5A8F5E] mb-6"
+          className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#574a7d] mb-6"
         >
           {'// MCP SERVER'}
         </motion.p>
@@ -117,7 +117,7 @@ function HeroSection() {
         >
           <span className="text-white">One Line.</span>
           <br />
-          <span className="text-[#5A8F5E]">Full Integration.</span>
+          <span className="text-[#574a7d]">Full Integration.</span>
         </motion.h1>
 
         {/* Subtitle */}
@@ -138,12 +138,12 @@ function HeroSection() {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="max-w-[700px] mx-auto mt-10"
         >
-          <div className="relative bg-[#2A2A2A] border border-[#3A3A3A] rounded-2xl p-6 text-left">
+          <div className="relative bg-[#1E1B2E] border border-[#3A3A3A] rounded-2xl p-6 text-left">
             {/* Terminal chrome */}
             <div className="flex items-center gap-2 mb-5">
               <div className="w-3 h-3 rounded-full bg-[#D4524A]" />
               <div className="w-3 h-3 rounded-full bg-[#E8A838]" />
-              <div className="w-3 h-3 rounded-full bg-[#5A8F5E]" />
+              <div className="w-3 h-3 rounded-full bg-[#574a7d]" />
               <span className="font-mono text-[12px] text-[#9A9A9A] ml-4">terminal</span>
             </div>
 
@@ -158,10 +158,10 @@ function HeroSection() {
 
             {/* Command line */}
             <div className="relative flex items-center gap-3 py-4">
-              <span className="font-mono text-[16px] text-[#5A8F5E]">$</span>
+              <span className="font-mono text-[16px] text-[#574a7d]">$</span>
               <span className="font-mono font-medium text-[18px] text-white tracking-[0.02em]">
                 {typedText}
-                <span className="inline-block w-[2px] h-[20px] bg-[#5A8F5E] ml-0.5 animate-pulse align-middle" />
+                <span className="inline-block w-[2px] h-[20px] bg-[#574a7d] ml-0.5 animate-pulse align-middle" />
               </span>
             </div>
 
@@ -180,7 +180,7 @@ function HeroSection() {
           className="font-body text-[14px] text-[#9A9A9A] mt-5"
         >
           Works with{' '}
-          <span className="text-[#7AAF7E]">
+          <span className="text-[#7a6fad]">
             Cursor, VS Code, Windsurf, Trae, Claude Code
           </span>
           , and any MCP-compatible editor
@@ -194,7 +194,7 @@ function HeroSection() {
           className="mt-5 flex items-center justify-center gap-2 flex-wrap"
         >
           <span className="font-body text-[15px] text-[#9A9A9A]">Then say</span>
-          <code className="bg-[#2A2A2A] border border-[#3A3A3A] rounded-md px-3 py-1 font-mono font-medium text-[15px] text-[#7AAF7E]">
+          <code className="bg-[#1E1B2E] border border-[#3A3A3A] rounded-md px-3 py-1 font-mono font-medium text-[15px] text-[#7a6fad]">
             Test this project
           </code>
           <span className="font-body text-[15px] text-[#9A9A9A]">
@@ -211,7 +211,7 @@ function HeroSection() {
         >
           <button
             onClick={() => setShowManual(!showManual)}
-            className="inline-flex items-center gap-1 font-mono font-medium text-[13px] text-[#5A8F5E] hover:underline transition-all"
+            className="inline-flex items-center gap-1 font-mono font-medium text-[13px] text-[#574a7d] hover:underline transition-all"
           >
             Or install manually
             <motion.span
@@ -231,16 +231,16 @@ function HeroSection() {
                 transition={{ duration: 0.3, ease: easeOutExpo }}
                 className="overflow-hidden"
               >
-                <div className="max-w-[700px] mx-auto mt-4 bg-[#2A2A2A] border border-[#3A3A3A] rounded-xl p-6 text-left">
+                <div className="max-w-[700px] mx-auto mt-4 bg-[#1E1B2E] border border-[#3A3A3A] rounded-xl p-6 text-left">
                   <div className="space-y-5">
                     <div>
-                      <span className="font-mono font-medium text-[11px] text-[#5A8F5E] uppercase">
+                      <span className="font-mono font-medium text-[11px] text-[#574a7d] uppercase">
                         Step 1
                       </span>
                       <p className="font-body text-[14px] text-[#9A9A9A] mt-1">
                         Install the MCP server globally
                       </p>
-                      <div className="mt-2 bg-[#1A1A1A] rounded-lg p-3 flex items-center justify-between">
+                      <div className="mt-2 bg-[#12101A] rounded-lg p-3 flex items-center justify-between">
                         <code className="font-mono text-[13px] text-white">
                           npm install -g @testforge/mcp
                         </code>
@@ -251,7 +251,7 @@ function HeroSection() {
                       </div>
                     </div>
                     <div>
-                      <span className="font-mono font-medium text-[11px] text-[#5A8F5E] uppercase">
+                      <span className="font-mono font-medium text-[11px] text-[#574a7d] uppercase">
                         Step 2
                       </span>
                       <p className="font-body text-[14px] text-[#9A9A9A] mt-1">
@@ -259,13 +259,13 @@ function HeroSection() {
                       </p>
                     </div>
                     <div>
-                      <span className="font-mono font-medium text-[11px] text-[#5A8F5E] uppercase">
+                      <span className="font-mono font-medium text-[11px] text-[#574a7d] uppercase">
                         Step 3
                       </span>
                       <p className="font-body text-[14px] text-[#9A9A9A] mt-1">
                         Start testing
                       </p>
-                      <div className="mt-2 bg-[#1A1A1A] rounded-lg p-3 flex items-center justify-between">
+                      <div className="mt-2 bg-[#12101A] rounded-lg p-3 flex items-center justify-between">
                         <code className="font-mono text-[13px] text-white">
                           testforge-mcp --project ./my-api
                         </code>
@@ -294,8 +294,8 @@ const ideConfigs = [
   {
     name: 'Cursor',
     badge: 'Popular',
-    badgeColor: 'bg-[#E8F0E8] text-[#5A8F5E]',
-    iconBg: '#1A1A1A',
+    badgeColor: 'bg-[#E8E5FF] text-[#574a7d]',
+    iconBg: '#12101A',
     description: "Add to Cursor's MCP settings. No restart required.",
     config: `{
   "mcpServers": {
@@ -314,7 +314,7 @@ const ideConfigs = [
   {
     name: 'VS Code',
     badge: 'Free',
-    badgeColor: 'bg-[#F5F5F0] text-[#6B6B6B]',
+    badgeColor: 'bg-[#F7F7FB] text-[#6B6B6B]',
     iconBg: '#007ACC',
     description: 'Install the extension or add to settings.json.',
     config: `// Add to .vscode/mcp.json
@@ -352,7 +352,7 @@ const ideConfigs = [
     name: 'Trae',
     badge: '',
     badgeColor: '',
-    iconBg: '#2A2A2A',
+    iconBg: '#1E1B2E',
     description: "Configure via Trae's MCP settings panel.",
     config: `// ~/.trae/mcp.json
 {
@@ -389,7 +389,7 @@ claude mcp add testforge \\
     name: 'Other MCP Client',
     badge: '',
     badgeColor: '',
-    iconBg: '#EBEBE5',
+    iconBg: '#ECEBF5',
     icon: Puzzle,
     description: 'Standard MCP server configuration for any compatible client.',
     config: `{
@@ -440,7 +440,7 @@ function IdeCard({
       transition={{ duration: 0.5, delay: index * 0.08, ease: easeOutExpo }}
       whileHover={{ y: -4 }}
       className="bg-white border border-[#D9D9D3] rounded-[14px] p-6 overflow-hidden
-        hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:border-[#A3C9A5]
+        hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:border-[#a39fd4]
         transition-shadow duration-300 flex flex-col"
     >
       {/* Header */}
@@ -459,7 +459,7 @@ function IdeCard({
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="font-body font-semibold text-[18px] text-[#1A1A1A]">
+            <h3 className="font-body font-semibold text-[18px] text-[#12101A]">
               {ide.name}
             </h3>
             {ide.badge && (
@@ -489,13 +489,13 @@ function IdeCard({
           rounded-lg font-body font-medium text-[14px] transition-all duration-200 active:scale-[0.98]
           ${
             ide.buttonStyle === 'primary'
-              ? 'bg-[#5A8F5E] text-white hover:bg-[#4A7A4E]'
-              : 'bg-transparent border border-[#D9D9D3] text-[#333333] hover:bg-[#E8F0E8] hover:border-[#A3C9A5]'
+              ? 'bg-[#574a7d] text-white hover:bg-[#4a3d6b]'
+              : 'bg-transparent border border-[#D9D9D3] text-[#333333] hover:bg-[#E8E5FF] hover:border-[#a39fd4]'
           }`}
       >
         {copied ? (
           <>
-            <CheckCircle size={16} className="text-[#5A8F5E]" />
+            <CheckCircle size={16} className="text-[#574a7d]" />
             Copied! Open {ide.name} →
           </>
         ) : (
@@ -511,13 +511,13 @@ function IdeCard({
 
 function IdeCardsSection() {
   return (
-    <section className="bg-[#F5F5F0] py-20">
+    <section className="bg-[#F7F7FB] py-20">
       <div className="max-w-[1200px] mx-auto px-6 lg:px-16">
         <SectionReveal className="text-center">
-          <p className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#5A8F5E]">
+          <p className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#574a7d]">
             {'// SUPPORTED IDES'}
           </p>
-          <h2 className="font-heading font-medium text-[28px] text-[#1A1A1A] mt-3 tracking-[-0.01em]">
+          <h2 className="font-heading font-medium text-[28px] text-[#12101A] mt-3 tracking-[-0.01em]">
             Configure Your Editor
           </h2>
           <p className="font-body text-[16px] text-[#6B6B6B] mt-3">
@@ -577,20 +577,20 @@ function HowItWorksSection() {
   const inView = useInView(ref, { once: true, margin: '-80px' });
 
   return (
-    <section ref={ref} className="relative bg-[#1A1A1A] py-20 overflow-hidden">
+    <section ref={ref} className="relative bg-[#12101A] py-20 overflow-hidden">
       {/* Grid pattern */}
       <div
         className="absolute inset-0 opacity-[0.08]"
         style={{
-          backgroundImage: `linear-gradient(to right, #5A8F5E 1px, transparent 1px),
-                            linear-gradient(to bottom, #5A8F5E 1px, transparent 1px)`,
+          backgroundImage: `linear-gradient(to right, #574a7d 1px, transparent 1px),
+                            linear-gradient(to bottom, #574a7d 1px, transparent 1px)`,
           backgroundSize: '40px 40px',
         }}
       />
 
       <div className="relative z-10 max-w-[1100px] mx-auto px-6 lg:px-16">
         <SectionReveal className="text-center">
-          <p className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#5A8F5E]">
+          <p className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#574a7d]">
             {'// HOW IT WORKS'}
           </p>
           <h2 className="font-heading font-medium text-[28px] text-white mt-3 tracking-[-0.01em]">
@@ -613,7 +613,7 @@ function HowItWorksSection() {
               className="absolute top-[28px] left-[10%] right-[10%] h-[2px] origin-left"
               style={{
                 background:
-                  'linear-gradient(to right, #5A8F5E, #A3C9A5)',
+                  'linear-gradient(to right, #574a7d, #a39fd4)',
               }}
             />
 
@@ -632,13 +632,13 @@ function HowItWorksSection() {
                 >
                   {/* Circle with icon */}
                   <div className="relative">
-                    <div className="w-14 h-14 rounded-full bg-[#2A2A2A] border-2 border-[#5A8F5E] flex items-center justify-center
+                    <div className="w-14 h-14 rounded-full bg-[#1E1B2E] border-2 border-[#574a7d] flex items-center justify-center
                       hover:scale-110 transition-transform duration-200
                       hover:shadow-[0_0_0_4px_rgba(90,143,94,0.2)]">
-                      <step.icon size={24} className="text-[#5A8F5E]" />
+                      <step.icon size={24} className="text-[#574a7d]" />
                     </div>
                     {/* Number badge */}
-                    <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#5A8F5E] flex items-center justify-center">
+                    <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#574a7d] flex items-center justify-center">
                       <span className="font-mono font-semibold text-[10px] text-white">
                         {step.number.slice(1)}
                       </span>
@@ -679,7 +679,7 @@ function HowItWorksSection() {
               className="absolute top-0 bottom-0 left-[27px] w-[2px] origin-top"
               style={{
                 background:
-                  'linear-gradient(to bottom, #5A8F5E, #A3C9A5)',
+                  'linear-gradient(to bottom, #574a7d, #a39fd4)',
               }}
             />
 
@@ -692,10 +692,10 @@ function HowItWorksSection() {
                 className="flex items-start gap-4 relative"
               >
                 <div className="relative flex-shrink-0">
-                  <div className="w-14 h-14 rounded-full bg-[#2A2A2A] border-2 border-[#5A8F5E] flex items-center justify-center">
-                    <step.icon size={24} className="text-[#5A8F5E]" />
+                  <div className="w-14 h-14 rounded-full bg-[#1E1B2E] border-2 border-[#574a7d] flex items-center justify-center">
+                    <step.icon size={24} className="text-[#574a7d]" />
                   </div>
-                  <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#5A8F5E] flex items-center justify-center">
+                  <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#574a7d] flex items-center justify-center">
                     <span className="font-mono font-semibold text-[10px] text-white">
                       {step.number.slice(1)}
                     </span>
@@ -724,23 +724,23 @@ function HowItWorksSection() {
    ──────────────────────────────────────────── */
 const terminalLines = [
   { text: '$ npx @testforge/mcp install', color: '#E8E8E3' },
-  { text: '✓ MCP server installed (2.3s)', color: '#7AAF7E' },
-  { text: '✓ Detected project: express-ecommerce-api', color: '#7AAF7E' },
-  { text: '✓ Found 47 endpoints, 12 middleware functions', color: '#7AAF7E' },
-  { text: '✓ Generated test plan with 13 test dimensions', color: '#7AAF7E' },
-  { text: '✓ Connected to TestForge cloud', color: '#7AAF7E' },
+  { text: '✓ MCP server installed (2.3s)', color: '#7a6fad' },
+  { text: '✓ Detected project: express-ecommerce-api', color: '#7a6fad' },
+  { text: '✓ Found 47 endpoints, 12 middleware functions', color: '#7a6fad' },
+  { text: '✓ Generated test plan with 13 test dimensions', color: '#7a6fad' },
+  { text: '✓ Connected to TestForge cloud', color: '#7a6fad' },
   { text: '', color: '#E8E8E3' },
   { text: '$ cursor .', color: '#E8E8E3' },
   { text: '# In Cursor chat, type:', color: '#5A5A5A' },
   { text: '> Test this project for security vulnerabilities', color: '#4A90D9' },
   { text: '', color: '#E8E8E3' },
-  { text: '✓ Running security scan... (12s)', color: '#7AAF7E' },
+  { text: '✓ Running security scan... (12s)', color: '#7a6fad' },
   { text: '⚠ Found 3 vulnerabilities:', color: '#E8A838' },
   { text: '  • CRITICAL: SQL Injection in /api/orders', color: '#D4524A' },
   { text: '  • HIGH: Auth bypass in /admin/*', color: '#E87D3A' },
   { text: '  • HIGH: XSS in /search', color: '#E87D3A' },
   { text: '', color: '#E8E8E3' },
-  { text: '✓ Generated fixes pushed to branch fix/security-001', color: '#7AAF7E' },
+  { text: '✓ Generated fixes pushed to branch fix/security-001', color: '#7a6fad' },
 ];
 
 function TerminalDemoSection() {
@@ -769,13 +769,13 @@ function TerminalDemoSection() {
   }, [inView, replayKey]);
 
   return (
-    <section className="bg-[#F5F5F0] py-20">
+    <section className="bg-[#F7F7FB] py-20">
       <div className="max-w-[900px] mx-auto px-6 lg:px-16">
         <SectionReveal className="text-center">
-          <p className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#5A8F5E]">
+          <p className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#574a7d]">
             {'// LIVE DEMO'}
           </p>
-          <h2 className="font-heading font-medium text-[28px] text-[#1A1A1A] mt-3 tracking-[-0.01em]">
+          <h2 className="font-heading font-medium text-[28px] text-[#12101A] mt-3 tracking-[-0.01em]">
             See It in Action
           </h2>
           <p className="font-body text-[16px] text-[#6B6B6B] mt-3">
@@ -791,13 +791,13 @@ function TerminalDemoSection() {
           transition={{ duration: 0.6, ease: easeOutExpo }}
           className="mt-10"
         >
-          <div className="bg-[#1A1A1A] rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.15)]">
+          <div className="bg-[#12101A] rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.15)]">
             {/* Chrome bar */}
-            <div className="bg-[#2A2A2A] px-5 py-3 flex items-center gap-3">
+            <div className="bg-[#1E1B2E] px-5 py-3 flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-[#D4524A]" />
                 <div className="w-3 h-3 rounded-full bg-[#E8A838]" />
-                <div className="w-3 h-3 rounded-full bg-[#5A8F5E]" />
+                <div className="w-3 h-3 rounded-full bg-[#574a7d]" />
               </div>
               <span className="font-mono font-medium text-[12px] text-[#9A9A9A] mx-auto">
                 testforge-mcp
@@ -818,7 +818,7 @@ function TerminalDemoSection() {
                 </motion.div>
               ))}
               {visibleLines >= terminalLines.length && (
-                <span className="inline-block w-[8px] h-[16px] bg-[#5A8F5E] ml-0.5 animate-pulse" />
+                <span className="inline-block w-[8px] h-[16px] bg-[#574a7d] ml-0.5 animate-pulse" />
               )}
             </div>
           </div>
@@ -827,7 +827,7 @@ function TerminalDemoSection() {
           <div className="flex justify-end mt-4">
             <button
               onClick={replay}
-              className="font-mono font-medium text-[12px] text-[#5A8F5E] hover:underline transition-all"
+              className="font-mono font-medium text-[12px] text-[#574a7d] hover:underline transition-all"
             >
               Replay
             </button>
@@ -876,13 +876,13 @@ const capabilities = [
 
 function CapabilitiesSection() {
   return (
-    <section className="bg-[#F5F5F0] py-20">
+    <section className="bg-[#F7F7FB] py-20">
       <div className="max-w-[1200px] mx-auto px-6 lg:px-16">
         <SectionReveal className="text-center mb-12">
-          <p className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#5A8F5E]">
+          <p className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#574a7d]">
             {'// CAPABILITIES'}
           </p>
-          <h2 className="font-heading font-medium text-[28px] text-[#1A1A1A] mt-3 tracking-[-0.01em]">
+          <h2 className="font-heading font-medium text-[28px] text-[#12101A] mt-3 tracking-[-0.01em]">
             What You Can Do
           </h2>
           <p className="font-body text-[16px] text-[#6B6B6B] mt-3">
@@ -900,13 +900,13 @@ function CapabilitiesSection() {
               transition={{ duration: 0.5, delay: i * 0.08, ease: easeOutExpo }}
               whileHover={{ y: -4 }}
               className="bg-white border border-[#D9D9D3] rounded-xl p-8
-                hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:border-[#A3C9A5]
+                hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:border-[#a39fd4]
                 transition-all duration-300"
             >
-              <div className="w-12 h-12 rounded-xl bg-[#E8F0E8] flex items-center justify-center">
-                <cap.icon size={24} className="text-[#5A8F5E]" />
+              <div className="w-12 h-12 rounded-xl bg-[#E8E5FF] flex items-center justify-center">
+                <cap.icon size={24} className="text-[#574a7d]" />
               </div>
-              <h3 className="font-body font-semibold text-[18px] text-[#1A1A1A] mt-5">
+              <h3 className="font-body font-semibold text-[18px] text-[#12101A] mt-5">
                 {cap.title}
               </h3>
               <p className="font-body text-[15px] text-[#6B6B6B] mt-2 leading-[1.6]">
@@ -933,10 +933,10 @@ const comparisonRows = [
 
 function ComparisonSection() {
   return (
-    <section className="bg-[#1A1A1A] py-20">
+    <section className="bg-[#12101A] py-20">
       <div className="max-w-[800px] mx-auto px-6 lg:px-16">
         <SectionReveal className="text-center mb-12">
-          <p className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#5A8F5E]">
+          <p className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#574a7d]">
             {'// COMPARISON'}
           </p>
           <h2 className="font-heading font-medium text-[28px] text-white mt-3 tracking-[-0.01em]">
@@ -949,7 +949,7 @@ function ComparisonSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-60px' }}
           transition={{ duration: 0.6, ease: easeOutExpo }}
-          className="bg-[#2A2A2A] border border-[#3A3A3A] rounded-2xl overflow-hidden"
+          className="bg-[#1E1B2E] border border-[#3A3A3A] rounded-2xl overflow-hidden"
         >
           {/* Table header */}
           <div className="grid grid-cols-3 gap-4 px-6 py-4 bg-[#333333]/50">
@@ -959,7 +959,7 @@ function ComparisonSection() {
             <span className="font-mono font-medium text-[12px] uppercase text-[#9A9A9A] tracking-[0.08em] text-center">
               Manual
             </span>
-            <span className="font-mono font-medium text-[12px] uppercase text-[#5A8F5E] tracking-[0.08em] text-center">
+            <span className="font-mono font-medium text-[12px] uppercase text-[#574a7d] tracking-[0.08em] text-center">
               MCP
             </span>
           </div>
@@ -980,7 +980,7 @@ function ComparisonSection() {
               <span className="font-mono text-[15px] text-[#9A9A9A] text-center">
                 {row.manual}
               </span>
-              <span className="font-mono text-[15px] text-[#5A8F5E] text-center font-medium">
+              <span className="font-mono text-[15px] text-[#574a7d] text-center font-medium">
                 {row.mcp}
               </span>
             </motion.div>
@@ -1012,7 +1012,7 @@ function CTASection() {
   }, [inView]);
 
   return (
-    <section ref={ref} className="bg-[#5A8F5E] py-20">
+    <section ref={ref} className="bg-[#574a7d] py-20">
       <div className="max-w-[700px] mx-auto px-6 lg:px-16 text-center">
         <motion.h2
           initial={{ opacity: 0, y: 30 }}
@@ -1040,14 +1040,14 @@ function CTASection() {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="max-w-[500px] mx-auto mt-8"
         >
-          <div className="bg-[#1A1A1A] border border-[#3A3A3A] rounded-2xl p-5 text-left">
+          <div className="bg-[#12101A] border border-[#3A3A3A] rounded-2xl p-5 text-left">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-2.5 h-2.5 rounded-full bg-[#D4524A]" />
               <div className="w-2.5 h-2.5 rounded-full bg-[#E8A838]" />
-              <div className="w-2.5 h-2.5 rounded-full bg-[#5A8F5E]" />
+              <div className="w-2.5 h-2.5 rounded-full bg-[#574a7d]" />
             </div>
             <div className="flex items-center gap-3">
-              <span className="font-mono text-[14px] text-[#5A8F5E]">$</span>
+              <span className="font-mono text-[14px] text-[#574a7d]">$</span>
               <span className="font-mono font-medium text-[16px] text-white">
                 {typedText}
               </span>

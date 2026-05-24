@@ -26,28 +26,28 @@ const easeOutExpo = [0.16, 1, 0.3, 1] as [number, number, number, number];
 // ── Logo ───────────────────────────────────────────────────────────────────
 const LogoIcon = () => (
   <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-    <circle cx="8" cy="8" r="3" stroke="#5A8F5E" strokeWidth="2" fill="none" />
-    <circle cx="24" cy="8" r="3" stroke="#5A8F5E" strokeWidth="2" fill="none" />
-    <circle cx="8" cy="24" r="3" stroke="#5A8F5E" strokeWidth="2" fill="none" />
-    <circle cx="24" cy="24" r="3" stroke="#5A8F5E" strokeWidth="2" fill="none" />
-    <line x1="11" y1="8" x2="21" y2="8" stroke="#5A8F5E" strokeWidth="1.5" />
-    <line x1="8" y1="11" x2="8" y2="21" stroke="#5A8F5E" strokeWidth="1.5" />
-    <line x1="11" y1="24" x2="21" y2="24" stroke="#5A8F5E" strokeWidth="1.5" />
-    <line x1="24" y1="11" x2="24" y2="21" stroke="#5A8F5E" strokeWidth="1.5" />
-    <line x1="10.1" y1="10.1" x2="21.9" y2="21.9" stroke="#5A8F5E" strokeWidth="1.5" />
-    <circle cx="16" cy="16" r="2" fill="#5A8F5E" />
+    <circle cx="8" cy="8" r="3" stroke="#574a7d" strokeWidth="2" fill="none" />
+    <circle cx="24" cy="8" r="3" stroke="#574a7d" strokeWidth="2" fill="none" />
+    <circle cx="8" cy="24" r="3" stroke="#574a7d" strokeWidth="2" fill="none" />
+    <circle cx="24" cy="24" r="3" stroke="#574a7d" strokeWidth="2" fill="none" />
+    <line x1="11" y1="8" x2="21" y2="8" stroke="#574a7d" strokeWidth="1.5" />
+    <line x1="8" y1="11" x2="8" y2="21" stroke="#574a7d" strokeWidth="1.5" />
+    <line x1="11" y1="24" x2="21" y2="24" stroke="#574a7d" strokeWidth="1.5" />
+    <line x1="24" y1="11" x2="24" y2="21" stroke="#574a7d" strokeWidth="1.5" />
+    <line x1="10.1" y1="10.1" x2="21.9" y2="21.9" stroke="#574a7d" strokeWidth="1.5" />
+    <circle cx="16" cy="16" r="2" fill="#574a7d" />
   </svg>
 );
 
 // ── Status Badge ───────────────────────────────────────────────────────────
 const StatusBadge = ({ status }: { status: string }) => {
   const config: Record<string, { bg: string; text: string; label: string }> = {
-    completed: { bg: 'bg-[#E8F0E8]', text: 'text-[#5A8F5E]', label: 'PASS' },
-    passed: { bg: 'bg-[#E8F0E8]', text: 'text-[#5A8F5E]', label: 'PASS' },
+    completed: { bg: 'bg-[#E8E5FF]', text: 'text-[#574a7d]', label: 'PASS' },
+    passed: { bg: 'bg-[#E8E5FF]', text: 'text-[#574a7d]', label: 'PASS' },
     failed: { bg: 'bg-[rgba(212,82,74,0.1)]', text: 'text-[#D4524A]', label: 'FAIL' },
     warning: { bg: 'bg-[rgba(232,168,56,0.1)]', text: 'text-[#E8A838]', label: 'WARN' },
-    active: { bg: 'bg-[#E8F0E8]', text: 'text-[#5A8F5E]', label: 'ACTIVE' },
-    inactive: { bg: 'bg-[#F5F5F0]', text: 'text-[#9A9A9A]', label: 'INACTIVE' },
+    active: { bg: 'bg-[#E8E5FF]', text: 'text-[#574a7d]', label: 'ACTIVE' },
+    inactive: { bg: 'bg-[#F7F7FB]', text: 'text-[#9A9A9A]', label: 'INACTIVE' },
     running: { bg: 'bg-[rgba(232,168,56,0.1)]', text: 'text-[#E8A838]', label: 'RUNNING' },
     pending: { bg: 'bg-[rgba(154,154,154,0.1)]', text: 'text-[#9A9A9A]', label: 'PENDING' },
   };
@@ -61,7 +61,7 @@ const StatusBadge = ({ status }: { status: string }) => {
 
 // ── Score Color ────────────────────────────────────────────────────────────
 const scoreColor = (s: number) => {
-  if (s >= 80) return 'text-[#5A8F5E]';
+  if (s >= 80) return 'text-[#574a7d]';
   if (s >= 50) return 'text-[#E8A838]';
   return 'text-[#D4524A]';
 };
@@ -87,8 +87,8 @@ function DashboardTab() {
   const user = MOCK_USER;
 
   const stats = [
-    { icon: FlaskConical, iconBg: 'bg-[#E8F0E8]', iconColor: 'text-[#5A8F5E]', value: 2847, label: 'TOTAL TESTS RUN', trend: '+12.5%', trendUp: true },
-    { icon: CheckCircle2, iconBg: 'bg-[rgba(90,143,94,0.1)]', iconColor: 'text-[#5A8F5E]', value: 87.3, label: 'PASS RATE', trend: '+3.2%', trendUp: true, suffix: '%', decimals: 1 },
+    { icon: FlaskConical, iconBg: 'bg-[#E8E5FF]', iconColor: 'text-[#574a7d]', value: 2847, label: 'TOTAL TESTS RUN', trend: '+12.5%', trendUp: true },
+    { icon: CheckCircle2, iconBg: 'bg-[rgba(90,143,94,0.1)]', iconColor: 'text-[#574a7d]', value: 87.3, label: 'PASS RATE', trend: '+3.2%', trendUp: true, suffix: '%', decimals: 1 },
     { icon: GitBranch, iconBg: 'bg-[rgba(74,144,217,0.1)]', iconColor: 'text-[#4A90D9]', value: 12, label: 'ACTIVE REPOSITORIES', trend: '+2', trendUp: true },
     { icon: Zap, iconBg: 'bg-[rgba(232,168,56,0.1)]', iconColor: 'text-[#E8A838]', value: 1250, label: 'CREDITS REMAINING', trend: '-18%', trendUp: false },
   ];
@@ -103,7 +103,7 @@ function DashboardTab() {
       {/* Welcome Header */}
       <div className="flex items-end justify-between mb-8">
         <div>
-          <h2 className="font-heading font-medium text-[28px] text-[#1A1A1A] tracking-[-0.01em]">
+          <h2 className="font-heading font-medium text-[28px] text-[#12101A] tracking-[-0.01em]">
             Welcome back, {user.name.split(' ')[0]}
           </h2>
           <p className="text-[16px] text-[#6B6B6B] font-body mt-1">
@@ -132,15 +132,15 @@ function DashboardTab() {
               <MoreHorizontal size={16} className="text-[#9A9A9A] cursor-pointer" />
             </div>
             <div className="mt-4">
-              <div className="font-heading font-bold text-[32px] text-[#1A1A1A]">
+              <div className="font-heading font-bold text-[32px] text-[#12101A]">
                 <CountUp end={s.value} duration={1} decimals={s.decimals || 0} suffix={s.suffix || ''} />
               </div>
               <div className="font-mono font-medium text-[12px] uppercase text-[#6B6B6B] tracking-[0.08em] mt-1">
                 {s.label}
               </div>
               <div className="flex items-center gap-1 mt-2">
-                {s.trendUp ? <TrendingUp size={14} className="text-[#5A8F5E]" /> : <TrendingDown size={14} className="text-[#E8A838]" />}
-                <span className={`text-[13px] font-medium font-body ${s.trendUp ? 'text-[#5A8F5E]' : 'text-[#E8A838]'}`}>
+                {s.trendUp ? <TrendingUp size={14} className="text-[#574a7d]" /> : <TrendingDown size={14} className="text-[#E8A838]" />}
+                <span className={`text-[13px] font-medium font-body ${s.trendUp ? 'text-[#574a7d]' : 'text-[#E8A838]'}`}>
                   {s.trend}
                 </span>
                 <span className="text-[12px] text-[#9A9A9A] font-body">vs last month</span>
@@ -153,8 +153,8 @@ function DashboardTab() {
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
         {[
-          { icon: Play, iconBg: 'bg-[#5A8F5E]', iconColor: 'text-white', title: 'Start New Test', subtitle: 'Run a full test suite on any repository', action: () => navigate('/run-test') },
-          { icon: GitBranch, iconBg: 'bg-[#1A1A1A]', iconColor: 'text-white', title: 'Connect Repository', subtitle: 'Link a new Git repo to TestForge', action: () => {} },
+          { icon: Play, iconBg: 'bg-[#574a7d]', iconColor: 'text-white', title: 'Start New Test', subtitle: 'Run a full test suite on any repository', action: () => navigate('/run-test') },
+          { icon: GitBranch, iconBg: 'bg-[#12101A]', iconColor: 'text-white', title: 'Connect Repository', subtitle: 'Link a new Git repo to TestForge', action: () => {} },
           { icon: FileText, iconBg: 'bg-[rgba(74,144,217,0.1)]', iconColor: 'text-[#4A90D9]', title: 'View Reports', subtitle: 'Browse and export past test reports', action: () => navigate('/account?tab=test-runs') },
         ].map((card, i) => (
           <motion.div
@@ -163,7 +163,7 @@ function DashboardTab() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 + i * 0.08, duration: 0.3, ease: easeOutExpo }}
             onClick={card.action}
-            className="bg-white border border-[#D9D9D3] rounded-[12px] p-5 flex items-center gap-4 cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] hover:border-[#A3C9A5] transition-all duration-300"
+            className="bg-white border border-[#D9D9D3] rounded-[12px] p-5 flex items-center gap-4 cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] hover:border-[#a39fd4] transition-all duration-300"
           >
             <div className={`w-11 h-11 rounded-[12px] ${card.iconBg} flex items-center justify-center flex-shrink-0`}>
               <card.icon size={20} className={card.iconColor} />
@@ -180,18 +180,18 @@ function DashboardTab() {
       {/* Recent Test Runs */}
       <div className="mt-8">
         <div className="flex items-center justify-between mb-4">
-          <span className="font-mono font-medium text-[12px] uppercase text-[#5A8F5E] tracking-[0.08em]">
+          <span className="font-mono font-medium text-[12px] uppercase text-[#574a7d] tracking-[0.08em]">
             RECENT TEST RUNS
           </span>
           <button
             onClick={() => navigate('/account?tab=test-runs')}
-            className="text-[14px] text-[#5A8F5E] font-medium font-body hover:underline"
+            className="text-[14px] text-[#574a7d] font-medium font-body hover:underline"
           >
             View All →
           </button>
         </div>
         <div className="bg-white border border-[#D9D9D3] rounded-[12px] overflow-hidden">
-          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] gap-4 px-6 py-3 bg-[#F5F5F0] font-mono font-medium text-[12px] uppercase text-[#6B6B6B]">
+          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] gap-4 px-6 py-3 bg-[#F7F7FB] font-mono font-medium text-[12px] uppercase text-[#6B6B6B]">
             <span>Repository</span>
             <span>Branch</span>
             <span>Date</span>
@@ -205,7 +205,7 @@ function DashboardTab() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 + i * 0.04, duration: 0.3 }}
-              className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] gap-4 px-6 py-4 border-t border-[#D9D9D3] items-center hover:bg-[#F5F5F0] transition-colors"
+              className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] gap-4 px-6 py-4 border-t border-[#D9D9D3] items-center hover:bg-[#F7F7FB] transition-colors"
             >
               <span className="text-[14px] text-[#333333] font-body">{run.repo}</span>
               <span className="text-[14px] text-[#6B6B6B] font-body">{run.branch}</span>
@@ -215,10 +215,10 @@ function DashboardTab() {
                 {run.score}/100
               </span>
               <div className="flex items-center justify-end gap-2">
-                <button className="w-8 h-8 rounded-[6px] flex items-center justify-center hover:bg-[#F5F5F0] transition-colors">
+                <button className="w-8 h-8 rounded-[6px] flex items-center justify-center hover:bg-[#F7F7FB] transition-colors">
                   <Eye size={16} className="text-[#6B6B6B]" />
                 </button>
-                <button className="w-8 h-8 rounded-[6px] flex items-center justify-center hover:bg-[#F5F5F0] transition-colors">
+                <button className="w-8 h-8 rounded-[6px] flex items-center justify-center hover:bg-[#F7F7FB] transition-colors">
                   <Download size={16} className="text-[#6B6B6B]" />
                 </button>
               </div>
@@ -229,7 +229,7 @@ function DashboardTab() {
 
       {/* Usage Chart */}
       <div className="mt-8 pb-8">
-        <span className="font-mono font-medium text-[12px] uppercase text-[#5A8F5E] tracking-[0.08em]">
+        <span className="font-mono font-medium text-[12px] uppercase text-[#574a7d] tracking-[0.08em]">
           TEST RUNS — LAST 30 DAYS
         </span>
         <div className="bg-white border border-[#D9D9D3] rounded-[12px] p-6 mt-4 h-[320px]">
@@ -237,8 +237,8 @@ function DashboardTab() {
             <AreaChart data={MOCK_USAGE_DATA}>
               <defs>
                 <linearGradient id="sageArea" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#5A8F5E" stopOpacity={0.15} />
-                  <stop offset="100%" stopColor="#5A8F5E" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#574a7d" stopOpacity={0.15} />
+                  <stop offset="100%" stopColor="#574a7d" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#E5E5DF" />
@@ -265,10 +265,10 @@ function DashboardTab() {
               <Area
                 type="monotone"
                 dataKey="runs"
-                stroke="#5A8F5E"
+                stroke="#574a7d"
                 strokeWidth={2}
                 fill="url(#sageArea)"
-                dot={{ r: 3, fill: '#5A8F5E' }}
+                dot={{ r: 3, fill: '#574a7d' }}
                 activeDot={{ r: 5 }}
               />
             </AreaChart>
@@ -319,7 +319,7 @@ function TestRunsTab() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
-      <h2 className="font-heading font-medium text-[28px] text-[#1A1A1A]">Test Runs</h2>
+      <h2 className="font-heading font-medium text-[28px] text-[#12101A]">Test Runs</h2>
       <p className="text-[16px] text-[#6B6B6B] font-body mt-1">View and manage all your test executions.</p>
 
       {/* Filter Bar */}
@@ -331,27 +331,27 @@ function TestRunsTab() {
             placeholder="Search repositories..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-[300px] h-10 bg-white border border-[#D9D9D3] rounded-lg pl-10 pr-4 text-[14px] font-body text-[#1A1A1A] placeholder:text-[#9A9A9A] focus:outline-none focus:border-[#5A8F5E] transition-colors"
+            className="w-[300px] h-10 bg-white border border-[#D9D9D3] rounded-lg pl-10 pr-4 text-[14px] font-body text-[#12101A] placeholder:text-[#9A9A9A] focus:outline-none focus:border-[#574a7d] transition-colors"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-10 bg-white border border-[#D9D9D3] rounded-lg px-3 text-[14px] font-body text-[#1A1A1A] focus:outline-none focus:border-[#5A8F5E] cursor-pointer"
+          className="h-10 bg-white border border-[#D9D9D3] rounded-lg px-3 text-[14px] font-body text-[#12101A] focus:outline-none focus:border-[#574a7d] cursor-pointer"
         >
           <option value="all">All Statuses</option>
           <option value="completed">Pass</option>
           <option value="warning">Warn</option>
           <option value="failed">Fail</option>
         </select>
-        <button className="ml-auto h-10 px-5 bg-[#5A8F5E] text-white rounded-lg font-body font-medium text-[14px] flex items-center gap-2 hover:bg-[#4A7A4E] transition-colors">
+        <button className="ml-auto h-10 px-5 bg-[#574a7d] text-white rounded-lg font-body font-medium text-[14px] flex items-center gap-2 hover:bg-[#4a3d6b] transition-colors">
           <Play size={16} /> Run New Test
         </button>
       </div>
 
       {/* Table */}
       <div className="bg-white border border-[#D9D9D3] rounded-[12px] overflow-hidden mt-6">
-        <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-4 px-6 py-3 bg-[#F5F5F0] font-mono font-medium text-[12px] uppercase text-[#6B6B6B]">
+        <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-4 px-6 py-3 bg-[#F7F7FB] font-mono font-medium text-[12px] uppercase text-[#6B6B6B]">
           {[
             { key: 'repo', label: 'Repository' },
             { key: 'branch', label: 'Branch' },
@@ -363,7 +363,7 @@ function TestRunsTab() {
             <button
               key={col.key}
               onClick={() => handleSort(col.key)}
-              className="flex items-center gap-1 text-left hover:text-[#5A8F5E] transition-colors"
+              className="flex items-center gap-1 text-left hover:text-[#574a7d] transition-colors"
             >
               {col.label}
               {sortCol === col.key && (sortDir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
@@ -377,7 +377,7 @@ function TestRunsTab() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: i * 0.04 }}
-            className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-4 px-6 py-4 border-t border-[#D9D9D3] items-center hover:bg-[#F5F5F0] transition-colors"
+            className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-4 px-6 py-4 border-t border-[#D9D9D3] items-center hover:bg-[#F7F7FB] transition-colors"
           >
             <span className="text-[14px] text-[#333333] font-body">{run.repo}</span>
             <span className="text-[14px] text-[#6B6B6B] font-body">{run.branch}</span>
@@ -386,8 +386,8 @@ function TestRunsTab() {
             <span><StatusBadge status={run.status} /></span>
             <span className={`text-[14px] font-semibold font-body ${scoreColor(run.score)}`}>{run.score}/100</span>
             <div className="flex items-center justify-end gap-2">
-              <button className="w-8 h-8 rounded-[6px] flex items-center justify-center hover:bg-[#F5F5F0]"><Eye size={16} className="text-[#6B6B6B]" /></button>
-              <button className="w-8 h-8 rounded-[6px] flex items-center justify-center hover:bg-[#F5F5F0]"><Download size={16} className="text-[#6B6B6B]" /></button>
+              <button className="w-8 h-8 rounded-[6px] flex items-center justify-center hover:bg-[#F7F7FB]"><Eye size={16} className="text-[#6B6B6B]" /></button>
+              <button className="w-8 h-8 rounded-[6px] flex items-center justify-center hover:bg-[#F7F7FB]"><Download size={16} className="text-[#6B6B6B]" /></button>
             </div>
           </motion.div>
         ))}
@@ -399,7 +399,7 @@ function TestRunsTab() {
           Showing {(page - 1) * perPage + 1}-{Math.min(page * perPage, filtered.length)} of {filtered.length}
         </span>
         <div className="flex items-center gap-2">
-          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-[#F5F5F0] disabled:opacity-30 transition-colors">
+          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-[#F7F7FB] disabled:opacity-30 transition-colors">
             <ChevronLeft size={16} />
           </button>
           {Array.from({ length: Math.min(5, totalPages) }, (_, i) => i + 1).map((n) => (
@@ -407,14 +407,14 @@ function TestRunsTab() {
               key={n}
               onClick={() => setPage(n)}
               className={`w-9 h-9 rounded-lg font-body text-[14px] transition-colors ${
-                page === n ? 'bg-[#5A8F5E] text-white' : 'text-[#6B6B6B] hover:bg-[#F5F5F0]'
+                page === n ? 'bg-[#574a7d] text-white' : 'text-[#6B6B6B] hover:bg-[#F7F7FB]'
               }`}
             >
               {n}
             </button>
           ))}
           {totalPages > 5 && <span className="text-[#9A9A9A] px-1">...</span>}
-          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-[#F5F5F0] disabled:opacity-30 transition-colors">
+          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-[#F7F7FB] disabled:opacity-30 transition-colors">
             <ChevronRight size={16} />
           </button>
         </div>
@@ -429,9 +429,9 @@ function TestRunsTab() {
 function ReposTab() {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
-      <h2 className="font-heading font-medium text-[28px] text-[#1A1A1A]">Repositories</h2>
+      <h2 className="font-heading font-medium text-[28px] text-[#12101A]">Repositories</h2>
       <p className="text-[16px] text-[#6B6B6B] font-body mt-1">Manage your connected Git repositories.</p>
-      <button className="mt-6 h-10 px-5 bg-[#5A8F5E] text-white rounded-lg font-body font-medium text-[14px] flex items-center gap-2 hover:bg-[#4A7A4E] transition-colors">
+      <button className="mt-6 h-10 px-5 bg-[#574a7d] text-white rounded-lg font-body font-medium text-[14px] flex items-center gap-2 hover:bg-[#4a3d6b] transition-colors">
         <Plus size={16} /> Connect Repository
       </button>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
@@ -445,8 +445,8 @@ function ReposTab() {
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <GitBranch size={18} className="text-[#5A8F5E]" />
-                <span className="font-body font-semibold text-[16px] text-[#1A1A1A]">{repo.owner}/{repo.name}</span>
+                <GitBranch size={18} className="text-[#574a7d]" />
+                <span className="font-body font-semibold text-[16px] text-[#12101A]">{repo.owner}/{repo.name}</span>
               </div>
               <StatusBadge status={repo.status} />
             </div>
@@ -457,14 +457,14 @@ function ReposTab() {
                 { value: `Last: ${repo.lastRun}`, label: '' },
               ].map((s) => (
                 <div key={s.label || s.value}>
-                  <span className="font-body font-semibold text-[18px] text-[#1A1A1A]">{s.value}</span>
+                  <span className="font-body font-semibold text-[18px] text-[#12101A]">{s.value}</span>
                   {s.label && <span className="ml-1 font-mono font-medium text-[11px] uppercase text-[#6B6B6B]">{s.label}</span>}
                 </div>
               ))}
             </div>
             <p className="mt-3 text-[13px] text-[#6B6B6B] font-body">{repo.branchList}</p>
             <div className="flex items-center gap-4 mt-4 pt-4 border-t border-[#D9D9D3]">
-              <button className="text-[14px] text-[#5A8F5E] font-medium font-body hover:underline">Run Test</button>
+              <button className="text-[14px] text-[#574a7d] font-medium font-body hover:underline">Run Test</button>
               <button className="text-[14px] text-[#6B6B6B] font-body hover:text-[#333333]">Settings</button>
               <button className="text-[14px] text-[#D4524A] font-body hover:underline">Disconnect</button>
             </div>
@@ -489,13 +489,13 @@ function ApiKeysTab() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
-      <h2 className="font-heading font-medium text-[28px] text-[#1A1A1A]">API Keys</h2>
+      <h2 className="font-heading font-medium text-[28px] text-[#12101A]">API Keys</h2>
       <p className="text-[16px] text-[#6B6B6B] font-body mt-1">Manage API keys for programmatic access.</p>
-      <button className="mt-6 h-10 px-5 bg-[#5A8F5E] text-white rounded-lg font-body font-medium text-[14px] flex items-center gap-2 hover:bg-[#4A7A4E] transition-colors">
+      <button className="mt-6 h-10 px-5 bg-[#574a7d] text-white rounded-lg font-body font-medium text-[14px] flex items-center gap-2 hover:bg-[#4a3d6b] transition-colors">
         <Plus size={16} /> Generate New Key
       </button>
       <div className="bg-white border border-[#D9D9D3] rounded-[12px] overflow-hidden mt-6">
-        <div className="grid grid-cols-[1.5fr_2fr_1fr_1fr_1fr_1fr] gap-4 px-6 py-3 bg-[#F5F5F0] font-mono font-medium text-[12px] uppercase text-[#6B6B6B]">
+        <div className="grid grid-cols-[1.5fr_2fr_1fr_1fr_1fr_1fr] gap-4 px-6 py-3 bg-[#F7F7FB] font-mono font-medium text-[12px] uppercase text-[#6B6B6B]">
           <span>Name</span>
           <span>Key</span>
           <span>Created</span>
@@ -516,13 +516,13 @@ function ApiKeysTab() {
             <span className="text-[14px] text-[#333333] font-body">{key.name}</span>
             <div className="flex items-center gap-2">
               <span className="font-mono text-[13px] text-[#6B6B6B]">{key.key}</span>
-              <button onClick={() => handleCopy(key.id)} className="text-[#5A8F5E] hover:text-[#4A7A4E] transition-colors">
+              <button onClick={() => handleCopy(key.id)} className="text-[#574a7d] hover:text-[#4a3d6b] transition-colors">
                 {copiedId === key.id ? <Check size={14} /> : <Copy size={14} />}
               </button>
             </div>
             <span className="text-[14px] text-[#6B6B6B] font-body">{key.createdAt}</span>
             <span className="text-[14px] text-[#6B6B6B] font-body">{key.lastUsed}</span>
-            <span className={`font-mono text-[12px] uppercase font-medium ${key.status === 'active' ? 'text-[#5A8F5E]' : 'text-[#9A9A9A]'}`}>
+            <span className={`font-mono text-[12px] uppercase font-medium ${key.status === 'active' ? 'text-[#574a7d]' : 'text-[#9A9A9A]'}`}>
               {key.status}
             </span>
             <div className="text-right">
@@ -548,11 +548,11 @@ function ApiKeysTab() {
 function TeamTab() {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
-      <h2 className="font-heading font-medium text-[28px] text-[#1A1A1A]">Team Members</h2>
+      <h2 className="font-heading font-medium text-[28px] text-[#12101A]">Team Members</h2>
       <p className="text-[16px] text-[#6B6B6B] font-body mt-1">Manage access for your organization.</p>
       <div className="flex items-center justify-between mt-6">
         <span className="font-mono font-medium text-[13px] text-[#6B6B6B]">{MOCK_TEAM_MEMBERS.length} members</span>
-        <button className="h-10 px-5 bg-[#5A8F5E] text-white rounded-lg font-body font-medium text-[14px] flex items-center gap-2 hover:bg-[#4A7A4E] transition-colors">
+        <button className="h-10 px-5 bg-[#574a7d] text-white rounded-lg font-body font-medium text-[14px] flex items-center gap-2 hover:bg-[#4a3d6b] transition-colors">
           <UserPlus size={16} /> Invite Member
         </button>
       </div>
@@ -565,7 +565,7 @@ function TeamTab() {
             transition={{ delay: i * 0.04 }}
             className="flex items-center px-6 py-4 border-t border-[#D9D9D3] first:border-t-0"
           >
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#5A8F5E] to-[#7AAF7E] flex items-center justify-center text-white text-[13px] font-semibold flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#574a7d] to-[#7a6fad] flex items-center justify-center text-white text-[13px] font-semibold flex-shrink-0">
               {member.status === 'pending' ? '--' : member.avatar}
             </div>
             <div className="ml-4 flex-1 min-w-0">
@@ -574,15 +574,15 @@ function TeamTab() {
             </div>
             <span className={`font-mono font-medium text-[11px] uppercase px-2.5 py-1 rounded-[4px] ${
               member.role === 'Owner'
-                ? 'bg-[#E8F0E8] text-[#5A8F5E]'
+                ? 'bg-[#E8E5FF] text-[#574a7d]'
                 : member.role === 'Admin'
-                ? 'bg-[#F5F5F0] text-[#333333]'
+                ? 'bg-[#F7F7FB] text-[#333333]'
                 : 'bg-transparent border border-[#D9D9D3] text-[#6B6B6B]'
             }`}>
               {member.role.toUpperCase()}
             </span>
             {member.role !== 'Owner' && (
-              <button className="ml-4 w-8 h-8 rounded-[6px] flex items-center justify-center hover:bg-[#F5F5F0] transition-colors">
+              <button className="ml-4 w-8 h-8 rounded-[6px] flex items-center justify-center hover:bg-[#F7F7FB] transition-colors">
                 <MoreHorizontal size={16} className="text-[#9A9A9A]" />
               </button>
             )}
@@ -598,14 +598,14 @@ function TeamTab() {
 // ═══════════════════════════════════════════════════════════════════════════
 function BillingTab() {
   const usageMeters = [
-    { label: 'Test Runs', used: 2847, total: 5000, color: 'bg-[#5A8F5E]', pct: 57 },
+    { label: 'Test Runs', used: 2847, total: 5000, color: 'bg-[#574a7d]', pct: 57 },
     { label: 'Repositories', used: 12, total: 50, color: 'bg-[#4A90D9]', pct: 24 },
-    { label: 'Team Members', used: 5, total: 10, color: 'bg-[#7AAF7E]', pct: 50 },
+    { label: 'Team Members', used: 5, total: 10, color: 'bg-[#7a6fad]', pct: 50 },
   ];
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
-      <h2 className="font-heading font-medium text-[28px] text-[#1A1A1A]">Billing</h2>
+      <h2 className="font-heading font-medium text-[28px] text-[#12101A]">Billing</h2>
       <p className="text-[16px] text-[#6B6B6B] font-body mt-1">Manage your subscription and payment details.</p>
 
       {/* Plan Card */}
@@ -613,11 +613,11 @@ function BillingTab() {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, duration: 0.3 }}
-        className="mt-6 bg-gradient-to-br from-[#1A1A1A] to-[#2A2A2A] rounded-[16px] p-8 text-white"
+        className="mt-6 bg-gradient-to-br from-[#12101A] to-[#1E1B2E] rounded-[16px] p-8 text-white"
       >
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div>
-            <p className="font-mono font-medium text-[12px] uppercase text-[#7AAF7E] tracking-[0.08em]">
+            <p className="font-mono font-medium text-[12px] uppercase text-[#7a6fad] tracking-[0.08em]">
               PROFESSIONAL PLAN
             </p>
             <div className="flex items-baseline mt-2">
@@ -627,7 +627,7 @@ function BillingTab() {
             <div className="mt-4 space-y-1">
               {['Unlimited test runs', '50 concurrent repositories', 'All 13 test dimensions', 'Priority support'].map((f) => (
                 <div key={f} className="flex items-center gap-2 text-[14px] text-white/80 font-body">
-                  <CheckCircle2 size={14} className="text-[#7AAF7E]" /> {f}
+                  <CheckCircle2 size={14} className="text-[#7a6fad]" /> {f}
                 </div>
               ))}
             </div>
@@ -651,7 +651,7 @@ function BillingTab() {
         transition={{ delay: 0.2, duration: 0.3 }}
         className="mt-8 bg-white border border-[#D9D9D3] rounded-[12px] p-6"
       >
-        <h3 className="font-body font-semibold text-[16px] text-[#1A1A1A]">Monthly Usage</h3>
+        <h3 className="font-body font-semibold text-[16px] text-[#12101A]">Monthly Usage</h3>
         <div className="mt-4 space-y-5">
           {usageMeters.map((meter) => (
             <div key={meter.label}>
@@ -661,7 +661,7 @@ function BillingTab() {
                   {meter.used.toLocaleString()} / {meter.total.toLocaleString()}
                 </span>
               </div>
-              <div className="h-2 bg-[#EBEBE5] rounded-full overflow-hidden">
+              <div className="h-2 bg-[#ECEBF5] rounded-full overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${meter.pct}%` }}
@@ -676,9 +676,9 @@ function BillingTab() {
 
       {/* Invoice History */}
       <div className="mt-8">
-        <span className="font-mono font-medium text-[12px] uppercase text-[#5A8F5E] tracking-[0.08em]">INVOICE HISTORY</span>
+        <span className="font-mono font-medium text-[12px] uppercase text-[#574a7d] tracking-[0.08em]">INVOICE HISTORY</span>
         <div className="bg-white border border-[#D9D9D3] rounded-[12px] overflow-hidden mt-4">
-          <div className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 px-6 py-3 bg-[#F5F5F0] font-mono font-medium text-[12px] uppercase text-[#6B6B6B]">
+          <div className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 px-6 py-3 bg-[#F7F7FB] font-mono font-medium text-[12px] uppercase text-[#6B6B6B]">
             <span>Date</span>
             <span>Amount</span>
             <span>Status</span>
@@ -694,11 +694,11 @@ function BillingTab() {
             >
               <span className="text-[14px] text-[#333333] font-body">{inv.date}</span>
               <span className="text-[14px] text-[#333333] font-body">{inv.amount}</span>
-              <span className="font-mono text-[12px] uppercase text-[#5A8F5E] font-medium bg-[#E8F0E8] px-3 py-1 rounded-[4px] w-fit">
+              <span className="font-mono text-[12px] uppercase text-[#574a7d] font-medium bg-[#E8E5FF] px-3 py-1 rounded-[4px] w-fit">
                 {inv.status}
               </span>
               <div className="text-right">
-                <button className="text-[#5A8F5E] hover:text-[#4A7A4E] transition-colors">
+                <button className="text-[#574a7d] hover:text-[#4a3d6b] transition-colors">
                   <FileDown size={16} />
                 </button>
               </div>
@@ -736,18 +736,18 @@ function SettingsTab() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
-      <h2 className="font-heading font-medium text-[28px] text-[#1A1A1A]">Settings</h2>
+      <h2 className="font-heading font-medium text-[28px] text-[#12101A]">Settings</h2>
       <p className="text-[16px] text-[#6B6B6B] font-body mt-1">Manage your account preferences.</p>
 
       {/* Profile */}
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white border border-[#D9D9D3] rounded-[12px] p-6 mt-6">
-        <h3 className="font-body font-semibold text-[16px] text-[#1A1A1A]">Profile</h3>
+        <h3 className="font-body font-semibold text-[16px] text-[#12101A]">Profile</h3>
         <div className="flex items-center gap-4 mt-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#5A8F5E] to-[#7AAF7E] flex items-center justify-center text-white text-[20px] font-semibold">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#574a7d] to-[#7a6fad] flex items-center justify-center text-white text-[20px] font-semibold">
             {MOCK_USER.avatar}
           </div>
           <div className="flex gap-4">
-            <button className="text-[14px] text-[#5A8F5E] font-medium font-body hover:underline">Change Avatar</button>
+            <button className="text-[14px] text-[#574a7d] font-medium font-body hover:underline">Change Avatar</button>
             <button className="text-[14px] text-[#D4524A] font-body hover:underline">Remove</button>
           </div>
         </div>
@@ -757,7 +757,7 @@ function SettingsTab() {
             <input
               type="text"
               defaultValue={MOCK_USER.name}
-              className="w-full h-10 bg-white border border-[#D9D9D3] rounded-lg px-4 text-[14px] font-body text-[#1A1A1A] focus:outline-none focus:border-[#5A8F5E] transition-colors"
+              className="w-full h-10 bg-white border border-[#D9D9D3] rounded-lg px-4 text-[14px] font-body text-[#12101A] focus:outline-none focus:border-[#574a7d] transition-colors"
             />
           </div>
           <div>
@@ -766,18 +766,18 @@ function SettingsTab() {
               type="email"
               defaultValue={MOCK_USER.email}
               disabled
-              className="w-full h-10 bg-[#F5F5F0] border border-[#D9D9D3] rounded-lg px-4 text-[14px] font-body text-[#6B6B6B] cursor-not-allowed"
+              className="w-full h-10 bg-[#F7F7FB] border border-[#D9D9D3] rounded-lg px-4 text-[14px] font-body text-[#6B6B6B] cursor-not-allowed"
             />
           </div>
         </div>
-        <button className="mt-4 h-10 px-5 bg-[#5A8F5E] text-white rounded-lg font-body font-medium text-[14px] hover:bg-[#4A7A4E] transition-colors">
+        <button className="mt-4 h-10 px-5 bg-[#574a7d] text-white rounded-lg font-body font-medium text-[14px] hover:bg-[#4a3d6b] transition-colors">
           Save Changes
         </button>
       </motion.div>
 
       {/* Notifications */}
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white border border-[#D9D9D3] rounded-[12px] p-6 mt-6">
-        <h3 className="font-body font-semibold text-[16px] text-[#1A1A1A]">Notifications</h3>
+        <h3 className="font-body font-semibold text-[16px] text-[#12101A]">Notifications</h3>
         <div className="mt-4 space-y-4">
           {toggleItems.map((item) => (
             <div key={item.key} className="flex items-center justify-between">
@@ -788,7 +788,7 @@ function SettingsTab() {
               <button
                 onClick={() => toggle(item.key)}
                 className={`relative w-11 h-6 rounded-full transition-all duration-200 ${
-                  toggles[item.key] ? 'bg-[#5A8F5E]' : 'bg-[#D9D9D3]'
+                  toggles[item.key] ? 'bg-[#574a7d]' : 'bg-[#D9D9D3]'
                 }`}
               >
                 <div
@@ -842,8 +842,8 @@ export default function Account() {
   // Redirect to auth if not logged in
   if (isLoading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-[#F5F5F0]">
-        <div className="w-8 h-8 border-3 border-[#5A8F5E] border-t-transparent rounded-full animate-spin" />
+      <div className="h-screen w-full flex items-center justify-center bg-[#F7F7FB]">
+        <div className="w-8 h-8 border-3 border-[#574a7d] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -864,11 +864,11 @@ export default function Account() {
   };
 
   return (
-    <div className="h-screen w-full flex bg-[#F5F5F0] overflow-hidden">
+    <div className="h-screen w-full flex bg-[#F7F7FB] overflow-hidden">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-[#1A1A1A]/50 z-30 lg:hidden"
+          className="fixed inset-0 bg-[#12101A]/50 z-30 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -911,11 +911,11 @@ export default function Account() {
                 {isActive && (
                   <motion.div
                     layoutId="activeIndicator"
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[#5A8F5E] rounded-r-full"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[#574a7d] rounded-r-full"
                     transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                   />
                 )}
-                <Icon size={18} className={isActive ? 'text-[#5A8F5E]' : ''} />
+                <Icon size={18} className={isActive ? 'text-[#574a7d]' : ''} />
                 <span className="font-body font-medium text-[14px]">{item.label}</span>
               </motion.button>
             );
@@ -925,7 +925,7 @@ export default function Account() {
         {/* User section */}
         <div className="mt-auto px-4 pt-4 pb-6 border-t border-[#3A3A3A]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#5A8F5E] to-[#7AAF7E] flex items-center justify-center text-white text-[13px] font-semibold flex-shrink-0">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#574a7d] to-[#7a6fad] flex items-center justify-center text-white text-[13px] font-semibold flex-shrink-0">
               {user?.avatar || MOCK_USER.avatar}
             </div>
             <div className="flex-1 min-w-0">
@@ -961,13 +961,13 @@ export default function Account() {
           <div className="flex items-center gap-4">
             <Link
               to="/docs"
-              className="hidden sm:flex text-[#333333] hover:text-[#5A8F5E] transition-colors"
+              className="hidden sm:flex text-[#333333] hover:text-[#574a7d] transition-colors"
             >
               <HelpCircle size={20} />
             </Link>
-            <div className="hidden sm:flex items-center gap-1.5 bg-[#E8F0E8] border border-[#A3C9A5] rounded-full px-3.5 py-1.5">
-              <Zap size={14} className="text-[#5A8F5E]" />
-              <span className="font-mono font-medium text-[13px] text-[#5A8F5E]">
+            <div className="hidden sm:flex items-center gap-1.5 bg-[#E8E5FF] border border-[#a39fd4] rounded-full px-3.5 py-1.5">
+              <Zap size={14} className="text-[#574a7d]" />
+              <span className="font-mono font-medium text-[13px] text-[#574a7d]">
                 {(user?.creditsTotal ?? MOCK_USER.creditsTotal) - (user?.creditsUsed ?? MOCK_USER.creditsUsed)} credits
               </span>
             </div>

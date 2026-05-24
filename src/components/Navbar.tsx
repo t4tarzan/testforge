@@ -14,16 +14,16 @@ const navLinks = [
 
 const LogoIcon = () => (
   <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="8" cy="8" r="3" stroke="#5A8F5E" strokeWidth="2" fill="none" />
-    <circle cx="24" cy="8" r="3" stroke="#5A8F5E" strokeWidth="2" fill="none" />
-    <circle cx="8" cy="24" r="3" stroke="#5A8F5E" strokeWidth="2" fill="none" />
-    <circle cx="24" cy="24" r="3" stroke="#5A8F5E" strokeWidth="2" fill="none" />
-    <line x1="11" y1="8" x2="21" y2="8" stroke="#5A8F5E" strokeWidth="1.5" />
-    <line x1="8" y1="11" x2="8" y2="21" stroke="#5A8F5E" strokeWidth="1.5" />
-    <line x1="11" y1="24" x2="21" y2="24" stroke="#5A8F5E" strokeWidth="1.5" />
-    <line x1="24" y1="11" x2="24" y2="21" stroke="#5A8F5E" strokeWidth="1.5" />
-    <line x1="10.1" y1="10.1" x2="21.9" y2="21.9" stroke="#5A8F5E" strokeWidth="1.5" />
-    <circle cx="16" cy="16" r="2" fill="#5A8F5E" />
+    <circle cx="8" cy="8" r="3" stroke="#574a7d" strokeWidth="2" fill="none" />
+    <circle cx="24" cy="8" r="3" stroke="#574a7d" strokeWidth="2" fill="none" />
+    <circle cx="8" cy="24" r="3" stroke="#574a7d" strokeWidth="2" fill="none" />
+    <circle cx="24" cy="24" r="3" stroke="#574a7d" strokeWidth="2" fill="none" />
+    <line x1="11" y1="8" x2="21" y2="8" stroke="#574a7d" strokeWidth="1.5" />
+    <line x1="8" y1="11" x2="8" y2="21" stroke="#574a7d" strokeWidth="1.5" />
+    <line x1="11" y1="24" x2="21" y2="24" stroke="#574a7d" strokeWidth="1.5" />
+    <line x1="24" y1="11" x2="24" y2="21" stroke="#574a7d" strokeWidth="1.5" />
+    <line x1="10.1" y1="10.1" x2="21.9" y2="21.9" stroke="#574a7d" strokeWidth="1.5" />
+    <circle cx="16" cy="16" r="2" fill="#574a7d" />
   </svg>
 )
 
@@ -51,7 +51,7 @@ function UserDropdown() {
         onClick={() => setOpen(!open)}
         className="flex items-center gap-2 hover:opacity-80 transition-opacity"
       >
-        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#5A8F5E] to-[#7AAF7E] flex items-center justify-center text-white text-[13px] font-semibold">
+        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#574a7d] to-[#7a6fad] flex items-center justify-center text-white text-[13px] font-semibold">
           {user.avatar}
         </div>
       </button>
@@ -65,21 +65,21 @@ function UserDropdown() {
             className="absolute right-0 top-full mt-2 w-56 bg-white border border-[#D9D9D3] rounded-[12px] shadow-[0_8px_24px_rgba(0,0,0,0.1)] overflow-hidden z-50"
           >
             <div className="px-4 py-3 border-b border-[#D9D9D3]">
-              <p className="text-[14px] text-[#1A1A1A] font-medium font-body truncate">{user.name}</p>
+              <p className="text-[14px] text-[#12101A] font-medium font-body truncate">{user.name}</p>
               <p className="text-[12px] text-[#9A9A9A] font-body truncate">{user.email}</p>
             </div>
             <div className="py-1">
               <Link
                 to="/account"
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-4 py-2.5 text-[14px] text-[#333333] font-body hover:bg-[#F5F5F0] transition-colors"
+                className="flex items-center gap-3 px-4 py-2.5 text-[14px] text-[#333333] font-body hover:bg-[#F7F7FB] transition-colors"
               >
                 <User size={16} /> Account
               </Link>
               <Link
                 to="/account"
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-4 py-2.5 text-[14px] text-[#333333] font-body hover:bg-[#F5F5F0] transition-colors"
+                className="flex items-center gap-3 px-4 py-2.5 text-[14px] text-[#333333] font-body hover:bg-[#F7F7FB] transition-colors"
               >
                 <CreditCard size={16} /> Billing
               </Link>
@@ -87,7 +87,7 @@ function UserDropdown() {
             <div className="border-t border-[#D9D9D3] py-1">
               <button
                 onClick={() => { logout(); setOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-[14px] text-[#D4524A] font-body hover:bg-[#F5F5F0] transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-[14px] text-[#D4524A] font-body hover:bg-[#F7F7FB] transition-colors"
               >
                 <LogOut size={16} /> Sign Out
               </button>
@@ -137,7 +137,7 @@ export default function Navbar() {
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
         className={`fixed top-0 left-0 right-0 z-50 h-[72px] flex items-center transition-all duration-300 ${
           scrolled
-            ? 'bg-[#F5F5F0]/80 backdrop-blur-[12px] border-b border-[#D9D9D3]'
+            ? 'bg-[#F7F7FB]/80 backdrop-blur-[12px] border-b border-[#D9D9D3]'
             : 'bg-transparent'
         }`}
       >
@@ -145,7 +145,7 @@ export default function Navbar() {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
             <LogoIcon />
-            <span className="font-heading font-semibold text-[18px] text-[#1A1A1A] tracking-tight">
+            <span className="font-heading font-semibold text-[18px] text-[#12101A] tracking-tight">
               TestForge
             </span>
           </Link>
@@ -161,10 +161,10 @@ export default function Navbar() {
               >
                 <Link
                   to={link.path}
-                  className="font-body font-medium text-[15px] text-[#333333] hover:text-[#5A8F5E] transition-colors duration-200 relative group"
+                  className="font-body font-medium text-[15px] text-[#333333] hover:text-[#574a7d] transition-colors duration-200 relative group"
                 >
                   {link.label}
-                  <span className="absolute -bottom-1 left-0 w-0 h-[1.5px] bg-[#5A8F5E] transition-all duration-200 group-hover:w-full" />
+                  <span className="absolute -bottom-1 left-0 w-0 h-[1.5px] bg-[#574a7d] transition-all duration-200 group-hover:w-full" />
                 </Link>
               </motion.div>
             ))}
@@ -189,7 +189,7 @@ export default function Navbar() {
                 >
                   <Link
                     to="/auth"
-                    className="px-6 py-[14px] rounded-lg border border-[#D9D9D3] text-[#333333] font-body font-medium text-[15px] hover:bg-[#E8F0E8] hover:border-[#A3C9A5] transition-all duration-200"
+                    className="px-6 py-[14px] rounded-lg border border-[#D9D9D3] text-[#333333] font-body font-medium text-[15px] hover:bg-[#E8E5FF] hover:border-[#a39fd4] transition-all duration-200"
                   >
                     Sign In
                   </Link>
@@ -201,7 +201,7 @@ export default function Navbar() {
                 >
                   <Link
                     to="/auth?tab=signup"
-                    className="px-6 py-[14px] rounded-lg bg-[#5A8F5E] text-white font-body font-medium text-[15px] hover:bg-[#4A7A4E] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center gap-2 group"
+                    className="px-6 py-[14px] rounded-lg bg-[#574a7d] text-white font-body font-medium text-[15px] hover:bg-[#4a3d6b] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center gap-2 group"
                   >
                     Get Started
                     <ArrowRight size={16} className="transition-transform duration-200 group-hover:translate-x-1" />
@@ -230,7 +230,7 @@ export default function Navbar() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-40 bg-[#F5F5F0] flex flex-col items-center justify-center gap-8 lg:hidden"
+            className="fixed inset-0 z-40 bg-[#F7F7FB] flex flex-col items-center justify-center gap-8 lg:hidden"
           >
             {navLinks.map((link, i) => (
               <motion.div
@@ -242,7 +242,7 @@ export default function Navbar() {
               >
                 <Link
                   to={link.path}
-                  className="font-heading font-medium text-2xl text-[#333333] hover:text-[#5A8F5E] transition-colors duration-200"
+                  className="font-heading font-medium text-2xl text-[#333333] hover:text-[#574a7d] transition-colors duration-200"
                   onClick={() => setMobileOpen(false)}
                 >
                   {link.label}
@@ -261,7 +261,7 @@ export default function Navbar() {
                   <Link
                     to="/account"
                     onClick={() => setMobileOpen(false)}
-                    className="flex items-center gap-2 px-8 py-3 rounded-lg bg-[#5A8F5E] text-white font-body font-medium text-base w-48 justify-center"
+                    className="flex items-center gap-2 px-8 py-3 rounded-lg bg-[#574a7d] text-white font-body font-medium text-base w-48 justify-center"
                   >
                     <User size={18} /> Account
                   </Link>
@@ -284,7 +284,7 @@ export default function Navbar() {
                   <Link
                     to="/auth"
                     onClick={() => setMobileOpen(false)}
-                    className="px-8 py-3 rounded-lg bg-[#5A8F5E] text-white font-body font-medium text-base w-48 text-center"
+                    className="px-8 py-3 rounded-lg bg-[#574a7d] text-white font-body font-medium text-base w-48 text-center"
                   >
                     Get Started
                   </Link>

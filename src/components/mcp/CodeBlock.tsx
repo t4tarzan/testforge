@@ -30,9 +30,9 @@ export default function CodeBlock({ code, language = 'json', showLineNumbers = f
   const lines = code.split('\n');
 
   return (
-    <div className="bg-[#1A1A1A] rounded-[10px] overflow-hidden my-4">
+    <div className="bg-[#12101A] rounded-[10px] overflow-hidden my-4">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-2 bg-[#2A2A2A]">
+      <div className="flex items-center justify-between px-4 py-2 bg-[#1E1B2E]">
         <span className="font-mono font-medium text-[11px] uppercase text-[#9A9A9A]">
           {language}
         </span>
@@ -43,8 +43,8 @@ export default function CodeBlock({ code, language = 'json', showLineNumbers = f
         >
           {copied ? (
             <>
-              <Check size={14} className="text-[#5A8F5E]" />
-              <span className="font-mono font-medium text-[11px] text-[#5A8F5E]">Copied!</span>
+              <Check size={14} className="text-[#574a7d]" />
+              <span className="font-mono font-medium text-[11px] text-[#574a7d]">Copied!</span>
             </>
           ) : (
             <>
@@ -60,7 +60,7 @@ export default function CodeBlock({ code, language = 'json', showLineNumbers = f
         <pre className="font-mono text-[13px] leading-[1.8] text-[#E8E8E3]">
           {showLineNumbers ? (
             <div className="flex">
-              <div className="pr-4 mr-4 border-r border-[#2A2A2A] text-right min-w-[40px]">
+              <div className="pr-4 mr-4 border-r border-[#1E1B2E] text-right min-w-[40px]">
                 {lines.map((_, i) => (
                   <div key={i} className="text-[#3A3A3A] text-[12px] select-none">
                     {i + 1}

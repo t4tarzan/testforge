@@ -50,21 +50,21 @@ const StageListItem = memo(function StageListItem({
       onClick={onClick}
       layout="position"
       className={`w-full text-left px-5 py-4 border-b border-[#D9D9D3] transition-colors duration-200 relative
-        ${isSelected ? 'bg-[#E8F0E8]' : 'bg-white hover:bg-[#F5F5F0]'}
+        ${isSelected ? 'bg-[#E8E5FF]' : 'bg-white hover:bg-[#F7F7FB]'}
       `}
     >
       <div className={`absolute left-0 top-0 bottom-0 w-[3px] transition-colors duration-300 ${c.bar}`} />
 
       <div className="flex items-center justify-between pl-2">
         <div className="flex items-center gap-3">
-          <span className="font-mono text-[13px] text-[#5A8F5E]">{stage.number} //</span>
+          <span className="font-mono text-[13px] text-[#574a7d]">{stage.number} //</span>
           <span className="font-body font-medium text-[15px] text-[#333333]">{stage.name}</span>
         </div>
         <StatusBadge status={stage.status} />
       </div>
 
       <div className="mt-2 pl-2 flex items-center gap-3">
-        <div className="flex-1 h-[3px] bg-[#EBEBE5] rounded-full overflow-hidden">
+        <div className="flex-1 h-[3px] bg-[#ECEBF5] rounded-full overflow-hidden">
           <motion.div
             className={`h-full rounded-full ${c.bar}`}
             initial={{ width: '0%' }}
@@ -97,7 +97,7 @@ const MetricCard = memo(function MetricCard({
 }) {
   return (
     <div className="bg-white border border-[#D9D9D3] rounded-xl p-4 text-center">
-      <div className="font-heading font-bold text-[28px] sm:text-[36px] lg:text-[40px] text-[#5A8F5E] leading-none">
+      <div className="font-heading font-bold text-[28px] sm:text-[36px] lg:text-[40px] text-[#574a7d] leading-none">
         <CountUp end={value} duration={1.2} suffix={suffix} />
       </div>
       <div className="font-mono font-medium text-[11px] uppercase tracking-[0.08em] text-[#6B6B6B] mt-2">
@@ -123,7 +123,7 @@ const FindingItem = memo(function FindingItem({
     <div className="border border-[#D9D9D3] rounded-lg overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-4 text-left hover:bg-[#F5F5F0] transition-colors duration-200"
+        className="w-full flex items-center justify-between p-4 text-left hover:bg-[#F7F7FB] transition-colors duration-200"
       >
         <div className="flex items-center gap-3 min-w-0">
           <span className={`font-mono font-medium text-[11px] uppercase tracking-wider px-3 py-[4px] rounded shrink-0 ${sev.bg} ${sev.text}`}>
@@ -263,7 +263,7 @@ export default function PipelineViz() {
   return (
     <section
       id="pipeline-viz"
-      className="relative bg-[#F5F5F0] py-20 lg:py-24 px-6 sm:px-12 lg:px-16"
+      className="relative bg-[#F7F7FB] py-20 lg:py-24 px-6 sm:px-12 lg:px-16"
       style={{
         backgroundImage:
           'linear-gradient(to right, rgba(163,201,165,0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(163,201,165,0.15) 1px, transparent 1px)',
@@ -276,7 +276,7 @@ export default function PipelineViz() {
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#5A8F5E] mb-4 block"
+          className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#574a7d] mb-4 block"
         >
           // INTERACTIVE PIPELINE
         </motion.span>
@@ -288,7 +288,7 @@ export default function PipelineViz() {
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
           className="font-heading font-semibold text-[36px] sm:text-[42px] lg:text-[52px] leading-[1.1] tracking-[-0.025em] text-[#333333] mb-4"
         >
-          13 dimensions. <span className="text-[#5A8F5E]">One pipeline.</span>
+          13 dimensions. <span className="text-[#574a7d]">One pipeline.</span>
         </motion.h2>
 
         <motion.p
@@ -313,14 +313,14 @@ export default function PipelineViz() {
             <span className="font-mono text-[12px] uppercase tracking-wider text-[#6B6B6B] shrink-0">
               Progress
             </span>
-            <div className="w-full sm:w-[160px] h-[4px] bg-[#EBEBE5] rounded-full overflow-hidden">
+            <div className="w-full sm:w-[160px] h-[4px] bg-[#ECEBF5] rounded-full overflow-hidden">
               <motion.div
-                className="h-full bg-[#5A8F5E] rounded-full"
+                className="h-full bg-[#574a7d] rounded-full"
                 animate={{ width: `${progressPercent}%` }}
                 transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] as [number, number, number, number] }}
               />
             </div>
-            <span className="font-mono text-[12px] text-[#5A8F5E] shrink-0">
+            <span className="font-mono text-[12px] text-[#574a7d] shrink-0">
               {Math.round(progressPercent)}%
             </span>
           </div>
@@ -333,7 +333,7 @@ export default function PipelineViz() {
             <button
               onClick={handlePlay}
               disabled={isPlaying}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#5A8F5E] text-white font-body font-medium text-[14px] hover:bg-[#4A7A4E] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#574a7d] text-white font-body font-medium text-[14px] hover:bg-[#4a3d6b] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               <Play size={14} />
               Run All
@@ -341,14 +341,14 @@ export default function PipelineViz() {
             <button
               onClick={handlePause}
               disabled={!isPlaying}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#D9D9D3] text-[#333333] font-body font-medium text-[14px] hover:bg-[#F5F5F0] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#D9D9D3] text-[#333333] font-body font-medium text-[14px] hover:bg-[#F7F7FB] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               <Pause size={14} />
               Pause
             </button>
             <button
               onClick={handleReset}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#D9D9D3] text-[#333333] font-body font-medium text-[14px] hover:bg-[#F5F5F0] transition-all duration-200"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#D9D9D3] text-[#333333] font-body font-medium text-[14px] hover:bg-[#F7F7FB] transition-all duration-200"
             >
               <RotateCcw size={14} />
               Reset
@@ -359,7 +359,7 @@ export default function PipelineViz() {
                   key={s}
                   onClick={() => setSpeed(s)}
                   className={`px-3 py-2 font-mono text-[12px] transition-colors duration-200 ${
-                    speed === s ? 'bg-[#5A8F5E] text-white' : 'text-[#6B6B6B] hover:bg-[#F5F5F0]'
+                    speed === s ? 'bg-[#574a7d] text-white' : 'text-[#6B6B6B] hover:bg-[#F7F7FB]'
                   }`}
                 >
                   {s}x
@@ -404,7 +404,7 @@ export default function PipelineViz() {
                 <div className="bg-white border border-[#D9D9D3] rounded-xl p-6 lg:p-8">
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
                     <div>
-                      <div className="font-mono text-[48px] font-normal text-[#5A8F5E] leading-none mb-2">
+                      <div className="font-mono text-[48px] font-normal text-[#574a7d] leading-none mb-2">
                         {selectedStage.number}
                       </div>
                       <h3 className="font-heading font-medium text-[28px] sm:text-[36px] lg:text-[42px] leading-[1.15] tracking-[-0.02em] text-[#333333]">
@@ -424,7 +424,7 @@ export default function PipelineViz() {
                   <MetricCard label="Failures" value={selectedStage.metrics.failures} />
                   <MetricCard label="Coverage" value={selectedStage.metrics.coverage} suffix="%" />
                   <div className="bg-white border border-[#D9D9D3] rounded-xl p-4 text-center flex flex-col items-center justify-center">
-                    <div className="font-heading font-bold text-[28px] sm:text-[36px] lg:text-[40px] text-[#5A8F5E] leading-none">
+                    <div className="font-heading font-bold text-[28px] sm:text-[36px] lg:text-[40px] text-[#574a7d] leading-none">
                       {selectedStage.metrics.duration}
                     </div>
                     <div className="font-mono font-medium text-[11px] uppercase tracking-[0.08em] text-[#6B6B6B] mt-2">

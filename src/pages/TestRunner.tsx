@@ -39,7 +39,7 @@ export default function TestRunner() {
   }, []);
 
   return (
-    <div className="min-h-[100dvh] bg-[#F5F5F0]">
+    <div className="min-h-[100dvh] bg-[#F7F7FB]">
       {/* Subtle grid pattern background */}
       <div className="fixed inset-0 bg-grid-pattern pointer-events-none" />
 
@@ -52,7 +52,7 @@ export default function TestRunner() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.4 }}
-              className="font-mono text-[13px] uppercase tracking-[0.08em] text-[#5A8F5E] mb-4"
+              className="font-mono text-[13px] uppercase tracking-[0.08em] text-[#574a7d] mb-4"
             >
               // Interactive Testing
             </motion.div>
@@ -60,10 +60,10 @@ export default function TestRunner() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
-              className="font-heading text-[36px] sm:text-[42px] font-semibold text-[#1A1A1A] tracking-[-0.02em] leading-[1.15]"
+              className="font-heading text-[36px] sm:text-[42px] font-semibold text-[#12101A] tracking-[-0.02em] leading-[1.15]"
             >
               Run Your{' '}
-              <span className="text-[#5A8F5E]">First Test</span>{' '}
+              <span className="text-[#574a7d]">First Test</span>{' '}
               in 60 Seconds
             </motion.h1>
             <motion.p
@@ -88,8 +88,8 @@ export default function TestRunner() {
                 { icon: 'lock', text: 'Public repos only' },
               ].map((badge) => (
                 <div key={badge.icon} className="flex items-center gap-1.5">
-                  <div className="w-4 h-4 rounded-full bg-[#E8F0E8] flex items-center justify-center">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#5A8F5E]" />
+                  <div className="w-4 h-4 rounded-full bg-[#E8E5FF] flex items-center justify-center">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#574a7d]" />
                   </div>
                   <span className="text-[13px] text-[#6B6B6B]">{badge.text}</span>
                 </div>
