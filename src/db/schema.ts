@@ -195,3 +195,48 @@ export const reportsRelations = relations(reports, ({ one }) => ({
     references: [testRuns.id],
   }),
 }));
+
+// ─── Enterprise Tasks (internal task tracking) ──────────────────────────
+
+export const taskStatusEnum = pgEnum('task_status', [
+  'pending',
+  'in_progress',
+  'completed',
+  'blocked',
+]);
+
+export const taskCategoryEnum = pgEnum('task_category', [
+  'auth',
+  'analyzers',
+  'dashboard',
+  'pipeline',
+  'reports',
+  'infrastructure',
+  'npm_package',
+  'ui_ux',
+  'docs',
+  'enterprise',
+]);
+
+export const enterpriseTasks = pgTable(
+  'enterprise_tasks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    title: varchar('title', { length: 255 }).notNull(),
+    description: text('description'),
+    category: taskCategoryEnum('category').notNull(),
+    priority: varchar('priority', { length: 20 }).notNull().default('medium'),
+    status: taskStatusEnum('status').notNull().default('pending'),
+    stage: integer('stage').default(1),
+    parentId: uuid('parent_id'),
+    assignee: varchar('assignee', { length: 100 }),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('enterprise_tasks_status_idx').on(table.status),
+    index('enterprise_tasks_category_idx').on(table.category),
+    index('enterprise_tasks_stage_idx').on(table.stage),
+  ]
+);
