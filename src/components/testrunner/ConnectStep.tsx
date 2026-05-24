@@ -13,7 +13,7 @@ const CLONE_LINES = [
   { text: 'Resolving deltas: 100% (412/412), done.', color: 'text-[#9A9A9A]' },
   { text: '', color: 'text-[#9A9A9A]' },
   { text: '$ cd express-ecommerce-api && npm install', color: 'text-white' },
-  { text: 'added 147 packages in 2.3s', color: 'text-[#C9B5FF]' },
+  { text: 'added 147 packages in 2.3s', color: 'text-[#A3C9A5]' },
   { text: '', color: 'text-[#9A9A9A]' },
   { text: '$ testforge scan --detect', color: 'text-white' },
   { text: '[INFO] Detected: Node.js + Express.js application', color: 'text-[#9A9A9A]' },
@@ -21,7 +21,7 @@ const CLONE_LINES = [
   { text: '[INFO] Found 12 middleware functions', color: 'text-[#9A9A9A]' },
   { text: '[INFO] Database: MongoDB (mongoose schemas detected)', color: 'text-[#9A9A9A]' },
   { text: '[INFO] Auth: JWT token-based authentication', color: 'text-[#9A9A9A]' },
-  { text: '[SUCCESS] Repository connected and analyzed ✓', color: 'text-[#B48FFF]' },
+  { text: '[SUCCESS] Repository connected and analyzed ✓', color: 'text-[#7AAF7E]' },
 ];
 
 const TECH_STACK = [
@@ -143,13 +143,13 @@ export default function ConnectStep({ onComplete }: ConnectStepProps) {
             Repository URL
           </label>
           <div className="relative">
-            <GitBranch size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#C1A3FF]" />
+            <GitBranch size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5A8F5E]" />
             <input
               type="text"
               value={repoUrl}
               onChange={(e) => setRepoUrl(e.target.value)}
               disabled={isCloning}
-              className="w-full h-12 pl-11 pr-4 bg-[#F5F5F0] border border-[#D9D9D3] rounded-lg font-mono text-[14px] text-[#1A1A1A] focus:outline-none focus:border-[#C1A3FF] focus:ring-[3px] focus:ring-[rgba(90,143,94,0.1)] transition-all disabled:opacity-60"
+              className="w-full h-12 pl-11 pr-4 bg-[#F5F5F0] border border-[#D9D9D3] rounded-lg font-mono text-[14px] text-[#1A1A1A] focus:outline-none focus:border-[#5A8F5E] focus:ring-[3px] focus:ring-[rgba(90,143,94,0.1)] transition-all disabled:opacity-60"
             />
           </div>
         </div>
@@ -164,7 +164,7 @@ export default function ConnectStep({ onComplete }: ConnectStepProps) {
               value={branch}
               onChange={(e) => setBranch(e.target.value)}
               disabled={isCloning}
-              className="w-full h-12 pl-4 pr-10 bg-[#F5F5F0] border border-[#D9D9D3] rounded-lg font-mono text-[13px] text-[#1A1A1A] focus:outline-none focus:border-[#C1A3FF] focus:ring-[3px] focus:ring-[rgba(90,143,94,0.1)] transition-all appearance-none disabled:opacity-60"
+              className="w-full h-12 pl-4 pr-10 bg-[#F5F5F0] border border-[#D9D9D3] rounded-lg font-mono text-[13px] text-[#1A1A1A] focus:outline-none focus:border-[#5A8F5E] focus:ring-[3px] focus:ring-[rgba(90,143,94,0.1)] transition-all appearance-none disabled:opacity-60"
             >
               {SEED_REPO.branches.map((b) => (
                 <option key={b} value={b}>{b}</option>
@@ -176,16 +176,16 @@ export default function ConnectStep({ onComplete }: ConnectStepProps) {
 
         {/* Auto-detected stack */}
         <div>
-          <label className="font-mono text-[12px] uppercase tracking-[0.08em] text-[#C1A3FF] font-medium block mb-3">
+          <label className="font-mono text-[12px] uppercase tracking-[0.08em] text-[#5A8F5E] font-medium block mb-3">
             Auto-Detected Stack
           </label>
           <div className="flex flex-wrap gap-2">
             {TECH_STACK.map((tech) => (
               <span
                 key={tech.name}
-                className="inline-flex items-center gap-1.5 bg-[#F0EAFF] border border-[#C9B5FF] rounded-md px-3.5 py-2 font-mono text-[12px] text-[#C1A3FF] font-medium"
+                className="inline-flex items-center gap-1.5 bg-[#E8F0E8] border border-[#A3C9A5] rounded-md px-3.5 py-2 font-mono text-[12px] text-[#5A8F5E] font-medium"
               >
-                <tech.icon size={14} className="text-[#C1A3FF]" />
+                <tech.icon size={14} className="text-[#5A8F5E]" />
                 {tech.name}
               </span>
             ))}
@@ -196,7 +196,7 @@ export default function ConnectStep({ onComplete }: ConnectStepProps) {
         <button
           onClick={handleConnect}
           disabled={isCloning || !repoUrl.trim()}
-          className="w-full h-[52px] bg-[#C1A3FF] text-white rounded-lg font-body font-medium text-[16px] flex items-center justify-center gap-2 hover:bg-[#A07BDD] hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+          className="w-full h-[52px] bg-[#5A8F5E] text-white rounded-lg font-body font-medium text-[16px] flex items-center justify-center gap-2 hover:bg-[#4A7A4E] hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
         >
           {isCloning ? (
             <>
@@ -221,7 +221,7 @@ export default function ConnectStep({ onComplete }: ConnectStepProps) {
             >
               <div className="h-2 bg-[#EBEBE5] rounded-full overflow-hidden">
                 <motion.div
-                  className="h-full bg-[#C1A3FF] rounded-full"
+                  className="h-full bg-[#5A8F5E] rounded-full"
                   style={{ width: `${cloneProgress}%` }}
                   transition={{ duration: 0.3 }}
                 />
@@ -259,7 +259,7 @@ export default function ConnectStep({ onComplete }: ConnectStepProps) {
               ))}
               {visibleLines < CLONE_LINES.length && (
                 <motion.span
-                  className="inline-block w-2 h-4 bg-[#C1A3FF] ml-0.5"
+                  className="inline-block w-2 h-4 bg-[#5A8F5E] ml-0.5"
                   animate={{ opacity: [1, 0] }}
                   transition={{ duration: 0.5, repeat: Infinity }}
                 />
@@ -292,15 +292,15 @@ export default function ConnectStep({ onComplete }: ConnectStepProps) {
                   {/* Stats */}
                   <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-[#D9D9D3]">
                     <div className="text-center">
-                      <div className="font-heading text-[24px] font-bold text-[#C1A3FF]">47</div>
+                      <div className="font-heading text-[24px] font-bold text-[#5A8F5E]">47</div>
                       <div className="font-mono text-[11px] uppercase text-[#6B6B6B] tracking-[0.06em]">Endpoints</div>
                     </div>
                     <div className="text-center">
-                      <div className="font-heading text-[24px] font-bold text-[#C1A3FF]">12</div>
+                      <div className="font-heading text-[24px] font-bold text-[#5A8F5E]">12</div>
                       <div className="font-mono text-[11px] uppercase text-[#6B6B6B] tracking-[0.06em]">Middleware</div>
                     </div>
                     <div className="text-center">
-                      <div className="font-heading text-[24px] font-bold text-[#C1A3FF]">34</div>
+                      <div className="font-heading text-[24px] font-bold text-[#5A8F5E]">34</div>
                       <div className="font-mono text-[11px] uppercase text-[#6B6B6B] tracking-[0.06em]">Dependencies</div>
                     </div>
                   </div>
@@ -310,7 +310,7 @@ export default function ConnectStep({ onComplete }: ConnectStepProps) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.8 }}
-                    className="mt-4 flex items-center justify-center gap-2 text-[#C1A3FF]"
+                    className="mt-4 flex items-center justify-center gap-2 text-[#5A8F5E]"
                   >
                     <Check size={16} strokeWidth={3} />
                     <span className="font-mono text-[13px] font-medium">Repository connected successfully</span>

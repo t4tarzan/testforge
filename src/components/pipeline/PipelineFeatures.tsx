@@ -77,7 +77,7 @@ const FeatureCard = memo(function FeatureCard({
       <motion.div
         animate={{ rotate: hovered ? 5 : 0 }}
         transition={{ duration: 0.3 }}
-        className="text-[#C1A3FF] mb-6"
+        className="text-[#5A8F5E] mb-6"
       >
         {feature.icon}
       </motion.div>
@@ -90,7 +90,7 @@ const FeatureCard = memo(function FeatureCard({
         {feature.description}
       </p>
 
-      <div className="flex items-center gap-1 mt-6 text-[#C1A3FF] font-body font-medium text-[14px] group-hover:gap-2 transition-all duration-200">
+      <div className="flex items-center gap-1 mt-6 text-[#5A8F5E] font-body font-medium text-[14px] group-hover:gap-2 transition-all duration-200">
         Learn more
         <ChevronRight size={16} className="transition-transform duration-200 group-hover:translate-x-1" />
       </div>
@@ -108,7 +108,7 @@ export default function PipelineFeatures() {
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#C1A3FF] mb-4 block"
+          className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#5A8F5E] mb-4 block"
         >
           // PIPELINE FEATURES
         </motion.span>
@@ -121,7 +121,7 @@ export default function PipelineFeatures() {
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
           className="font-heading font-semibold text-[36px] sm:text-[42px] lg:text-[52px] leading-[1.1] tracking-[-0.025em] text-[#333333] mb-16"
         >
-          <span className="text-[#C1A3FF]">Intelligence</span> at every stage.
+          <span className="text-[#5A8F5E]">Intelligence</span> at every stage.
         </motion.h2>
 
         {/* Feature Grid */}

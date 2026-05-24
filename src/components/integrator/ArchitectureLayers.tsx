@@ -31,8 +31,8 @@ const layers = [
     description: 'Generates ranked integration paths with success probability scores. Creates test-validated action plans with step-by-step migration guides.',
     tags: ['Path Ranking', 'Success Probability', 'Migration Plans', 'Auto-PR'],
     icon: GitBranch,
-    borderColor: '#C1A3FF',
-    iconColor: '#C1A3FF',
+    borderColor: '#5A8F5E',
+    iconColor: '#5A8F5E',
   },
   {
     num: '04',
@@ -40,8 +40,8 @@ const layers = [
     description: 'Verifies each recommended action against the live codebase. Runs dry-run integrations and confirms no new conflicts are introduced.',
     tags: ['Dry-Run Tests', 'Conflict Verification', 'Rollback Plan', 'Sign-off'],
     icon: ShieldCheck,
-    borderColor: '#C1A3FF',
-    iconColor: '#B48FFF',
+    borderColor: '#5A8F5E',
+    iconColor: '#7AAF7E',
   },
 ]
 
@@ -87,7 +87,7 @@ export default function ArchitectureLayers() {
 
       // Progress 0-25%: Layer 1 highlights
       tl.to(layerCards[0], {
-        backgroundColor: 'rgba(193, 163, 255, 0.08)',
+        backgroundColor: 'rgba(90, 143, 94, 0.08)',
         borderLeftColor: layers[0].borderColor,
         scale: 1,
         opacity: 1,
@@ -104,7 +104,7 @@ export default function ArchitectureLayers() {
 
       // Progress 25-50%: Layer 2 highlights
       tl.to(layerCards[1], {
-        backgroundColor: 'rgba(193, 163, 255, 0.08)',
+        backgroundColor: 'rgba(90, 143, 94, 0.08)',
         borderLeftColor: layers[1].borderColor,
         scale: 1,
         opacity: 1,
@@ -121,7 +121,7 @@ export default function ArchitectureLayers() {
 
       // Progress 50-75%: Layer 3 highlights
       tl.to(layerCards[2], {
-        backgroundColor: 'rgba(193, 163, 255, 0.08)',
+        backgroundColor: 'rgba(90, 143, 94, 0.08)',
         borderLeftColor: layers[2].borderColor,
         scale: 1,
         opacity: 1,
@@ -138,7 +138,7 @@ export default function ArchitectureLayers() {
 
       // Progress 75-100%: Layer 4 highlights
       tl.to(layerCards[3], {
-        backgroundColor: 'rgba(193, 163, 255, 0.08)',
+        backgroundColor: 'rgba(90, 143, 94, 0.08)',
         borderLeftColor: layers[3].borderColor,
         scale: 1,
         opacity: 1,
@@ -154,11 +154,11 @@ export default function ArchitectureLayers() {
 
       // Brief glow on all layers at the end
       tl.to(layerCards, {
-        boxShadow: '0 0 30px rgba(193, 163, 255, 0.2)',
+        boxShadow: '0 0 30px rgba(90, 143, 94, 0.2)',
         duration: 0.08,
       }, 0.92)
       tl.to(layerCards, {
-        boxShadow: '0 0 0px rgba(193, 163, 255, 0)',
+        boxShadow: '0 0 0px rgba(90, 143, 94, 0)',
         duration: 0.08,
       }, 1)
 
@@ -192,9 +192,9 @@ export default function ArchitectureLayers() {
         <div className="relative z-10 w-full max-w-[1000px] mx-auto">
           {/* Label */}
           <div className="text-center mb-12">
-            <p className="text-label-mono text-[#C9B5FF] mb-4">// ARCHITECTURE</p>
+            <p className="text-label-mono text-[#A3C9A5] mb-4">// ARCHITECTURE</p>
             <h2 className="text-display-lg text-white">
-              Four layers. One <span className="text-[#C1A3FF]">intelligent</span> decision engine.
+              Four layers. One <span className="text-[#5A8F5E]">intelligent</span> decision engine.
             </h2>
           </div>
 
@@ -230,7 +230,7 @@ export default function ArchitectureLayers() {
                           {layer.tags.map((tag) => (
                             <span
                               key={tag}
-                              className="layer-tag font-mono text-[11px] uppercase tracking-wider px-3 py-1 rounded border border-[#3A3A3A] text-[#C9B5FF]"
+                              className="layer-tag font-mono text-[11px] uppercase tracking-wider px-3 py-1 rounded border border-[#3A3A3A] text-[#A3C9A5]"
                             >
                               {tag}
                             </span>
@@ -248,19 +248,19 @@ export default function ArchitectureLayers() {
                       <svg width="24" height="32" viewBox="0 0 24 32" fill="none">
                         <line
                           x1="12" y1="0" x2="12" y2="24"
-                          stroke="#C1A3FF"
+                          stroke="#5A8F5E"
                           strokeWidth="1.5"
                           strokeDasharray="4 3"
                         />
                         <polygon
                           points="6,24 18,24 12,32"
-                          fill="#C1A3FF"
+                          fill="#5A8F5E"
                           opacity="0.6"
                         />
                       </svg>
                       <div className="arrow-particles absolute">
                         <div
-                          className="flow-dot w-1.5 h-1.5 rounded-full bg-[#B48FFF]"
+                          className="flow-dot w-1.5 h-1.5 rounded-full bg-[#7AAF7E]"
                           style={{ opacity: 0.8 }}
                         />
                       </div>

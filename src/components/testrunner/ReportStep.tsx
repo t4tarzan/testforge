@@ -30,7 +30,7 @@ const STATUS_ICONS: Record<string, React.ComponentType<{ size?: number; classNam
 };
 
 const STATUS_COLORS = {
-  passed: { dot: 'bg-[#C1A3FF]', text: 'text-[#C1A3FF]' },
+  passed: { dot: 'bg-[#5A8F5E]', text: 'text-[#5A8F5E]' },
   failed: { dot: 'bg-[#D4524A]', text: 'text-[#D4524A]' },
   warning: { dot: 'bg-[#E8A838]', text: 'text-[#E8A838]' },
 };
@@ -39,7 +39,7 @@ const SEVERITY_CONFIG = {
   critical: { color: '#D4524A', bg: 'bg-[rgba(212,82,74,0.1)]', text: 'text-[#D4524A]', label: 'CRITICAL' },
   high: { color: '#E87D3A', bg: 'bg-[rgba(232,125,58,0.1)]', text: 'text-[#E87D3A]', label: 'HIGH' },
   medium: { color: '#E8A838', bg: 'bg-[rgba(232,168,56,0.1)]', text: 'text-[#E8A838]', label: 'MEDIUM' },
-  low: { color: '#C1A3FF', bg: 'bg-[rgba(90,143,94,0.1)]', text: 'text-[#C1A3FF]', label: 'LOW' },
+  low: { color: '#5A8F5E', bg: 'bg-[rgba(90,143,94,0.1)]', text: 'text-[#5A8F5E]', label: 'LOW' },
 };
 
 interface ReportStepProps {
@@ -64,7 +64,7 @@ export default function ReportStep({ onRestart }: ReportStepProps) {
     return findings.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
   }, []);
 
-  const scoreColor = SEED_REPORT.overallScore >= 85 ? '#C1A3FF' : SEED_REPORT.overallScore >= 70 ? '#E8A838' : '#D4524A';
+  const scoreColor = SEED_REPORT.overallScore >= 85 ? '#5A8F5E' : SEED_REPORT.overallScore >= 70 ? '#E8A838' : '#D4524A';
   const scoreLabel = SEED_REPORT.overallScore >= 85 ? 'EXCELLENT' : SEED_REPORT.overallScore >= 70 ? 'GOOD' : 'NEEDS IMPROVEMENT';
 
   // Score ring
@@ -104,7 +104,7 @@ export default function ReportStep({ onRestart }: ReportStepProps) {
     { label: 'CRITICAL', count: summary.criticalVulns, color: '#D4524A' },
     { label: 'HIGH', count: summary.highVulns, color: '#E87D3A' },
     { label: 'MEDIUM', count: summary.mediumVulns, color: '#E8A838' },
-    { label: 'LOW', count: summary.lowVulns, color: '#C1A3FF' },
+    { label: 'LOW', count: summary.lowVulns, color: '#5A8F5E' },
   ];
 
   return (
@@ -224,7 +224,7 @@ export default function ReportStep({ onRestart }: ReportStepProps) {
                 transition={{ delay: 0.1 * i }}
                 className="bg-white border border-[#D9D9D3] rounded-lg p-3 text-center hover:shadow-md transition-shadow cursor-pointer"
               >
-                <IconComp size={18} className="text-[#C1A3FF] mx-auto mb-1.5" />
+                <IconComp size={18} className="text-[#5A8F5E] mx-auto mb-1.5" />
                 <div className="text-[12px] font-medium text-[#333333] truncate">{result.stage}</div>
                 <div className={`w-2 h-2 rounded-full mx-auto mt-1.5 ${colors.dot}`} />
               </motion.div>
@@ -242,13 +242,13 @@ export default function ReportStep({ onRestart }: ReportStepProps) {
           <div className="flex gap-2">
             <button
               onClick={() => setSortBy('severity')}
-              className={`font-mono text-[11px] uppercase px-2 py-1 rounded ${sortBy === 'severity' ? 'bg-[#F0EAFF] text-[#C1A3FF]' : 'text-[#9A9A9A]'}`}
+              className={`font-mono text-[11px] uppercase px-2 py-1 rounded ${sortBy === 'severity' ? 'bg-[#E8F0E8] text-[#5A8F5E]' : 'text-[#9A9A9A]'}`}
             >
               Severity
             </button>
             <button
               onClick={() => setSortBy('file')}
-              className={`font-mono text-[11px] uppercase px-2 py-1 rounded ${sortBy === 'file' ? 'bg-[#F0EAFF] text-[#C1A3FF]' : 'text-[#9A9A9A]'}`}
+              className={`font-mono text-[11px] uppercase px-2 py-1 rounded ${sortBy === 'file' ? 'bg-[#E8F0E8] text-[#5A8F5E]' : 'text-[#9A9A9A]'}`}
             >
               File
             </button>
@@ -266,7 +266,7 @@ export default function ReportStep({ onRestart }: ReportStepProps) {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.06 }}
                 className={`bg-white border rounded-xl overflow-hidden transition-all duration-200 ${
-                  isExpanded ? 'border-[#C9B5FF] shadow-md' : 'border-[#D9D9D3] hover:border-[#C9B5FF]'
+                  isExpanded ? 'border-[#A3C9A5] shadow-md' : 'border-[#D9D9D3] hover:border-[#A3C9A5]'
                 } ${finding.severity === 'critical' ? 'border-l-[3px] border-l-[#D4524A]' : finding.severity === 'high' ? 'border-l-[3px] border-l-[#E87D3A]' : ''}`}
               >
                 {/* Header */}
@@ -305,11 +305,11 @@ export default function ReportStep({ onRestart }: ReportStepProps) {
                     )}
                     {finding.fix && (
                       <div>
-                        <span className="font-mono text-[11px] uppercase text-[#C1A3FF] block mb-1">Suggested Fix</span>
+                        <span className="font-mono text-[11px] uppercase text-[#5A8F5E] block mb-1">Suggested Fix</span>
                         <p className="text-[13px] text-[#333333]">{finding.fix}</p>
                       </div>
                     )}
-                    <button className="mt-3 text-[13px] text-[#C1A3FF] hover:underline flex items-center gap-1">
+                    <button className="mt-3 text-[13px] text-[#5A8F5E] hover:underline flex items-center gap-1">
                       View in PRD <ArrowRight size={12} />
                     </button>
                   </motion.div>
@@ -329,7 +329,7 @@ export default function ReportStep({ onRestart }: ReportStepProps) {
           {/* PRD Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#D9D9D3] bg-[#F5F5F0]">
             <div className="flex items-center gap-2">
-              <FileText size={16} className="text-[#C1A3FF]" />
+              <FileText size={16} className="text-[#5A8F5E]" />
               <span className="font-mono text-[13px] text-[#333333] font-medium">
                 {SEED_REPO.name}-test-report.md
               </span>
@@ -343,7 +343,7 @@ export default function ReportStep({ onRestart }: ReportStepProps) {
               <h4 className="font-heading text-[18px] font-medium">{SEED_REPORT.prd.title}</h4>
 
               <div className="bg-[#F5F5F0] rounded-lg p-4 font-mono text-[12px] space-y-1">
-                <div><span className="text-[#6B6B6B]">Overall Score:</span> <span className="text-[#C1A3FF] font-medium">{SEED_REPORT.overallScore}/100</span></div>
+                <div><span className="text-[#6B6B6B]">Overall Score:</span> <span className="text-[#5A8F5E] font-medium">{SEED_REPORT.overallScore}/100</span></div>
                 <div><span className="text-[#6B6B6B]">Status:</span> <span className="text-[#E8A838]">NEEDS IMPROVEMENT</span></div>
                 <div><span className="text-[#6B6B6B]">Findings:</span> {summary.criticalVulns}C / {summary.highVulns}H / {summary.mediumVulns}M / {summary.lowVulns}L</div>
               </div>
@@ -357,7 +357,7 @@ export default function ReportStep({ onRestart }: ReportStepProps) {
                 <h5 className="font-heading text-[14px] font-medium mb-2">Affected Components</h5>
                 <div className="flex flex-wrap gap-1.5">
                   {SEED_REPORT.prd.affectedComponents.map((c) => (
-                    <span key={c} className="px-2 py-0.5 bg-[#F0EAFF] text-[#C1A3FF] font-mono text-[11px] rounded">{c}</span>
+                    <span key={c} className="px-2 py-0.5 bg-[#E8F0E8] text-[#5A8F5E] font-mono text-[11px] rounded">{c}</span>
                   ))}
                 </div>
               </div>
@@ -388,7 +388,7 @@ export default function ReportStep({ onRestart }: ReportStepProps) {
           {/* PRD Footer */}
           <button
             onClick={() => setPrdExpanded(!prdExpanded)}
-            className="w-full py-3 border-t border-[#D9D9D3] text-center font-mono text-[12px] text-[#C1A3FF] hover:bg-[#F5F5F0] transition-colors flex items-center justify-center gap-1"
+            className="w-full py-3 border-t border-[#D9D9D3] text-center font-mono text-[12px] text-[#5A8F5E] hover:bg-[#F5F5F0] transition-colors flex items-center justify-center gap-1"
           >
             {prdExpanded ? 'Show Less' : 'View Full PRD'}
             {prdExpanded ? <ChevronUp size={14} /> : <ArrowRight size={14} />}
@@ -446,7 +446,7 @@ export default function ReportStep({ onRestart }: ReportStepProps) {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={onRestart}
-          className="flex items-center gap-2 px-8 py-3.5 bg-[#C1A3FF] text-white rounded-lg font-body font-medium text-[16px] hover:bg-[#A07BDD] transition-colors"
+          className="flex items-center gap-2 px-8 py-3.5 bg-[#5A8F5E] text-white rounded-lg font-body font-medium text-[16px] hover:bg-[#4A7A4E] transition-colors"
         >
           <RotateCcw size={16} />
           Run Again
@@ -469,9 +469,9 @@ function ExportButton({
 }) {
   const baseClass = 'flex items-center gap-2 px-6 py-3.5 rounded-[10px] font-body font-medium text-[15px] transition-all';
   const variantClass = {
-    primary: 'bg-[#C1A3FF] text-white hover:bg-[#A07BDD]',
+    primary: 'bg-[#5A8F5E] text-white hover:bg-[#4A7A4E]',
     secondary: 'bg-[#1A1A1A] text-white hover:bg-[#333333]',
-    ghost: 'border border-[#D9D9D3] text-[#333333] hover:bg-[#F0EAFF] hover:border-[#C9B5FF]',
+    ghost: 'border border-[#D9D9D3] text-[#333333] hover:bg-[#E8F0E8] hover:border-[#A3C9A5]',
   }[variant];
 
   return (

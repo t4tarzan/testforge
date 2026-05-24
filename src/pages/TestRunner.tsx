@@ -48,7 +48,7 @@ export default function TestRunner() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.4 }}
-              className="font-mono text-[13px] uppercase tracking-[0.08em] text-[#C1A3FF] mb-4"
+              className="font-mono text-[13px] uppercase tracking-[0.08em] text-[#5A8F5E] mb-4"
             >
               // Interactive Testing
             </motion.div>
@@ -59,7 +59,7 @@ export default function TestRunner() {
               className="font-heading text-[36px] sm:text-[42px] font-semibold text-[#1A1A1A] tracking-[-0.02em] leading-[1.15]"
             >
               Run Your{' '}
-              <span className="text-[#C1A3FF]">First Test</span>{' '}
+              <span className="text-[#5A8F5E]">First Test</span>{' '}
               in 60 Seconds
             </motion.h1>
             <motion.p
@@ -84,8 +84,8 @@ export default function TestRunner() {
                 { icon: 'lock', text: 'Public repos only' },
               ].map((badge) => (
                 <div key={badge.icon} className="flex items-center gap-1.5">
-                  <div className="w-4 h-4 rounded-full bg-[#F0EAFF] flex items-center justify-center">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#C1A3FF]" />
+                  <div className="w-4 h-4 rounded-full bg-[#E8F0E8] flex items-center justify-center">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#5A8F5E]" />
                   </div>
                   <span className="text-[13px] text-[#6B6B6B]">{badge.text}</span>
                 </div>

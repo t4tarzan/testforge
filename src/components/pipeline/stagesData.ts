@@ -307,9 +307,9 @@ export const statusColors: Record<StageStatus, { bg: string; text: string; borde
   },
   passed: {
     bg: 'bg-[rgba(90,143,94,0.1)]',
-    text: 'text-[#C1A3FF]',
-    border: 'border-[#C1A3FF]',
-    bar: 'bg-[#C1A3FF]',
+    text: 'text-[#5A8F5E]',
+    border: 'border-[#5A8F5E]',
+    bar: 'bg-[#5A8F5E]',
   },
   failed: {
     bg: 'bg-[rgba(212,82,74,0.1)]',
@@ -323,5 +323,5 @@ export const severityColors: Record<string, { bg: string; text: string }> = {
   critical: { bg: 'bg-[rgba(212,82,74,0.1)]', text: 'text-[#D4524A]' },
   high: { bg: 'bg-[rgba(232,125,58,0.1)]', text: 'text-[#E87D3A]' },
   medium: { bg: 'bg-[rgba(232,168,56,0.1)]', text: 'text-[#E8A838]' },
-  low: { bg: 'bg-[rgba(90,143,94,0.1)]', text: 'text-[#C1A3FF]' },
+  low: { bg: 'bg-[rgba(90,143,94,0.1)]', text: 'text-[#5A8F5E]' },
 };

@@ -185,7 +185,7 @@ export default function NeuralNetworkCanvas() {
             ctx!.beginPath()
             ctx!.moveTo(nodes[i].x, nodes[i].y)
             ctx!.lineTo(nodes[j].x, nodes[j].y)
-            ctx!.strokeStyle = `rgba(193, 163, 255, ${alpha})`
+            ctx!.strokeStyle = `rgba(90, 143, 94, ${alpha})`
             ctx!.lineWidth = 0.8
             ctx!.stroke()
           }
@@ -196,7 +196,7 @@ export default function NeuralNetworkCanvas() {
       for (const p of packets) {
         ctx!.beginPath()
         ctx!.arc(p.x, p.y, 2.5, 0, Math.PI * 2)
-        ctx!.fillStyle = `rgba(180, 143, 255, ${0.9 * (1 - p.progress)})`
+        ctx!.fillStyle = `rgba(122, 175, 126, ${0.9 * (1 - p.progress)})`
         ctx!.fill()
       }
 
@@ -207,8 +207,8 @@ export default function NeuralNetworkCanvas() {
 
         // Glow
         const glow = ctx!.createRadialGradient(node.x, node.y, 0, node.x, node.y, r * 4)
-        glow.addColorStop(0, `rgba(193, 163, 255, ${0.2 * pulse})`)
-        glow.addColorStop(1, 'rgba(193, 163, 255, 0)')
+        glow.addColorStop(0, `rgba(90, 143, 94, ${0.2 * pulse})`)
+        glow.addColorStop(1, 'rgba(90, 143, 94, 0)')
         ctx!.beginPath()
         ctx!.arc(node.x, node.y, r * 4, 0, Math.PI * 2)
         ctx!.fillStyle = glow
@@ -217,7 +217,7 @@ export default function NeuralNetworkCanvas() {
         // Core
         ctx!.beginPath()
         ctx!.arc(node.x, node.y, r, 0, Math.PI * 2)
-        ctx!.fillStyle = `rgba(193, 163, 255, ${0.7 + pulse * 0.3})`
+        ctx!.fillStyle = `rgba(90, 143, 94, ${0.7 + pulse * 0.3})`
         ctx!.fill()
       }
     }

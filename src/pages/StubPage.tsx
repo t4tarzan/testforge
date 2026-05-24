@@ -17,8 +17,8 @@ export default function StubPage({ title, description }: StubPageProps) {
         className="text-center"
       >
         {/* TestForge Logo Icon */}
-        <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-[#F0EAFF] flex items-center justify-center">
-          <Hexagon size={32} className="text-[#C1A3FF]" strokeWidth={1.5} />
+        <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-[#E8F0E8] flex items-center justify-center">
+          <Hexagon size={32} className="text-[#5A8F5E]" strokeWidth={1.5} />
         </div>
 
         {/* Title */}
@@ -32,9 +32,9 @@ export default function StubPage({ title, description }: StubPageProps) {
         </p>
 
         {/* Coming soon badge */}
-        <div className="mt-5 inline-flex items-center gap-2 px-4 py-2 bg-[#F0EAFF] border border-[#C9B5FF] rounded-full">
-          <div className="w-2 h-2 rounded-full bg-[#C1A3FF] animate-pulse" />
-          <span className="font-mono text-[12px] uppercase tracking-[0.06em] text-[#C1A3FF] font-medium">
+        <div className="mt-5 inline-flex items-center gap-2 px-4 py-2 bg-[#E8F0E8] border border-[#A3C9A5] rounded-full">
+          <div className="w-2 h-2 rounded-full bg-[#5A8F5E] animate-pulse" />
+          <span className="font-mono text-[12px] uppercase tracking-[0.06em] text-[#5A8F5E] font-medium">
             Coming Soon
           </span>
         </div>
@@ -42,7 +42,7 @@ export default function StubPage({ title, description }: StubPageProps) {
         {/* Back to home */}
         <Link
           to="/"
-          className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-[#C1A3FF] text-white rounded-lg font-body font-medium text-[15px] hover:bg-[#A07BDD] hover:scale-[1.02] active:scale-[0.98] transition-all"
+          className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-[#5A8F5E] text-white rounded-lg font-body font-medium text-[15px] hover:bg-[#4A7A4E] hover:scale-[1.02] active:scale-[0.98] transition-all"
         >
           <ArrowLeft size={16} /> Back to Home
         </Link>

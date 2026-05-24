@@ -29,7 +29,7 @@ const StatCard = memo(function StatCard({ stat, index }: { stat: Stat; index: nu
       }}
       className="bg-white rounded-2xl p-8 text-center border border-[#D9D9D3] shadow-card"
     >
-      <div className="font-heading font-bold text-[42px] sm:text-[48px] text-[#C1A3FF] leading-none tracking-tight">
+      <div className="font-heading font-bold text-[42px] sm:text-[48px] text-[#5A8F5E] leading-none tracking-tight">
         <CountUp
           end={stat.value}
           duration={2.5}

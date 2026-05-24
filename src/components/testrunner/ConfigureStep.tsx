@@ -17,18 +17,18 @@ interface TestType {
 }
 
 const TEST_TYPES: TestType[] = [
-  { id: 'scope', name: 'Scope Test', icon: Target, description: 'Endpoint discovery', category: 'Functional', badge: 'PASS', badgeColor: 'bg-[#F0EAFF] text-[#C1A3FF]' },
-  { id: 'vision', name: 'Vision/Goal', icon: Eye, description: 'Business goal validation', category: 'Functional', badge: 'PASS', badgeColor: 'bg-[#F0EAFF] text-[#C1A3FF]' },
-  { id: 'feature', name: 'Feature Matrix', icon: Grid3X3, description: 'Feature coverage mapping', category: 'Functional', badge: 'PASS', badgeColor: 'bg-[#F0EAFF] text-[#C1A3FF]' },
+  { id: 'scope', name: 'Scope Test', icon: Target, description: 'Endpoint discovery', category: 'Functional', badge: 'PASS', badgeColor: 'bg-[#E8F0E8] text-[#5A8F5E]' },
+  { id: 'vision', name: 'Vision/Goal', icon: Eye, description: 'Business goal validation', category: 'Functional', badge: 'PASS', badgeColor: 'bg-[#E8F0E8] text-[#5A8F5E]' },
+  { id: 'feature', name: 'Feature Matrix', icon: Grid3X3, description: 'Feature coverage mapping', category: 'Functional', badge: 'PASS', badgeColor: 'bg-[#E8F0E8] text-[#5A8F5E]' },
   { id: 'unit', name: 'Unit Test', icon: FlaskConical, description: 'Individual function tests', category: 'Functional', badge: 'WARN', badgeColor: 'bg-[rgba(232,168,56,0.1)] text-[#E8A838]' },
   { id: 'integration', name: 'Integration', icon: Puzzle, description: 'Service interaction tests', category: 'Functional', badge: 'WARN', badgeColor: 'bg-[rgba(232,168,56,0.1)] text-[#E8A838]' },
-  { id: 'e2e', name: 'E2E Test', icon: Route, description: 'Full user flow tests', category: 'Functional', badge: 'PASS', badgeColor: 'bg-[#F0EAFF] text-[#C1A3FF]' },
+  { id: 'e2e', name: 'E2E Test', icon: Route, description: 'Full user flow tests', category: 'Functional', badge: 'PASS', badgeColor: 'bg-[#E8F0E8] text-[#5A8F5E]' },
   { id: 'load', name: 'Load & Scale', icon: Gauge, description: 'Performance under load', category: 'Non-Functional', badge: 'FAIL', badgeColor: 'bg-[rgba(212,82,74,0.1)] text-[#D4524A]' },
   { id: 'predictive', name: 'Predictive', icon: Brain, description: 'ML-based risk detection', category: 'Non-Functional', badge: 'HIGH', badgeColor: 'bg-[rgba(232,125,58,0.1)] text-[#E87D3A]' },
   { id: 'security', name: 'Security', icon: Shield, description: 'Vulnerability scanning', category: 'Non-Functional', badge: 'CRIT', badgeColor: 'bg-[rgba(212,82,74,0.1)] text-[#D4524A]' },
-  { id: 'visual', name: 'Visual Regression', icon: Eye, description: 'UI snapshot comparison', category: 'Non-Functional', badge: 'PASS', badgeColor: 'bg-[#F0EAFF] text-[#C1A3FF]' },
+  { id: 'visual', name: 'Visual Regression', icon: Eye, description: 'UI snapshot comparison', category: 'Non-Functional', badge: 'PASS', badgeColor: 'bg-[#E8F0E8] text-[#5A8F5E]' },
   { id: 'accessibility', name: 'Accessibility', icon: Accessibility, description: 'WCAG compliance', category: 'Specialized', badge: 'WARN', badgeColor: 'bg-[rgba(232,168,56,0.1)] text-[#E8A838]' },
-  { id: 'chaos', name: 'Chaos Eng.', icon: CloudLightning, description: 'Fault injection recovery', category: 'Specialized', badge: 'PASS', badgeColor: 'bg-[#F0EAFF] text-[#C1A3FF]' },
+  { id: 'chaos', name: 'Chaos Eng.', icon: CloudLightning, description: 'Fault injection recovery', category: 'Specialized', badge: 'PASS', badgeColor: 'bg-[#E8F0E8] text-[#5A8F5E]' },
   { id: 'mutation', name: 'Mutation Test', icon: Dna, description: 'Test suite hardening', category: 'Specialized', badge: 'FAIL', badgeColor: 'bg-[rgba(212,82,74,0.1)] text-[#D4524A]' },
 ];
 
@@ -114,10 +114,10 @@ export default function ConfigureStep({ onComplete, onBack }: ConfigureStepProps
               Select Test Types
             </label>
             <div className="flex gap-3">
-              <button onClick={selectAll} className="font-mono text-[12px] text-[#C1A3FF] font-medium hover:underline">
+              <button onClick={selectAll} className="font-mono text-[12px] text-[#5A8F5E] font-medium hover:underline">
                 Select All
               </button>
-              <button onClick={deselectAll} className="font-mono text-[12px] text-[#C1A3FF] font-medium hover:underline">
+              <button onClick={deselectAll} className="font-mono text-[12px] text-[#5A8F5E] font-medium hover:underline">
                 Deselect All
               </button>
             </div>
@@ -142,8 +142,8 @@ export default function ConfigureStep({ onComplete, onBack }: ConfigureStepProps
                         className={`
                           flex items-center gap-3 p-3 rounded-[10px] border text-left transition-all duration-200
                           ${isSelected
-                            ? 'border-[#C1A3FF] bg-[rgba(90,143,94,0.04)] shadow-[0_0_0_3px_rgba(90,143,94,0.08)]'
-                            : 'border-[#D9D9D3] bg-white hover:border-[#C9B5FF] hover:bg-[#F0EAFF]'
+                            ? 'border-[#5A8F5E] bg-[rgba(90,143,94,0.04)] shadow-[0_0_0_3px_rgba(90,143,94,0.08)]'
+                            : 'border-[#D9D9D3] bg-white hover:border-[#A3C9A5] hover:bg-[#E8F0E8]'
                           }
                         `}
                       >
@@ -153,14 +153,14 @@ export default function ConfigureStep({ onComplete, onBack }: ConfigureStepProps
                           transition={{ duration: 0.2, ease: [0.34, 1.56, 0.64, 1] as [number, number, number, number] }}
                           className={`
                             w-5 h-5 rounded-[5px] flex items-center justify-center flex-shrink-0 transition-all duration-200
-                            ${isSelected ? 'bg-[#C1A3FF] border-[#C1A3FF]' : 'border-2 border-[#D9D9D3]'}
+                            ${isSelected ? 'bg-[#5A8F5E] border-[#5A8F5E]' : 'border-2 border-[#D9D9D3]'}
                           `}
                         >
                           {isSelected && <Check size={12} strokeWidth={3} className="text-white" />}
                         </motion.div>
 
                         {/* Icon */}
-                        <test.icon size={18} className="text-[#C1A3FF] flex-shrink-0" />
+                        <test.icon size={18} className="text-[#5A8F5E] flex-shrink-0" />
 
                         {/* Text */}
                         <div className="flex-1 min-w-0">
@@ -193,12 +193,12 @@ export default function ConfigureStep({ onComplete, onBack }: ConfigureStepProps
                 onClick={() => setTestDepth('shallow')}
                 className={`w-full p-4 rounded-[10px] border-2 text-left transition-all duration-200 relative ${
                   testDepth === 'shallow'
-                    ? 'border-[#C1A3FF] bg-[#F5F5F0]'
-                    : 'border-[#D9D9D3] bg-[#F5F5F0] hover:border-[#C9B5FF]'
+                    ? 'border-[#5A8F5E] bg-[#F5F5F0]'
+                    : 'border-[#D9D9D3] bg-[#F5F5F0] hover:border-[#A3C9A5]'
                 }`}
               >
                 {testDepth === 'shallow' && (
-                  <Check size={16} className="absolute top-3 right-3 text-[#C1A3FF]" />
+                  <Check size={16} className="absolute top-3 right-3 text-[#5A8F5E]" />
                 )}
                 <div className="text-[14px] font-medium text-[#333333]">Shallow Scan</div>
                 <div className="text-[12px] text-[#6B6B6B] mt-0.5">
@@ -210,12 +210,12 @@ export default function ConfigureStep({ onComplete, onBack }: ConfigureStepProps
                 onClick={() => setTestDepth('deep')}
                 className={`w-full p-4 rounded-[10px] border-2 text-left transition-all duration-200 relative ${
                   testDepth === 'deep'
-                    ? 'border-[#C1A3FF] bg-[#F5F5F0]'
-                    : 'border-[#D9D9D3] bg-[#F5F5F0] hover:border-[#C9B5FF]'
+                    ? 'border-[#5A8F5E] bg-[#F5F5F0]'
+                    : 'border-[#D9D9D3] bg-[#F5F5F0] hover:border-[#A3C9A5]'
                 }`}
               >
                 {testDepth === 'deep' && (
-                  <Check size={16} className="absolute top-3 right-3 text-[#C1A3FF]" />
+                  <Check size={16} className="absolute top-3 right-3 text-[#5A8F5E]" />
                 )}
                 <div className="text-[14px] font-medium text-[#333333]">Deep Analysis</div>
                 <div className="text-[12px] text-[#6B6B6B] mt-0.5">
@@ -238,15 +238,15 @@ export default function ConfigureStep({ onComplete, onBack }: ConfigureStepProps
                 step={1}
                 value={coverageTarget}
                 onChange={(e) => setCoverageTarget(Number(e.target.value))}
-                className="w-full h-[6px] rounded-full appearance-none cursor-pointer accent-[#C1A3FF]"
+                className="w-full h-[6px] rounded-full appearance-none cursor-pointer accent-[#5A8F5E]"
                 style={{
-                  background: `linear-gradient(to right, #C1A3FF 0%, #C1A3FF ${(coverageTarget / 2) * 100}%, #EBEBE5 ${(coverageTarget / 2) * 100}%, #EBEBE5 100%)`
+                  background: `linear-gradient(to right, #5A8F5E 0%, #5A8F5E ${(coverageTarget / 2) * 100}%, #EBEBE5 ${(coverageTarget / 2) * 100}%, #EBEBE5 100%)`
                 }}
               />
               <div className="flex justify-between mt-2">
-                <span className={`text-[12px] ${coverageTarget === 0 ? 'text-[#C1A3FF] font-medium' : 'text-[#9A9A9A]'}`}>Basic</span>
-                <span className={`text-[12px] ${coverageTarget === 1 ? 'text-[#C1A3FF] font-medium' : 'text-[#9A9A9A]'}`}>Standard</span>
-                <span className={`text-[12px] ${coverageTarget === 2 ? 'text-[#C1A3FF] font-medium' : 'text-[#9A9A9A]'}`}>Comprehensive</span>
+                <span className={`text-[12px] ${coverageTarget === 0 ? 'text-[#5A8F5E] font-medium' : 'text-[#9A9A9A]'}`}>Basic</span>
+                <span className={`text-[12px] ${coverageTarget === 1 ? 'text-[#5A8F5E] font-medium' : 'text-[#9A9A9A]'}`}>Standard</span>
+                <span className={`text-[12px] ${coverageTarget === 2 ? 'text-[#5A8F5E] font-medium' : 'text-[#9A9A9A]'}`}>Comprehensive</span>
               </div>
             </div>
           </div>
@@ -255,7 +255,7 @@ export default function ConfigureStep({ onComplete, onBack }: ConfigureStepProps
           <div>
             <button
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className="flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.08em] text-[#C1A3FF] font-medium hover:underline mb-3"
+              className="flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.08em] text-[#5A8F5E] font-medium hover:underline mb-3"
             >
               Advanced Options
               {showAdvanced ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -275,7 +275,7 @@ export default function ConfigureStep({ onComplete, onBack }: ConfigureStepProps
                     type="number"
                     value={timeoutVal}
                     onChange={(e) => setTimeoutVal(Number(e.target.value))}
-                    className="w-full h-9 px-3 bg-white border border-[#D9D9D3] rounded-md font-mono text-[13px] focus:outline-none focus:border-[#C1A3FF]"
+                    className="w-full h-9 px-3 bg-white border border-[#D9D9D3] rounded-md font-mono text-[13px] focus:outline-none focus:border-[#5A8F5E]"
                   />
                 </div>
                 <div>
@@ -286,7 +286,7 @@ export default function ConfigureStep({ onComplete, onBack }: ConfigureStepProps
                     type="number"
                     value={concurrent}
                     onChange={(e) => setConcurrent(Number(e.target.value))}
-                    className="w-full h-9 px-3 bg-white border border-[#D9D9D3] rounded-md font-mono text-[13px] focus:outline-none focus:border-[#C1A3FF]"
+                    className="w-full h-9 px-3 bg-white border border-[#D9D9D3] rounded-md font-mono text-[13px] focus:outline-none focus:border-[#5A8F5E]"
                   />
                 </div>
                 <div className="flex items-center justify-between">
@@ -295,7 +295,7 @@ export default function ConfigureStep({ onComplete, onBack }: ConfigureStepProps
                   </label>
                   <button
                     onClick={() => setFailFast(!failFast)}
-                    className={`w-10 h-5 rounded-full transition-colors duration-200 ${failFast ? 'bg-[#C1A3FF]' : 'bg-[#D9D9D3]'}`}
+                    className={`w-10 h-5 rounded-full transition-colors duration-200 ${failFast ? 'bg-[#5A8F5E]' : 'bg-[#D9D9D3]'}`}
                   >
                     <motion.div
                       animate={{ x: failFast ? 20 : 2 }}
@@ -309,11 +309,11 @@ export default function ConfigureStep({ onComplete, onBack }: ConfigureStepProps
           </div>
 
           {/* Estimated Time */}
-          <div className="bg-[#F0EAFF] rounded-xl p-5 text-center">
+          <div className="bg-[#E8F0E8] rounded-xl p-5 text-center">
             <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-[#6B6B6B] mb-1">
               Estimated Run Time
             </div>
-            <div className="font-heading text-[32px] font-semibold text-[#C1A3FF]">
+            <div className="font-heading text-[32px] font-semibold text-[#5A8F5E]">
               ~{estimatedMinutes}
             </div>
             <div className="text-[14px] text-[#6B6B6B]">minutes</div>
@@ -325,7 +325,7 @@ export default function ConfigureStep({ onComplete, onBack }: ConfigureStepProps
       <div className="flex justify-between items-center mt-8 pt-6 border-t border-[#D9D9D3]">
         <button
           onClick={onBack}
-          className="px-7 py-3.5 border border-[#D9D9D3] text-[#333333] rounded-lg font-body font-medium text-[15px] hover:bg-[#F0EAFF] hover:border-[#C9B5FF] transition-all"
+          className="px-7 py-3.5 border border-[#D9D9D3] text-[#333333] rounded-lg font-body font-medium text-[15px] hover:bg-[#E8F0E8] hover:border-[#A3C9A5] transition-all"
         >
           &larr; Back
         </button>
@@ -333,7 +333,7 @@ export default function ConfigureStep({ onComplete, onBack }: ConfigureStepProps
           onClick={onComplete}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          className="px-8 py-3.5 bg-[#C1A3FF] text-white rounded-lg font-body font-medium text-[16px] flex items-center gap-2 hover:bg-[#A07BDD] transition-colors"
+          className="px-8 py-3.5 bg-[#5A8F5E] text-white rounded-lg font-body font-medium text-[16px] flex items-center gap-2 hover:bg-[#4A7A4E] transition-colors"
         >
           <Zap size={16} />
           Run Tests &rarr;

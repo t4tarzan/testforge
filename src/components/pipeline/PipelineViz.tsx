@@ -50,14 +50,14 @@ const StageListItem = memo(function StageListItem({
       onClick={onClick}
       layout="position"
       className={`w-full text-left px-5 py-4 border-b border-[#D9D9D3] transition-colors duration-200 relative
-        ${isSelected ? 'bg-[#F0EAFF]' : 'bg-white hover:bg-[#F5F5F0]'}
+        ${isSelected ? 'bg-[#E8F0E8]' : 'bg-white hover:bg-[#F5F5F0]'}
       `}
     >
       <div className={`absolute left-0 top-0 bottom-0 w-[3px] transition-colors duration-300 ${c.bar}`} />
 
       <div className="flex items-center justify-between pl-2">
         <div className="flex items-center gap-3">
-          <span className="font-mono text-[13px] text-[#C1A3FF]">{stage.number} //</span>
+          <span className="font-mono text-[13px] text-[#5A8F5E]">{stage.number} //</span>
           <span className="font-body font-medium text-[15px] text-[#333333]">{stage.name}</span>
         </div>
         <StatusBadge status={stage.status} />
@@ -97,7 +97,7 @@ const MetricCard = memo(function MetricCard({
 }) {
   return (
     <div className="bg-white border border-[#D9D9D3] rounded-xl p-4 text-center">
-      <div className="font-heading font-bold text-[28px] sm:text-[36px] lg:text-[40px] text-[#C1A3FF] leading-none">
+      <div className="font-heading font-bold text-[28px] sm:text-[36px] lg:text-[40px] text-[#5A8F5E] leading-none">
         <CountUp end={value} duration={1.2} suffix={suffix} />
       </div>
       <div className="font-mono font-medium text-[11px] uppercase tracking-[0.08em] text-[#6B6B6B] mt-2">
@@ -276,7 +276,7 @@ export default function PipelineViz() {
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#C1A3FF] mb-4 block"
+          className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#5A8F5E] mb-4 block"
         >
           // INTERACTIVE PIPELINE
         </motion.span>
@@ -288,7 +288,7 @@ export default function PipelineViz() {
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
           className="font-heading font-semibold text-[36px] sm:text-[42px] lg:text-[52px] leading-[1.1] tracking-[-0.025em] text-[#333333] mb-4"
         >
-          13 dimensions. <span className="text-[#C1A3FF]">One pipeline.</span>
+          13 dimensions. <span className="text-[#5A8F5E]">One pipeline.</span>
         </motion.h2>
 
         <motion.p
@@ -315,12 +315,12 @@ export default function PipelineViz() {
             </span>
             <div className="w-full sm:w-[160px] h-[4px] bg-[#EBEBE5] rounded-full overflow-hidden">
               <motion.div
-                className="h-full bg-[#C1A3FF] rounded-full"
+                className="h-full bg-[#5A8F5E] rounded-full"
                 animate={{ width: `${progressPercent}%` }}
                 transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] as [number, number, number, number] }}
               />
             </div>
-            <span className="font-mono text-[12px] text-[#C1A3FF] shrink-0">
+            <span className="font-mono text-[12px] text-[#5A8F5E] shrink-0">
               {Math.round(progressPercent)}%
             </span>
           </div>
@@ -333,7 +333,7 @@ export default function PipelineViz() {
             <button
               onClick={handlePlay}
               disabled={isPlaying}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#C1A3FF] text-white font-body font-medium text-[14px] hover:bg-[#A07BDD] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#5A8F5E] text-white font-body font-medium text-[14px] hover:bg-[#4A7A4E] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               <Play size={14} />
               Run All
@@ -359,7 +359,7 @@ export default function PipelineViz() {
                   key={s}
                   onClick={() => setSpeed(s)}
                   className={`px-3 py-2 font-mono text-[12px] transition-colors duration-200 ${
-                    speed === s ? 'bg-[#C1A3FF] text-white' : 'text-[#6B6B6B] hover:bg-[#F5F5F0]'
+                    speed === s ? 'bg-[#5A8F5E] text-white' : 'text-[#6B6B6B] hover:bg-[#F5F5F0]'
                   }`}
                 >
                   {s}x
@@ -404,7 +404,7 @@ export default function PipelineViz() {
                 <div className="bg-white border border-[#D9D9D3] rounded-xl p-6 lg:p-8">
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
                     <div>
-                      <div className="font-mono text-[48px] font-normal text-[#C1A3FF] leading-none mb-2">
+                      <div className="font-mono text-[48px] font-normal text-[#5A8F5E] leading-none mb-2">
                         {selectedStage.number}
                       </div>
                       <h3 className="font-heading font-medium text-[28px] sm:text-[36px] lg:text-[42px] leading-[1.15] tracking-[-0.02em] text-[#333333]">
@@ -424,7 +424,7 @@ export default function PipelineViz() {
                   <MetricCard label="Failures" value={selectedStage.metrics.failures} />
                   <MetricCard label="Coverage" value={selectedStage.metrics.coverage} suffix="%" />
                   <div className="bg-white border border-[#D9D9D3] rounded-xl p-4 text-center flex flex-col items-center justify-center">
-                    <div className="font-heading font-bold text-[28px] sm:text-[36px] lg:text-[40px] text-[#C1A3FF] leading-none">
+                    <div className="font-heading font-bold text-[28px] sm:text-[36px] lg:text-[40px] text-[#5A8F5E] leading-none">
                       {selectedStage.metrics.duration}
                     </div>
                     <div className="font-mono font-medium text-[11px] uppercase tracking-[0.08em] text-[#6B6B6B] mt-2">

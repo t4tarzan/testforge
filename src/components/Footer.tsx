@@ -4,16 +4,16 @@ import { Github, Twitter, Linkedin, MessageCircle } from 'lucide-react'
 
 const LogoIconWhite = () => (
   <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="8" cy="8" r="3" stroke="#C9B5FF" strokeWidth="2" fill="none" />
-    <circle cx="24" cy="8" r="3" stroke="#C9B5FF" strokeWidth="2" fill="none" />
-    <circle cx="8" cy="24" r="3" stroke="#C9B5FF" strokeWidth="2" fill="none" />
-    <circle cx="24" cy="24" r="3" stroke="#C9B5FF" strokeWidth="2" fill="none" />
-    <line x1="11" y1="8" x2="21" y2="8" stroke="#C9B5FF" strokeWidth="1.5" />
-    <line x1="8" y1="11" x2="8" y2="21" stroke="#C9B5FF" strokeWidth="1.5" />
-    <line x1="11" y1="24" x2="21" y2="24" stroke="#C9B5FF" strokeWidth="1.5" />
-    <line x1="24" y1="11" x2="24" y2="21" stroke="#C9B5FF" strokeWidth="1.5" />
-    <line x1="10.1" y1="10.1" x2="21.9" y2="21.9" stroke="#C9B5FF" strokeWidth="1.5" />
-    <circle cx="16" cy="16" r="2" fill="#B48FFF" />
+    <circle cx="8" cy="8" r="3" stroke="#A3C9A5" strokeWidth="2" fill="none" />
+    <circle cx="24" cy="8" r="3" stroke="#A3C9A5" strokeWidth="2" fill="none" />
+    <circle cx="8" cy="24" r="3" stroke="#A3C9A5" strokeWidth="2" fill="none" />
+    <circle cx="24" cy="24" r="3" stroke="#A3C9A5" strokeWidth="2" fill="none" />
+    <line x1="11" y1="8" x2="21" y2="8" stroke="#A3C9A5" strokeWidth="1.5" />
+    <line x1="8" y1="11" x2="8" y2="21" stroke="#A3C9A5" strokeWidth="1.5" />
+    <line x1="11" y1="24" x2="21" y2="24" stroke="#A3C9A5" strokeWidth="1.5" />
+    <line x1="24" y1="11" x2="24" y2="21" stroke="#A3C9A5" strokeWidth="1.5" />
+    <line x1="10.1" y1="10.1" x2="21.9" y2="21.9" stroke="#A3C9A5" strokeWidth="1.5" />
+    <circle cx="16" cy="16" r="2" fill="#7AAF7E" />
   </svg>
 )
 
@@ -63,16 +63,16 @@ export default function Footer() {
               AI-powered autonomous testing for the agentic era.
             </p>
             <div className="flex items-center gap-4">
-              <a href="#" className="text-[#9A9A9A] hover:text-[#B48FFF] transition-colors duration-200">
+              <a href="#" className="text-[#9A9A9A] hover:text-[#7AAF7E] transition-colors duration-200">
                 <Github size={20} />
               </a>
-              <a href="#" className="text-[#9A9A9A] hover:text-[#B48FFF] transition-colors duration-200">
+              <a href="#" className="text-[#9A9A9A] hover:text-[#7AAF7E] transition-colors duration-200">
                 <Twitter size={20} />
               </a>
-              <a href="#" className="text-[#9A9A9A] hover:text-[#B48FFF] transition-colors duration-200">
+              <a href="#" className="text-[#9A9A9A] hover:text-[#7AAF7E] transition-colors duration-200">
                 <Linkedin size={20} />
               </a>
-              <a href="#" className="text-[#9A9A9A] hover:text-[#B48FFF] transition-colors duration-200">
+              <a href="#" className="text-[#9A9A9A] hover:text-[#7AAF7E] transition-colors duration-200">
                 <MessageCircle size={20} />
               </a>
             </div>
@@ -91,7 +91,7 @@ export default function Footer() {
                 <li key={link.label}>
                   <Link
                     to={link.path}
-                    className="text-[#9A9A9A] text-sm hover:text-[#B48FFF] transition-all duration-200 inline-block hover:translate-x-0.5"
+                    className="text-[#9A9A9A] text-sm hover:text-[#7AAF7E] transition-all duration-200 inline-block hover:translate-x-0.5"
                   >
                     {link.label}
                   </Link>
@@ -113,7 +113,7 @@ export default function Footer() {
                 <li key={link.label}>
                   <a
                     href={link.path}
-                    className="text-[#9A9A9A] text-sm hover:text-[#B48FFF] transition-all duration-200 inline-block hover:translate-x-0.5"
+                    className="text-[#9A9A9A] text-sm hover:text-[#7AAF7E] transition-all duration-200 inline-block hover:translate-x-0.5"
                   >
                     {link.label}
                   </a>
@@ -135,7 +135,7 @@ export default function Footer() {
                 <li key={link.label}>
                   <a
                     href={link.path}
-                    className="text-[#9A9A9A] text-sm hover:text-[#B48FFF] transition-all duration-200 inline-block hover:translate-x-0.5"
+                    className="text-[#9A9A9A] text-sm hover:text-[#7AAF7E] transition-all duration-200 inline-block hover:translate-x-0.5"
                   >
                     {link.label}
                   </a>
@@ -151,7 +151,7 @@ export default function Footer() {
             2026 TestForge. All rights reserved.
           </p>
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#C1A3FF] animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-[#5A8F5E] animate-pulse" />
             <span className="text-[#9A9A9A] text-xs font-mono uppercase tracking-wider">All Systems Operational</span>
           </div>
         </div>
