@@ -398,4 +398,40 @@ export const comparisonData = [
     testsprite: false,
     traditional: false,
   },
+  {
+    dimension: 'Supply Chain Audit',
+    testforge: true,
+    testsprite: false,
+    traditional: false,
+  },
+  {
+    dimension: 'N+1 Query Detection',
+    testforge: true,
+    testsprite: false,
+    traditional: false,
+  },
+  {
+    dimension: 'Dead Code Analysis',
+    testforge: true,
+    testsprite: false,
+    traditional: false,
+  },
+  {
+    dimension: 'License Compliance',
+    testforge: true,
+    testsprite: false,
+    traditional: false,
+  },
+  {
+    dimension: 'DORA Metrics',
+    testforge: true,
+    testsprite: false,
+    traditional: false,
+  },
+  {
+    dimension: 'OWASP Coverage',
+    testforge: true,
+    testsprite: false,
+    traditional: false,
+  },
 ];
