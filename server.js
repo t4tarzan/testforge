@@ -109,6 +109,53 @@ app.get('/api/reports/:id', (_req, res) => {
   });
 });
 
+// Analyze endpoint
+app.post('/api/analyze', (req, res) => {
+  const { repoUrl } = req.body || {};
+  if (!repoUrl) {
+    return res.json({
+      endpoints: 24, middleware: 8, files: 127, dependencies: 18,
+      devDependencies: 12, techStack: ['Node.js', 'Express', 'MongoDB', 'JWT', 'Stripe'],
+      totalFiles: 127, totalLines: 8432, analyzedAt: new Date().toISOString(),
+    });
+  }
+  // Try real MCP server
+  fetch(`https://testforge-mcp.fly.dev/analyze`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ projectPath: repoUrl }),
+  }).then(r => r.json()).then(data => res.json(data)).catch(() => {
+    res.json({ totalFiles: 100, totalLines: 5000, endpoints: 15, techStack: ['Node.js'] });
+  });
+});
+
+// Test endpoint
+app.post('/api/test', (req, res) => {
+  const { repoUrl, dimensions } = req.body || {};
+  if (!repoUrl) return res.status(400).json({ error: 'repoUrl is required' });
+  
+  // Try real MCP server
+  fetch(`https://testforge-mcp.fly.dev/test`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ projectPath: repoUrl, dimensions, branch: 'main' }),
+  }).then(r => r.json()).then(data => res.json(data)).catch(() => {
+    res.json({
+      testRunId: 'TF-' + Date.now().toString(36).toUpperCase(),
+      status: 'queued',
+      message: 'Test queued (dev mode)',
+    });
+  });
+});
+
+// Test status
+app.get('/api/test/status', (req, res) => {
+  const { id } = req.query;
+  fetch(`https://testforge-mcp.fly.dev/test/${id}/progress`)
+    .then(r => r.json()).then(data => res.json(data))
+    .catch(() => res.json({ status: 'running', progress: 50 }));
+});
+
 const PORT = 3002;
 app.listen(PORT, () => {
   console.log(`[API Dev Server] Running on http://localhost:${PORT}`);
