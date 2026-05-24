@@ -34,7 +34,7 @@ const testDistributionData = [
   { name: 'Unit', value: 40, color: '#C1A3FF' },
   { name: 'Integration', value: 25, color: '#B48FFF' },
   { name: 'E2E', value: 15, color: '#C9B5FF' },
-  { name: 'Other', value: 20, color: '#F0EAFF' },
+  { name: 'Other', value: 20, color: '#D9D9D3' },
 ]
 
 const coverageByModuleData = [
@@ -253,7 +253,7 @@ function ScoreRing({ score, size = 200, animated = false }: { score: number; siz
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="url(#lavenderGrad)"
+          stroke="#C1A3FF"
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -314,7 +314,7 @@ function QualityScorecardSection() {
                   <Line
                     type="monotone"
                     dataKey="score"
-                    stroke="url(#lavenderGrad)"
+                    stroke="#C1A3FF"
                     strokeWidth={2}
                     dot={false}
                   />
@@ -391,11 +391,11 @@ function PredictiveModelsSection() {
           <AreaChart data={defectPredictionData}>
             <defs>
               <linearGradient id="defectGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#C1A3FF" stopOpacity={0.35} />
-                <stop offset="95%" stopColor="#C1A3FF" stopOpacity={0} />
+                <stop offset="5%" stopColor="#D4524A" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#D4524A" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <Area type="monotone" dataKey="probability" stroke="#C1A3FF" fill="url(#defectGrad)" strokeWidth={2} dot={false} />
+            <Area type="monotone" dataKey="probability" stroke="#D4524A" fill="url(#defectGrad)" strokeWidth={2} dot={false} />
           </AreaChart>
         </ResponsiveContainer>
       ),
@@ -410,7 +410,7 @@ function PredictiveModelsSection() {
           <BarChart data={testPrioritizationData} layout="vertical">
             <XAxis type="number" hide />
             <YAxis dataKey="component" type="category" hide />
-            <Bar dataKey="score" fill="url(#lavenderBar)" radius={[0, 4, 4, 0]} barSize={12} />
+            <Bar dataKey="score" fill="#C1A3FF" radius={[0, 4, 4, 0]} barSize={12} />
           </BarChart>
         </ResponsiveContainer>
       ),
@@ -498,12 +498,12 @@ function RealTimeMetricsSection() {
             </div>
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={executionTrendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#DDD0FF" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#F0EAFF" />
                 <XAxis dataKey="day" tick={{ fontSize: 12, fill: '#6B6B6B' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 12, fill: '#6B6B6B' }} axisLine={false} tickLine={false} />
                 <Tooltip content={<ChartTooltip />} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Line type="monotone" dataKey="passed" name="Passed" stroke="url(#lavenderGrad)" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="passed" name="Passed" stroke="#C1A3FF" strokeWidth={2} dot={{ r: 3 }} />
                 <Line type="monotone" dataKey="failed" name="Failed" stroke="#D4524A" strokeWidth={2} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
@@ -544,11 +544,11 @@ function RealTimeMetricsSection() {
             </div>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={pipelineStageData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#DDD0FF" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#F0EAFF" />
                 <XAxis type="number" tick={{ fontSize: 12, fill: '#6B6B6B' }} axisLine={false} tickLine={false} />
                 <YAxis dataKey="stage" type="category" tick={{ fontSize: 11, fill: '#6B6B6B' }} axisLine={false} tickLine={false} width={50} />
                 <Tooltip content={<ChartTooltip />} />
-                <Bar dataKey="duration" fill="url(#lavenderBar)" radius={[0, 4, 4, 0]} barSize={14} />
+                <Bar dataKey="duration" fill="#C1A3FF" radius={[0, 4, 4, 0]} barSize={14} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -561,11 +561,11 @@ function RealTimeMetricsSection() {
             </div>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={coverageByModuleData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#DDD0FF" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#F0EAFF" />
                 <XAxis dataKey="module" tick={{ fontSize: 12, fill: '#6B6B6B' }} axisLine={false} tickLine={false} />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#6B6B6B' }} axisLine={false} tickLine={false} />
                 <Tooltip content={<ChartTooltip />} />
-                <Bar dataKey="coverage" fill="url(#lavenderBar)" radius={[4, 4, 0, 0]} barSize={32} />
+                <Bar dataKey="coverage" fill="#C1A3FF" radius={[4, 4, 0, 0]} barSize={32} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -655,7 +655,7 @@ function TeamInsightsSection() {
             <h3 className="font-semibold text-sm text-[#333333] mb-4">Velocity vs Quality</h3>
             <ResponsiveContainer width="100%" height={180}>
               <ScatterChart>
-                <CartesianGrid strokeDasharray="3 3" stroke="#DDD0FF" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#F0EAFF" />
                 <XAxis type="number" dataKey="velocity" name="Velocity" tick={{ fontSize: 11, fill: '#6B6B6B' }} axisLine={false} tickLine={false} label={{ value: 'Commits/week', position: 'bottom', fontSize: 10, fill: '#9A9A9A' }} />
                 <YAxis type="number" dataKey="quality" name="Quality" tick={{ fontSize: 11, fill: '#6B6B6B' }} axisLine={false} tickLine={false} label={{ value: 'Score', angle: -90, position: 'left', fontSize: 10, fill: '#9A9A9A' }} />
                 <Scatter
@@ -669,7 +669,7 @@ function TeamInsightsSection() {
                     { velocity: 55, quality: 90 },
                     { velocity: 38, quality: 84 },
                   ]}
-                  fill="url(#lavenderBar)"
+                  fill="#C1A3FF"
                 />
               </ScatterChart>
             </ResponsiveContainer>
@@ -711,12 +711,12 @@ function HistoricalAnalysisSection() {
         <div className="history-chart-container bg-white border border-[#D9D9D3] rounded-xl p-6">
           <ResponsiveContainer width="100%" height={400}>
             <LineChart data={historicalData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#DDD0FF" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#F0EAFF" />
               <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#6B6B6B' }} axisLine={false} tickLine={false} />
               <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#6B6B6B' }} axisLine={false} tickLine={false} />
               <Tooltip content={<ChartTooltip />} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Line type="monotone" dataKey="testCount" name="Test Count" stroke="url(#lavenderGrad)" strokeWidth={2} dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="testCount" name="Test Count" stroke="#C1A3FF" strokeWidth={2} dot={{ r: 4 }} />
               <Line type="monotone" dataKey="failureRate" name="Failure Rate" stroke="#D4524A" strokeWidth={2} dot={{ r: 4 }} />
               <Line type="monotone" dataKey="coverage" name="Coverage %" stroke="#4A90D9" strokeWidth={2} dot={{ r: 4 }} />
               <Line type="monotone" dataKey="quality" name="Quality Score" stroke="#E87D3A" strokeWidth={2} dot={{ r: 4 }} />
@@ -757,31 +757,6 @@ function CTASection() {
 export default function Dashboard() {
   return (
     <div className="min-h-[100dvh]">
-      {/* SVG Gradient Definitions */}
-      <svg width="0" height="0" className="absolute">
-        <defs>
-          <linearGradient id="lavenderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#C1A3FF" />
-            <stop offset="100%" stopColor="#7E54BB" />
-          </linearGradient>
-          <linearGradient id="lavenderLight" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#C1A3FF" />
-            <stop offset="100%" stopColor="#B48FFF" />
-          </linearGradient>
-          <linearGradient id="lavenderArea" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#C1A3FF" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#C1A3FF" stopOpacity="0.02" />
-          </linearGradient>
-          <linearGradient id="lavenderDark" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#A07BDD" />
-            <stop offset="100%" stopColor="#3A0677" />
-          </linearGradient>
-          <linearGradient id="lavenderBar" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#C9B5FF" />
-            <stop offset="100%" stopColor="#C1A3FF" />
-          </linearGradient>
-        </defs>
-      </svg>
       <HeroSection />
       <QualityScorecardSection />
       <PredictiveModelsSection />
