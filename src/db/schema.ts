@@ -61,6 +61,29 @@ export const projects = pgTable(
   ]
 );
 
+// ─── Users ────────────────────────────────────────────────────────────────
+
+export const users = pgTable(
+  'users',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    githubId: varchar('github_id', { length: 50 }).notNull().unique(),
+    name: varchar('name', { length: 255 }).notNull(),
+    email: varchar('email', { length: 255 }),
+    avatarUrl: text('avatar_url'),
+    login: varchar('login', { length: 100 }).notNull(),
+    plan: varchar('plan', { length: 20 }).default('free').notNull(),
+    testsRun: integer('tests_run').default(0),
+    lastLoginAt: timestamp('last_login_at', { withTimezone: true }).defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('users_github_id_idx').on(table.githubId),
+    index('users_email_idx').on(table.email),
+  ]
+);
+
 // ─── Test Runs ────────────────────────────────────────────────────────────
 
 export const testRuns = pgTable(

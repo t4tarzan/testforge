@@ -767,9 +767,14 @@ function CTASection() {
 
 export default function Dashboard() {
   const [analysisData, setAnalysisData] = useState<AnalysisResults | null>(null);
+  const [testHistory, setTestHistory] = useState<any[]>([]);
 
   useEffect(() => {
     setAnalysisData(getAnalysisResults());
+    // Fetch test history
+    fetch('/api/history').then(r => r.json()).then(d => {
+      if (Array.isArray(d)) setTestHistory(d);
+    }).catch(() => {});
   }, []);
 
   return (
@@ -830,6 +835,41 @@ export default function Dashboard() {
         </section>
       )}
       <QualityScorecardSection />
+
+      {/* Test History */}
+      {testHistory.length > 0 && (
+        <section className="px-6 lg:px-16 py-[40px] bg-[#F7F7FB]">
+          <div className="max-w-[1280px] mx-auto">
+            <p className="font-mono text-xs text-[#574a7d] uppercase tracking-wider mb-4">// TEST HISTORY</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {testHistory.slice(0, 6).map((run: any) => (
+                <div key={run.id} className="bg-white border border-[#D9D9D3] rounded-xl p-5 hover:border-[#a99bff] transition-all">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="font-mono text-xs text-[#9A9A9A]">{run.project_name || 'Unknown'}</span>
+                    <span className={`text-xs font-mono px-2 py-0.5 rounded ${run.status === 'completed' ? 'bg-[#E8E5FF] text-[#574a7d]' : 'bg-[#FFF0F0] text-[#EF4444]'}`}>
+                      {run.status}
+                    </span>
+                  </div>
+                  <div className="flex items-end justify-between">
+                    <div className="text-2xl font-bold text-[#12101A]">{run.overall_score || '—'}</div>
+                    <div className="text-xs text-[#6B6B6B]">{run.total_findings || 0} findings</div>
+                  </div>
+                  <div className="mt-3 flex gap-4 text-[11px] text-[#9A9A9A]">
+                    <span className="text-[#EF4444]">{run.critical_count || 0} critical</span>
+                    <span className="text-[#EAB308]">{run.high_count || 0} high</span>
+                    <span>{run.medium_count || 0} med</span>
+                  </div>
+                  {run.completed_at && (
+                    <div className="mt-3 text-[10px] text-[#9A9A9A] font-mono">
+                      {new Date(run.completed_at).toLocaleDateString()}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
       <PredictiveModelsSection />
       <RealTimeMetricsSection />
       <TeamInsightsSection />

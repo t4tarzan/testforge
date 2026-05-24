@@ -44,7 +44,22 @@ export default async function handler(req, res) {
       email = emails.find((e) => e.primary)?.email || emails[0]?.email;
     }
 
-    // Step 5: Return user data to frontend via redirect
+    // Step 5: Save/update user in Neon DB
+    if (githubUser.id) {
+      try {
+        const { neon } = await import('@neondatabase/serverless');
+        const db = neon(process.env.DATABASE_URL);
+        await db\`
+          INSERT INTO users (github_id, name, email, avatar_url, login, last_login_at)
+          VALUES (\${githubUser.id.toString()}, \${githubUser.name || githubUser.login}, \${email || ''}, \${githubUser.avatar_url || ''}, \${githubUser.login}, NOW())
+          ON CONFLICT (github_id) DO UPDATE SET name = EXCLUDED.name, email = EXCLUDED.email, avatar_url = EXCLUDED.avatar_url, last_login_at = NOW()
+        \`;
+      } catch (e) {
+        console.error('Failed to save user:', e.message);
+      }
+    }
+
+    // Step 6: Return user data to frontend via redirect
     const userData = encodeURIComponent(JSON.stringify({
       id: githubUser.id.toString(),
       name: githubUser.name || githubUser.login,
