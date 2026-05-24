@@ -765,7 +765,7 @@ function McpServerPage() {
       <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         One-Line Install
       </h2>
-      <DocCodeBlock code="npx @testforge/mcp install" language="bash" />
+      <DocCodeBlock code="npx @whitenoisenpm/testforge-mcp install" language="bash" />
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
         This installs the MCP server and guides you through IDE configuration.
       </p>
@@ -773,7 +773,7 @@ function McpServerPage() {
       <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Manual Install
       </h2>
-      <DocCodeBlock code="npm install -g @testforge/mcp" language="bash" />
+      <DocCodeBlock code="npm install -g @whitenoisenpm/testforge-mcp" language="bash" />
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
         Then configure your IDE (see the{' '}
         <a href="#/mcp" className="text-[#574a7d] hover:underline">
@@ -1825,7 +1825,7 @@ function McpIdeSetupPage() {
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
         <h2 className="text-heading-sm text-[#12101A] mb-4">One-Command Installation</h2>
         <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm text-[#a39fd4] overflow-x-auto mb-4">
-          npx @testforge/mcp install
+          npx @whitenoisenpm/testforge-mcp install
         </div>
         <p className="text-body-md text-[#6B6B6B] mb-4">
           This automatically detects your IDE and configures the MCP connection. TestForge supports:
@@ -1856,7 +1856,7 @@ function McpIdeSetupPage() {
           </li>
         </ol>
         <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm mt-4 overflow-x-auto">
-          <pre className="text-[#a39fd4]">{`{\n  "mcpServers": {\n    "testforge": {\n      "command": "npx",\n      "args": ["-y", "@testforge/mcp", "serve"],\n      "env": {\n        "TESTFORGE_MCP_PORT": "3001"\n      }\n    }\n  }\n}`}</pre>
+          <pre className="text-[#a39fd4]">{`{\n  "mcpServers": {\n    "testforge": {\n      "command": "npx",\n      "args": ["-y", "@whitenoisenpm/testforge-mcp", "serve"],\n      "env": {\n        "TESTFORGE_MCP_PORT": "3001"\n      }\n    }\n  }\n}`}</pre>
         </div>
       </section>
 
@@ -2017,7 +2017,7 @@ function McpUsageGuidePage() {
         <h2 className="text-heading-sm text-[#12101A] mb-4">Quick Start Flow</h2>
         <div className="space-y-4">
           {[
-            { step: '1', title: 'Install MCP Server', cmd: 'npx @testforge/mcp install' },
+            { step: '1', title: 'Install MCP Server', cmd: 'npx @whitenoisenpm/testforge-mcp install' },
             { step: '2', title: 'Open Your Project in Cursor/VS Code', cmd: 'code .' },
             { step: '3', title: 'Ask Your AI Assistant', cmd: '"Analyze this project for security vulnerabilities"' },
             { step: '4', title: 'Review Results in IDE', desc: 'Findings appear inline with file paths and line numbers' },

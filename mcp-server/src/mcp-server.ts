@@ -265,7 +265,7 @@ async function handleReport(params: Record<string, unknown>): Promise<unknown> {
 
   console.log(chalk.blue('[testforge_report]'), 'Generating report for', testRunId, 'format:', format);
 
-  const report = await generateReport(testRunId, _db);
+  const report = await generateReport(testRunId, _db as any);
 
   if (format === 'markdown') {
     return { report: reportToMarkdown(report as ReportData) };

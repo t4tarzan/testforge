@@ -1,4 +1,4 @@
-# @testforge/mcp
+# @whitenoisenpm/testforge-mcp
 
 **AI-powered testing in your IDE.** The TestForge MCP server integrates with Cursor, VS Code, Windsurf, Claude Code, and any MCP-compatible editor to provide real-time code analysis.
 
@@ -17,10 +17,10 @@
 
 ```bash
 # One-command install for your IDE
-npx @testforge/mcp install
+npx @whitenoisenpm/testforge-mcp install
 
 # Or start the server directly
-npx @testforge/mcp serve
+npx @whitenoisenpm/testforge-mcp serve
 ```
 
 ## Manual MCP Setup (Cursor)
@@ -33,7 +33,7 @@ npx @testforge/mcp serve
   "mcpServers": {
     "testforge": {
       "command": "npx",
-      "args": ["-y", "@testforge/mcp", "serve"],
+      "args": ["-y", "@whitenoisenpm/testforge-mcp", "serve"],
       "env": {
         "TESTFORGE_MCP_PORT": "3001"
       }

@@ -237,7 +237,7 @@ async function main() {
   }
 }
 
-// ── CLI Support for npx @testforge/mcp serve | install ──────────────────
+// ── CLI Support for npx @whitenoisenpm/testforge-mcp serve | install ──────────────────
 const args = process.argv.slice(2);
 const command = args[0];
 
@@ -254,7 +254,7 @@ if (command === 'install') {
 ║   1. Open Cursor/VSCode Settings → MCP               ║
 ║   2. Add server with:                                ║
 ║      command: npx                                    ║
-║      args: ["-y", "@testforge/mcp", "serve"]         ║
+║      args: ["-y", "@whitenoisenpm/testforge-mcp", "serve"]         ║
 ║                                                      ║
 ║   3. Start testing!                                  ║
 ║                                                      ║
@@ -268,7 +268,7 @@ if (command === 'install') {
 if (command === 'serve' || command === 'start' || !command) {
   main().catch(console.error);
 } else {
-  console.log(`Usage: npx @testforge/mcp [command]`);
+  console.log(`Usage: npx @whitenoisenpm/testforge-mcp [command]`);
   console.log(`  serve    Start the MCP server (default)`);
   console.log(`  install  Show IDE setup instructions`);
   process.exit(0);

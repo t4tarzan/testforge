@@ -59,7 +59,7 @@ function SectionReveal({
 function HeroSection() {
   const [showManual, setShowManual] = useState(false);
   const [typedText, setTypedText] = useState('');
-  const fullCommand = 'npx @testforge/mcp install';
+  const fullCommand = 'npx @whitenoisenpm/testforge-mcp install';
   const sectionRef = useRef<HTMLDivElement>(null);
   const inView = useInView(sectionRef, { once: true });
 
@@ -167,7 +167,7 @@ function HeroSection() {
 
             {/* Copy button */}
             <div className="absolute top-[60px] right-6">
-              <CopyButton text="npx @testforge/mcp install" />
+              <CopyButton text="npx @whitenoisenpm/testforge-mcp install" />
             </div>
           </div>
         </motion.div>
@@ -242,10 +242,10 @@ function HeroSection() {
                       </p>
                       <div className="mt-2 bg-[#12101A] rounded-lg p-3 flex items-center justify-between">
                         <code className="font-mono text-[13px] text-white">
-                          npm install -g @testforge/mcp
+                          npm install -g @whitenoisenpm/testforge-mcp
                         </code>
                         <CopyButton
-                          text="npm install -g @testforge/mcp"
+                          text="npm install -g @whitenoisenpm/testforge-mcp"
                           size="sm"
                         />
                       </div>
@@ -301,7 +301,7 @@ const ideConfigs = [
   "mcpServers": {
     "testforge": {
       "command": "npx",
-      "args": ["@testforge/mcp", "start"],
+      "args": ["@whitenoisenpm/testforge-mcp", "start"],
       "env": {
         "TESTFORGE_API_KEY": "your-api-key"
       }
@@ -323,7 +323,7 @@ const ideConfigs = [
     "testforge": {
       "type": "stdio",
       "command": "npx",
-      "args": ["@testforge/mcp", "start"]
+      "args": ["@whitenoisenpm/testforge-mcp", "start"]
     }
   }
 }`,
@@ -341,7 +341,7 @@ const ideConfigs = [
   "mcpServers": {
     "testforge": {
       "command": "npx",
-      "args": ["@testforge/mcp", "start"]
+      "args": ["@whitenoisenpm/testforge-mcp", "start"]
     }
   }
 }`,
@@ -359,7 +359,7 @@ const ideConfigs = [
   "mcpServers": {
     "testforge": {
       "command": "npx",
-      "args": ["@testforge/mcp", "start"],
+      "args": ["@whitenoisenpm/testforge-mcp", "start"],
       "env": {
         "TESTFORGE_API_KEY": "tf_..."
       }
@@ -380,7 +380,7 @@ export TESTFORGE_API_KEY="tf_your_api_key"
 
 # Start Claude Code with MCP
 claude mcp add testforge \\
-  npx @testforge/mcp start`,
+  npx @whitenoisenpm/testforge-mcp start`,
     buttonText: 'Add to Claude Code',
     buttonStyle: 'ghost' as const,
     language: 'bash',
@@ -396,7 +396,7 @@ claude mcp add testforge \\
   "name": "testforge",
   "transport": "stdio",
   "command": "npx",
-  "args": ["@testforge/mcp", "start"],
+  "args": ["@whitenoisenpm/testforge-mcp", "start"],
   "description": "AI-powered test generation"
 }`,
     buttonText: 'Copy Config',
@@ -544,7 +544,7 @@ const steps = [
     icon: Download,
     number: '01',
     title: 'Install',
-    description: 'Run npx @testforge/mcp install — takes 10 seconds.',
+    description: 'Run npx @whitenoisenpm/testforge-mcp install — takes 10 seconds.',
   },
   {
     icon: Settings,
@@ -723,7 +723,7 @@ function HowItWorksSection() {
    TERMINAL DEMO SECTION
    ──────────────────────────────────────────── */
 const terminalLines = [
-  { text: '$ npx @testforge/mcp install', color: '#E8E8E3' },
+  { text: '$ npx @whitenoisenpm/testforge-mcp install', color: '#E8E8E3' },
   { text: '✓ MCP server installed (2.3s)', color: '#7a6fad' },
   { text: '✓ Detected project: express-ecommerce-api', color: '#7a6fad' },
   { text: '✓ Found 47 endpoints, 12 middleware functions', color: '#7a6fad' },
@@ -998,7 +998,7 @@ function CTASection() {
   const [typedText, setTypedText] = useState('');
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true });
-  const fullCommand = 'npx @testforge/mcp install';
+  const fullCommand = 'npx @whitenoisenpm/testforge-mcp install';
 
   useEffect(() => {
     if (!inView) return;
@@ -1053,7 +1053,7 @@ function CTASection() {
               </span>
             </div>
             <div className="mt-4 flex justify-end">
-              <CopyButton text="npx @testforge/mcp install" size="sm" />
+              <CopyButton text="npx @whitenoisenpm/testforge-mcp install" size="sm" />
             </div>
           </div>
         </motion.div>

@@ -15,9 +15,9 @@ Go to **[testforge-steel.vercel.app](https://testforge-steel.vercel.app)** → e
 
 ### Option 2: IDE Integration (MCP)
 ```bash
-npx @testforge/mcp install
+npx @whitenoisenpm/testforge-mcp install
 ```
-Then in Cursor/VS Code: Settings → MCP → Add server → command: `npx`, args: `["-y", "@testforge/mcp", "serve"]`
+Then in Cursor/VS Code: Settings → MCP → Add server → command: `npx`, args: `["-y", "@whitenoisenpm/testforge-mcp", "serve"]`
 
 ### Option 3: Self-Host (Docker / Fly.io)
 ```bash
@@ -159,8 +159,8 @@ cd mcp-server
 npm publish --access public
 
 # Users can then:
-npx @testforge/mcp install   # Show IDE setup guide
-npx @testforge/mcp serve     # Start MCP server
+npx @whitenoisenpm/testforge-mcp install   # Show IDE setup guide
+npx @whitenoisenpm/testforge-mcp serve     # Start MCP server
 ```
 
 ---
