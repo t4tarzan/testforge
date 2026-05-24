@@ -84,6 +84,35 @@ export const users = pgTable(
   ]
 );
 
+// ─── Organizations ───────────────────────────────────────────────────────
+
+export const organizations = pgTable(
+  'organizations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: varchar('name', { length: 255 }).notNull(),
+    slug: varchar('slug', { length: 100 }).notNull().unique(),
+    plan: varchar('plan', { length: 20 }).default('free').notNull(),
+    stripeCustomerId: varchar('stripe_customer_id', { length: 100 }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex('orgs_slug_idx').on(table.slug)]
+);
+
+export const memberships = pgTable(
+  'memberships',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+    organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'cascade' }).notNull(),
+    role: varchar('role', { length: 20 }).default('member').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('memberships_user_org_idx').on(table.userId, table.organizationId),
+  ]
+);
+
 // ─── Test Runs ────────────────────────────────────────────────────────────
 
 export const testRuns = pgTable(
