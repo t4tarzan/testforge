@@ -9,10 +9,12 @@ import ReportStep from '@/components/testrunner/ReportStep';
 export default function TestRunner() {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const [analysisResults, setAnalysisResults] = useState<any>(null);
 
-  const handleConnectComplete = useCallback(() => {
-    setCompletedSteps((prev) => [...new Set([...prev, 0])]);
-    setCurrentStep(1);
+  const handleConnectComplete = useCallback((results: any) => {
+    setAnalysisResults(results);
+    setCompletedSteps([0, 1, 2]);
+    setCurrentStep(3); // Skip to report
   }, []);
 
   const handleConfigureComplete = useCallback(() => {
@@ -146,7 +148,7 @@ export default function TestRunner() {
                   exit={{ opacity: 0, x: -30 }}
                   transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
                 >
-                  <ReportStep onRestart={handleRestart} />
+                  <ReportStep onRestart={handleRestart} results={analysisResults} />
                 </motion.div>
               )}
             </AnimatePresence>
