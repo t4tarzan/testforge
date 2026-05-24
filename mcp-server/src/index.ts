@@ -14,6 +14,15 @@ import {
   runScopeAnalysis,
   runStackAnalysis,
 } from './analyzers/strategic-analyzer.js';
+import {
+  runContractAnalysis,
+  runVisualRegressionAnalysis,
+  runEdgeCaseAnalysis,
+  runPropertyBasedAnalysis,
+  runChaosAnalysis,
+  runMutationAnalysis,
+  runPredictiveAnalysis,
+} from './analyzers/advanced-analyzer.js';
 
 const PORT = Number(process.env.TESTFORGE_MCP_PORT) || 3001;
 const TMP_DIR = process.env.TMP_DIR || '/tmp/testforge-repos';
@@ -95,6 +104,15 @@ async function main() {
         codebase.techStack
       );
 
+      // ── Advanced Analysis (7 dimensions) ──────────────────────────────
+      const contractReport = await runContractAnalysis(codebase.fileContents, codebase.endpoints);
+      const visualReport = await runVisualRegressionAnalysis(codebase.fileContents);
+      const edgeCaseReport = await runEdgeCaseAnalysis(codebase.fileContents);
+      const propertyReport = await runPropertyBasedAnalysis(codebase.fileContents);
+      const chaosReport = await runChaosAnalysis(codebase.fileContents, codebase.dependencies, codebase.techStack);
+      const mutationReport = await runMutationAnalysis(codebase.fileContents, codebase.devDependencies, codebase.totalFiles, codebase.totalLines);
+      const predictiveReport = await runPredictiveAnalysis(codebase.fileContents, codebase.dependencies, codebase.devDependencies);
+
       // Clean up
       rmSync(projectPath, { recursive: true, force: true });
 
@@ -154,6 +172,46 @@ async function main() {
           weaknesses: stackReport.weaknesses,
           recommendations: stackReport.recommendations,
           findings: stackReport.findings,
+        },
+        contract: {
+          score: contractReport.score,
+          totalEndpoints: contractReport.totalEndpoints,
+          documentedEndpoints: contractReport.documentedEndpoints,
+          findings: contractReport.findings,
+        },
+        visualRegression: {
+          score: visualReport.score,
+          htmlFiles: visualReport.htmlFiles,
+          cssFiles: visualReport.cssFiles,
+          findings: visualReport.findings,
+        },
+        edgeCases: {
+          score: edgeCaseReport.score,
+          potentialCases: edgeCaseReport.potentialCases,
+          findings: edgeCaseReport.findings,
+        },
+        propertyBased: {
+          score: propertyReport.score,
+          invariantsDetected: propertyReport.invariantsDetected,
+          findings: propertyReport.findings,
+        },
+        chaos: {
+          score: chaosReport.score,
+          resilienceLevel: chaosReport.resilienceLevel,
+          findings: chaosReport.findings,
+        },
+        mutation: {
+          score: mutationReport.score,
+          estimatedMutationScore: mutationReport.estimatedMutationScore,
+          totalMutants: mutationReport.totalMutants,
+          killedMutants: mutationReport.killedMutants,
+          findings: mutationReport.findings,
+        },
+        predictive: {
+          score: predictiveReport.score,
+          riskLevel: predictiveReport.riskLevel,
+          predictedFailures: predictiveReport.predictedFailures,
+          findings: predictiveReport.findings,
         },
       });
     } catch (err: any) {
