@@ -1,20 +1,21 @@
-import { getDb } from '../_db.js';
+const { getDb } = require('../_db.js');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(204).end();
 
-  const db = getDb();
   let dbStatus = 'not configured';
+  const db = getDb();
   
   if (db) {
     try {
-      const { drizzle } = await import('drizzle-orm');
-      await db.execute(drizzle.sql`SELECT 1`);
+      const { sql } = require('drizzle-orm');
+      await db.execute(sql`SELECT 1`);
       dbStatus = 'connected';
-    } catch {
+    } catch (err) {
+      console.error('[health] DB check failed:', err.message);
       dbStatus = 'error';
     }
   }
@@ -26,4 +27,4 @@ export default async function handler(req, res) {
     database: dbStatus,
     features: { projects: true, testRuns: true, reports: true, auth: true },
   });
-}
+};

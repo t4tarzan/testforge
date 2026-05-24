@@ -1,5 +1,4 @@
-import { sql } from 'drizzle-orm';
-import { getDb } from '../_db.js';
+const { getDb } = require('../_db.js');
 
 const SEED_RUNS = [{
   id: 'TF-2026-001', projectId: 'proj_001', branch: 'main',
@@ -9,7 +8,7 @@ const SEED_RUNS = [{
   config: { depth: 'normal' },
 }];
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -21,13 +20,15 @@ export default async function handler(req, res) {
   if (!db) return res.json(SEED_RUNS);
 
   try {
+    const { sql } = require('drizzle-orm');
     if (id) {
       const rows = await db.execute(sql`SELECT * FROM test_runs WHERE id = ${id} LIMIT 1`);
       return res.json(rows[0] || null);
     }
     const rows = await db.execute(sql`SELECT * FROM test_runs ORDER BY started_at DESC LIMIT 50`);
-    return res.json(rows);
+    return res.json(rows.length > 0 ? rows : SEED_RUNS);
   } catch (err) {
+    console.error('[test-runs]', err.message);
     return res.json(SEED_RUNS);
   }
-}
+};
