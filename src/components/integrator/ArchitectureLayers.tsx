@@ -184,7 +184,7 @@ export default function ArchitectureLayers() {
     <div ref={sectionRef} className="relative" style={{ height: '300vh' }}>
       <div
         ref={pinContainerRef}
-        className="min-h-[100dvh] flex flex-col items-center justify-center px-6 lg:px-16 py-20 bg-[#1A1A1A] relative"
+        className="min-h-[135dvh] flex flex-col items-center justify-center px-6 lg:px-16 py-32 bg-[#1A1A1A] relative"
       >
         {/* Grid pattern */}
         <div className="absolute inset-0 bg-grid-pattern-dark pointer-events-none" />
