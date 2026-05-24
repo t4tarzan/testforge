@@ -792,6 +792,43 @@ export default function Dashboard() {
         </div>
       )}
       <HeroSection analysisData={analysisData} />
+      
+      {/* Real Analysis Results (when available) */}
+      {analysisData && (
+        <section className="px-6 lg:px-16 py-[80px] bg-[#F7F7FB]">
+          <div className="max-w-[1280px] mx-auto">
+            <p className="font-mono text-xs text-[#574a7d] uppercase tracking-wider mb-4">// LATEST ANALYSIS</p>
+            <h2 className="text-display-md text-[#12101A] mb-8">
+              Results from <span className="text-[#574a7d]">{analysisData.repo?.split('/').pop()}</span>
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              {[
+                { label: 'Security', score: Math.max(0, 100 - (analysisData.security?.critical || 0) * 20), color: (analysisData.security?.critical || 0) > 0 ? '#EF4444' : '#574a7d' },
+                { label: 'Unit Tests', score: analysisData.unit?.coverage || 0, color: (analysisData.unit?.coverage || 0) >= 70 ? '#574a7d' : '#EAB308' },
+                { label: 'Vision', score: analysisData.vision?.score || 0, color: (analysisData.vision?.score || 0) >= 60 ? '#574a7d' : '#EAB308' },
+                { label: 'Scope', score: analysisData.scope?.coverage || 0, color: (analysisData.scope?.coverage || 0) >= 50 ? '#574a7d' : '#EAB308' },
+                { label: 'Stack', score: analysisData.stack?.score || 0, color: (analysisData.stack?.score || 0) >= 70 ? '#574a7d' : '#EAB308' },
+                { label: 'A11y', score: analysisData.accessibility?.score || 0, color: (analysisData.accessibility?.score || 0) >= 80 ? '#574a7d' : '#EAB308' },
+                { label: 'Load (users)', score: analysisData.load?.maxUsers || 0, color: '#574a7d' },
+                { label: 'Files', score: analysisData.codebase?.totalFiles || 0, color: '#574a7d' },
+              ].map(s => (
+                <div key={s.label} className="bg-white border border-[#D9D9D3] rounded-xl p-5">
+                  <div className="text-3xl font-bold" style={{ color: s.color }}>{s.score}</div>
+                  <div className="text-xs text-[#6B6B6B] mt-1">{s.label}</div>
+                  <div className="mt-2 h-1.5 bg-[#ECEBF5] rounded-full overflow-hidden">
+                    <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${Math.min(100, typeof s.score === 'number' && s.label !== 'Files' && s.label !== 'Load (users)' ? s.score : 50)}%`, backgroundColor: s.color }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="text-center">
+              <Link to={`/run-test`} className="inline-flex items-center gap-2 text-sm text-[#574a7d] hover:text-[#453a68] font-medium">
+                View full report →
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
       <QualityScorecardSection />
       <PredictiveModelsSection />
       <RealTimeMetricsSection />

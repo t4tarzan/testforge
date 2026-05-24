@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   CheckCircle2, FileJson, FileText, FileDown, Shield,
@@ -27,6 +27,19 @@ function SeverityBadge({ severity }: { severity: string }) {
 export default function ReportStep({ results, onRestart }: ReportStepProps) {
   const [expandedFinding, setExpandedFinding] = useState<number | null>(null);
   const [exportFormat, setExportFormat] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  // Save results to Neon DB
+  useEffect(() => {
+    if (!results || saved) return;
+    fetch('/api/save-results', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(results),
+    }).then(r => r.json()).then(d => {
+      if (d.saved) setSaved(true);
+    }).catch(() => {});
+  }, [results]);
 
   if (!results) {
     return (
