@@ -32,19 +32,14 @@ export default async function handler(req, res) {
 
   if (process.env.DATABASE_URL) {
     try {
-      const { default: postgres } = await import('postgres');
-      const { drizzle } = await import('drizzle-orm/postgres-js');
-      const { sql } = await import('drizzle-orm');
-      const client = postgres(process.env.DATABASE_URL, { max: 3, connect_timeout: 5 });
-      const db = drizzle(client);
+      const { neon } = await import('@neondatabase/serverless');
+      const sql = neon(process.env.DATABASE_URL);
 
-      const rows = await db.execute(sql`SELECT * FROM reports WHERE test_run_id = ${reportId} LIMIT 1`);
+      const rows = await sql`SELECT * FROM reports WHERE test_run_id = ${reportId} LIMIT 1`;
       if (rows.length > 0) {
-        const findings = await db.execute(sql`SELECT * FROM findings WHERE test_run_id = ${reportId} ORDER BY severity, created_at`);
-        await client.end();
+        const findings = await sql`SELECT * FROM findings WHERE test_run_id = ${reportId} ORDER BY severity, created_at`;
         return res.json({ ...rows[0], findings });
       }
-      await client.end();
     } catch (e) {
       console.error('[reports] DB error:', e.message);
     }

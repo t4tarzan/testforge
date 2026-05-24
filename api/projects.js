@@ -12,16 +12,11 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(204).end();
 
-  // Try real DB
   if (process.env.DATABASE_URL) {
     try {
-      const { default: postgres } = await import('postgres');
-      const { drizzle } = await import('drizzle-orm/postgres-js');
-      const { sql } = await import('drizzle-orm');
-      const client = postgres(process.env.DATABASE_URL, { max: 3, connect_timeout: 5 });
-      const db = drizzle(client);
-      const rows = await db.execute(sql`SELECT * FROM projects ORDER BY updated_at DESC`);
-      await client.end();
+      const { neon } = await import('@neondatabase/serverless');
+      const sql = neon(process.env.DATABASE_URL);
+      const rows = await sql`SELECT * FROM projects ORDER BY updated_at DESC`;
       if (rows.length > 0) return res.json(rows);
     } catch (e) {
       console.error('[projects] DB error:', e.message);
