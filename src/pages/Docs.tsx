@@ -1438,130 +1438,79 @@ function CliReferencePage() {
 function ApiReferencePage() {
   return (
     <div>
-      <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">
-        API Reference
-      </h1>
+      <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">API Reference</h1>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
-        The TestForge REST API allows programmatic access to test execution and
-        reporting.
+        The TestForge REST API allows programmatic access to test execution, reporting, and platform management. Base URL: <code className="bg-[#E8E5FF] px-2 py-0.5 rounded text-[#574a7d] font-mono text-sm">https://testforge-steel.vercel.app/api</code>
       </p>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
-        Authentication
-      </h2>
-      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
-        All API requests require an API key header:
-      </p>
-      <DocCodeBlock
-        code={`curl -H "Authorization: Bearer tf_your_api_key" \\\
-  https://api.testforge.dev/v1/runs`}
-        language="bash"
-      />
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">🔬 Analysis Endpoints</h2>
+      <div className="space-y-6">
+        {[
+          { method: 'GET', path: '/health', desc: 'Health check with database status', example: '{"status":"ok","database":"connected"}' },
+          { method: 'POST', path: '/analyze', desc: 'Analyze a public GitHub repository. Returns 21-dimension analysis.', body: '{"repoUrl":"https://github.com/user/repo"}', example: '{"codebase":{"totalFiles":127},"security":{"findings":4},...}' },
+          { method: 'GET', path: '/analyze', desc: 'Get MCP server connection info and available endpoints', example: '{"mcpServer":"https://testforge-mcp.fly.dev"}' },
+          { method: 'POST', path: '/test', desc: 'Start a test suite run on Fly.io MCP server', body: '{"repoUrl":"...","dimensions":["security","unit"]}', example: '{"testRunId":"...","status":"queued"}' },
+        ].map(e => <EndpointCard key={e.path} {...e} />)}
+      </div>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
-        Base URL
-      </h2>
-      <DocCodeBlock code="https://api.testforge.dev/v1" language="text" />
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">📊 Data Endpoints</h2>
+      <div className="space-y-6">
+        {[
+          { method: 'GET', path: '/projects', desc: 'List all analyzed projects from Neon DB', example: '[{"id":"...","name":"express-ecommerce-api"}]' },
+          { method: 'GET', path: '/test-runs', desc: 'List test runs. Query: ?id=run_id for specific run', example: '[{"id":"...","overall_score":68,"total_findings":16}]' },
+          { method: 'GET', path: '/history', desc: 'Last 20 test runs with project names. Dashboard feed.', example: '[{"project_name":"...","overall_score":72}]' },
+          { method: 'GET', path: '/reports/:id', desc: 'Full PRD report with phases and findings', example: '{"title":"...","phases":[...],"findings":[...]}' },
+          { method: 'POST', path: '/save-results', desc: 'Save analysis results to Neon DB', body: '{"repo":"...","security":{...}}', example: '{"saved":true,"runId":"uuid"}' },
+        ].map(e => <EndpointCard key={e.path} {...e} />)}
+      </div>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
-        Endpoints
-      </h2>
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">🔐 Auth & Users</h2>
+      <div className="space-y-6">
+        {[
+          { method: 'POST', path: '/auth/login', desc: 'Login with email/password (mock). Returns user + token.', body: '{"email":"user@test.com","password":"pass"}', example: '{"token":"...","user":{"name":"Alex"}}' },
+          { method: 'GET', path: '/auth/callback', desc: 'GitHub OAuth callback. Redirects to GitHub then back with user data.' },
+        ].map(e => <EndpointCard key={e.path} {...e} />)}
+      </div>
 
-      <h3 className="font-heading font-semibold text-[20px] text-[#12101A] mt-8 mb-3">
-        POST /runs
-      </h3>
-      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
-        Start a new test run.
-      </p>
-      <p className="font-body text-[14px] text-[#6B6B6B] mb-2">Request body:</p>
-      <DocCodeBlock
-        code={`{\n  "repository_url": "https://github.com/user/repo",\n  "branch": "main",\n  "depth": "deep",\n  "test_dimensions": ["security", "unit", "integration"]\n}`}
-        language="json"
-      />
-      <p className="font-body text-[14px] text-[#6B6B6B] mb-2">Response:</p>
-      <DocCodeBlock
-        code={`{\n  "run_id": "run_abc123",\n  "status": "queued",\n  "estimated_duration": 180,\n  "created_at": "2026-01-15T14:32:00Z"\n}`}
-        language="json"
-      />
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">🏢 Enterprise Endpoints</h2>
+      <div className="space-y-6">
+        {[
+          { method: 'GET', path: '/stripe', desc: 'Get pricing plans (Free/Pro/Enterprise)', example: '{"plans":[{"id":"pro","price":29}]}' },
+          { method: 'POST', path: '/stripe', desc: 'Create Stripe checkout session', body: '{"plan":"pro","email":"user@test.com"}', example: '{"ok":true,"checkoutUrl":"..."}' },
+          { method: 'POST', path: '/webhook', desc: 'GitHub push webhook. Triggers analysis on push.', body: '{"ref":"refs/heads/main","repository":{...}}' },
+          { method: 'GET', path: '/orgs', desc: 'List organizations. POST to create.', example: '[{"id":"...","name":"Acme Corp"}]' },
+          { method: 'GET', path: '/status', desc: 'Public status page — checks all 4 services live', example: '{"status":"all_systems_operational"}' },
+          { method: 'GET', path: '/usage', desc: 'API usage stats: tests run, quota, avg score', example: '{"testsRun":47,"remainingQuota":53}' },
+          { method: 'GET', path: '/tasks', desc: 'Enterprise task tracking. PATCH to update status.', example: '{"tasks":[...],"total":86}' },
+        ].map(e => <EndpointCard key={e.path} {...e} />)}
+      </div>
 
-      <h3 className="font-heading font-semibold text-[20px] text-[#12101A] mt-8 mb-3">
-        GET /runs/:id
-      </h3>
-      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
-        Get test run status and results.
-      </p>
-      <p className="font-body text-[14px] text-[#6B6B6B] mb-2">Response:</p>
-      <DocCodeBlock
-        code={`{\n  "run_id": "run_abc123",\n  "status": "completed",\n  "repository": "user/repo",\n  "branch": "main",\n  "score": 68,\n  "severity": {\n    "critical": 1,\n    "high": 2,\n    "medium": 5,\n    "low": 8\n  },\n  "dimensions": [\n    {\n      "name": "security",\n      "status": "fail",\n      "findings": 6,\n      "duration": 5.8\n    }\n  ],\n  "started_at": "2026-01-15T14:32:00Z",\n  "completed_at": "2026-01-15T14:37:24Z"\n}`}
-        language="json"
-      />
-
-      <h3 className="font-heading font-semibold text-[20px] text-[#12101A] mt-8 mb-3">
-        GET /runs/:id/report
-      </h3>
-      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
-        Get the full test report.
-      </p>
-      <p className="font-body text-[14px] text-[#6B6B6B] mb-2">
-        Query params:
-      </p>
-      <DocCodeBlock
-        code="format: json, markdown, pdf"
-        language="text"
-      />
-
-      <h3 className="font-heading font-semibold text-[20px] text-[#12101A] mt-8 mb-3">
-        GET /repositories
-      </h3>
-      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
-        List connected repositories.
-      </p>
-
-      <h3 className="font-heading font-semibold text-[20px] text-[#12101A] mt-8 mb-3">
-        POST /repositories
-      </h3>
-      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
-        Connect a new repository.
-      </p>
-      <p className="font-body text-[14px] text-[#6B6B6B] mb-2">Request body:</p>
-      <DocCodeBlock
-        code={`{\n  "url": "https://github.com/user/repo",\n  "branch": "main"\n}`}
-        language="json"
-      />
-
-      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
-        Rate Limits
-      </h2>
-      <DocTable
-        headers={['Plan', 'Requests / Minute']}
-        rows={[
-          ['Free', '10'],
-          ['Pro', '60'],
-          ['Enterprise', '300'],
-        ]}
-      />
-
-      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
-        Error Codes
-      </h2>
-      <DocTable
-        headers={['Code', 'Status', 'Description']}
-        rows={[
-          ['400', 'Bad Request', 'Invalid request parameters'],
-          ['401', 'Unauthorized', 'Missing or invalid API key'],
-          ['404', 'Not Found', 'Run or repository not found'],
-          ['429', 'Too Many Requests', 'Rate limit exceeded'],
-          ['500', 'Server Error', 'Internal server error'],
-        ]}
-      />
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">🔔 Integrations</h2>
+      <div className="space-y-6">
+        {[
+          { method: 'POST', path: '/notify', desc: 'Send results to Slack or Discord webhook', body: '{"platform":"slack","webhookUrl":"...","score":85}' },
+          { method: 'GET', path: '/badge', desc: 'SVG badge for README. Query: ?score=85 or ?repo=owner/name', example: '<svg> badge with score </svg>' },
+          { method: 'POST', path: '/rules', desc: 'Custom rule builder. GET/POST/DELETE custom analysis rules.', body: '{"name":"no-console","pattern":"console.log"}' },
+        ].map(e => <EndpointCard key={e.path} {...e} />)}
+      </div>
     </div>
   );
 }
 
-
-/* ────────────────────────────────────────────
-   PAGE CONTENT: TROUBLESHOOTING
-   ──────────────────────────────────────────── */
+function EndpointCard({ method, path, desc, body, example }: { method: string; path: string; desc: string; body?: string; example?: string }) {
+  const methodColors: Record<string, string> = { GET: '#22C55E', POST: '#3B82F6', PATCH: '#EAB308', DELETE: '#EF4444' };
+  return (
+    <div className="bg-white border border-[#D9D9D3] rounded-xl p-5">
+      <div className="flex items-start gap-3 mb-2">
+        <span className="font-mono text-xs px-2 py-0.5 rounded font-bold" style={{ backgroundColor: (methodColors[method] || '#6B6B6B') + '20', color: methodColors[method] }}>{method}</span>
+        <code className="font-mono text-sm text-[#12101A] font-medium">{path}</code>
+      </div>
+      <p className="text-sm text-[#6B6B6B] mb-2">{desc}</p>
+      {body && <div className="bg-[#12101A] rounded-lg p-3 font-mono text-xs text-[#a99bff] overflow-x-auto mb-2">{body}</div>}
+      <p className="text-[11px] text-[#9A9A9A] font-mono">→ {example ? example.slice(0, 100) : 'See response'}</p>
+    </div>
+  );
+}
 function TroubleshootingPage() {
   return (
     <div>
