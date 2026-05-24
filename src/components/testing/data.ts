@@ -434,4 +434,16 @@ export const comparisonData = [
     testsprite: false,
     traditional: false,
   },
+  {
+    dimension: 'Agentic Scale Prediction',
+    testforge: true,
+    testsprite: false,
+    traditional: false,
+  },
+  {
+    dimension: 'Agentic Scale Prediction',
+    testforge: true,
+    testsprite: false,
+    traditional: false,
+  },
 ];

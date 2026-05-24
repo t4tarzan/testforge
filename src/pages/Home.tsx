@@ -436,7 +436,7 @@ export default function Home() {
               <div className="hero-stats flex flex-wrap items-center gap-x-6 gap-y-2" style={{ opacity: 0 }}>
                 <span className="font-mono text-[13px] text-[#6B6B6B]">Local-first</span>
                 <span className="text-[#D9D9D3]">·</span>
-                <span className="font-mono text-[13px] text-[#6B6B6B]">20 test dimensions</span>
+                <span className="font-mono text-[13px] text-[#6B6B6B]">21 test dimensions</span>
                 <span className="text-[#D9D9D3]">·</span>
                 <span className="font-mono text-[13px] text-[#574a7d] font-medium">Your code never uploads</span>
               </div>
@@ -757,7 +757,7 @@ export default function Home() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
             {[
               { value: 100000, suffix: '+', label: 'community members' },
-              { value: 20, suffix: '', label: 'testing dimensions' },
+              { value: 21, suffix: '', label: 'testing dimensions' },
               { value: 94, suffix: '%', label: 'average feature delivery' },
               { value: 4, suffix: 'x', label: 'security coverage improvement' },
             ].map((stat, i) => (
@@ -832,7 +832,7 @@ export default function Home() {
                 <span className="step-number block mb-3">02 //</span>
                 <h3 className="text-heading-lg text-[#333333] mb-4">Autonomous Multi-Dimensional Testing</h3>
                 <p className="text-body-lg text-[#6B6B6B]">
-                  All 20 testing dimensions execute in parallel — from scope validation to chaos engineering. Watch real-time progress, live logs, and failure analysis as tests run.
+                  All 21 testing dimensions execute in parallel — from scope validation to chaos engineering. Watch real-time progress, live logs, and failure analysis as tests run.
                 </p>
               </ScrollReveal>
             </div>
@@ -927,6 +927,7 @@ export default function Home() {
               { name: 'License Check', cat: 'Compliance' },
               { name: 'DORA Metrics', cat: 'DevOps' },
               { name: 'OWASP Top 10', cat: 'Standards' },
+              { name: 'Agentic Scale', cat: 'AI Agents' },
             ].map(d => (
               <div key={d.name} className="bg-white border border-[#D9D9D3] rounded-lg p-3 hover:border-[#a99bff] hover:shadow-sm transition-all">
                 <div className="text-sm font-medium text-[#12101A]">{d.name}</div>

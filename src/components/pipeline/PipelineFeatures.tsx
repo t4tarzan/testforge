@@ -19,7 +19,7 @@ const features: FeatureCard[] = [
     icon: <Zap size={48} strokeWidth={1.5} />,
     title: 'Parallel Execution Engine',
     description:
-      'All 20 dimensions run simultaneously across distributed agents. No sequential bottlenecks. Results aggregate in real-time.',
+      'All 21 dimensions run simultaneously across distributed agents. No sequential bottlenecks. Results aggregate in real-time.',
   },
   {
     icon: <AlertTriangle size={48} strokeWidth={1.5} />,

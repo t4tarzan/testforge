@@ -29,6 +29,7 @@ import {
   runDoraEstimation,
   runOwaspCoverage,
 } from './analyzers/advanced-analyzer.js';
+import { runAgenticScalePrediction } from './analyzers/agentic-scale.js';
 
 const PORT = Number(process.env.TESTFORGE_MCP_PORT) || 3001;
 const TMP_DIR = process.env.TMP_DIR || '/tmp/testforge-repos';
@@ -126,6 +127,15 @@ async function main() {
       const licenseReport = runLicenseCheck(codebase.dependencies);
       const doraReport = runDoraEstimation(codebase.fileContents, codebase.devDependencies);
       const owaspReport = runOwaspCoverage(securityFindings as any);
+
+      // ── Agentic Scale Prediction (21st dimension) ─────────────────────
+      const agenticReport = runAgenticScalePrediction(
+        codebase.fileContents,
+        codebase.dependencies,
+        codebase.techStack,
+        codebase.endpoints,
+        codebase.totalLines
+      );
 
       // Clean up
       rmSync(projectPath, { recursive: true, force: true });
@@ -262,6 +272,15 @@ async function main() {
           coveredCategories: owaspReport.coveredCategories,
           missingCategories: owaspReport.missingCategories,
           findings: owaspReport.findings,
+        },
+        agentic: {
+          score: agenticReport.score,
+          resilienceLevel: agenticReport.resilienceLevel,
+          maxPredictedAgents: agenticReport.maxPredictedAgents,
+          predictedBottleneck: agenticReport.predictedBottleneck,
+          failurePatterns: agenticReport.failurePatterns,
+          recommendations: agenticReport.recommendations,
+          findings: agenticReport.findings,
         },
       });
     } catch (err: any) {

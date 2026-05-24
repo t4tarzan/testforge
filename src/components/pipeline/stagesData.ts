@@ -356,6 +356,17 @@ export const stages: Stage[] = [
     logs: ['[INFO] Mapping findings to OWASP...', '[INFO] 7/10 categories covered', '[INFO] Missing: A05, A08, A10', '...'],
     findings: [],
   },
+  {
+    id: 21,
+    number: '21',
+    name: 'Agentic Scale Prediction',
+    subtitle: 'AI agent behavior at scale',
+    description: 'Simulates thousands of AI agents hitting your API simultaneously. Predicts failure patterns, bottlenecks, and cascading failures unique to agentic workloads. No other platform offers this.',
+    status: 'pending',
+    metrics: { testsRun: 0, failures: 0, coverage: 0, duration: '--' },
+    logs: ['[INFO] Analyzing API endpoints for agentic load...', '[INFO] Detected 47 endpoints exposed to agents', '[INFO] Simulating 2000 concurrent agents...', '[INFO] Predicted bottleneck: Database connection pool', '...'],
+    findings: [],
+  },
 ];
 
 export const statusColors: Record<StageStatus, { bg: string; text: string; border: string; bar: string }> = {

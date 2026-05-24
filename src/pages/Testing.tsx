@@ -95,7 +95,7 @@ function Hero() {
               {/* Count */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="font-heading font-bold text-[48px] leading-none text-[#574a7d]">
-                  {isInView ? <CountUp end={20} duration={1} delay={0.5} /> : '0'}
+                  {isInView ? <CountUp end={21} duration={1} delay={0.5} /> : '0'}
                 </span>
               </div>
             </div>

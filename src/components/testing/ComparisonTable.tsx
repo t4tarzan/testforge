@@ -32,7 +32,7 @@ export default function ComparisonTable() {
           className="text-center mb-16"
         >
           <h2 className="font-heading font-semibold text-[42px] leading-[1.15] tracking-tight text-white">
-            All <span className="text-[#574a7d]">twenty</span>. Always running.
+            All <span className="text-[#574a7d]">twenty-one</span>. Always running.
           </h2>
         </motion.div>
 

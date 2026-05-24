@@ -625,7 +625,7 @@ function BillingTab() {
               <span className="ml-2 font-heading text-[18px] text-[#9A9A9A]">/month</span>
             </div>
             <div className="mt-4 space-y-1">
-              {['Unlimited test runs', '50 concurrent repositories', 'All 20 test dimensions', 'Priority support'].map((f) => (
+              {['Unlimited test runs', '50 concurrent repositories', 'All 21 test dimensions', 'Priority support'].map((f) => (
                 <div key={f} className="flex items-center gap-2 text-[14px] text-white/80 font-body">
                   <CheckCircle2 size={14} className="text-[#7a6fad]" /> {f}
                 </div>

@@ -102,7 +102,7 @@ export default function ConfigureStep({ onComplete, onBack }: ConfigureStepProps
           Configure Your Test Suite
         </h2>
         <p className="text-[16px] text-[#6B6B6B] font-body mt-2">
-          Select which tests to run and set your coverage depth. All 20 dimensions are available.
+          Select which tests to run and set your coverage depth. All 21 dimensions are available.
         </p>
       </div>
 

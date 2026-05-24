@@ -316,7 +316,7 @@ function OverviewPage() {
         TestForge is an AI-powered autonomous testing platform that integrates
         directly into your development workflow. It analyzes your codebase,
         generates comprehensive tests across{' '}
-        <strong className="font-semibold text-[#12101A]">20 dimensions</strong>,
+        <strong className="font-semibold text-[#12101A]">21 dimensions</strong>,
         and delivers actionable reports with fix suggestions.
       </p>
 
@@ -327,7 +327,7 @@ function OverviewPage() {
         TestForge connects to your Git repository, analyzes your entire
         codebase, and automatically generates and runs tests across{' '}
         <strong className="font-semibold text-[#12101A]">
-          20 testing dimensions
+          21 testing dimensions
         </strong>
         . Within minutes, you get:
       </p>
@@ -370,10 +370,10 @@ function OverviewPage() {
       <DocTable
         headers={['Technology', 'Detection', 'Test Coverage']}
         rows={[
-          ['Node.js / Express', 'package.json, require()', 'Full — all 20 dimensions'],
-          ['Python / Flask / Django', 'requirements.txt, imports', 'Full — all 20 dimensions'],
-          ['Go / Gin / Echo', 'go.mod', 'Full — all 20 dimensions'],
-          ['Ruby / Rails', 'Gemfile', 'Full — all 20 dimensions'],
+          ['Node.js / Express', 'package.json, require()', 'Full — all 21 dimensions'],
+          ['Python / Flask / Django', 'requirements.txt, imports', 'Full — all 21 dimensions'],
+          ['Go / Gin / Echo', 'go.mod', 'Full — all 21 dimensions'],
+          ['Ruby / Rails', 'Gemfile', 'Full — all 21 dimensions'],
           ['Java / Spring', 'pom.xml, build.gradle', 'Partial — core dimensions'],
           ['Rust / Actix', 'Cargo.toml', 'Partial — core dimensions'],
         ]}
@@ -483,7 +483,7 @@ function QuickStartPage() {
       <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
         <li>Clone and scan your repository</li>
         <li>Detect your technology stack</li>
-        <li>Run all 20 test dimensions</li>
+        <li>Run all 21 test dimensions</li>
         <li>Generate a comprehensive report</li>
       </ul>
 
@@ -540,7 +540,7 @@ function YourFirstTestPage() {
       </p>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
         <strong className="font-semibold text-[#12101A]">Test Types</strong> —
-        All 20 dimensions are checked by default. Uncheck any you don't need to
+        All 21 dimensions are checked by default. Uncheck any you don't need to
         save time.
       </p>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
@@ -936,7 +936,7 @@ function TestTypeSelectionPage() {
       </h1>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
         TestForge runs{' '}
-        <strong className="font-semibold text-[#12101A]">20 testing dimensions</strong>.
+        <strong className="font-semibold text-[#12101A]">21 testing dimensions</strong>.
         You can customize which to run for each test execution.
       </p>
 
@@ -1070,7 +1070,7 @@ function TestTypesOverviewPage() {
         Test Types Overview
       </h1>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
-        TestForge runs 20 testing dimensions covering every aspect of your
+        TestForge runs 21 testing dimensions covering every aspect of your
         application. Here's what each one does.
       </p>
 
