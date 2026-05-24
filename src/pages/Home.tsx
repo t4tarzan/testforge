@@ -896,6 +896,59 @@ export default function Home() {
           </ScrollReveal>
         </div>
       </section>
+
+      {/* ═══ 20 DIMENSIONS SHOWCASE ═══ */}
+      <section className="px-6 lg:px-16 py-[100px] bg-[#F7F7FB]">
+        <div className="max-w-[1280px] mx-auto">
+          <div className="text-center mb-16">
+            <p className="font-mono text-xs text-[#574a7d] uppercase tracking-[0.15em] mb-4">// 20 DIMENSIONS</p>
+            <h2 className="text-display-md text-[#12101A] mb-4">Every angle of your codebase, analyzed.</h2>
+            <p className="text-[#6B6B6B] max-w-[600px] mx-auto">From security to DORA metrics, N+1 queries to supply chain — we cover what competitors don&apos;t.</p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            {[
+              { name: 'Security', cat: 'SAST' },
+              { name: 'Unit Tests', cat: 'Coverage' },
+              { name: 'Load/Perf', cat: 'Scale' },
+              { name: 'Accessibility', cat: 'WCAG' },
+              { name: 'Vision & Goals', cat: 'Strategy' },
+              { name: 'Scope Coverage', cat: 'Traceability' },
+              { name: 'Stack Analysis', cat: 'Architecture' },
+              { name: 'Contract Testing', cat: 'API' },
+              { name: 'Visual Regression', cat: 'UI' },
+              { name: 'Edge Cases', cat: 'Boundary' },
+              { name: 'Property-Based', cat: 'Invariants' },
+              { name: 'Chaos Engineering', cat: 'Resilience' },
+              { name: 'Mutation Testing', cat: 'Quality' },
+              { name: 'Predictive Model', cat: 'Risk' },
+              { name: 'Supply Chain', cat: 'CVEs' },
+              { name: 'N+1 Queries', cat: 'Performance' },
+              { name: 'Dead Code', cat: 'Cleanup' },
+              { name: 'License Check', cat: 'Compliance' },
+              { name: 'DORA Metrics', cat: 'DevOps' },
+              { name: 'OWASP Top 10', cat: 'Standards' },
+            ].map(d => (
+              <div key={d.name} className="bg-white border border-[#D9D9D3] rounded-lg p-3 hover:border-[#a99bff] hover:shadow-sm transition-all">
+                <div className="text-sm font-medium text-[#12101A]">{d.name}</div>
+                <div className="text-[10px] text-[#9A9A9A] font-mono uppercase mt-0.5">{d.cat}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ INTEGRATIONS STRIP ═══ */}
+      <section className="px-6 lg:px-16 py-[60px] bg-[#12101A]">
+        <div className="max-w-[1280px] mx-auto text-center">
+          <p className="font-mono text-xs text-[#a99bff] uppercase tracking-[0.15em] mb-6">// PLUGS INTO YOUR STACK</p>
+          <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-4">
+            {['GitHub','Slack','Discord','CLI','Vercel','Fly.io','Cursor','VS Code','Neon'].map(i => (
+              <div key={i} className="text-white/80 hover:text-white text-sm font-medium transition-colors">{i}</div>
+            ))}
+          </div>
+        </div>
+      </section>
+
     </div>
   )
 }
