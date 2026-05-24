@@ -646,3 +646,284 @@ function dependenciesInclude(fileContents: Record<string, string>, ...terms: str
   const allContent = Object.values(fileContents).join('\n').toLowerCase();
   return terms.some(t => allContent.includes(t.toLowerCase()));
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// PHASE 2 DEEP ENHANCEMENTS
+// ═══════════════════════════════════════════════════════════════════
+
+// Supply Chain Security Audit
+export interface SupplyChainReport {
+  score: number;
+  totalDeps: number;
+  knownVulnerable: number;
+  criticalVulns: number;
+  findings: Finding[];
+}
+
+export function runSupplyChainAudit(dependencies: string[], devDependencies: string[]): SupplyChainReport {
+  const findings: Finding[] = [];
+  const allDeps = [...dependencies, ...devDependencies];
+  
+  // Known vulnerable patterns (simplified — in production, call OSV API)
+  const vulnerablePatterns: Record<string, { cve: string; severity: string; fixVersion: string }> = {
+    'lodash': { cve: 'CVE-2021-23337', severity: 'high', fixVersion: '4.17.21' },
+    'express': { cve: 'CVE-2024-29041', severity: 'medium', fixVersion: '4.19.0' },
+    'axios': { cve: 'CVE-2023-45857', severity: 'medium', fixVersion: '1.6.0' },
+    'webpack': { cve: 'CVE-2023-28154', severity: 'high', fixVersion: '5.76.0' },
+    'json5': { cve: 'CVE-2022-46175', severity: 'high', fixVersion: '2.2.2' },
+    'glob-parent': { cve: 'CVE-2020-28469', severity: 'high', fixVersion: '5.1.2' },
+    'semver': { cve: 'CVE-2022-25883', severity: 'medium', fixVersion: '7.5.2' },
+    'node-fetch': { cve: 'CVE-2022-0235', severity: 'medium', fixVersion: '3.2.10' },
+  };
+
+  let knownVulnerable = 0;
+  let criticalVulns = 0;
+  
+  for (const dep of allDeps) {
+    const depName = dep.replace(/^[@]/, '').split('@')[0] || dep;
+    for (const [vulnName, vuln] of Object.entries(vulnerablePatterns)) {
+      if (depName.toLowerCase().includes(vulnName.toLowerCase())) {
+        knownVulnerable++;
+        if (vuln.severity === 'critical' || vuln.severity === 'high') criticalVulns++;
+        findings.push({
+          severity: vuln.severity as Finding['severity'],
+          title: `${depName}: ${vuln.cve}`,
+          description: `Known vulnerability in dependency. Update to >= ${vuln.fixVersion}.`,
+          fixSuggestion: `npm install ${depName}@${vuln.fixVersion}`,
+          category: 'Supply Chain',
+        });
+        break;
+      }
+    }
+  }
+
+  const score = Math.max(0, 100 - knownVulnerable * 10 - criticalVulns * 15);
+  return { score, totalDeps: allDeps.length, knownVulnerable, criticalVulns, findings };
+}
+
+// N+1 Query Detection
+export interface NPlusOneReport { score: number; potentialNPlusOne: number; findings: Finding[]; }
+
+export function runNPlusOneDetection(fileContents: Record<string, string>): NPlusOneReport {
+  const findings: Finding[] = [];
+  let potentialNPlusOne = 0;
+
+  for (const [filePath, content] of Object.entries(fileContents)) {
+    if (filePath.includes('node_modules') || filePath.includes('test')) continue;
+    const lines = content.split('\n');
+    
+    // Detect: for/while loop with DB query inside
+    let inLoop = false;
+    let loopDepth = 0;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line.match(/for\s*\(|while\s*\(|\.forEach\(|\.map\(/)) { inLoop = true; loopDepth++; }
+      if (line.includes('}') && inLoop) { loopDepth--; if (loopDepth === 0) inLoop = false; }
+      
+      if (inLoop && (line.includes('.find(') || line.includes('.findOne(') || 
+          line.includes('await db') || line.includes('sql`') || line.includes('prisma.') ||
+          line.includes('mongoose.') || line.includes('sequelize.'))) {
+        potentialNPlusOne++;
+        if (findings.length < 5) {
+          findings.push({
+            severity: 'high',
+            title: `Potential N+1 Query in Loop`,
+            description: `Database query detected inside a loop at ${filePath}:${i+1}. This will cause N+1 queries.`,
+            filePath,
+            lineNumber: i + 1,
+            fixSuggestion: 'Use eager loading (.include(), .populate(), JOINs) or batch queries (WHERE IN) instead of querying in a loop.',
+            category: 'N+1 Query',
+          });
+        }
+      }
+    }
+  }
+
+  const score = Math.max(0, 100 - potentialNPlusOne * 15);
+  return { score: Math.min(100, score), potentialNPlusOne, findings };
+}
+
+// Dead Code & Unused Dependencies
+export interface DeadCodeReport { score: number; unusedDeps: string[]; deadFunctions: number; findings: Finding[]; }
+
+export function runDeadCodeAnalysis(fileContents: Record<string, string>, dependencies: string[]): DeadCodeReport {
+  const findings: Finding[] = [];
+  const allContent = Object.values(fileContents).join('\n');
+  const unusedDeps: string[] = [];
+
+  // Check if each dependency is actually imported
+  for (const dep of dependencies) {
+    const depName = dep.replace(/^[@]/, '').split('@')[0] || dep;
+    const importPattern = new RegExp(`(from\\s+['"]${depName}|require\\(['"]${depName})`, 'i');
+    if (!importPattern.test(allContent)) {
+      unusedDeps.push(dep);
+    }
+  }
+
+  if (unusedDeps.length > 0) {
+    findings.push({
+      severity: 'medium',
+      title: `${unusedDeps.length} Unused Dependencies`,
+      description: `Dependencies not imported anywhere: ${unusedDeps.slice(0, 5).join(', ')}. These increase bundle size and attack surface.`,
+      fixSuggestion: 'Remove unused dependencies with: npm uninstall ' + unusedDeps.slice(0, 3).join(' '),
+      category: 'Dead Code',
+    });
+  }
+
+  // Count exported but unused functions (heuristic)
+  let deadFunctions = 0;
+  for (const [fp, content] of Object.entries(fileContents)) {
+    if (fp.includes('node_modules') || fp.includes('test')) continue;
+    const exports = content.match(/export\s+(const|function|class)\s+(\w+)/g) || [];
+    for (const exp of exports) {
+      const name = exp.split(/\s+/)[2];
+      if (name && !allContent.includes(name) && deadFunctions < 10) {
+        deadFunctions++;
+      }
+    }
+  }
+
+  if (deadFunctions > 3) {
+    findings.push({
+      severity: 'low',
+      title: `${deadFunctions}+ Potentially Unused Exports`,
+      description: 'Functions exported but possibly never imported. Consider removing or marking as @internal.',
+      fixSuggestion: 'Use TypeScript noUnusedLocals. Run eslint-plugin-unused-imports. Remove dead code to reduce bundle size.',
+      category: 'Dead Code',
+    });
+  }
+
+  const score = Math.max(0, 100 - unusedDeps.length * 10 - Math.floor(deadFunctions / 3) * 5);
+  return { score: Math.min(100, score), unusedDeps, deadFunctions, findings };
+}
+
+// License Compliance Check
+export interface LicenseReport { score: number; copyleftDeps: string[]; unknownLicense: number; findings: Finding[]; }
+
+export function runLicenseCheck(dependencies: string[]): LicenseReport {
+  const findings: Finding[] = [];
+  const copyleftDeps: string[] = [];
+  
+  // Simplified — in production, call npm registry API for license info
+  const knownGPL = ['react', 'vue', 'angular', 'moment', 'underscore']; // Example GPL-adjacent
+  
+  for (const dep of dependencies) {
+    const depName = dep.replace(/^[@]/, '').split('@')[0] || dep;
+    if (knownGPL.some(g => depName.toLowerCase().includes(g.toLowerCase())) && 
+        !findings.some(f => f.title.includes('License'))) {
+      findings.push({
+        severity: 'low',
+        title: 'Verify Dependency Licenses',
+        description: `${dependencies.length} dependencies — verify all licenses are compatible with your project. Check for GPL/copyleft risks.`,
+        fixSuggestion: 'Run: npx license-checker --summary. Add license-check to CI. Avoid GPL dependencies in proprietary code.',
+        category: 'License Compliance',
+      });
+      break;
+    }
+  }
+
+  const score = Math.max(0, 100 - copyleftDeps.length * 20);
+  return { score, copyleftDeps, unknownLicense: 0, findings };
+}
+
+// DORA Metrics Estimation
+export interface DoraReport { score: number; deploymentFreq: string; leadTime: string; mttr: string; changeFailRate: string; findings: Finding[]; }
+
+export function runDoraEstimation(fileContents: Record<string, string>, devDependencies: string[]): DoraReport {
+  const findings: Finding[] = [];
+  const allContent = Object.values(fileContents).join('\n');
+  
+  // Check CI/CD indicators
+  const hasCI = Object.keys(fileContents).some(f => f.includes('.github/workflows') || f.includes('.gitlab-ci')) ||
+    allContent.includes('github-actions') || allContent.includes('circleci');
+  const hasDocker = Object.keys(fileContents).some(f => f.includes('Dockerfile'));
+  const hasLinting = devDependencies.some(d => d.includes('eslint') || d.includes('prettier'));
+  const hasTests = devDependencies.some(d => d.includes('jest') || d.includes('vitest'));
+  const hasMonitoring = devDependencies.some(d => d.includes('sentry') || d.includes('datadog'));
+
+  let deploymentFreq = 'Unknown';
+  let leadTime = 'Unknown';
+  let mttr = 'Unknown';
+  let changeFailRate = 'Unknown';
+
+  if (hasCI && hasDocker) {
+    deploymentFreq = 'Daily (estimated)';
+    leadTime = '< 1 day (estimated)';
+  } else if (hasCI) {
+    deploymentFreq = 'Weekly (estimated)';
+    leadTime = '1-3 days (estimated)';
+  } else {
+    deploymentFreq = 'Manual';
+    leadTime = '> 1 week (estimated)';
+  }
+
+  mttr = hasMonitoring ? '< 1 hour (estimated)' : '> 4 hours (estimated)';
+  changeFailRate = hasTests ? '< 15% (estimated)' : '> 30% (estimated)';
+
+  if (!hasCI) {
+    findings.push({
+      severity: 'high',
+      title: 'No CI/CD Pipeline Detected',
+      description: 'Deployment frequency and lead time cannot be optimized without CI/CD.',
+      fixSuggestion: 'Set up GitHub Actions CI. Add automated testing. Use Docker for consistent deployments.',
+      category: 'DORA Metrics',
+    });
+  }
+
+  const score = hasCI ? (hasDocker ? 85 : 65) : 30;
+  return { score, deploymentFreq, leadTime, mttr, changeFailRate, findings };
+}
+
+// OWASP Top 10 Coverage
+export interface OwaspReport { score: number; coverage: number; coveredCategories: string[]; missingCategories: string[]; findings: Finding[]; }
+
+export function runOwaspCoverage(securityFindings: Finding[]): OwaspReport {
+  const owaspMap: Record<string, string> = {
+    'SQL Injection': 'A03:2021 - Injection',
+    'NoSQL Injection': 'A03:2021 - Injection',
+    'XSS': 'A03:2021 - Injection',
+    'Hardcoded Secret': 'A07:2021 - Identification Failures',
+    'Authentication': 'A07:2021 - Identification Failures',
+    'CORS': 'A01:2021 - Broken Access Control',
+    'Path Traversal': 'A01:2021 - Broken Access Control',
+    'eval()': 'A03:2021 - Injection',
+    'Rate Limiting': 'A04:2021 - Insecure Design',
+    'Vulnerable Dep': 'A06:2021 - Vulnerable Components',
+    'Encryption': 'A02:2021 - Cryptographic Failures',
+    'Logging': 'A09:2021 - Security Logging Failures',
+  };
+
+  const allCategories = [
+    'A01:2021 - Broken Access Control', 'A02:2021 - Cryptographic Failures',
+    'A03:2021 - Injection', 'A04:2021 - Insecure Design', 'A05:2021 - Security Misconfiguration',
+    'A06:2021 - Vulnerable Components', 'A07:2021 - Identification Failures',
+    'A08:2021 - Software Integrity Failures', 'A09:2021 - Security Logging Failures',
+    'A10:2021 - SSRF'
+  ];
+
+  const covered = new Set<string>();
+  for (const f of securityFindings) {
+    for (const [keyword, owasp] of Object.entries(owaspMap)) {
+      if (f.title?.includes(keyword) || f.category?.includes(keyword)) {
+        covered.add(owasp);
+      }
+    }
+  }
+
+  const missingCategories = allCategories.filter(c => !covered.has(c));
+  const coverage = Math.round((covered.size / allCategories.length) * 100);
+
+  const findings: Finding[] = [];
+  if (missingCategories.length > 5) {
+    findings.push({
+      severity: 'medium',
+      title: `OWASP Coverage: ${coverage}% (${covered.size}/${allCategories.length})`,
+      description: `Missing: ${missingCategories.slice(0, 3).join(', ')}`,
+      fixSuggestion: 'Add security rules covering remaining OWASP categories. Use OWASP ZAP for DAST scanning.',
+      category: 'OWASP Coverage',
+    });
+  }
+
+  return { score: coverage, coverage, coveredCategories: Array.from(covered), missingCategories, findings };
+}

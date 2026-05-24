@@ -22,6 +22,12 @@ import {
   runChaosAnalysis,
   runMutationAnalysis,
   runPredictiveAnalysis,
+  runSupplyChainAudit,
+  runNPlusOneDetection,
+  runDeadCodeAnalysis,
+  runLicenseCheck,
+  runDoraEstimation,
+  runOwaspCoverage,
 } from './analyzers/advanced-analyzer.js';
 
 const PORT = Number(process.env.TESTFORGE_MCP_PORT) || 3001;
@@ -112,6 +118,14 @@ async function main() {
       const chaosReport = await runChaosAnalysis(codebase.fileContents, codebase.dependencies, codebase.techStack);
       const mutationReport = await runMutationAnalysis(codebase.fileContents, codebase.devDependencies, codebase.totalFiles, codebase.totalLines);
       const predictiveReport = await runPredictiveAnalysis(codebase.fileContents, codebase.dependencies, codebase.devDependencies);
+
+      // ── Phase 2 Deep Enhancements ────────────────────────────────────
+      const supplyChainReport = runSupplyChainAudit(codebase.dependencies, codebase.devDependencies);
+      const nPlusOneReport = runNPlusOneDetection(codebase.fileContents);
+      const deadCodeReport = runDeadCodeAnalysis(codebase.fileContents, codebase.dependencies);
+      const licenseReport = runLicenseCheck(codebase.dependencies);
+      const doraReport = runDoraEstimation(codebase.fileContents, codebase.devDependencies);
+      const owaspReport = runOwaspCoverage(securityFindings as any);
 
       // Clean up
       rmSync(projectPath, { recursive: true, force: true });
@@ -212,6 +226,42 @@ async function main() {
           riskLevel: predictiveReport.riskLevel,
           predictedFailures: predictiveReport.predictedFailures,
           findings: predictiveReport.findings,
+        },
+        supplyChain: {
+          score: supplyChainReport.score,
+          knownVulnerable: supplyChainReport.knownVulnerable,
+          criticalVulns: supplyChainReport.criticalVulns,
+          findings: supplyChainReport.findings,
+        },
+        nPlusOne: {
+          score: nPlusOneReport.score,
+          potentialNPlusOne: nPlusOneReport.potentialNPlusOne,
+          findings: nPlusOneReport.findings,
+        },
+        deadCode: {
+          score: deadCodeReport.score,
+          unusedDeps: deadCodeReport.unusedDeps,
+          deadFunctions: deadCodeReport.deadFunctions,
+          findings: deadCodeReport.findings,
+        },
+        license: {
+          score: licenseReport.score,
+          copyleftDeps: licenseReport.copyleftDeps,
+          findings: licenseReport.findings,
+        },
+        dora: {
+          score: doraReport.score,
+          deploymentFreq: doraReport.deploymentFreq,
+          leadTime: doraReport.leadTime,
+          mttr: doraReport.mttr,
+          changeFailRate: doraReport.changeFailRate,
+          findings: doraReport.findings,
+        },
+        owasp: {
+          coverage: owaspReport.coverage,
+          coveredCategories: owaspReport.coveredCategories,
+          missingCategories: owaspReport.missingCategories,
+          findings: owaspReport.findings,
         },
       });
     } catch (err: any) {
