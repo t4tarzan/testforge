@@ -25,6 +25,7 @@ interface AuthState {
 
 interface AuthContextValue extends AuthState {
   login: (email: string, password: string) => Promise<void>;
+  loginWithGitHub: () => void;
   logout: () => void;
 }
 
@@ -105,13 +106,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // GitHub OAuth redirect
+  const loginWithGitHub = useCallback(() => {
+    window.location.href = '/api/auth/callback';
+  }, []);
+
+  // Handle GitHub OAuth callback (user data in URL hash)
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash) return;
+    const match = hash.match(/github_user=([^&]+)/);
+    if (!match) return;
+    try {
+      const githubUser = JSON.parse(decodeURIComponent(match[1]));
+      const user: User = {
+        id: githubUser.id,
+        name: githubUser.name,
+        email: githubUser.email,
+        avatar: githubUser.login?.substring(0, 2).toUpperCase() || 'GH',
+        plan: 'standard',
+        creditsUsed: 0, creditsTotal: 2000, testsRun: 0, passRate: 0, repos: 0,
+      };
+      setState({ user, isAuthenticated: true, isLoading: false });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ user }));
+      window.history.replaceState(null, '', '/#/account');
+    } catch {}
+  }, []);
+
   const logout = useCallback(() => {
     setState({ user: null, isAuthenticated: false, isLoading: false });
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ ...state, login, logout }}>
+    <AuthContext.Provider value={{ ...state, login, loginWithGitHub, logout }}>
       {children}
     </AuthContext.Provider>
   );
