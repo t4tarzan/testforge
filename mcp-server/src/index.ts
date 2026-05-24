@@ -375,6 +375,34 @@ if (command === 'install') {
 
 if (command === 'serve' || command === 'start' || !command) {
   main().catch(console.error);
+} else if (command === 'score') {
+  // CLI score command — returns single score for CI/CD
+  const repoUrl = args[1];
+  if (!repoUrl) {
+    console.log('Usage: npx @whitenoisenpm/testforge-mcp score <repo-url>');
+    console.log('Example: npx @whitenoisenpm/testforge-mcp score https://github.com/user/repo');
+    process.exit(1);
+  }
+  try {
+    const res = await fetch(`http://localhost:${PORT}/clone-and-analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ repoUrl, branch: 'main' }),
+    });
+    const data = await res.json();
+    const score = Math.round(
+      (data.vision?.score || 50) * 0.15 + (data.stack?.score || 60) * 0.1 +
+      Math.max(0, 100 - (data.security?.critical || 0) * 20) * 0.2 +
+      (data.unit?.coverage || 50) * 0.1 + (data.accessibility?.score || 70) * 0.1 +
+      (data.contract?.score || 50) * 0.1 + (data.chaos?.score || 50) * 0.1 +
+      (data.predictive?.score || 50) * 0.15
+    );
+    console.log(score);
+    process.exit(score >= 70 ? 0 : 1);
+  } catch (e) {
+    console.error(e.message);
+    process.exit(2);
+  }
 } else {
   console.log(`Usage: npx @whitenoisenpm/testforge-mcp [command]`);
   console.log(`  serve    Start the MCP server (default)`);
