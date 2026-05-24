@@ -20,7 +20,7 @@ const navGroups = [
   },
   {
     header: 'INSTALLATION',
-    items: ['Web Platform', 'CLI Installation', 'MCP Server', 'Docker'],
+    items: ['Web Platform', 'CLI Installation', 'MCP IDE Setup', 'Self-Hosted (Fly.io)', 'MCP Server', 'Docker'],
   },
   {
     header: 'CONFIGURATION',
@@ -37,6 +37,8 @@ const navGroups = [
       'Test Types Overview',
       'Security Testing',
       'Performance Testing',
+      'MCP Usage Guide',
+      'Container Deployment',
       'Custom Rules',
     ],
   },
@@ -288,6 +290,14 @@ function DocContent({ pageId }: { pageId: string }) {
       return <TroubleshootingPage />;
     case 'changelog':
       return <ChangelogPage />;
+    case 'mcp-ide-setup':
+      return <McpIdeSetupPage />;
+    case 'self-hosted-flyio':
+      return <SelfHostedFlyioPage />;
+    case 'mcp-usage-guide':
+      return <McpUsageGuidePage />;
+    case 'container-deployment':
+      return <ContainerDeploymentPage />;
     default:
       return <OverviewPage />;
   }
@@ -1787,6 +1797,347 @@ function RightTOC({ headings }: { headings: string[] }) {
           })}
         </nav>
       </div>
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────
+   PAGE CONTENT: MCP IDE SETUP
+   ──────────────────────────────────────────── */
+function McpIdeSetupPage() {
+  return (
+    <div className="space-y-10">
+      <div>
+        <p className="text-label-mono text-[#5A8F5E] mb-3">// INSTALLATION</p>
+        <h1 className="text-display-md text-[#1A1A1A] mb-2">MCP IDE Setup</h1>
+        <p className="text-body-lg text-[#6B6B6B]">
+          Install the TestForge MCP server in your IDE for AI-powered testing directly from your editor.
+        </p>
+      </div>
+
+      <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
+        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">What is MCP?</h2>
+        <p className="text-body-md text-[#6B6B6B] mb-4">
+          The <strong>Model Context Protocol (MCP)</strong> is an open standard that enables AI coding assistants (like Cursor, Claude Code, Windsurf) to communicate with external tools. TestForge implements MCP so your AI assistant can run tests, analyze code, and generate reports — without leaving your IDE.
+        </p>
+      </section>
+
+      <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
+        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">One-Command Installation</h2>
+        <div className="bg-[#1A1A1A] rounded-lg p-4 font-mono text-sm text-[#A3C9A5] overflow-x-auto mb-4">
+          npx @testforge/mcp install
+        </div>
+        <p className="text-body-md text-[#6B6B6B] mb-4">
+          This automatically detects your IDE and configures the MCP connection. TestForge supports:
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {['Cursor', 'VS Code', 'Windsurf', 'Claude Code', 'Trae', 'Zed'].map(ide => (
+            <div key={ide} className="border border-[#D9D9D3] rounded-lg p-3 text-center text-sm font-medium text-[#333333]">
+              {ide}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
+        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Manual Setup (Cursor)</h2>
+        <ol className="space-y-4 text-body-md text-[#6B6B6B]">
+          <li className="flex gap-3">
+            <span className="font-mono text-[#5A8F5E] font-bold">1.</span>
+            <span>Open Cursor Settings → Features → MCP</span>
+          </li>
+          <li className="flex gap-3">
+            <span className="font-mono text-[#5A8F5E] font-bold">2.</span>
+            <span>Click <strong>Add New MCP Server</strong></span>
+          </li>
+          <li className="flex gap-3">
+            <span className="font-mono text-[#5A8F5E] font-bold">3.</span>
+            <span>Configure with the following JSON:</span>
+          </li>
+        </ol>
+        <div className="bg-[#1A1A1A] rounded-lg p-4 font-mono text-sm mt-4 overflow-x-auto">
+          <pre className="text-[#A3C9A5]">{`{\n  "mcpServers": {\n    "testforge": {\n      "command": "npx",\n      "args": ["-y", "@testforge/mcp", "serve"],\n      "env": {\n        "TESTFORGE_MCP_PORT": "3001"\n      }\n    }\n  }\n}`}</pre>
+        </div>
+      </section>
+
+      <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
+        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Available MCP Tools</h2>
+        <div className="space-y-3">
+          {[
+            { tool: 'testforge_analyze', desc: 'Scan your codebase for endpoints, dependencies, tech stack, and structure' },
+            { tool: 'testforge_test', desc: 'Run the full 13-dimension test suite across your project' },
+            { tool: 'testforge_quick_scan', desc: 'Fast 30-second security + unit test scan' },
+            { tool: 'testforge_report', desc: 'Generate a structured PRD report from test results' },
+          ].map(t => (
+            <div key={t.tool} className="border border-[#D9D9D3] rounded-lg p-4">
+              <code className="font-mono text-sm text-[#5A8F5E] font-medium">{t.tool}</code>
+              <p className="text-body-md text-[#6B6B6B] mt-1">{t.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
+        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Example: Test Your Project</h2>
+        <p className="text-body-md text-[#6B6B6B] mb-4">Once installed, just ask your AI assistant:</p>
+        <div className="bg-[#E8F0E8] border border-[#A3C9A5] rounded-lg p-4 text-body-md text-[#333333]">
+          "Run a security scan on this project"
+        </div>
+        <p className="text-body-md text-[#6B6B6B] mt-4">Or more specifically:</p>
+        <div className="bg-[#E8F0E8] border border-[#A3C9A5] rounded-lg p-4 text-body-md text-[#333333] mt-2">
+          "Test this project for security issues, check unit test coverage, and generate a PRD report"
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────
+   PAGE CONTENT: SELF-HOSTED (FLY.IO)
+   ──────────────────────────────────────────── */
+function SelfHostedFlyioPage() {
+  return (
+    <div className="space-y-10">
+      <div>
+        <p className="text-label-mono text-[#5A8F5E] mb-3">// INSTALLATION</p>
+        <h1 className="text-display-md text-[#1A1A1A] mb-2">Self-Hosted on Fly.io</h1>
+        <p className="text-body-lg text-[#6B6B6B]">
+          Deploy your own TestForge MCP server on Fly.io — your code never leaves your infrastructure.
+        </p>
+      </div>
+
+      <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
+        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Why Self-Host?</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {[
+            { icon: '🔒', title: 'Privacy First', desc: 'Your source code never leaves your machine. All analysis happens in your container.' },
+            { icon: '⚡', title: 'Low Latency', desc: 'Deploy in your preferred region for sub-50ms response times.' },
+            { icon: '💰', title: 'Cost Control', desc: 'Fly.io offers $5/month free credits. Scale as needed, pay only for what you use.' },
+            { icon: '🎛️', title: 'Full Control', desc: 'Customize analyzers, set your own resource limits, manage your own data.' },
+          ].map(f => (
+            <div key={f.title} className="border border-[#D9D9D3] rounded-lg p-4">
+              <div className="text-2xl mb-2">{f.icon}</div>
+              <h3 className="font-medium text-[#1A1A1A] mb-1">{f.title}</h3>
+              <p className="text-sm text-[#6B6B6B]">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
+        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Quick Deploy (5 minutes)</h2>
+        <div className="space-y-6">
+          <div>
+            <p className="font-mono text-xs text-[#5A8F5E] uppercase tracking-wider mb-2">Step 1: Clone the Repository</p>
+            <div className="bg-[#1A1A1A] rounded-lg p-4 font-mono text-sm text-[#A3C9A5] overflow-x-auto">
+              git clone https://github.com/t4tarzan/testforge.git<br/>
+              cd testforge/mcp-server
+            </div>
+          </div>
+          <div>
+            <p className="font-mono text-xs text-[#5A8F5E] uppercase tracking-wider mb-2">Step 2: Install Fly.io CLI</p>
+            <div className="bg-[#1A1A1A] rounded-lg p-4 font-mono text-sm text-[#A3C9A5] overflow-x-auto">
+              curl -L https://fly.io/install.sh | sh
+            </div>
+          </div>
+          <div>
+            <p className="font-mono text-xs text-[#5A8F5E] uppercase tracking-wider mb-2">Step 3: Login & Deploy</p>
+            <div className="bg-[#1A1A1A] rounded-lg p-4 font-mono text-sm text-[#A3C9A5] overflow-x-auto">
+              flyctl auth login<br/>
+              flyctl launch --now
+            </div>
+          </div>
+          <div>
+            <p className="font-mono text-xs text-[#5A8F5E] uppercase tracking-wider mb-2">Step 4: Verify</p>
+            <div className="bg-[#1A1A1A] rounded-lg p-4 font-mono text-sm text-[#A3C9A5] overflow-x-auto">
+              curl https://your-app.fly.dev/health
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
+        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Configuration</h2>
+        <p className="text-body-md text-[#6B6B6B] mb-4">Set these environment variables in your Fly.io app:</p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[#D9D9D3]">
+                <th className="text-left py-2 px-3 font-mono text-[#5A8F5E]">Variable</th>
+                <th className="text-left py-2 px-3 font-mono text-[#5A8F5E]">Default</th>
+                <th className="text-left py-2 px-3 font-mono text-[#5A8F5E]">Description</th>
+              </tr>
+            </thead>
+            <tbody className="text-[#6B6B6B]">
+              <tr className="border-b border-[#D9D9D3]"><td className="py-2 px-3 font-mono">TESTFORGE_MCP_PORT</td><td className="py-2 px-3">3001</td><td className="py-2 px-3">Server port</td></tr>
+              <tr className="border-b border-[#D9D9D3]"><td className="py-2 px-3 font-mono">DATABASE_URL</td><td className="py-2 px-3">-</td><td className="py-2 px-3">Neon PostgreSQL connection string</td></tr>
+              <tr className="border-b border-[#D9D9D3]"><td className="py-2 px-3 font-mono">TMP_DIR</td><td className="py-2 px-3">/tmp/testforge-repos</td><td className="py-2 px-3">Temp directory for cloned repos</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
+        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Your Server Endpoints</h2>
+        <div className="space-y-3">
+          {[
+            { method: 'GET', path: '/health', desc: 'Health check — verify your server is running' },
+            { method: 'POST', path: '/clone-and-analyze', desc: 'Clone a git repo and run full analysis' },
+            { method: 'POST', path: '/analyze', desc: 'Analyze a local project path' },
+            { method: 'POST', path: '/test', desc: 'Start a test suite run' },
+            { method: 'GET', path: '/test/:id/progress', desc: 'Get test run progress/status' },
+            { method: 'GET', path: '/report/:id', desc: 'Get a generated test report' },
+          ].map(e => (
+            <div key={e.path} className="flex items-start gap-3 border border-[#D9D9D3] rounded-lg p-3">
+              <span className="font-mono text-xs px-2 py-0.5 rounded bg-[#E8F0E8] text-[#5A8F5E] font-medium flex-shrink-0">{e.method}</span>
+              <div><code className="font-mono text-sm text-[#1A1A1A]">{e.path}</code><p className="text-sm text-[#6B6B6B]">{e.desc}</p></div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────
+   PAGE CONTENT: MCP USAGE GUIDE
+   ──────────────────────────────────────────── */
+function McpUsageGuidePage() {
+  return (
+    <div className="space-y-10">
+      <div>
+        <p className="text-label-mono text-[#5A8F5E] mb-3">// GUIDES</p>
+        <h1 className="text-display-md text-[#1A1A1A] mb-2">MCP Usage Guide</h1>
+        <p className="text-body-lg text-[#6B6B6B]">
+          Learn how to use TestForge through the MCP protocol — automate testing from your IDE, CI/CD, or any MCP-compatible client.
+        </p>
+      </div>
+
+      <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
+        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Quick Start Flow</h2>
+        <div className="space-y-4">
+          {[
+            { step: '1', title: 'Install MCP Server', cmd: 'npx @testforge/mcp install' },
+            { step: '2', title: 'Open Your Project in Cursor/VS Code', cmd: 'code .' },
+            { step: '3', title: 'Ask Your AI Assistant', cmd: '"Analyze this project for security vulnerabilities"' },
+            { step: '4', title: 'Review Results in IDE', desc: 'Findings appear inline with file paths and line numbers' },
+            { step: '5', title: 'Generate Report', cmd: '"Generate a PRD from the test results"' },
+          ].map(s => (
+            <div key={s.step} className="flex gap-4 border border-[#D9D9D3] rounded-lg p-4">
+              <div className="w-8 h-8 rounded-full bg-[#5A8F5E] text-white flex items-center justify-center font-bold text-sm flex-shrink-0">{s.step}</div>
+              <div>
+                <h3 className="font-medium text-[#1A1A1A]">{s.title}</h3>
+                {s.cmd && <div className="bg-[#E8F0E8] rounded px-3 py-1.5 mt-2 font-mono text-sm text-[#333333]">{s.cmd}</div>}
+                {s.desc && <p className="text-sm text-[#6B6B6B] mt-1">{s.desc}</p>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
+        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">MCP Protocol Endpoints</h2>
+        <p className="text-body-md text-[#6B6B6B] mb-4">If you want to integrate TestForge with your own MCP client, here are the available tools:</p>
+        <div className="space-y-3">
+          {[
+            { tool: 'testforge_analyze', params: '{ projectPath: string }', returns: 'CodebaseInfo (files, endpoints, dependencies, tech stack)' },
+            { tool: 'testforge_test', params: '{ projectPath: string, dimensions?: string[], branch?: string }', returns: '{ testRunId, status, streamUrl }' },
+            { tool: 'testforge_quick_scan', params: '{ projectPath: string }', returns: '{ testRunId } (runs in background, streams via SSE)' },
+            { tool: 'testforge_report', params: '{ testRunId: string, format?: "json"|"markdown" }', returns: 'Structured PRD report with phases' },
+          ].map(t => (
+            <div key={t.tool} className="border border-[#D9D9D3] rounded-lg p-4">
+              <code className="font-mono text-sm text-[#5A8F5E] font-medium">{t.tool}</code>
+              <div className="mt-2 text-sm"><span className="text-[#9A9A9A]">Params: </span><code className="text-[#6B6B6B]">{t.params}</code></div>
+              <div className="text-sm mt-1"><span className="text-[#9A9A9A]">Returns: </span><span className="text-[#6B6B6B]">{t.returns}</span></div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
+        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Real-Time Progress with SSE</h2>
+        <p className="text-body-md text-[#6B6B6B] mb-4">TestForge streams progress updates via Server-Sent Events:</p>
+        <div className="bg-[#1A1A1A] rounded-lg p-4 font-mono text-sm text-[#A3C9A5] overflow-x-auto">
+          {`const events = new EventSource('http://localhost:3001/mcp/sse');\nevents.onmessage = (event) => {\n  const data = JSON.parse(event.data);\n  console.log(data.type, data.stage, data.progress + '%');\n};`}
+        </div>
+      </section>
+
+      <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
+        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">CI/CD Integration via MCP</h2>
+        <p className="text-body-md text-[#6B6B6B] mb-4">Call TestForge MCP tools from your CI/CD pipeline:</p>
+        <div className="bg-[#1A1A1A] rounded-lg p-4 font-mono text-sm text-[#A3C9A5] overflow-x-auto">
+          {`- name: TestForge Security Scan\n  run: |\n    curl -X POST https://your-server.fly.dev/analyze \\\\\\n      -H "Content-Type: application/json" \\\\\\n      -d '{"projectPath": "."}'`}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────
+   PAGE CONTENT: CONTAINER DEPLOYMENT
+   ──────────────────────────────────────────── */
+function ContainerDeploymentPage() {
+  return (
+    <div className="space-y-10">
+      <div>
+        <p className="text-label-mono text-[#5A8F5E] mb-3">// GUIDES</p>
+        <h1 className="text-display-md text-[#1A1A1A] mb-2">Container Deployment</h1>
+        <p className="text-body-lg text-[#6B6B6B]">
+          Deploy TestForge MCP server as a container — works with Fly.io, Docker, Railway, Render, or any container platform.
+        </p>
+      </div>
+
+      <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
+        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Docker Deployment</h2>
+        <div className="bg-[#1A1A1A] rounded-lg p-4 font-mono text-sm text-[#A3C9A5] overflow-x-auto">
+          {`docker build -t testforge-mcp .\ndocker run -p 3001:3001 \\\\\\n  -e DATABASE_URL=your_neon_url \\\\\\n  testforge-mcp`}
+        </div>
+      </section>
+
+      <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
+        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Docker Compose (with DB)</h2>
+        <div className="bg-[#1A1A1A] rounded-lg p-4 font-mono text-sm text-[#A3C9A5] overflow-x-auto">
+          {`version: '3.8'\nservices:\n  testforge:\n    build: ./mcp-server\n    ports:\n      - "3001:3001"\n    environment:\n      - DATABASE_URL=postgresql://user:pass@db:5432/testforge\n  db:\n    image: postgres:16\n    environment:\n      - POSTGRES_USER=user\n      - POSTGRES_PASSWORD=pass\n      - POSTGRES_DB=testforge`}
+        </div>
+      </section>
+
+      <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
+        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Other Container Platforms</h2>
+        <div className="space-y-4">
+          {[
+            { platform: 'Railway', steps: '1. Create new service → Deploy from GitHub repo\n2. Set DATABASE_URL env var\n3. Railway auto-detects Dockerfile and deploys' },
+            { platform: 'Render', steps: '1. New Web Service → Connect GitHub repo\n2. Select Docker runtime\n3. Set port to 3001 and add env vars' },
+            { platform: 'Google Cloud Run', steps: '1. gcloud builds submit --tag gcr.io/PROJECT/testforge\n2. gcloud run deploy --image gcr.io/PROJECT/testforge --port 3001\n3. Set DATABASE_URL via Secret Manager' },
+            { platform: 'AWS ECS / Fargate', steps: '1. Push image to ECR\n2. Create ECS task definition with port 3001\n3. Create Fargate service with DATABASE_URL secret' },
+          ].map(p => (
+            <div key={p.platform} className="border border-[#D9D9D3] rounded-lg p-4">
+              <h3 className="font-medium text-[#1A1A1A] mb-2">{p.platform}</h3>
+              <pre className="text-sm text-[#6B6B6B] whitespace-pre-line font-body">{p.steps}</pre>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
+        <h2 className="text-heading-sm text-[#1A1A1A] mb-4">Resource Requirements</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[#D9D9D3]">
+                <th className="text-left py-2 px-3 font-mono text-[#5A8F5E]">Resource</th>
+                <th className="text-left py-2 px-3 font-mono text-[#5A8F5E]">Minimum</th>
+                <th className="text-left py-2 px-3 font-mono text-[#5A8F5E]">Recommended</th>
+              </tr>
+            </thead>
+            <tbody className="text-[#6B6B6B]">
+              <tr className="border-b border-[#D9D9D3]"><td className="py-2 px-3">CPU</td><td className="py-2 px-3">0.5 vCPU</td><td className="py-2 px-3">1 vCPU</td></tr>
+              <tr className="border-b border-[#D9D9D3]"><td className="py-2 px-3">RAM</td><td className="py-2 px-3">512 MB</td><td className="py-2 px-3">1 GB</td></tr>
+              <tr className="border-b border-[#D9D9D3]"><td className="py-2 px-3">Disk</td><td className="py-2 px-3">1 GB</td><td className="py-2 px-3">5 GB</td></tr>
+              <tr><td className="py-2 px-3">Network</td><td className="py-2 px-3">Outbound only</td><td className="py-2 px-3">Public (for git cloning)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   );
 }
