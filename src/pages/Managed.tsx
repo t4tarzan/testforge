@@ -28,11 +28,24 @@ export default function ManagedTesting() {
   const [error, setError] = useState('');
   const [results, setResults] = useState<any>(null);
 
+  const stages = ['Cloning repository', 'Scanning codebase', 'Security analysis', 'Unit test analysis', 'Load analysis', 'Accessibility check', 'Vision & goals', 'Strategic dimensions', 'Generating report'];
+  const [stageIndex, setStageIndex] = useState(0);
+
   const handleAnalyze = async () => {
     if (!repoUrl.trim()) return;
     setLoading(true);
     setError('');
     setResults(null);
+    setStageIndex(0);
+
+    // Animate through stages
+    const stageInterval = setInterval(() => {
+      setStageIndex(i => {
+        if (i < stages.length - 1) return i + 1;
+        clearInterval(stageInterval);
+        return i;
+      });
+    }, 1500);
 
     try {
       const res = await fetch(`${MCP_URL}/clone-and-analyze`, {
@@ -40,9 +53,12 @@ export default function ManagedTesting() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ repoUrl: repoUrl.trim(), branch: 'main' }),
       });
+      clearInterval(stageInterval);
+      setStageIndex(stages.length);
       if (!res.ok) throw new Error((await res.json().catch(() => ({ error: 'Failed' }))).error || 'Server error');
       setResults(await res.json());
     } catch (e: any) {
+      clearInterval(stageInterval);
       setError(e.message);
     } finally {
       setLoading(false);
@@ -138,6 +154,38 @@ export default function ManagedTesting() {
               </div>
             ))}
           </motion.div>
+
+          {/* Stage Progress */}
+          {loading && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mt-8 max-w-[600px] mx-auto"
+            >
+              <div className="bg-[#1E1B2E] border border-[#3A3A3A] rounded-xl p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Loader2 size={18} className="animate-spin text-[#a99bff]" />
+                  <span className="text-white font-medium">{stages[Math.min(stageIndex, stages.length - 1)]}...</span>
+                </div>
+                <div className="space-y-2">
+                  {stages.map((s, i) => (
+                    <div key={s} className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                        i < stageIndex ? 'bg-[#574a7d]' : i === stageIndex ? 'bg-[#a99bff] animate-pulse' : 'bg-[#3A3A3A]'
+                      }`} />
+                      <span className={`text-xs ${i <= stageIndex ? 'text-[#a99bff]' : 'text-[#6B6B6B]'}`}>{s}</span>
+                      {i <= stageIndex && i === stageIndex && (
+                        <span className="text-[10px] text-[#574a7d] font-mono">running</span>
+                      )}
+                      {i < stageIndex && (
+                        <span className="text-[10px] text-[#574a7d] font-mono">✓</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
         </div>
       </section>
 
