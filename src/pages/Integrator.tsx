@@ -151,6 +151,8 @@ function ComparisonIcon({ type }: { type: string }) {
 function HeroSection() {
   return (
     <section className="relative min-h-[100dvh] flex items-center px-6 lg:px-16 pt-[140px] pb-[100px] overflow-hidden bg-[#12101A]">
+      {/* Light gradient strip at top so navbar is visible */}
+      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#F7F7FB] via-[#F7F7FB]/60 to-transparent z-0 pointer-events-none" />
       <NeuralNetworkCanvas />
 
       <div className="relative z-10 max-w-[1280px] mx-auto w-full">

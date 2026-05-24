@@ -183,6 +183,8 @@ function HeroSection({ analysisData }: { analysisData: AnalysisResults | null })
 
   return (
     <section ref={heroRef} className="relative w-full bg-[#12101A] overflow-hidden">
+      {/* Light gradient strip at top so navbar is visible */}
+      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#F7F7FB] via-[#F7F7FB]/60 to-transparent z-0 pointer-events-none" />
       <div className="bg-grid-pattern-dark absolute inset-0 pointer-events-none" />
       <div className="container-tf relative z-10 pt-[140px] pb-[60px] lg:pt-[160px]">
         <SectionLabel text="ANALYTICS & INSIGHTS" light />
