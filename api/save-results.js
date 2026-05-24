@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     }
 
     // Save test run
-    const runId = 'run_' + Date.now().toString(36);
+    const runId = require('crypto').randomUUID();
     const secFindings = body.security?.findings || 0;
     await db`
       INSERT INTO test_runs (id, project_id, branch, status, overall_score, total_findings, critical_count, high_count, medium_count, low_count, started_at, completed_at, config)
