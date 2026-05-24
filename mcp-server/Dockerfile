@@ -1,6 +1,9 @@
 # Fly.io Dockerfile for TestForge MCP Server
 FROM node:22-slim
 
+# Install git for repo cloning
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Install dependencies
