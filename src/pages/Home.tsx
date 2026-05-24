@@ -327,8 +327,8 @@ export default function Home() {
   const renderAnimatedHeadline = () => {
     const lines = [
       ['10x your AI-native', '#333333'],
-      ['dev speed with auto-', '#5A8F5E'],
-      ['nomous', '#5A8F5E'],
+      ['dev speed with', '#333333'],
+      ['autonomous', '#5A8F5E'],
       ['testing & verification', '#333333'],
     ]
     let charIndex = 0
