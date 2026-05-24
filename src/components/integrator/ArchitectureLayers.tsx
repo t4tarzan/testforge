@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
-import { Database, Cpu, GitBranch, ShieldCheck } from 'lucide-react'
+import { Database, Cpu, GitBranch, ShieldCheck, ArrowRight } from 'lucide-react'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -13,265 +13,190 @@ const layers = [
     description: 'Collects test results, build states, dependency graphs, PR metadata, and git history from all connected systems.',
     tags: ['Git Status', 'Test Results', 'Build State', 'Dependencies'],
     icon: Database,
-    borderColor: '#4A90D9',
-    iconColor: '#4A90D9',
+    color: '#4A90D9',
   },
   {
     num: '02',
     title: 'Analysis Engine',
-    description: 'Cross-references all data points to identify conflicts, incompatibilities, and risks. Uses learned organizational patterns to predict integration outcomes.',
+    description: 'Cross-references all data points to identify conflicts, incompatibilities, and risks using learned organizational patterns.',
     tags: ['Conflict Detection', 'Risk Scoring', 'Pattern Matching', 'Impact Analysis'],
     icon: Cpu,
-    borderColor: '#E8A838',
-    iconColor: '#E8A838',
+    color: '#E8A838',
   },
   {
     num: '03',
     title: 'Action Engine',
-    description: 'Generates ranked integration paths with success probability scores. Creates test-validated action plans with step-by-step migration guides.',
+    description: 'Generates ranked integration paths with success probabilities and test-validated action plans.',
     tags: ['Path Ranking', 'Success Probability', 'Migration Plans', 'Auto-PR'],
     icon: GitBranch,
-    borderColor: '#5A8F5E',
-    iconColor: '#5A8F5E',
+    color: '#5A8F5E',
   },
   {
     num: '04',
     title: 'Validation Layer',
-    description: 'Verifies each recommended action against the live codebase. Runs dry-run integrations and confirms no new conflicts are introduced.',
+    description: 'Verifies each recommended action. Runs dry-run integrations and confirms no new conflicts.',
     tags: ['Dry-Run Tests', 'Conflict Verification', 'Rollback Plan', 'Sign-off'],
     icon: ShieldCheck,
-    borderColor: '#5A8F5E',
-    iconColor: '#7AAF7E',
+    color: '#7AAF7E',
   },
 ]
 
 export default function ArchitectureLayers() {
   const sectionRef = useRef<HTMLDivElement>(null)
-  const pinContainerRef = useRef<HTMLDivElement>(null)
 
   useGSAP(() => {
-    if (!sectionRef.current || !pinContainerRef.current) return
+    if (!sectionRef.current) return
 
-    const ctx = gsap.context(() => {
-      // Create the pin
-      ScrollTrigger.create({
+    const cards = gsap.utils.toArray<HTMLElement>('.layer-card-h')
+
+    // Initial: all dimmed
+    gsap.set(cards, { opacity: 0.5, y: 30, scale: 0.97 })
+
+    // Staggered reveal on scroll
+    gsap.to(cards, {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      duration: 0.6,
+      stagger: 0.15,
+      ease: 'power2.out',
+      scrollTrigger: {
         trigger: sectionRef.current,
-        start: 'top top',
-        end: '+=200%',
-        pin: pinContainerRef.current,
-        scrub: 1,
-      })
+        start: 'top 70%',
+        end: 'bottom 30%',
+        toggleActions: 'play none none reverse',
+      },
+    })
 
-      const layerCards = gsap.utils.toArray<HTMLElement>('.layer-card')
-      const layerArrows = gsap.utils.toArray<HTMLElement>('.layer-arrow')
-
-      // Initial state: all layers dimmed
-      layerCards.forEach((card) => {
-        gsap.set(card, {
-          backgroundColor: 'rgba(42, 42, 42, 1)',
-          borderLeftColor: '#3A3A3A',
-          scale: 0.98,
-          opacity: 0.6,
-        })
-      })
-
-      // Create timeline for layer reveals
-      const tl = gsap.timeline({
+    // Animate connector lines
+    const connectors = gsap.utils.toArray<HTMLElement>('.layer-connector')
+    gsap.fromTo(connectors, 
+      { scaleX: 0, opacity: 0 },
+      {
+        scaleX: 1,
+        opacity: 1,
+        duration: 0.8,
+        stagger: 0.2,
+        ease: 'power2.out',
         scrollTrigger: {
           trigger: sectionRef.current,
-          start: 'top top',
-          end: '+=200%',
-          scrub: 1,
+          start: 'top 70%',
+          end: 'bottom 30%',
+          toggleActions: 'play none none reverse',
         },
-      })
-
-      // Progress 0-25%: Layer 1 highlights
-      tl.to(layerCards[0], {
-        backgroundColor: 'rgba(90, 143, 94, 0.08)',
-        borderLeftColor: layers[0].borderColor,
-        scale: 1,
-        opacity: 1,
-        duration: 0.2,
-        ease: 'power2.out',
-      }, 0)
-      tl.fromTo(
-        layerCards[0]?.querySelectorAll('.layer-tag') || [],
-        { opacity: 0, y: 8 },
-        { opacity: 1, y: 0, stagger: 0.02, duration: 0.15 },
-        0.05
-      )
-      tl.to(layerArrows[0], { opacity: 1, duration: 0.05 }, 0.18)
-
-      // Progress 25-50%: Layer 2 highlights
-      tl.to(layerCards[1], {
-        backgroundColor: 'rgba(90, 143, 94, 0.08)',
-        borderLeftColor: layers[1].borderColor,
-        scale: 1,
-        opacity: 1,
-        duration: 0.2,
-        ease: 'power2.out',
-      }, 0.25)
-      tl.fromTo(
-        layerCards[1]?.querySelectorAll('.layer-tag') || [],
-        { opacity: 0, y: 8 },
-        { opacity: 1, y: 0, stagger: 0.02, duration: 0.15 },
-        0.3
-      )
-      tl.to(layerArrows[1], { opacity: 1, duration: 0.05 }, 0.43)
-
-      // Progress 50-75%: Layer 3 highlights
-      tl.to(layerCards[2], {
-        backgroundColor: 'rgba(90, 143, 94, 0.08)',
-        borderLeftColor: layers[2].borderColor,
-        scale: 1,
-        opacity: 1,
-        duration: 0.2,
-        ease: 'power2.out',
-      }, 0.5)
-      tl.fromTo(
-        layerCards[2]?.querySelectorAll('.layer-tag') || [],
-        { opacity: 0, y: 8 },
-        { opacity: 1, y: 0, stagger: 0.02, duration: 0.15 },
-        0.55
-      )
-      tl.to(layerArrows[2], { opacity: 1, duration: 0.05 }, 0.68)
-
-      // Progress 75-100%: Layer 4 highlights
-      tl.to(layerCards[3], {
-        backgroundColor: 'rgba(90, 143, 94, 0.08)',
-        borderLeftColor: layers[3].borderColor,
-        scale: 1,
-        opacity: 1,
-        duration: 0.2,
-        ease: 'power2.out',
-      }, 0.75)
-      tl.fromTo(
-        layerCards[3]?.querySelectorAll('.layer-tag') || [],
-        { opacity: 0, y: 8 },
-        { opacity: 1, y: 0, stagger: 0.02, duration: 0.15 },
-        0.8
-      )
-
-      // Brief glow on all layers at the end
-      tl.to(layerCards, {
-        boxShadow: '0 0 30px rgba(90, 143, 94, 0.2)',
-        duration: 0.08,
-      }, 0.92)
-      tl.to(layerCards, {
-        boxShadow: '0 0 0px rgba(90, 143, 94, 0)',
-        duration: 0.08,
-      }, 1)
-
-      // Particle arrows animation
-      const arrows = gsap.utils.toArray<HTMLElement>('.arrow-particles')
-      arrows.forEach((arrow) => {
-        const dot = arrow.querySelector('.flow-dot')
-        if (dot) {
-          gsap.to(dot, {
-            y: 32,
-            duration: 1.5,
-            repeat: -1,
-            ease: 'none',
-          })
-        }
-      })
-    }, sectionRef)
-
-    return () => ctx.revert()
+      }
+    )
   }, { scope: sectionRef })
 
   return (
-    <div ref={sectionRef} className="relative" style={{ height: '300vh' }}>
-      <div
-        ref={pinContainerRef}
-        className="min-h-[135dvh] flex flex-col items-center justify-center px-6 lg:px-16 py-32 bg-[#1A1A1A] relative"
-      >
-        {/* Grid pattern */}
-        <div className="absolute inset-0 bg-grid-pattern-dark pointer-events-none" />
+    <section ref={sectionRef} className="relative px-6 lg:px-16 py-[120px] bg-[#1A1A1A] overflow-hidden">
+      {/* Grid pattern */}
+      <div className="absolute inset-0 bg-grid-pattern-dark pointer-events-none" />
 
-        <div className="relative z-10 w-full max-w-[1000px] mx-auto">
-          {/* Label */}
-          <div className="text-center mb-12">
-            <p className="text-label-mono text-[#A3C9A5] mb-4">// ARCHITECTURE</p>
-            <h2 className="text-display-lg text-white">
-              Four layers. One <span className="text-[#5A8F5E]">intelligent</span> decision engine.
-            </h2>
-          </div>
+      {/* Glow orbs */}
+      <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full bg-[#5A8F5E] opacity-[0.03] blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full bg-[#4A90D9] opacity-[0.03] blur-[120px] pointer-events-none" />
 
-          {/* Layer Stack */}
-          <div className="flex flex-col gap-0">
-            {layers.map((layer, idx) => {
-              const IconComp = layer.icon
-              return (
-                <div key={layer.num} className="flex flex-col items-center">
-                  {/* Layer Card */}
-                  <div
-                    className="layer-card w-full rounded-xl p-5 lg:p-6 border border-[#3A3A3A]"
-                    style={{
-                      borderLeftWidth: '4px',
-                      borderLeftColor: layer.borderColor,
-                      backdropFilter: 'blur(16px)',
-                    }}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div
-                        className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
-                        style={{ backgroundColor: `${layer.iconColor}15` }}
-                      >
-                        <IconComp size={24} style={{ color: layer.iconColor }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className="font-mono text-xs text-[#6B6B6B]">{layer.num} //</span>
-                          <h3 className="text-heading-sm text-white">{layer.title}</h3>
-                        </div>
-                        <p className="text-body-md text-[#9A9A9A] mb-3">{layer.description}</p>
-                        <div className="flex flex-wrap gap-2">
-                          {layer.tags.map((tag) => (
-                            <span
-                              key={tag}
-                              className="layer-tag font-mono text-[11px] uppercase tracking-wider px-3 py-1 rounded border border-[#3A3A3A] text-[#A3C9A5]"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+      <div className="relative z-10 max-w-[1280px] mx-auto">
+        {/* Label */}
+        <div className="text-center mb-16">
+          <p className="text-label-mono text-[#A3C9A5] mb-4">// ARCHITECTURE</p>
+          <h2 className="text-display-md lg:text-display-lg text-white max-w-[700px] mx-auto">
+            Four layers. One{' '}
+            <span className="text-[#5A8F5E]">intelligent</span> decision engine.
+          </h2>
+        </div>
+
+        {/* Horizontal Layer Flow */}
+        <div className="flex flex-col lg:flex-row items-stretch gap-0">
+          {layers.map((layer, idx) => {
+            const IconComp = layer.icon
+            const isLast = idx === layers.length - 1
+
+            return (
+              <div key={layer.num} className="flex flex-row lg:flex-col items-stretch flex-1">
+                {/* Card */}
+                <div
+                  className="layer-card-h flex-1 rounded-2xl p-5 lg:p-6 flex flex-col"
+                  style={{
+                    backgroundColor: 'rgba(42, 42, 42, 0.8)',
+                    border: '1px solid #3A3A3A',
+                    borderTop: `4px solid ${layer.color}`,
+                    backdropFilter: 'blur(16px)',
+                  }}
+                >
+                  {/* Step number */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <span
+                      className="w-10 h-10 rounded-xl flex items-center justify-center font-mono font-bold text-sm"
+                      style={{ backgroundColor: `${layer.color}20`, color: layer.color }}
+                    >
+                      {layer.num}
+                    </span>
+                    <h3 className="text-heading-sm text-white">{layer.title}</h3>
                   </div>
 
-                  {/* Arrow between layers */}
-                  {idx < layers.length - 1 && (
-                    <div
-                      className="layer-arrow h-10 flex flex-col items-center justify-center opacity-30 my-1"
-                    >
-                      <svg width="24" height="32" viewBox="0 0 24 32" fill="none">
-                        <line
-                          x1="12" y1="0" x2="12" y2="24"
-                          stroke="#5A8F5E"
-                          strokeWidth="1.5"
-                          strokeDasharray="4 3"
-                        />
-                        <polygon
-                          points="6,24 18,24 12,32"
-                          fill="#5A8F5E"
-                          opacity="0.6"
-                        />
-                      </svg>
-                      <div className="arrow-particles absolute">
-                        <div
-                          className="flow-dot w-1.5 h-1.5 rounded-full bg-[#7AAF7E]"
-                          style={{ opacity: 0.8 }}
-                        />
+                  {/* Icon */}
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
+                    style={{ backgroundColor: `${layer.color}15` }}
+                  >
+                    <IconComp size={24} style={{ color: layer.color }} />
+                  </div>
+
+                  {/* Description */}
+                  <p className="text-body-md text-[#9A9A9A] mb-4 flex-1 leading-relaxed">
+                    {layer.description}
+                  </p>
+
+                  {/* Tags */}
+                  <div className="flex flex-wrap gap-2">
+                    {layer.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="layer-tag font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-md border"
+                        style={{ borderColor: '#3A3A3A', color: '#A3C9A5' }}
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Connector arrow between cards (desktop: below, mobile: side) */}
+                {!isLast && (
+                  <>
+                    {/* Horizontal connector for desktop */}
+                    <div className="hidden lg:flex items-center justify-center w-full h-12 relative">
+                      <div className="layer-connector absolute left-0 right-0 h-[2px] bg-gradient-to-r from-[#3A3A3A] via-[#5A8F5E] to-[#3A3A3A] origin-left" />
+                      <div className="relative z-10 w-8 h-8 rounded-full bg-[#2A2A2A] border border-[#5A8F5E] flex items-center justify-center">
+                        <ArrowRight size={14} className="text-[#5A8F5E]" />
                       </div>
                     </div>
-                  )}
-                </div>
-              )
-            })}
+
+                    {/* Vertical connector for mobile */}
+                    <div className="flex lg:hidden items-center justify-center py-2">
+                      <div className="w-[2px] h-10 bg-gradient-to-b from-[#3A3A3A] via-[#5A8F5E] to-[#3A3A3A]" />
+                    </div>
+                  </>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Flow explanation */}
+        <div className="mt-16 text-center">
+          <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full border border-[#3A3A3A] bg-[#2A2A2A]/50">
+            <div className="w-2 h-2 rounded-full bg-[#4A90D9] animate-pulse" />
+            <span className="font-mono text-xs text-[#9A9A9A] uppercase tracking-wider">
+              Data flows left to right through all four layers
+            </span>
+            <ArrowRight size={14} className="text-[#5A8F5E]" />
+            <div className="w-2 h-2 rounded-full bg-[#5A8F5E] animate-pulse" />
           </div>
         </div>
       </div>
-    </div>
+    </section>
   )
 }
