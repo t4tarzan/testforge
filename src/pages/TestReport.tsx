@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import CountUp from 'react-countup';
 import {
   ChevronDown, ChevronUp, Clock, CheckCircle2, AlertTriangle,
   XCircle, FileDown, FileText, FileJson, Shield,
-  Bug, GitBranch
+  Bug, GitBranch, Loader2
 } from 'lucide-react';
 import { SEED_REPORT } from '@/data/seedData';
+import { getReport } from '@/lib/api';
 import type { TestResult, Finding, TestStatus } from '@/data/seedData';
 
 const easeOutExpo = [0.16, 1, 0.3, 1] as [number, number, number, number];
@@ -244,11 +245,60 @@ function StageSection({ result, index }: { result: TestResult; index: number }) 
 // ═══════════════════════════════════════════════════════════════════════════
 export default function TestReport() {
   const { id } = useParams<{ id: string }>();
-  const report = SEED_REPORT;
+  const [report, setReport] = useState(SEED_REPORT);
+  const [loading, setLoading] = useState(false);
   const [exportToast, setExportToast] = useState<string | null>(null);
 
-  // For demo, always use seed data regardless of id param
-  void id;
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    getReport(id)
+      .then((apiReport) => {
+        // Map API report to seed format
+        setReport({
+          id: apiReport.id,
+          overallScore: apiReport.overallScore,
+          repo: { owner: 'example', name: 'express-ecommerce-api' },
+          branch: 'main',
+          commit: 'a1b2c3d',
+          startedAt: apiReport.generatedAt || new Date().toISOString(),
+          completedAt: new Date().toISOString(),
+          totalDuration: 330000,
+          status: 'completed',
+          summary: {
+            passed: 42,
+            warning: apiReport.mediumCount + apiReport.lowCount,
+            failed: apiReport.criticalCount + apiReport.highCount,
+            criticalVulns: apiReport.criticalCount,
+            highVulns: apiReport.highCount,
+            mediumVulns: apiReport.mediumCount,
+            lowVulns: apiReport.lowCount,
+          },
+          testResults: [],
+          prd: {
+            problemStatement: apiReport.title,
+            affectedComponents: (apiReport.phases || []).flatMap(p => p.items.map(i => i.component || '')),
+            phases: (apiReport.phases || []).map((p, pi) => ({
+              phase: pi + 1,
+              name: p.name,
+              priority: p.priority,
+              duration: p.effort,
+              items: p.items.map(i => ({
+                id: i.id,
+                title: i.title,
+                severity: i.severity as 'critical' | 'high' | 'medium' | 'low',
+                effort: '1-2 days',
+              })),
+            })),
+          },
+        } as unknown as typeof SEED_REPORT);
+      })
+      .catch(() => {
+        // Fallback to seed data
+        setReport(SEED_REPORT);
+      })
+      .finally(() => setLoading(false));
+  }, [id]);
 
   const handleExport = (format: string) => {
     setExportToast(`Exporting ${format}...`);
@@ -267,6 +317,13 @@ export default function TestReport() {
   return (
     <div className="min-h-[100dvh] bg-[#F5F5F0]">
       <div className="max-w-[1000px] mx-auto px-4 lg:px-8 py-8">
+        {/* Loading */}
+        {loading && (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 size={32} className="animate-spin text-[#5A8F5E]" />
+          </div>
+        )}
+
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}

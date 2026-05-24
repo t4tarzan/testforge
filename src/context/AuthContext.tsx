@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
+import { loginUser } from '@/lib/api';
 import type { UserPlan } from '@/data/seedData';
 
 export interface User {
@@ -80,16 +81,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timer);
   }, []);
 
-  const login = useCallback(async (_email: string, _password: string) => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    const newState: AuthState = {
-      user: DEMO_USER,
-      isAuthenticated: true,
-      isLoading: false,
-    };
-    setState(newState);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ user: DEMO_USER }));
+  const login = useCallback(async (email: string, password: string) => {
+    try {
+      // Try API first
+      const { user: apiUser } = await loginUser(email, password);
+      const user: User = {
+        ...apiUser,
+        plan: apiUser.plan as UserPlan,
+      };
+      const newState: AuthState = { user, isAuthenticated: true, isLoading: false };
+      setState(newState);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ user }));
+    } catch {
+      // Fallback to demo user
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      const newState: AuthState = {
+        user: { ...DEMO_USER, email },
+        isAuthenticated: true,
+        isLoading: false,
+      };
+      setState(newState);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ user: { ...DEMO_USER, email } }));
+    }
   }, []);
 
   const logout = useCallback(() => {
