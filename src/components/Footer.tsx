@@ -18,27 +18,28 @@ const LogoIconWhite = () => (
 )
 
 const productLinks = [
+  { label: 'Managed', path: '/managed' },
+  { label: 'MCP Integration', path: '/mcp' },
   { label: 'Pipeline', path: '/pipeline' },
   { label: 'The Integrator', path: '/integrator' },
-  { label: 'Testing Dimensions', path: '/testing-dimensions' },
-  { label: 'PRD Generator', path: '/prd-generator' },
   { label: 'Dashboard', path: '/dashboard' },
+  { label: 'Pricing', path: '/pricing' },
 ]
 
 const resourceLinks = [
-  { label: 'Documentation', path: '#' },
-  { label: 'API Reference', path: '#' },
-  { label: 'Changelog', path: '#' },
-  { label: 'Blog', path: '#' },
-  { label: 'Community', path: '#' },
+  { label: 'Documentation', path: '/docs' },
+  { label: 'API Reference', path: '/docs' },
+  { label: 'Test Runner', path: '/run-test' },
+  { label: 'PRD Generator', path: '/prd-generator' },
+  { label: 'Testing Dimensions', path: '/testing-dimensions' },
 ]
 
 const companyLinks = [
-  { label: 'About', path: '#' },
-  { label: 'Careers', path: '#' },
-  { label: 'Contact', path: '#' },
-  { label: 'Privacy Policy', path: '#' },
-  { label: 'Terms', path: '#' },
+  { label: 'GitHub', path: 'https://github.com/t4tarzan/testforge' },
+  { label: 'Fly.io MCP', path: 'https://testforge-mcp.fly.dev' },
+  { label: 'Contact', path: 'https://github.com/t4tarzan/testforge/issues' },
+  { label: 'Changelog', path: '/docs' },
+  { label: 'Status', path: 'https://testforge-mcp.fly.dev/health' },
 ]
 
 export default function Footer() {
@@ -60,10 +61,10 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-[#9A9A9A] text-sm leading-relaxed mb-6">
-              AI-powered autonomous testing for the agentic era.
+              Privacy-first autonomous testing. Harden your codebase, ship with certainty.
             </p>
             <div className="flex items-center gap-4">
-              <a href="#" className="text-[#9A9A9A] hover:text-[#7a6fad] transition-colors duration-200">
+              <a href="https://github.com/t4tarzan/testforge" target="_blank" rel="noopener noreferrer" className="text-[#9A9A9A] hover:text-[#7a6fad] transition-colors duration-200">
                 <Github size={20} />
               </a>
               <a href="#" className="text-[#9A9A9A] hover:text-[#7a6fad] transition-colors duration-200">
@@ -111,12 +112,12 @@ export default function Footer() {
             <ul className="space-y-3">
               {resourceLinks.map((link) => (
                 <li key={link.label}>
-                  <a
-                    href={link.path}
+                  <Link
+                    to={link.path}
                     className="text-[#9A9A9A] text-sm hover:text-[#7a6fad] transition-all duration-200 inline-block hover:translate-x-0.5"
                   >
                     {link.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -135,6 +136,8 @@ export default function Footer() {
                 <li key={link.label}>
                   <a
                     href={link.path}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-[#9A9A9A] text-sm hover:text-[#7a6fad] transition-all duration-200 inline-block hover:translate-x-0.5"
                   >
                     {link.label}
