@@ -5,6 +5,7 @@ import ConnectStep from '@/components/testrunner/ConnectStep';
 import ConfigureStep from '@/components/testrunner/ConfigureStep';
 import ExecuteStep from '@/components/testrunner/ExecuteStep';
 import ReportStep from '@/components/testrunner/ReportStep';
+import { saveAnalysisResults } from '@/lib/analysisStore';
 
 export default function TestRunner() {
   const [currentStep, setCurrentStep] = useState(0);
@@ -13,6 +14,7 @@ export default function TestRunner() {
 
   const handleConnectComplete = useCallback((results: any) => {
     setAnalysisResults(results);
+    saveAnalysisResults(results); // Persist for Dashboard & PRD Generator
     setCompletedSteps([0, 1, 2]);
     setCurrentStep(3); // Skip to report
   }, []);

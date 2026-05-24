@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { getAnalysisResults, type AnalysisResults } from '@/lib/analysisStore'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
@@ -34,7 +35,7 @@ function SectionLabel({ text, light = false }: { text: string; light?: boolean }
 /* ────────────────────────────────────────────
    Hero Section
    ──────────────────────────────────────────── */
-function HeroSection() {
+function HeroSection({ analysisData }: { analysisData: AnalysisResults | null }) {
   const heroRef = useRef<HTMLDivElement>(null)
 
   useGSAP(() => {
@@ -100,6 +101,22 @@ function HeroSection() {
             </div>
           ))}
         </div>
+
+        {analysisData && (
+          <div className="mt-8 flex flex-wrap gap-4">
+            {[
+              { label: 'Repo', value: analysisData.repo?.split('/').pop() },
+              { label: 'Files', value: analysisData.codebase?.totalFiles },
+              { label: 'Findings', value: analysisData.security?.findings },
+              { label: 'Coverage', value: `${analysisData.unit?.coverage || 0}%` },
+            ].map(s => (
+              <motion.div key={s.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white border border-[#D9D9D3] rounded-lg px-4 py-3">
+                <div className="font-bold text-lg text-[#1A1A1A]">{s.value}</div>
+                <div className="text-xs text-[#6B6B6B]">{s.label}</div>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )
@@ -394,7 +411,7 @@ function CheckMini() {
 /* ────────────────────────────────────────────
    Interactive PRD Preview Section
    ──────────────────────────────────────────── */
-function PrdPreviewSection() {
+function PrdPreviewSection({ analysisData }: { analysisData: AnalysisResults | null }) {
   const sectionRef = useRef<HTMLDivElement>(null)
   const [openSection, setOpenSection] = useState<number | null>(0)
 
@@ -527,6 +544,31 @@ function PrdPreviewSection() {
             ))}
           </div>
         </div>
+
+        {/* Real findings from latest analysis */}
+        {analysisData?.security?.items && analysisData.security.items.length > 0 && (
+          <div className="mt-8 max-w-[900px] mx-auto">
+            <p className="font-mono text-xs text-[#5A8F5E] uppercase tracking-wider mb-3">
+              // REAL FINDINGS FROM {analysisData.repo?.split('/').pop()?.toUpperCase()}
+            </p>
+            <div className="space-y-2">
+              {analysisData.security.items.slice(0, 5).map((f, i) => (
+                <div key={i} className="bg-white border border-[#D9D9D3] rounded-lg p-4 flex items-start gap-3">
+                  <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-mono font-medium uppercase flex-shrink-0 ${
+                    f.severity === 'critical' ? 'bg-[rgba(212,82,74,0.1)] text-[#D4524A]' :
+                    f.severity === 'high' ? 'bg-[rgba(232,125,58,0.1)] text-[#E87D3A]' :
+                    'bg-[rgba(232,168,56,0.1)] text-[#E8A838]'
+                  }`}>{f.severity}</span>
+                  <div>
+                    <p className="text-sm font-medium text-[#1A1A1A]">{f.title}</p>
+                    {f.filePath && <p className="text-xs text-[#9A9A9A] font-mono mt-0.5">{f.filePath}{f.lineNumber ? `:${f.lineNumber}` : ''}</p>}
+                    {f.fixSuggestion && <p className="text-xs text-[#5A8F5E] mt-1">Fix: {f.fixSuggestion.slice(0, 120)}...</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   )
@@ -762,11 +804,25 @@ function CTASection() {
    Main Page Component
    ──────────────────────────────────────────── */
 export default function PrdGenerator() {
+  const [analysisData, setAnalysisData] = useState<AnalysisResults | null>(null);
+
+  useEffect(() => {
+    setAnalysisData(getAnalysisResults());
+  }, []);
+
   return (
     <div className="min-h-[100dvh]">
-      <HeroSection />
+      {/* Real data banner */}
+      {analysisData && (
+        <div className="bg-[#E8F0E8] border-b border-[#A3C9A5] px-4 py-2.5 text-center">
+          <span className="font-mono text-xs text-[#5A8F5E]">
+            📊 Real analysis loaded from <strong>{analysisData.repo}</strong> — {analysisData.codebase?.totalFiles || 0} files, {analysisData.security?.findings || 0} findings
+          </span>
+        </div>
+      )}
+      <HeroSection analysisData={analysisData} />
       <FlowSection />
-      <PrdPreviewSection />
+      <PrdPreviewSection analysisData={analysisData} />
       <SeveritySection />
       <ComparisonSection />
       <CTASection />
