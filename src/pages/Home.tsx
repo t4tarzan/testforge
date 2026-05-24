@@ -436,7 +436,7 @@ export default function Home() {
               <div className="hero-stats flex flex-wrap items-center gap-x-6 gap-y-2" style={{ opacity: 0 }}>
                 <span className="font-mono text-[13px] text-[#6B6B6B]">Local-first</span>
                 <span className="text-[#D9D9D3]">·</span>
-                <span className="font-mono text-[13px] text-[#6B6B6B]">13 test dimensions</span>
+                <span className="font-mono text-[13px] text-[#6B6B6B]">20 test dimensions</span>
                 <span className="text-[#D9D9D3]">·</span>
                 <span className="font-mono text-[13px] text-[#574a7d] font-medium">Your code never uploads</span>
               </div>
@@ -510,7 +510,7 @@ export default function Home() {
           </ScrollReveal>
           <ScrollReveal delay={0.2}>
             <p className="text-body-lg text-[#9A9A9A] max-w-[640px] mx-auto mb-16">
-              When AI builds your app, traditional testing catches barely half the issues. TestForge closes the gap with 13 autonomous testing dimensions — so your code ships with confidence.
+              When AI builds your app, traditional testing catches barely half the issues. TestForge closes the gap with 20 autonomous testing dimensions — so your code ships with confidence.
             </p>
           </ScrollReveal>
 
@@ -560,7 +560,7 @@ export default function Home() {
                 <p className="section-label mb-4">// MULTI-DIMENSIONAL PIPELINE</p>
                 <h2 className="text-display-lg mb-6" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
                   <span className="text-[#333333]">One pipeline. </span>
-                  <span className="text-[#574a7d]">Thirteen</span>
+                  <span className="text-[#574a7d]">Twenty</span>
                   <span className="text-[#333333]"> testing dimensions.</span>
                 </h2>
               </ScrollReveal>
@@ -712,7 +712,7 @@ export default function Home() {
                 <span className="text-[#333333]"> Every time.</span>
               </h2>
               <p className="text-body-lg text-[#6B6B6B]">
-                Our autonomous agents don&apos;t just test — they probe, stress, and challenge your code from 13 independent dimensions.
+                Our autonomous agents don&apos;t just test — they probe, stress, and challenge your code from 20 independent dimensions.
               </p>
             </ScrollReveal>
           </div>
@@ -757,7 +757,7 @@ export default function Home() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
             {[
               { value: 100000, suffix: '+', label: 'community members' },
-              { value: 13, suffix: '', label: 'testing dimensions' },
+              { value: 20, suffix: '', label: 'testing dimensions' },
               { value: 94, suffix: '%', label: 'average feature delivery' },
               { value: 4, suffix: 'x', label: 'security coverage improvement' },
             ].map((stat, i) => (
@@ -832,7 +832,7 @@ export default function Home() {
                 <span className="step-number block mb-3">02 //</span>
                 <h3 className="text-heading-lg text-[#333333] mb-4">Autonomous Multi-Dimensional Testing</h3>
                 <p className="text-body-lg text-[#6B6B6B]">
-                  All 13 testing dimensions execute in parallel — from scope validation to chaos engineering. Watch real-time progress, live logs, and failure analysis as tests run.
+                  All 20 testing dimensions execute in parallel — from scope validation to chaos engineering. Watch real-time progress, live logs, and failure analysis as tests run.
                 </p>
               </ScrollReveal>
             </div>

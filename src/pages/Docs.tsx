@@ -316,7 +316,7 @@ function OverviewPage() {
         TestForge is an AI-powered autonomous testing platform that integrates
         directly into your development workflow. It analyzes your codebase,
         generates comprehensive tests across{' '}
-        <strong className="font-semibold text-[#12101A]">13 dimensions</strong>,
+        <strong className="font-semibold text-[#12101A]">20 dimensions</strong>,
         and delivers actionable reports with fix suggestions.
       </p>
 
@@ -327,7 +327,7 @@ function OverviewPage() {
         TestForge connects to your Git repository, analyzes your entire
         codebase, and automatically generates and runs tests across{' '}
         <strong className="font-semibold text-[#12101A]">
-          13 testing dimensions
+          20 testing dimensions
         </strong>
         . Within minutes, you get:
       </p>
@@ -352,7 +352,7 @@ function OverviewPage() {
         </li>
         <li>
           <strong className="font-semibold text-[#12101A]">Configure</strong>{' '}
-          which test dimensions to run (all 13 are selected by default)
+          which test dimensions to run (all 20 are selected by default)
         </li>
         <li>
           <strong className="font-semibold text-[#12101A]">Execute</strong> —
@@ -370,10 +370,10 @@ function OverviewPage() {
       <DocTable
         headers={['Technology', 'Detection', 'Test Coverage']}
         rows={[
-          ['Node.js / Express', 'package.json, require()', 'Full — all 13 dimensions'],
-          ['Python / Flask / Django', 'requirements.txt, imports', 'Full — all 13 dimensions'],
-          ['Go / Gin / Echo', 'go.mod', 'Full — all 13 dimensions'],
-          ['Ruby / Rails', 'Gemfile', 'Full — all 13 dimensions'],
+          ['Node.js / Express', 'package.json, require()', 'Full — all 20 dimensions'],
+          ['Python / Flask / Django', 'requirements.txt, imports', 'Full — all 20 dimensions'],
+          ['Go / Gin / Echo', 'go.mod', 'Full — all 20 dimensions'],
+          ['Ruby / Rails', 'Gemfile', 'Full — all 20 dimensions'],
           ['Java / Spring', 'pom.xml, build.gradle', 'Partial — core dimensions'],
           ['Rust / Actix', 'Cargo.toml', 'Partial — core dimensions'],
         ]}
@@ -483,7 +483,7 @@ function QuickStartPage() {
       <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
         <li>Clone and scan your repository</li>
         <li>Detect your technology stack</li>
-        <li>Run all 13 test dimensions</li>
+        <li>Run all 20 test dimensions</li>
         <li>Generate a comprehensive report</li>
       </ul>
 
@@ -540,7 +540,7 @@ function YourFirstTestPage() {
       </p>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
         <strong className="font-semibold text-[#12101A]">Test Types</strong> —
-        All 13 dimensions are checked by default. Uncheck any you don't need to
+        All 20 dimensions are checked by default. Uncheck any you don't need to
         save time.
       </p>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
@@ -679,7 +679,7 @@ function WebPlatformPage() {
         rows={[
           ['Test runs / month', '50', 'Unlimited', 'Unlimited'],
           ['Repositories', '3', '20', 'Unlimited'],
-          ['Test dimensions', 'All 13', 'All 13', 'All 13'],
+          ['Test dimensions', 'All 20', 'All 20', 'All 20'],
           ['Concurrent tests', '1', '3', '10'],
           ['Report retention', '7 days', '90 days', '1 year'],
           ['MCP access', 'No', 'Yes', 'Yes'],
@@ -936,12 +936,12 @@ function TestTypeSelectionPage() {
       </h1>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
         TestForge runs{' '}
-        <strong className="font-semibold text-[#12101A]">13 testing dimensions</strong>.
+        <strong className="font-semibold text-[#12101A]">20 testing dimensions</strong>.
         You can customize which to run for each test execution.
       </p>
 
       <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
-        All 13 Dimensions
+        All 20 Dimensions
       </h2>
       <DocTable
         headers={['#', 'Dimension', 'What It Tests', 'Avg. Time']}
@@ -958,7 +958,7 @@ function TestTypeSelectionPage() {
           ['10', 'Visual Regression', 'UI snapshot comparison', '1-2m'],
           ['11', 'Accessibility', 'WCAG 2.1 AA compliance', '30s'],
           ['12', 'Chaos Engineering', 'Fault injection and recovery', '5-6m'],
-          ['13', 'Mutation Testing', 'Test suite quality assessment', '3-5m'],
+          ['20', 'Mutation Testing', 'Test suite quality assessment', '3-5m'],
         ]}
       />
 
@@ -1070,7 +1070,7 @@ function TestTypesOverviewPage() {
         Test Types Overview
       </h1>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
-        TestForge runs 13 testing dimensions covering every aspect of your
+        TestForge runs 20 testing dimensions covering every aspect of your
         application. Here's what each one does.
       </p>
 
@@ -1089,7 +1089,7 @@ function TestTypesOverviewPage() {
           ['10', 'Visual Regression', 'Detects unintended UI changes', 'Layout shifts, styling regressions'],
           ['11', 'Accessibility', 'WCAG 2.1 AA compliance checking', 'Missing ARIA labels, contrast issues'],
           ['12', 'Chaos Engineering', 'Fault injection to test resilience', 'Single points of failure, poor recovery'],
-          ['13', 'Mutation Testing', 'Assesses test suite quality by injecting bugs', 'Weak tests that pass on broken code'],
+          ['20', 'Mutation Testing', 'Assesses test suite quality by injecting bugs', 'Weak tests that pass on broken code'],
         ]}
       />
     </div>
@@ -1683,7 +1683,7 @@ function ChangelogPage() {
           </div>
           <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] ml-2">
             <li>New MCP server with one-line installer</li>
-            <li>Added 13th testing dimension: Mutation Testing</li>
+            <li>Added 20th testing dimension: Mutation Testing</li>
             <li>Predictive analysis with ML risk scoring</li>
             <li>Chaos engineering with fault injection</li>
             <li>PRD generation from failed tests</li>
@@ -1865,7 +1865,7 @@ function McpIdeSetupPage() {
         <div className="space-y-3">
           {[
             { tool: 'testforge_analyze', desc: 'Scan your codebase for endpoints, dependencies, tech stack, and structure' },
-            { tool: 'testforge_test', desc: 'Run the full 13-dimension test suite across your project' },
+            { tool: 'testforge_test', desc: 'Run the full 20-dimension test suite across your project' },
             { tool: 'testforge_quick_scan', desc: 'Fast 30-second security + unit test scan' },
             { tool: 'testforge_report', desc: 'Generate a structured PRD report from test results' },
           ].map(t => (

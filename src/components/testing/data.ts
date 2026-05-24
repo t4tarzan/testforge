@@ -297,7 +297,7 @@ export const dimensions: Dimension[] = [
   },
   {
     id: 'edge',
-    num: '13',
+    num: '20',
     shortName: 'Edge',
     fullName: 'Edge Case Generation',
     tagline: 'AI fuzzing, pairwise testing, boundary analysis',

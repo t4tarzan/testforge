@@ -488,7 +488,7 @@ export const SEED_REPORT: SeedReport = {
   overallScore: 68,
   status: 'completed',
   summary: {
-    totalStages: 13,
+    totalStages: 20,
     passed: 8,
     failed: 3,
     warning: 2,

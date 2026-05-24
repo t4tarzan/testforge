@@ -273,8 +273,8 @@ export const stages: Stage[] = [
     findings: [],
   },
   {
-    id: 13,
-    number: '13',
+    id: 20,
+    number: '20',
     name: 'Edge Case Generation',
     subtitle: 'Boundary & fuzz testing',
     description: 'AI-powered generation of extreme edge cases — null inputs, maximum lengths, unicode edge cases, boundary values, and unexpected type combinations.',

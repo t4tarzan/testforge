@@ -45,7 +45,7 @@ function Hero() {
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] as [number, number, number, number], delay: 0.1 }}
             className="font-heading font-semibold text-[64px] leading-[1.1] tracking-[-0.03em] text-[#333333] mb-6"
           >
-            Thirteen ways to{' '}
+            Twenty ways to{' '}
             <span className="text-[#574a7d]">break</span> your code.
           </motion.h1>
 
@@ -95,7 +95,7 @@ function Hero() {
               {/* Count */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="font-heading font-bold text-[48px] leading-none text-[#574a7d]">
-                  {isInView ? <CountUp end={13} duration={1} delay={0.5} /> : '0'}
+                  {isInView ? <CountUp end={20} duration={1} delay={0.5} /> : '0'}
                 </span>
               </div>
             </div>
@@ -233,7 +233,7 @@ function BottomCTA() {
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
           className="font-heading font-medium text-[42px] leading-[1.15] tracking-[-0.02em] text-white mb-10"
         >
-          Thirteen dimensions. One pipeline. Zero blind spots.
+          Twenty dimensions. One pipeline. Zero blind spots.
         </motion.h2>
 
         <motion.div
@@ -315,7 +315,7 @@ export default function Testing() {
       {/* Sticky Tab Navigator */}
       <TabNavigator activeTab={activeTab} onTabClick={handleTabClick} />
 
-      {/* 13 Dimension Sections */}
+      {/* 20 Dimension Sections */}
       {dimensions.map((dim, index) => (
         <DimensionSection key={dim.id} dimension={dim} index={index} />
       ))}

@@ -288,7 +288,7 @@ export default function PipelineViz() {
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
           className="font-heading font-semibold text-[36px] sm:text-[42px] lg:text-[52px] leading-[1.1] tracking-[-0.025em] text-[#333333] mb-4"
         >
-          13 dimensions. <span className="text-[#574a7d]">One pipeline.</span>
+          20 dimensions. <span className="text-[#574a7d]">One pipeline.</span>
         </motion.h2>
 
         <motion.p

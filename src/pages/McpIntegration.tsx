@@ -727,7 +727,7 @@ const terminalLines = [
   { text: '✓ MCP server installed (2.3s)', color: '#7a6fad' },
   { text: '✓ Detected project: express-ecommerce-api', color: '#7a6fad' },
   { text: '✓ Found 47 endpoints, 12 middleware functions', color: '#7a6fad' },
-  { text: '✓ Generated test plan with 13 test dimensions', color: '#7a6fad' },
+  { text: '✓ Generated test plan with 20 test dimensions', color: '#7a6fad' },
   { text: '✓ Connected to TestForge cloud', color: '#7a6fad' },
   { text: '', color: '#E8E8E3' },
   { text: '$ cursor .', color: '#E8E8E3' },
@@ -870,7 +870,7 @@ const capabilities = [
   {
     icon: Activity,
     title: 'Live Progress',
-    description: 'Watch all 13 test dimensions execute in real-time with live logs.',
+    description: 'Watch all 20 test dimensions execute in real-time with live logs.',
   },
 ];
 

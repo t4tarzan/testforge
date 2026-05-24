@@ -90,7 +90,7 @@ function PricingCardsSection() {
       cta: 'Get Started',
       ctaStyle: 'secondary' as const,
       features: [
-        'All 13 testing dimensions',
+        'All 20 testing dimensions',
         '50 test runs/month',
         '1 repository',
         'Basic PRD generation (5/month)',
@@ -508,7 +508,7 @@ function FAQSection() {
   const faqs = [
     {
       q: "What's included in the Free plan?",
-      a: "The Free plan includes access to all 13 testing dimensions, 50 test runs per month, 1 repository, and basic PRD generation for up to 5 failed tests. It's perfect for individual developers and small side projects.",
+      a: "The Free plan includes access to all 20 testing dimensions, 50 test runs per month, 1 repository, and basic PRD generation for up to 5 failed tests. It's perfect for individual developers and small side projects.",
     },
     {
       q: 'How does The Integrator work?',

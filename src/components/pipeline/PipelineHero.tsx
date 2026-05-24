@@ -265,7 +265,7 @@ export default function PipelineHero({ onStartRun }: { onStartRun: () => void })
           transition={{ delay: 0.4, duration: 0.7, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
           className="font-body text-[18px] leading-[1.65] text-[#9A9A9A] text-center max-w-[680px] mt-6"
         >
-          Thirteen autonomous testing dimensions execute in parallel — from scope analysis to chaos engineering. Real-time progress. Intelligent failure detection. No blind spots.
+          Twenty autonomous testing dimensions execute in parallel — from scope analysis to chaos engineering. Real-time progress. Intelligent failure detection. No blind spots.
         </motion.p>
 
         {/* Pipeline pills */}

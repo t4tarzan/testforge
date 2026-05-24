@@ -10,7 +10,7 @@ interface Stat {
 }
 
 const stats: Stat[] = [
-  { value: 13, suffix: '', label: 'Testing Dimensions' },
+  { value: 20, suffix: '', label: 'Testing Dimensions' },
   { value: 5, suffix: 'min', prefix: '<', label: 'Avg. Execution' },
   { value: 99.2, suffix: '%', label: 'Accuracy' },
   { value: 40, suffix: '%', label: 'Time Saved' },
