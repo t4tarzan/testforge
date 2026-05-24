@@ -3,10 +3,9 @@ export default async function handler(req, res) {
   
   // Step 1: Redirect to GitHub
   if (!code) {
-    const redirectUri = 'https://testforge-steel.vercel.app/api/auth/callback';
     const scope = 'read:user user:email';
-    const state = Math.random().toString(36).substring(2);
-    const url = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${state}`;
+    const stateStr = Math.random().toString(36).substring(2);
+    const url = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent('https://testforge-steel.vercel.app/api/auth/callback')}&scope=${scope}&state=${stateStr}`;
     res.writeHead(302, { Location: url });
     return res.end();
   }
