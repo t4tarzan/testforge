@@ -5,6 +5,7 @@ import { Menu, X, ArrowRight, LogOut, User, CreditCard } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
 const navLinks = [
+  { label: 'Managed', path: '/managed' },
   { label: 'Pipeline', path: '/pipeline' },
   { label: 'Integrator', path: '/integrator' },
   { label: 'Testing', path: '/testing-dimensions' },

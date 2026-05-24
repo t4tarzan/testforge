@@ -14,6 +14,7 @@ import TestReport from '@/pages/TestReport';
 import McpIntegration from '@/pages/McpIntegration';
 import Docs from '@/pages/Docs';
 import TestRunner from '@/pages/TestRunner';
+import ManagedTesting from '@/pages/Managed';
 
 // Simple auth guard
 function AuthGuard({ children }: { children: React.ReactNode }) {
@@ -73,6 +74,7 @@ export default function App() {
           }
         />
         <Route path="/mcp" element={<Layout><McpIntegration /></Layout>} />
+        <Route path="/managed" element={<Layout><ManagedTesting /></Layout>} />
         <Route path="/docs" element={<NoLayout><Docs /></NoLayout>} />
 
         {/* All other pages — with standard layout (Navbar + Footer) */}

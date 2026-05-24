@@ -326,10 +326,11 @@ export default function Home() {
   /* ── Split headline text into characters ── */
   const renderAnimatedHeadline = () => {
     const lines = [
-      ['Ship code you trust.', '#333333'],
+      ['Harden your codebase.', '#333333'],
+      ['Ship with certainty.', '#333333'],
       ['AI-native testing that', '#333333'],
-      ['hardens your codebase', '#574a7d'],
-      ['before it breaks.', '#333333'],
+      ['runs on your machine —', '#574a7d'],
+      ['your code never leaves your system.', '#333333'],
     ]
     let charIndex = 0
     return lines.map(([text, color], li) => (
@@ -408,7 +409,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-grid-pattern pointer-events-none" />
 
         <div className="container-tf relative z-10 py-16 lg:py-24">
-          <div className="grid lg:grid-cols-[55%_45%] gap-12 lg:gap-8 items-center">
+          <div className="grid lg:grid-cols-[45%_55%] gap-12 lg:gap-8 items-center">
             {/* Left: Text */}
             <div>
               <p className="section-label mb-4">// PRIVACY-FIRST AUTONOMOUS TESTING ENGINE</p>
@@ -443,11 +444,11 @@ export default function Home() {
 
             {/* Right: Hero Media */}
             <div className="hero-media relative" style={{ opacity: 0 }}>
-              <div className="relative rounded-lg border border-[#D9D9D3] shadow-hero overflow-hidden bg-white">
+              <div className="relative rounded-xl border-2 border-[#E8E5FF] shadow-xl overflow-hidden bg-white p-1.5">
                 <img
                   src="/hero-dashboard.jpg"
                   alt="TestForge Dashboard"
-                  className="w-full h-auto"
+                  className="w-full h-auto rounded-lg"
                 />
               </div>
 
