@@ -24,10 +24,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch(`${MCP_SERVER}/analyze`, {
+    const response = await fetch(`${MCP_SERVER}/clone-and-analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ projectPath: repoUrl }),
+      body: JSON.stringify({ repoUrl, branch: branch || 'main' }),
+      signal: AbortSignal.timeout(60000),
     });
     const data = await response.json();
     return res.json(data);
