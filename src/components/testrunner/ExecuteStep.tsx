@@ -8,14 +8,14 @@ import { SEED_TEST_RESULTS, SEED_REPO } from '@/data/seedData';
 import type { TestResult, LogEntry, Finding } from '@/data/seedData';
 
 const STATUS_CONFIG = {
-  passed: { color: '#5A8F5E', bg: 'bg-[#5A8F5E]', border: 'border-l-[#5A8F5E]', label: 'PASS', icon: Check },
+  passed: { color: '#C1A3FF', bg: 'bg-[#C1A3FF]', border: 'border-l-[#C1A3FF]', label: 'PASS', icon: Check },
   failed: { color: '#D4524A', bg: 'bg-[#D4524A]', border: 'border-l-[#D4524A]', label: 'FAIL', icon: X },
   warning: { color: '#E8A838', bg: 'bg-[#E8A838]', border: 'border-l-[#E8A838]', label: 'WARN', icon: AlertTriangle },
 };
 
 const LOG_COLORS: Record<string, string> = {
   info: 'text-[#9A9A9A]',
-  pass: 'text-[#7AAF7E]',
+  pass: 'text-[#B48FFF]',
   fail: 'text-[#D4524A]',
   warn: 'text-[#E8A838]',
 };
@@ -24,7 +24,7 @@ const SEVERITY_CONFIG = {
   critical: { color: '#D4524A', bg: 'bg-[rgba(212,82,74,0.1)]', text: 'text-[#D4524A]' },
   high: { color: '#E87D3A', bg: 'bg-[rgba(232,125,58,0.1)]', text: 'text-[#E87D3A]' },
   medium: { color: '#E8A838', bg: 'bg-[rgba(232,168,56,0.1)]', text: 'text-[#E8A838]' },
-  low: { color: '#5A8F5E', bg: 'bg-[rgba(90,143,94,0.1)]', text: 'text-[#5A8F5E]' },
+  low: { color: '#C1A3FF', bg: 'bg-[rgba(90,143,94,0.1)]', text: 'text-[#C1A3FF]' },
 };
 
 type SimStage = {
@@ -280,7 +280,7 @@ export default function ExecuteStep({ onComplete }: ExecuteStepProps) {
             initial={{ scale: 1.2 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.2 }}
-            className="font-mono text-[13px] text-[#5A8F5E] font-medium"
+            className="font-mono text-[13px] text-[#C1A3FF] font-medium"
           >
             {completedCount}/{stages.length} stages
           </motion.span>
@@ -293,7 +293,7 @@ export default function ExecuteStep({ onComplete }: ExecuteStepProps) {
                 key={s}
                 onClick={() => setSpeed(s)}
                 className={`px-3 py-1 rounded-md font-mono text-[12px] font-medium transition-all ${
-                  speed === s ? 'bg-[#5A8F5E] text-white' : 'text-[#6B6B6B] hover:text-[#333333]'
+                  speed === s ? 'bg-[#C1A3FF] text-white' : 'text-[#6B6B6B] hover:text-[#333333]'
                 }`}
               >
                 {s}
@@ -320,7 +320,7 @@ export default function ExecuteStep({ onComplete }: ExecuteStepProps) {
       {/* Overall progress bar */}
       <div className="h-2 bg-[#EBEBE5] rounded-full overflow-hidden mb-6">
         <motion.div
-          className="h-full bg-[#5A8F5E] rounded-full"
+          className="h-full bg-[#C1A3FF] rounded-full"
           style={{ width: `${overallProgress}%` }}
           transition={{ duration: 0.3 }}
         />
@@ -500,7 +500,7 @@ export default function ExecuteStep({ onComplete }: ExecuteStepProps) {
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-full bg-[#D4524A]" />
                 <div className="w-2.5 h-2.5 rounded-full bg-[#E8A838]" />
-                <div className="w-2.5 h-2.5 rounded-full bg-[#5A8F5E]" />
+                <div className="w-2.5 h-2.5 rounded-full bg-[#C1A3FF]" />
               </div>
             </div>
             <div
@@ -528,7 +528,7 @@ export default function ExecuteStep({ onComplete }: ExecuteStepProps) {
               )}
               {isRunning && !isPaused && (
                 <motion.span
-                  className="inline-block w-2 h-4 bg-[#5A8F5E] ml-1"
+                  className="inline-block w-2 h-4 bg-[#C1A3FF] ml-1"
                   animate={{ opacity: [1, 0] }}
                   transition={{ duration: 0.6, repeat: Infinity }}
                 />
@@ -555,7 +555,7 @@ export default function ExecuteStep({ onComplete }: ExecuteStepProps) {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.1 }}
-                      className="flex items-start gap-3 p-3 rounded-lg bg-[#F5F5F0] border border-[#D9D9D3] cursor-pointer hover:border-[#A3C9A5] transition-colors"
+                      className="flex items-start gap-3 p-3 rounded-lg bg-[#F5F5F0] border border-[#D9D9D3] cursor-pointer hover:border-[#C9B5FF] transition-colors"
                       onClick={() => setActiveFinding(activeFinding === finding ? null : finding)}
                     >
                       <span className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase font-medium flex-shrink-0 ${sev.bg} ${sev.text}`}>
@@ -581,7 +581,7 @@ export default function ExecuteStep({ onComplete }: ExecuteStepProps) {
   );
 }
 
-function MetricCard({ label, value, color = '#5A8F5E' }: { label: string; value: string; color?: string }) {
+function MetricCard({ label, value, color = '#C1A3FF' }: { label: string; value: string; color?: string }) {
   return (
     <div className="bg-[#F5F5F0] rounded-lg p-3 text-center">
       <div className="font-heading text-[20px] font-bold" style={{ color }}>

@@ -71,8 +71,8 @@ export default function DimensionSection({ dimension, index }: DimensionSectionP
           >
             <div className="bg-white rounded-xl border border-[#D9D9D3] p-8 lg:p-10 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300">
               <div className="flex items-center justify-center mb-6">
-                <div className="w-20 h-20 rounded-2xl bg-[#E8F0E8] flex items-center justify-center">
-                  <Icon size={40} className="text-[#5A8F5E]" strokeWidth={1.5} />
+                <div className="w-20 h-20 rounded-2xl bg-[#F0EAFF] flex items-center justify-center">
+                  <Icon size={40} className="text-[#C1A3FF]" strokeWidth={1.5} />
                 </div>
               </div>
               <div className="text-center">
@@ -83,7 +83,7 @@ export default function DimensionSection({ dimension, index }: DimensionSectionP
                   {dimension.metrics.map((metric) => (
                     <span
                       key={metric}
-                      className="inline-block font-mono font-medium text-[12px] bg-[#E8F0E8] text-[#5A8F5E] px-3.5 py-1.5 rounded"
+                      className="inline-block font-mono font-medium text-[12px] bg-[#F0EAFF] text-[#C1A3FF] px-3.5 py-1.5 rounded"
                     >
                       {metric}
                     </span>
@@ -99,7 +99,7 @@ export default function DimensionSection({ dimension, index }: DimensionSectionP
             className={`lg:col-span-7 ${isEven ? 'lg:order-2' : 'lg:order-1'}`}
           >
             {/* Step label */}
-            <span className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#5A8F5E] mb-4 block">
+            <span className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#C1A3FF] mb-4 block">
               {dimension.num} // {dimension.category}
             </span>
 
@@ -109,7 +109,7 @@ export default function DimensionSection({ dimension, index }: DimensionSectionP
             </h2>
 
             {/* Tagline */}
-            <p className="font-heading font-medium text-[22px] leading-[1.3] text-[#5A8F5E] mb-6">
+            <p className="font-heading font-medium text-[22px] leading-[1.3] text-[#C1A3FF] mb-6">
               {dimension.tagline}
             </p>
 
@@ -125,7 +125,7 @@ export default function DimensionSection({ dimension, index }: DimensionSectionP
               </p>
               {dimension.features.map((feature) => (
                 <div key={feature} className="flex items-start gap-3">
-                  <Check size={16} className="text-[#5A8F5E] mt-1 flex-shrink-0" />
+                  <Check size={16} className="text-[#C1A3FF] mt-1 flex-shrink-0" />
                   <span className="text-[16px] leading-[1.6] text-[#333333]">{feature}</span>
                 </div>
               ))}
@@ -134,7 +134,7 @@ export default function DimensionSection({ dimension, index }: DimensionSectionP
             {/* CTA */}
             <a
               href="#"
-              className="inline-flex items-center gap-2 text-[15px] font-medium text-[#5A8F5E] hover:gap-3 transition-all duration-200 group"
+              className="inline-flex items-center gap-2 text-[15px] font-medium text-[#C1A3FF] hover:gap-3 transition-all duration-200 group"
             >
               Learn more in a test run
               <ArrowRight

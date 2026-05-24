@@ -25,7 +25,7 @@ gsap.registerPlugin(ScrollTrigger)
    ──────────────────────────────────────────── */
 function SectionLabel({ text, light = false }: { text: string; light?: boolean }) {
   return (
-    <p className={`text-label-mono mb-4 ${light ? 'text-[#A3C9A5]' : 'text-[#5A8F5E]'}`}>
+    <p className={`text-label-mono mb-4 ${light ? 'text-[#C9B5FF]' : 'text-[#C1A3FF]'}`}>
       // {text}
     </p>
   )
@@ -58,7 +58,7 @@ function HeroSection() {
           {headlineWords.map((word, i) => {
             let color = 'text-[#333333]'
             if (word === 'failures') color = 'text-[#D4524A]'
-            if (word === 'requirements.') color = 'text-[#5A8F5E]'
+            if (word === 'requirements.') color = 'text-[#C1A3FF]'
             return (
               <span key={i} className={`prd-hero-headline inline-block mr-[0.3em] ${color}`}>
                 {word}
@@ -87,15 +87,15 @@ function HeroSection() {
                 )}
                 <div
                   className={`w-10 h-10 rounded-full border-2 flex items-center justify-center ${
-                    step.glow ? 'border-[#5A8F5E] shadow-[0_0_12px_rgba(90,143,94,0.4)]' : 'border-[#5A8F5E]'
+                    step.glow ? 'border-[#C1A3FF] shadow-[0_0_12px_rgba(90,143,94,0.4)]' : 'border-[#C1A3FF]'
                   }`}
                 >
-                  <step.icon size={18} className={step.glow ? 'text-[#5A8F5E]' : 'text-[#5A8F5E]'} />
+                  <step.icon size={18} className={step.glow ? 'text-[#C1A3FF]' : 'text-[#C1A3FF]'} />
                 </div>
                 <p className="text-label-mono text-[10px] mt-2 text-center text-[#6B6B6B]">{step.label}</p>
               </div>
               {i < 3 && (
-                <ArrowRight size={18} className="prd-hero-arrow text-[#A3C9A5] -mt-5" />
+                <ArrowRight size={18} className="prd-hero-arrow text-[#C9B5FF] -mt-5" />
               )}
             </div>
           ))}
@@ -176,7 +176,7 @@ function FlowSection() {
       <div className="sticky top-0 z-30 w-full h-[2px] bg-[#3A3A3A]">
         <div
           ref={progressRef}
-          className="h-full bg-[#5A8F5E] transition-all duration-500 ease-out"
+          className="h-full bg-[#C1A3FF] transition-all duration-500 ease-out"
           style={{ width: `${((activePhase + 1) / phases.length) * 100}%` }}
         />
       </div>
@@ -185,7 +185,7 @@ function FlowSection() {
         <SectionLabel text="THE CONVERSION FLOW" light />
         <h2 className="text-display-lg text-white mb-16">
           From <span className="text-[#D4524A]">red</span> tests to{' '}
-          <span className="text-[#5A8F5E]">green</span> roadmaps.
+          <span className="text-[#C1A3FF]">green</span> roadmaps.
         </h2>
 
         {/* Phase display */}
@@ -232,7 +232,7 @@ function FlowSection() {
                   {phases[activePhase].tags.map((tag) => (
                     <span
                       key={tag}
-                      className="px-3 py-1 rounded text-[11px] font-mono font-medium uppercase tracking-wider border border-[#3A3A3A] text-[#A3C9A5]"
+                      className="px-3 py-1 rounded text-[11px] font-mono font-medium uppercase tracking-wider border border-[#3A3A3A] text-[#C9B5FF]"
                     >
                       {tag}
                     </span>
@@ -248,7 +248,7 @@ function FlowSection() {
                   key={i}
                   onClick={() => setActivePhase(i)}
                   className={`h-1.5 rounded-full transition-all duration-300 ${
-                    i === activePhase ? 'w-8 bg-[#5A8F5E]' : 'w-4 bg-[#3A3A3A] hover:bg-[#6B6B6B]'
+                    i === activePhase ? 'w-8 bg-[#C1A3FF]' : 'w-4 bg-[#3A3A3A] hover:bg-[#6B6B6B]'
                   }`}
                 />
               ))}
@@ -267,7 +267,7 @@ function TerminalVisual() {
       <div className="flex items-center gap-2 px-4 py-3 border-b border-[#3A3A3A] bg-[#1A1A1A]">
         <div className="w-3 h-3 rounded-full bg-[#D4524A]" />
         <div className="w-3 h-3 rounded-full bg-[#E8A838]" />
-        <div className="w-3 h-3 rounded-full bg-[#5A8F5E]" />
+        <div className="w-3 h-3 rounded-full bg-[#C1A3FF]" />
         <span className="ml-3 text-label-mono text-[10px] text-[#9A9A9A]">FAIL</span>
       </div>
       <div className="p-5 font-mono text-sm leading-relaxed overflow-x-auto">
@@ -308,8 +308,8 @@ function AnalysisVisual() {
         </div>
       </div>
       <div className="mt-4 flex items-center gap-2">
-        <div className="w-2 h-2 rounded-full bg-[#5A8F5E] animate-pulse" />
-        <span className="text-[#5A8F5E] text-xs font-mono">Root cause found in 0.8s</span>
+        <div className="w-2 h-2 rounded-full bg-[#C1A3FF] animate-pulse" />
+        <span className="text-[#C1A3FF] text-xs font-mono">Root cause found in 0.8s</span>
       </div>
     </div>
   )
@@ -320,7 +320,7 @@ function SeverityVisual() {
     { label: 'CRITICAL', color: '#D4524A', desc: 'Complete outage' },
     { label: 'HIGH', color: '#E87D3A', desc: 'Major feature broken' },
     { label: 'MEDIUM', color: '#E8A838', desc: 'Partial impact' },
-    { label: 'LOW', color: '#5A8F5E', desc: 'Minor issue' },
+    { label: 'LOW', color: '#C1A3FF', desc: 'Minor issue' },
   ]
 
   return (
@@ -360,7 +360,7 @@ function PrdVisual() {
     <div className="bg-[#2A2A2A] border border-[#3A3A3A] rounded-xl overflow-hidden shadow-2xl">
       <div className="px-4 py-3 border-b border-[#3A3A3A] bg-[#1A1A1A] flex items-center justify-between">
         <span className="font-mono text-xs text-[#9A9A9A]">PRD-2026-0842</span>
-        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[rgba(90,143,94,0.15)] text-[#5A8F5E]">
+        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[rgba(90,143,94,0.15)] text-[#C1A3FF]">
           Generated
         </span>
       </div>
@@ -376,7 +376,7 @@ function PrdVisual() {
         )}
       </div>
       <div className="px-4 py-2 border-t border-[#3A3A3A]">
-        <span className="text-[10px] font-mono text-[#5A8F5E]">Generated by TestForge</span>
+        <span className="text-[10px] font-mono text-[#C1A3FF]">Generated by TestForge</span>
       </div>
     </div>
   )
@@ -385,8 +385,8 @@ function PrdVisual() {
 function CheckMini() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <circle cx="7" cy="7" r="6.5" stroke="#5A8F5E" strokeWidth="1" />
-      <path d="M4 7L6 9L10 5" stroke="#5A8F5E" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="7" cy="7" r="6.5" stroke="#C1A3FF" strokeWidth="1" />
+      <path d="M4 7L6 9L10 5" stroke="#C1A3FF" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
@@ -423,10 +423,10 @@ function PrdPreviewSection() {
       title: 'Migration Path',
       content: (
         <div className="space-y-2 text-sm">
-          <p><span className="text-[#5A8F5E] font-mono">Phase 1:</span> Deploy token refresh endpoint</p>
-          <p><span className="text-[#5A8F5E] font-mono">Phase 2:</span> Update client SDK</p>
-          <p><span className="text-[#5A8F5E] font-mono">Phase 3:</span> Enable Redis session store</p>
-          <p><span className="text-[#5A8F5E] font-mono">Phase 4:</span> Gradual rollout with feature flag</p>
+          <p><span className="text-[#C1A3FF] font-mono">Phase 1:</span> Deploy token refresh endpoint</p>
+          <p><span className="text-[#C1A3FF] font-mono">Phase 2:</span> Update client SDK</p>
+          <p><span className="text-[#C1A3FF] font-mono">Phase 3:</span> Enable Redis session store</p>
+          <p><span className="text-[#C1A3FF] font-mono">Phase 4:</span> Gradual rollout with feature flag</p>
         </div>
       ),
     },
@@ -463,7 +463,7 @@ function PrdPreviewSection() {
       <div className="container-tf relative z-10">
         <SectionLabel text="PRD STRUCTURE" />
         <h2 className="text-display-lg text-[#333333] mb-12">
-          Every PRD follows a <span className="text-[#5A8F5E]">proven structure</span>.
+          Every PRD follows a <span className="text-[#C1A3FF]">proven structure</span>.
         </h2>
 
         <div className="prd-preview-card max-w-[900px] mx-auto bg-white border border-[#D9D9D3] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] overflow-hidden">
@@ -473,7 +473,7 @@ function PrdPreviewSection() {
             <span className="font-mono text-xs text-[#9A9A9A]">•</span>
             <span className="font-mono text-xs text-[#9A9A9A]">Jan 15, 2026</span>
             <div className="ml-auto flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded text-[10px] font-mono font-medium bg-[#E8F0E8] text-[#5A8F5E]">
+              <span className="px-2.5 py-0.5 rounded text-[10px] font-mono font-medium bg-[#F0EAFF] text-[#C1A3FF]">
                 Generated
               </span>
               <span
@@ -562,7 +562,7 @@ function SeveritySection() {
     },
     {
       level: 'Low',
-      color: '#5A8F5E',
+      color: '#C1A3FF',
       icon: Info,
       description: 'Minor issue. Easy workaround. Minimal user impact. Fix in next sprint.',
       example: 'Loading spinner not centered on 320px screens.',
@@ -590,7 +590,7 @@ function SeveritySection() {
       <div className="container-tf">
         <SectionLabel text="SEVERITY CLASSIFICATION" />
         <h2 className="text-display-md text-[#333333] mb-10">
-          <span className="text-[#5A8F5E]">Priority</span>, not panic.
+          <span className="text-[#C1A3FF]">Priority</span>, not panic.
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-[1000px]">
@@ -666,7 +666,7 @@ function ComparisonSection() {
     <section ref={sectionRef} className="relative w-full bg-[#1A1A1A] py-20 lg:py-24">
       <div className="container-tf">
         <h2 className="text-display-md text-white text-center mb-14">
-          From bug report to <span className="text-[#5A8F5E]">product roadmap</span>.
+          From bug report to <span className="text-[#C1A3FF]">product roadmap</span>.
         </h2>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-[900px] mx-auto items-stretch">
@@ -690,23 +690,23 @@ function ComparisonSection() {
             <motion.div
               animate={{ x: [0, 8, 0] }}
               transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
-              className="w-12 h-12 rounded-full bg-[#5A8F5E]/20 flex items-center justify-center"
+              className="w-12 h-12 rounded-full bg-[#C1A3FF]/20 flex items-center justify-center"
             >
-              <ArrowRight size={20} className="text-[#5A8F5E]" />
+              <ArrowRight size={20} className="text-[#C1A3FF]" />
             </motion.div>
           </div>
 
           {/* After */}
           <div className="after-card bg-[#2A2A2A] border border-[rgba(90,143,94,0.3)] rounded-xl p-6">
-            <p className="text-label-mono text-[10px] text-[#A3C9A5] mb-3">TESTFORGE PRD OUTPUT</p>
+            <p className="text-label-mono text-[10px] text-[#C9B5FF] mb-3">TESTFORGE PRD OUTPUT</p>
             <h3 className="font-heading font-semibold text-lg text-white mb-3">
               PRD-2026-0842: Token Refresh Mechanism Update
             </h3>
-            <p className="text-sm text-[#A3C9A5] mb-4">
+            <p className="text-sm text-[#C9B5FF] mb-4">
               Structured PRD with all 5 sections, severity HIGH, priority P1, migration path with phases, validation criteria.
             </p>
             <div className="mt-auto pt-4 border-t border-[#3A3A3A]">
-              <span className="text-sm font-mono text-[#5A8F5E]">
+              <span className="text-sm font-mono text-[#C1A3FF]">
                 Time to resolution:{' '}
                 {countUpKey > 0 ? <CountUp end={0.8} decimals={1} duration={1.5} /> : '0.8'} days avg
               </span>
@@ -719,7 +719,7 @@ function ComparisonSection() {
           {['Structured Requirements', 'Clear Priorities', 'Migration Paths', 'Faster Resolution'].map((pill) => (
             <span
               key={pill}
-              className="px-5 py-2.5 rounded-lg border border-[#3A3A3A] text-[#A3C9A5] text-[13px] font-mono font-medium"
+              className="px-5 py-2.5 rounded-lg border border-[#3A3A3A] text-[#C9B5FF] text-[13px] font-mono font-medium"
             >
               {pill}
             </span>
@@ -737,13 +737,13 @@ function CTASection() {
   const navigate = useNavigate()
 
   return (
-    <section className="relative w-full bg-[#5A8F5E] py-20 lg:py-24">
+    <section className="relative w-full bg-[#C1A3FF] py-20 lg:py-24">
       <div className="container-tf text-center">
         <h2 className="text-display-md text-white mb-8">
           Let failures write your roadmap.
         </h2>
         <div className="flex flex-wrap justify-center gap-4">
-          <button className="px-7 py-[14px] rounded-lg bg-white text-[#5A8F5E] font-body font-medium text-base hover:bg-[#F5F5F0] hover:scale-[1.02] transition-all duration-200">
+          <button className="px-7 py-[14px] rounded-lg bg-white text-[#C1A3FF] font-body font-medium text-base hover:bg-[#F5F5F0] hover:scale-[1.02] transition-all duration-200">
             Get Started Free
           </button>
           <button

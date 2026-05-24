@@ -16,7 +16,7 @@ function highlightSyntax(code: string): string {
     .replace(/(\/\/.*$)/gm, '<span class="text-[#5A5A5A]">$1</span>')
     .replace(/(#.*$)/gm, '<span class="text-[#5A5A5A]">$1</span>')
     // Strings (both double and single quoted)
-    .replace(/"([^"]*)":/g, '<span class="text-[#7AAF7E]">"$1"</span>:')
+    .replace(/"([^"]*)":/g, '<span class="text-[#B48FFF]">"$1"</span>:')
     .replace(/"([^"]*)"/g, '<span class="text-[#C9A96E]">"$1"</span>')
     .replace(/'([^']*)'/g, '<span class="text-[#C9A96E]">\'$1\'</span>')
     // Keywords (true, false, null)
@@ -57,8 +57,8 @@ export default function SyntaxCode({ code, language = 'json' }: SyntaxCodeProps)
         >
           {copied ? (
             <>
-              <Check size={14} className="text-[#5A8F5E]" />
-              <span className="font-mono font-medium text-[11px] text-[#5A8F5E]">Copied!</span>
+              <Check size={14} className="text-[#C1A3FF]" />
+              <span className="font-mono font-medium text-[11px] text-[#C1A3FF]">Copied!</span>
             </>
           ) : (
             <>

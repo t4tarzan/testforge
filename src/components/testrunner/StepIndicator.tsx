@@ -17,7 +17,7 @@ export default function StepIndicator({ currentStep, completedSteps }: StepIndic
       <div className="relative mb-6">
         <div className="h-[3px] bg-[#EBEBE5] rounded-full overflow-hidden">
           <motion.div
-            className="h-full bg-[#5A8F5E] rounded-full"
+            className="h-full bg-[#C1A3FF] rounded-full"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] as [number, number, number, number] }}
@@ -37,7 +37,7 @@ export default function StepIndicator({ currentStep, completedSteps }: StepIndic
                   w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium
                   transition-colors duration-200
                   ${isActive || isCompleted
-                    ? 'bg-[#5A8F5E] text-white'
+                    ? 'bg-[#C1A3FF] text-white'
                     : 'bg-[#F5F5F0] border-2 border-[#D9D9D3] text-[#9A9A9A]'
                   }
                 `}
@@ -54,7 +54,7 @@ export default function StepIndicator({ currentStep, completedSteps }: StepIndic
               <motion.span
                 className={`
                   font-mono text-[11px] uppercase tracking-[0.08em] font-medium hidden sm:block
-                  ${isActive || isCompleted ? 'text-[#5A8F5E]' : 'text-[#9A9A9A]'}
+                  ${isActive || isCompleted ? 'text-[#C1A3FF]' : 'text-[#9A9A9A]'}
                 `}
                 animate={isActive ? { opacity: 1, scale: 1 } : { opacity: 1 }}
                 initial={{ opacity: 0.7 }}
@@ -74,7 +74,7 @@ export default function StepIndicator({ currentStep, completedSteps }: StepIndic
             <div
               key={index}
               className={`flex-1 h-[2px] mx-8 transition-colors duration-500 ${
-                isCompleted ? 'bg-[#5A8F5E]' : 'bg-[#D9D9D3]'
+                isCompleted ? 'bg-[#C1A3FF]' : 'bg-[#D9D9D3]'
               }`}
             />
           );

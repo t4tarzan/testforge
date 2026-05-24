@@ -22,7 +22,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   if (isLoading) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-[#F5F5F0]">
-        <div className="w-8 h-8 border-3 border-[#5A8F5E] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-3 border-[#C1A3FF] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }

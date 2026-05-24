@@ -6,11 +6,11 @@
 
 @layer base {
   :root {
-    --sage-500: #5A8F5E;
-    --sage-600: #4A7A4E;
-    --sage-400: #7AAF7E;
-    --sage-300: #A3C9A5;
-    --sage-100: #E8F0E8;
+    --sage-500: #C1A3FF;
+    --sage-600: #A07BDD;
+    --sage-400: #B48FFF;
+    --sage-300: #C9B5FF;
+    --sage-100: #F0EAFF;
     --cream: #F5F5F0;
     --cream-dark: #EBEBE5;
     --ink: #1A1A1A;
@@ -21,7 +21,7 @@
     --white: #FFFFFF;
     --border-light: #D9D9D3;
     --border-dark: #3A3A3A;
-    --status-pass: #5A8F5E;
+    --status-pass: #C1A3FF;
     --status-fail: #D4524A;
     --status-running: #E8A838;
     --status-pending: #9A9A9A;
@@ -29,7 +29,7 @@
     --sev-critical: #D4524A;
     --sev-high: #E87D3A;
     --sev-medium: #E8A838;
-    --sev-low: #5A8F5E;
+    --sev-low: #C1A3FF;
 
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;

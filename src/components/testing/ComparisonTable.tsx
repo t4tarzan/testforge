@@ -32,7 +32,7 @@ export default function ComparisonTable() {
           className="text-center mb-16"
         >
           <h2 className="font-heading font-semibold text-[42px] leading-[1.15] tracking-tight text-white">
-            All <span className="text-[#5A8F5E]">thirteen</span>. Always running.
+            All <span className="text-[#C1A3FF]">thirteen</span>. Always running.
           </h2>
         </motion.div>
 
@@ -49,7 +49,7 @@ export default function ComparisonTable() {
                 <th className="text-left py-4 px-4 font-mono font-medium text-[13px] uppercase tracking-wider text-[#9A9A9A]">
                   Dimension
                 </th>
-                <th className="text-center py-4 px-4 font-mono font-medium text-[13px] uppercase tracking-wider text-[#5A8F5E]">
+                <th className="text-center py-4 px-4 font-mono font-medium text-[13px] uppercase tracking-wider text-[#C1A3FF]">
                   TestForge
                 </th>
                 <th className="text-center py-4 px-4 font-mono font-medium text-[13px] uppercase tracking-wider text-[#9A9A9A]">
@@ -81,15 +81,15 @@ export default function ComparisonTable() {
                         damping: 15,
                         delay: 0.1,
                       }}
-                      className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#5A8F5E]/20"
+                      className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#C1A3FF]/20"
                     >
-                      <Check size={14} className="text-[#5A8F5E]" />
+                      <Check size={14} className="text-[#C1A3FF]" />
                     </motion.div>
                   </td>
                   <td className="py-3.5 px-4 text-center">
                     {row.testsprite ? (
-                      <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#5A8F5E]/20">
-                        <Check size={14} className="text-[#5A8F5E]" />
+                      <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#C1A3FF]/20">
+                        <Check size={14} className="text-[#C1A3FF]" />
                       </div>
                     ) : (
                       <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#D4524A]/10">
@@ -99,8 +99,8 @@ export default function ComparisonTable() {
                   </td>
                   <td className="py-3.5 px-4 text-center">
                     {row.traditional ? (
-                      <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#5A8F5E]/20">
-                        <Check size={14} className="text-[#5A8F5E]" />
+                      <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#C1A3FF]/20">
+                        <Check size={14} className="text-[#C1A3FF]" />
                       </div>
                     ) : (
                       <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#D4524A]/10">

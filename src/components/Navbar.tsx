@@ -14,16 +14,16 @@ const navLinks = [
 
 const LogoIcon = () => (
   <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="8" cy="8" r="3" stroke="#5A8F5E" strokeWidth="2" fill="none" />
-    <circle cx="24" cy="8" r="3" stroke="#5A8F5E" strokeWidth="2" fill="none" />
-    <circle cx="8" cy="24" r="3" stroke="#5A8F5E" strokeWidth="2" fill="none" />
-    <circle cx="24" cy="24" r="3" stroke="#5A8F5E" strokeWidth="2" fill="none" />
-    <line x1="11" y1="8" x2="21" y2="8" stroke="#5A8F5E" strokeWidth="1.5" />
-    <line x1="8" y1="11" x2="8" y2="21" stroke="#5A8F5E" strokeWidth="1.5" />
-    <line x1="11" y1="24" x2="21" y2="24" stroke="#5A8F5E" strokeWidth="1.5" />
-    <line x1="24" y1="11" x2="24" y2="21" stroke="#5A8F5E" strokeWidth="1.5" />
-    <line x1="10.1" y1="10.1" x2="21.9" y2="21.9" stroke="#5A8F5E" strokeWidth="1.5" />
-    <circle cx="16" cy="16" r="2" fill="#5A8F5E" />
+    <circle cx="8" cy="8" r="3" stroke="#C1A3FF" strokeWidth="2" fill="none" />
+    <circle cx="24" cy="8" r="3" stroke="#C1A3FF" strokeWidth="2" fill="none" />
+    <circle cx="8" cy="24" r="3" stroke="#C1A3FF" strokeWidth="2" fill="none" />
+    <circle cx="24" cy="24" r="3" stroke="#C1A3FF" strokeWidth="2" fill="none" />
+    <line x1="11" y1="8" x2="21" y2="8" stroke="#C1A3FF" strokeWidth="1.5" />
+    <line x1="8" y1="11" x2="8" y2="21" stroke="#C1A3FF" strokeWidth="1.5" />
+    <line x1="11" y1="24" x2="21" y2="24" stroke="#C1A3FF" strokeWidth="1.5" />
+    <line x1="24" y1="11" x2="24" y2="21" stroke="#C1A3FF" strokeWidth="1.5" />
+    <line x1="10.1" y1="10.1" x2="21.9" y2="21.9" stroke="#C1A3FF" strokeWidth="1.5" />
+    <circle cx="16" cy="16" r="2" fill="#C1A3FF" />
   </svg>
 )
 
@@ -51,7 +51,7 @@ function UserDropdown() {
         onClick={() => setOpen(!open)}
         className="flex items-center gap-2 hover:opacity-80 transition-opacity"
       >
-        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#5A8F5E] to-[#7AAF7E] flex items-center justify-center text-white text-[13px] font-semibold">
+        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#C1A3FF] to-[#B48FFF] flex items-center justify-center text-white text-[13px] font-semibold">
           {user.avatar}
         </div>
       </button>
@@ -161,10 +161,10 @@ export default function Navbar() {
               >
                 <Link
                   to={link.path}
-                  className="font-body font-medium text-[15px] text-[#333333] hover:text-[#5A8F5E] transition-colors duration-200 relative group"
+                  className="font-body font-medium text-[15px] text-[#333333] hover:text-[#C1A3FF] transition-colors duration-200 relative group"
                 >
                   {link.label}
-                  <span className="absolute -bottom-1 left-0 w-0 h-[1.5px] bg-[#5A8F5E] transition-all duration-200 group-hover:w-full" />
+                  <span className="absolute -bottom-1 left-0 w-0 h-[1.5px] bg-[#C1A3FF] transition-all duration-200 group-hover:w-full" />
                 </Link>
               </motion.div>
             ))}
@@ -189,7 +189,7 @@ export default function Navbar() {
                 >
                   <Link
                     to="/auth"
-                    className="px-6 py-[14px] rounded-lg border border-[#D9D9D3] text-[#333333] font-body font-medium text-[15px] hover:bg-[#E8F0E8] hover:border-[#A3C9A5] transition-all duration-200"
+                    className="px-6 py-[14px] rounded-lg border border-[#D9D9D3] text-[#333333] font-body font-medium text-[15px] hover:bg-[#F0EAFF] hover:border-[#C9B5FF] transition-all duration-200"
                   >
                     Sign In
                   </Link>
@@ -201,7 +201,7 @@ export default function Navbar() {
                 >
                   <Link
                     to="/auth?tab=signup"
-                    className="px-6 py-[14px] rounded-lg bg-[#5A8F5E] text-white font-body font-medium text-[15px] hover:bg-[#4A7A4E] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center gap-2 group"
+                    className="px-6 py-[14px] rounded-lg bg-[#C1A3FF] text-white font-body font-medium text-[15px] hover:bg-[#A07BDD] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center gap-2 group"
                   >
                     Get Started
                     <ArrowRight size={16} className="transition-transform duration-200 group-hover:translate-x-1" />
@@ -242,7 +242,7 @@ export default function Navbar() {
               >
                 <Link
                   to={link.path}
-                  className="font-heading font-medium text-2xl text-[#333333] hover:text-[#5A8F5E] transition-colors duration-200"
+                  className="font-heading font-medium text-2xl text-[#333333] hover:text-[#C1A3FF] transition-colors duration-200"
                   onClick={() => setMobileOpen(false)}
                 >
                   {link.label}
@@ -261,7 +261,7 @@ export default function Navbar() {
                   <Link
                     to="/account"
                     onClick={() => setMobileOpen(false)}
-                    className="flex items-center gap-2 px-8 py-3 rounded-lg bg-[#5A8F5E] text-white font-body font-medium text-base w-48 justify-center"
+                    className="flex items-center gap-2 px-8 py-3 rounded-lg bg-[#C1A3FF] text-white font-body font-medium text-base w-48 justify-center"
                   >
                     <User size={18} /> Account
                   </Link>
@@ -284,7 +284,7 @@ export default function Navbar() {
                   <Link
                     to="/auth"
                     onClick={() => setMobileOpen(false)}
-                    className="px-8 py-3 rounded-lg bg-[#5A8F5E] text-white font-body font-medium text-base w-48 text-center"
+                    className="px-8 py-3 rounded-lg bg-[#C1A3FF] text-white font-body font-medium text-base w-48 text-center"
                   >
                     Get Started
                   </Link>

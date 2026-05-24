@@ -43,8 +43,8 @@ export default function CodeBlock({ code, language = 'json', showLineNumbers = f
         >
           {copied ? (
             <>
-              <Check size={14} className="text-[#5A8F5E]" />
-              <span className="font-mono font-medium text-[11px] text-[#5A8F5E]">Copied!</span>
+              <Check size={14} className="text-[#C1A3FF]" />
+              <span className="font-mono font-medium text-[11px] text-[#C1A3FF]">Copied!</span>
             </>
           ) : (
             <>

@@ -3,7 +3,7 @@ import type { Stage } from './stagesData';
 
 const logColors: Record<string, string> = {
   INFO: '#9A9A9A',
-  PASS: '#5A8F5E',
+  PASS: '#C1A3FF',
   FAIL: '#D4524A',
   WARN: '#E8A838',
 };
@@ -58,7 +58,7 @@ const LiveLogs = memo(function LiveLogs({ stage, isRunning }: LiveLogsProps) {
       <div className="flex items-center gap-2 mb-3">
         <div className="w-3 h-3 rounded-full bg-[#D4524A]" />
         <div className="w-3 h-3 rounded-full bg-[#E8A838]" />
-        <div className="w-3 h-3 rounded-full bg-[#5A8F5E]" />
+        <div className="w-3 h-3 rounded-full bg-[#C1A3FF]" />
         <span className="font-mono text-[11px] text-[#9A9A9A] uppercase tracking-wider ml-2">
           {stage.name} — Live Output
         </span>

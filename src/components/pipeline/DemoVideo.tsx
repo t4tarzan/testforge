@@ -36,7 +36,7 @@ const DemoVideo = memo(function DemoVideo() {
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#7AAF7E] mb-4 block text-center"
+          className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#B48FFF] mb-4 block text-center"
         >
           // SEE IT IN ACTION
         </motion.span>
@@ -94,7 +94,7 @@ const DemoVideo = memo(function DemoVideo() {
                 transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                 className="absolute inset-0 flex items-center justify-center z-10"
               >
-                <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-full bg-[#5A8F5E] flex items-center justify-center shadow-lg hover:bg-[#4A7A4E] hover:scale-110 transition-all duration-200">
+                <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-full bg-[#C1A3FF] flex items-center justify-center shadow-lg hover:bg-[#A07BDD] hover:scale-110 transition-all duration-200">
                   <Play size={32} className="text-white ml-1" fill="white" />
                 </div>
               </motion.button>
@@ -106,20 +106,20 @@ const DemoVideo = memo(function DemoVideo() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={handlePlay}
-                    className="text-white hover:text-[#5A8F5E] transition-colors duration-200"
+                    className="text-white hover:text-[#C1A3FF] transition-colors duration-200"
                   >
                     {isPlaying ? <Pause size={20} /> : <Play size={20} />}
                   </button>
                   <button
                     onClick={() => setIsMuted(!isMuted)}
-                    className="text-white hover:text-[#5A8F5E] transition-colors duration-200"
+                    className="text-white hover:text-[#C1A3FF] transition-colors duration-200"
                   >
                     {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
                   </button>
                 </div>
                 <button
                   onClick={handleFullscreen}
-                  className="text-white hover:text-[#5A8F5E] transition-colors duration-200"
+                  className="text-white hover:text-[#C1A3FF] transition-colors duration-200"
                 >
                   <Maximize size={20} />
                 </button>

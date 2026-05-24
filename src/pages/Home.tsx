@@ -85,12 +85,12 @@ function FeatureCard({ icon, title, description, badge }: { icon: React.ReactNod
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] as [number, number, number, number] }}
       className="bg-white border border-[#D9D9D3] rounded-xl p-6 shadow-card hover:shadow-card-hover transition-shadow duration-300 group"
     >
-      <div className="mb-4 text-[#5A8F5E] group-hover:scale-105 transition-transform duration-300">
+      <div className="mb-4 text-[#C1A3FF] group-hover:scale-105 transition-transform duration-300">
         {icon}
       </div>
       <h3 className="font-heading font-medium text-[22px] text-[#333333] mb-2">{title}</h3>
       <p className="text-[#6B6B6B] text-sm leading-relaxed mb-4">{description}</p>
-      <span className="inline-block font-mono text-xs font-medium uppercase tracking-wider text-[#5A8F5E] bg-[#E8F0E8] px-3 py-1 rounded">
+      <span className="inline-block font-mono text-xs font-medium uppercase tracking-wider text-[#C1A3FF] bg-[#F0EAFF] px-3 py-1 rounded">
         {badge}
       </span>
     </motion.div>
@@ -105,7 +105,7 @@ function TestimonialCard({ quote, name, title, image }: { quote: string; name: s
       transition={{ duration: 0.3 }}
       className="bg-[#2A2A2A] border border-[#3A3A3A] rounded-xl p-8 relative"
     >
-      <span className="absolute top-4 left-6 text-[48px] leading-none text-[#5A8F5E] opacity-20 font-heading">
+      <span className="absolute top-4 left-6 text-[48px] leading-none text-[#C1A3FF] opacity-20 font-heading">
         &ldquo;
       </span>
       <p className="text-white text-base leading-relaxed italic pt-8 mb-6">{quote}</p>
@@ -123,7 +123,7 @@ function TestimonialCard({ quote, name, title, image }: { quote: string; name: s
 /* ──────────────────────── Pipeline Stage Card ──────────────────────── */
 function PipelineStageCard({ number, name, progress, status }: { number: string; name: string; progress: number; status: 'complete' | 'running' | 'pending' }) {
   const statusColors = {
-    complete: 'bg-[#5A8F5E]',
+    complete: 'bg-[#C1A3FF]',
     running: 'bg-[#E8A838]',
     pending: 'bg-[#9A9A9A]',
   }
@@ -134,8 +134,8 @@ function PipelineStageCard({ number, name, progress, status }: { number: string;
   }
 
   return (
-    <div className="flex items-center gap-4 bg-white rounded-lg p-4 border-l-4 border-[#5A8F5E] shadow-sm">
-      <span className="font-mono text-xs text-[#5A8F5E] w-8">{number}</span>
+    <div className="flex items-center gap-4 bg-white rounded-lg p-4 border-l-4 border-[#C1A3FF] shadow-sm">
+      <span className="font-mono text-xs text-[#C1A3FF] w-8">{number}</span>
       <div className="flex-1">
         <div className="flex items-center justify-between mb-2">
           <span className="font-medium text-sm text-[#333333]">{name}</span>
@@ -143,13 +143,13 @@ function PipelineStageCard({ number, name, progress, status }: { number: string;
             {statusIcon[status]}
           </div>
         </div>
-        <div className="w-full h-1.5 bg-[#E8F0E8] rounded-full overflow-hidden">
+        <div className="w-full h-1.5 bg-[#F0EAFF] rounded-full overflow-hidden">
           <motion.div
             initial={{ width: 0 }}
             whileInView={{ width: `${progress}%` }}
             viewport={{ once: true }}
             transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
-            className="h-full bg-[#5A8F5E] rounded-full"
+            className="h-full bg-[#C1A3FF] rounded-full"
           />
         </div>
       </div>
@@ -162,27 +162,27 @@ function Step01Visual() {
   return (
     <div className="bg-white border border-[#D9D9D3] rounded-2xl p-6 shadow-lg">
       <div className="space-y-3">
-        <div className="flex items-center gap-3 p-3 border border-[#D9D9D3] rounded-lg hover:border-[#5A8F5E] hover:bg-[#E8F0E8] transition-all cursor-pointer">
+        <div className="flex items-center gap-3 p-3 border border-[#D9D9D3] rounded-lg hover:border-[#C1A3FF] hover:bg-[#F0EAFF] transition-all cursor-pointer">
           <div className="w-8 h-8 bg-[#1A1A1A] rounded-full flex items-center justify-center">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="white"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
           </div>
           <span className="font-medium text-sm">GitHub</span>
         </div>
-        <div className="flex items-center gap-3 p-3 border border-[#D9D9D3] rounded-lg hover:border-[#5A8F5E] hover:bg-[#E8F0E8] transition-all cursor-pointer">
+        <div className="flex items-center gap-3 p-3 border border-[#D9D9D3] rounded-lg hover:border-[#C1A3FF] hover:bg-[#F0EAFF] transition-all cursor-pointer">
           <div className="w-8 h-8 bg-[#FC6D26] rounded-full flex items-center justify-center text-white font-bold text-xs">GL</div>
           <span className="font-medium text-sm">GitLab</span>
         </div>
-        <div className="flex items-center gap-3 p-3 border border-[#D9D9D3] rounded-lg hover:border-[#5A8F5E] hover:bg-[#E8F0E8] transition-all cursor-pointer">
+        <div className="flex items-center gap-3 p-3 border border-[#D9D9D3] rounded-lg hover:border-[#C1A3FF] hover:bg-[#F0EAFF] transition-all cursor-pointer">
           <div className="w-8 h-8 bg-[#FCA121] rounded-full flex items-center justify-center text-white font-bold text-xs">BB</div>
           <span className="font-medium text-sm">Bitbucket</span>
         </div>
-        <div className="mt-4 p-3 bg-[#E8F0E8] rounded-lg">
+        <div className="mt-4 p-3 bg-[#F0EAFF] rounded-lg">
           <div className="flex items-center gap-2 mb-2">
-            <Check size={14} className="text-[#5A8F5E]" />
+            <Check size={14} className="text-[#C1A3FF]" />
             <span className="text-xs text-[#333333]">Repository detected</span>
           </div>
           <div className="flex items-center gap-2">
-            <Check size={14} className="text-[#5A8F5E]" />
+            <Check size={14} className="text-[#C1A3FF]" />
             <span className="text-xs text-[#333333]">Auto-configuration ready</span>
           </div>
         </div>
@@ -204,12 +204,12 @@ function Step02Visual() {
         {stages.map((stage, i) => (
           <div key={stage.name} className="flex items-center gap-2">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-mono ${
-              stage.active ? 'bg-[#5A8F5E] text-white' : 'bg-[#3A3A3A] text-[#9A9A9A]'
+              stage.active ? 'bg-[#C1A3FF] text-white' : 'bg-[#3A3A3A] text-[#9A9A9A]'
             }`}>
               {stage.active ? <Check size={14} /> : (i + 1)}
             </div>
             {i < stages.length - 1 && (
-              <div className={`w-8 h-0.5 ${stage.active ? 'bg-[#5A8F5E]' : 'bg-[#3A3A3A]'}`} />
+              <div className={`w-8 h-0.5 ${stage.active ? 'bg-[#C1A3FF]' : 'bg-[#3A3A3A]'}`} />
             )}
           </div>
         ))}
@@ -220,7 +220,7 @@ function Step02Visual() {
             stage.active ? 'bg-[#2A2A2A]' : ''
           }`}>
             <span className={`text-xs ${stage.active ? 'text-white' : 'text-[#9A9A9A]'}`}>{stage.name} Test</span>
-            {stage.active && <span className="text-[10px] font-mono text-[#5A8F5E]">PASSING</span>}
+            {stage.active && <span className="text-[10px] font-mono text-[#C1A3FF]">PASSING</span>}
           </div>
         ))}
       </div>
@@ -243,7 +243,7 @@ function Step03Visual() {
           <p className="text-[#9A9A9A] text-xs">Token refresh returns 401 on expired sessions</p>
         </div>
         <div className="border-t border-[#3A3A3A] pt-3">
-          <p className="text-[#5A8F5E] text-[10px] font-mono uppercase mb-2">Generated PRD</p>
+          <p className="text-[#C1A3FF] text-[10px] font-mono uppercase mb-2">Generated PRD</p>
           <div className="bg-[#2A2A2A] rounded p-2">
             <p className="text-white text-xs">Implement sliding window token refresh with 5min buffer</p>
           </div>
@@ -327,7 +327,7 @@ export default function Home() {
   const renderAnimatedHeadline = () => {
     const parts = [
       { text: '10x your ', color: '#333333' },
-      { text: 'AI-native dev speed', color: '#5A8F5E' },
+      { text: 'AI-native dev speed', color: '#C1A3FF' },
       { text: ' with autonomous testing handling verification', color: '#333333' },
     ]
     let charIndex = 0
@@ -420,11 +420,11 @@ export default function Home() {
 
               {/* CTA Group */}
               <div className="flex flex-wrap gap-4 mb-12">
-                <button className="hero-cta px-7 py-[14px] rounded-lg bg-[#5A8F5E] text-white font-body font-medium text-base hover:bg-[#4A7A4E] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center gap-2 group" style={{ opacity: 0 }}>
+                <button className="hero-cta px-7 py-[14px] rounded-lg bg-[#C1A3FF] text-white font-body font-medium text-base hover:bg-[#A07BDD] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center gap-2 group" style={{ opacity: 0 }}>
                   Get Started Free
                   <ArrowRight size={16} className="transition-transform duration-200 group-hover:translate-x-1" />
                 </button>
-                <button className="hero-cta px-7 py-[14px] rounded-lg border border-[#D9D9D3] text-[#333333] font-body font-medium text-base hover:bg-[#E8F0E8] hover:border-[#A3C9A5] transition-all duration-200 flex items-center gap-2" style={{ opacity: 0 }}>
+                <button className="hero-cta px-7 py-[14px] rounded-lg border border-[#D9D9D3] text-[#333333] font-body font-medium text-base hover:bg-[#F0EAFF] hover:border-[#C9B5FF] transition-all duration-200 flex items-center gap-2" style={{ opacity: 0 }}>
                   <PlayCircle size={16} />
                   Watch Demo
                 </button>
@@ -452,19 +452,19 @@ export default function Home() {
 
               {/* Floating badges */}
               <FloatingBadge className="-top-4 -right-4" delay={0}>
-                <div className="bg-[#5A8F5E] text-white text-xs font-mono px-3 py-2 rounded-lg shadow-lg flex items-center gap-2">
+                <div className="bg-[#C1A3FF] text-white text-xs font-mono px-3 py-2 rounded-lg shadow-lg flex items-center gap-2">
                   <Check size={14} />
                   All Tests Passing
                 </div>
               </FloatingBadge>
               <FloatingBadge className="-bottom-4 -left-4" delay={1.5}>
                 <div className="bg-white border border-[#D9D9D3] text-[#333333] text-xs font-mono px-3 py-2 rounded-lg shadow-lg">
-                  <span className="text-[#5A8F5E] font-bold">94%</span> Coverage
+                  <span className="text-[#C1A3FF] font-bold">94%</span> Coverage
                 </div>
               </FloatingBadge>
               <FloatingBadge className="top-1/2 -right-8" delay={0.75}>
-                <div className="w-10 h-10 bg-[#E8F0E8] border border-[#A3C9A5] rounded-full flex items-center justify-center shadow-lg">
-                  <div className="w-3 h-3 bg-[#5A8F5E] rounded-full animate-pulse" />
+                <div className="w-10 h-10 bg-[#F0EAFF] border border-[#C9B5FF] rounded-full flex items-center justify-center shadow-lg">
+                  <div className="w-3 h-3 bg-[#C1A3FF] rounded-full animate-pulse" />
                 </div>
               </FloatingBadge>
             </div>
@@ -502,7 +502,7 @@ export default function Home() {
           </ScrollReveal>
           <ScrollReveal delay={0.1}>
             <h2 className="text-display-lg mb-6" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
-              <span className="text-[#5A8F5E]">50-55%</span>
+              <span className="text-[#C1A3FF]">50-55%</span>
               <span className="text-white"> of AI-generated code fails in production</span>
             </h2>
           </ScrollReveal>
@@ -528,12 +528,12 @@ export default function Home() {
                 <span className="text-[#9A9A9A] text-sm font-body">Traditional Testing</span>
               </div>
               <div className="flex flex-col items-center gap-3">
-                <span className="text-[#5A8F5E] font-heading font-bold text-2xl">
+                <span className="text-[#C1A3FF] font-heading font-bold text-2xl">
                   <AnimatedCounter end={94} suffix="%" />
                 </span>
                 <div className="relative w-24 lg:w-32 h-[200px] bg-[#2A2A2A] rounded-t-lg overflow-hidden">
                   <div
-                    className="problem-bar-right absolute bottom-0 left-0 right-0 bg-[#5A8F5E] rounded-t-lg origin-bottom"
+                    className="problem-bar-right absolute bottom-0 left-0 right-0 bg-[#C1A3FF] rounded-t-lg origin-bottom"
                     style={{ height: '94%' }}
                   />
                 </div>
@@ -558,7 +558,7 @@ export default function Home() {
                 <p className="section-label mb-4">// MULTI-DIMENSIONAL PIPELINE</p>
                 <h2 className="text-display-lg mb-6" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
                   <span className="text-[#333333]">One pipeline. </span>
-                  <span className="text-[#5A8F5E]">Thirteen</span>
+                  <span className="text-[#C1A3FF]">Thirteen</span>
                   <span className="text-[#333333]"> testing dimensions.</span>
                 </h2>
               </ScrollReveal>
@@ -576,8 +576,8 @@ export default function Home() {
                 ].map((item, i) => (
                   <ScrollReveal key={item} delay={0.15 + i * 0.08}>
                     <div className="flex items-center gap-3">
-                      <div className="w-5 h-5 rounded-full bg-[#E8F0E8] flex items-center justify-center">
-                        <Check size={12} className="text-[#5A8F5E]" />
+                      <div className="w-5 h-5 rounded-full bg-[#F0EAFF] flex items-center justify-center">
+                        <Check size={12} className="text-[#C1A3FF]" />
                       </div>
                       <span className="text-[#333333] text-sm">{item}</span>
                     </div>
@@ -601,7 +601,7 @@ export default function Home() {
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="font-heading font-medium text-lg text-[#333333]">Pipeline Preview</h3>
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#5A8F5E] animate-pulse" />
+                    <span className="w-2 h-2 rounded-full bg-[#C1A3FF] animate-pulse" />
                     <span className="font-mono text-xs text-[#6B6B6B]">Running</span>
                   </div>
                 </div>
@@ -633,7 +633,7 @@ export default function Home() {
               <p className="section-label-light mb-6">// THE INTEGRATOR</p>
               <h2 className="text-display-lg mb-6" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
                 <span className="text-white">Smart integration decisions, powered by </span>
-                <span className="text-[#5A8F5E]">intelligence.</span>
+                <span className="text-[#C1A3FF]">intelligence.</span>
               </h2>
             </ScrollReveal>
             <ScrollReveal delay={0.1}>
@@ -662,20 +662,20 @@ export default function Home() {
                     transition={{ delay: 0.5 + i * 0.15, duration: 0.6, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
                     className="text-center"
                   >
-                    <div className="bg-[#1A1A1A] border border-[#3A3A3A] rounded-xl p-4 mb-2 hover:border-[#5A8F5E]/30 transition-colors duration-300">
-                      <div className="text-[#5A8F5E] mb-3 flex justify-center">{layer.icon}</div>
+                    <div className="bg-[#1A1A1A] border border-[#3A3A3A] rounded-xl p-4 mb-2 hover:border-[#C1A3FF]/30 transition-colors duration-300">
+                      <div className="text-[#C1A3FF] mb-3 flex justify-center">{layer.icon}</div>
                       <p className="text-white font-mono text-sm mb-1">{layer.title}</p>
                       <p className="text-[#9A9A9A] text-xs">{layer.subtitle}</p>
                     </div>
                     {i < 3 && (
                       <div className="hidden lg:flex items-center justify-center mt-2">
-                        <ChevronRight size={16} className="text-[#5A8F5E]" />
+                        <ChevronRight size={16} className="text-[#C1A3FF]" />
                       </div>
                     )}
                   </motion.div>
                 ))}
               </div>
-              <p className="text-center text-[#7AAF7E] text-sm italic">
+              <p className="text-center text-[#B48FFF] text-sm italic">
                 No existing tool combines merge conflicts + dependency conflicts + test failures + build state into unified recommendations.
               </p>
             </div>
@@ -685,7 +685,7 @@ export default function Home() {
             <div className="text-center">
               <Link
                 to="/integrator"
-                className="inline-flex items-center gap-2 px-7 py-[14px] rounded-lg bg-[#5A8F5E] text-white font-body font-medium text-base hover:bg-[#4A7A4E] hover:scale-[1.02] transition-all duration-200 group"
+                className="inline-flex items-center gap-2 px-7 py-[14px] rounded-lg bg-[#C1A3FF] text-white font-body font-medium text-base hover:bg-[#A07BDD] hover:scale-[1.02] transition-all duration-200 group"
               >
                 Discover The Integrator
                 <ArrowRight size={16} className="transition-transform duration-200 group-hover:translate-x-1" />
@@ -706,7 +706,7 @@ export default function Home() {
               <p className="section-label mb-4">// TESTING DIMENSIONS</p>
               <h2 className="text-display-lg mb-6" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
                 <span className="text-[#333333]">Every angle. </span>
-                <span className="text-[#5A8F5E]">Every edge case.</span>
+                <span className="text-[#C1A3FF]">Every edge case.</span>
                 <span className="text-[#333333]"> Every time.</span>
               </h2>
               <p className="text-body-lg text-[#6B6B6B]">
@@ -732,11 +732,11 @@ export default function Home() {
                 <motion.div
                   whileHover={{ y: -4 }}
                   transition={{ duration: 0.3 }}
-                  className="h-full border-2 border-dashed border-[#D9D9D3] rounded-xl p-6 flex flex-col items-center justify-center text-center hover:border-[#5A8F5E] hover:bg-[#E8F0E8]/50 transition-all duration-300 group"
+                  className="h-full border-2 border-dashed border-[#D9D9D3] rounded-xl p-6 flex flex-col items-center justify-center text-center hover:border-[#C1A3FF] hover:bg-[#F0EAFF]/50 transition-all duration-300 group"
                 >
-                  <span className="text-[#5A8F5E] font-heading font-semibold text-2xl mb-2 group-hover:scale-110 transition-transform">+4</span>
+                  <span className="text-[#C1A3FF] font-heading font-semibold text-2xl mb-2 group-hover:scale-110 transition-transform">+4</span>
                   <span className="text-[#6B6B6B] text-sm mb-1">More Dimensions</span>
-                  <span className="text-[#5A8F5E] text-xs font-mono uppercase tracking-wider flex items-center gap-1">
+                  <span className="text-[#C1A3FF] text-xs font-mono uppercase tracking-wider flex items-center gap-1">
                     View All <ChevronRight size={14} />
                   </span>
                 </motion.div>
@@ -761,7 +761,7 @@ export default function Home() {
             ].map((stat, i) => (
               <ScrollReveal key={stat.label} delay={i * 0.1}>
                 <div className="bg-white rounded-2xl p-8 text-center shadow-card">
-                  <p className="font-heading font-bold text-[48px] text-[#5A8F5E] leading-none mb-2">
+                  <p className="font-heading font-bold text-[48px] text-[#C1A3FF] leading-none mb-2">
                     {stat.suffix === 'x' ? (
                       <><AnimatedCounter end={stat.value} />x</>
                     ) : stat.value >= 1000 ? (
@@ -800,7 +800,7 @@ export default function Home() {
             <p className="section-label mb-4">// HOW IT WORKS</p>
             <h2 className="text-display-lg mb-16" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
               <span className="text-[#333333]">Three steps to </span>
-              <span className="text-[#5A8F5E]">testing autonomy.</span>
+              <span className="text-[#C1A3FF]">testing autonomy.</span>
             </h2>
           </ScrollReveal>
 
@@ -857,7 +857,7 @@ export default function Home() {
       {/* ═══════════════════════════════════════════
           SECTION 10: FINAL CTA
           ═══════════════════════════════════════════ */}
-      <section className="relative bg-[#5A8F5E] py-24 lg:py-32 overflow-hidden">
+      <section className="relative bg-[#C1A3FF] py-24 lg:py-32 overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{
             backgroundImage: `radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%), radial-gradient(circle at 80% 50%, rgba(255,255,255,0.1) 0%, transparent 50%)`,
@@ -876,7 +876,7 @@ export default function Home() {
           </ScrollReveal>
           <ScrollReveal delay={0.2}>
             <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
-              <button className="px-7 py-[14px] rounded-lg bg-white text-[#5A8F5E] font-body font-medium text-base hover:bg-[#F5F5F0] transition-all duration-200 flex items-center gap-2 group">
+              <button className="px-7 py-[14px] rounded-lg bg-white text-[#C1A3FF] font-body font-medium text-base hover:bg-[#F5F5F0] transition-all duration-200 flex items-center gap-2 group">
                 Get Started Free
                 <ArrowRight size={16} className="transition-transform duration-200 group-hover:translate-x-1" />
               </button>
