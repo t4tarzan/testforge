@@ -110,19 +110,97 @@ function Hero() {
           </motion.div>
         </div>
 
-        {/* Hero image */}
+        {/* Live 20-Dimension Grid Visualization */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] as [number, number, number, number], delay: 0.5 }}
-          className="mt-12 lg:mt-16 rounded-2xl overflow-hidden border border-[#D9D9D3] shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.5 }}
+          className="mt-12 lg:mt-16"
         >
-          <img
-            src="/testing-dimensions-grid.jpg"
-            alt="Grid of all 13 testing dimensions"
-            className="w-full h-auto object-cover"
-            loading="eager"
-          />
+          <div className="bg-[#12101A] rounded-2xl border border-[#3A3A3A] overflow-hidden p-6 lg:p-10">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <p className="font-mono text-xs text-[#a99bff] uppercase tracking-[0.15em] mb-3">// LIVE DIMENSION MAP</p>
+              <h3 className="text-white text-2xl font-semibold">20 Analysis Dimensions</h3>
+              <p className="text-[#6B6B6B] text-sm mt-2">Every commit. Every angle. Every vulnerability.</p>
+            </div>
+
+            {/* Dimension Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+              {[
+                { name: 'Security', score: 92, color: '#EF4444', cat: 'Code' },
+                { name: 'Unit Tests', score: 67, color: '#F97316', cat: 'Quality' },
+                { name: 'Load Testing', score: 78, color: '#EAB308', cat: 'Scale' },
+                { name: 'Accessibility', score: 85, color: '#22C55E', cat: 'Compliance' },
+                { name: 'Vision & Goals', score: 72, color: '#3B82F6', cat: 'Strategy' },
+                { name: 'Scope Coverage', score: 55, color: '#8B5CF6', cat: 'Strategy' },
+                { name: 'Stack Analysis', score: 88, color: '#574a7d', cat: 'Architecture' },
+                { name: 'Contract Testing', score: 70, color: '#EC4899', cat: 'API' },
+                { name: 'Visual Regression', score: 80, color: '#06B6D4', cat: 'UI' },
+                { name: 'Edge Cases', score: 65, color: '#F59E0B', cat: 'Boundary' },
+                { name: 'Property-Based', score: 45, color: '#10B981', cat: 'Logic' },
+                { name: 'Chaos Engineering', score: 90, color: '#6366F1', cat: 'Resilience' },
+                { name: 'Mutation Testing', score: 55, color: '#D946EF', cat: 'Quality' },
+                { name: 'Predictive Model', score: 82, color: '#F43F5E', cat: 'Risk' },
+                { name: 'Supply Chain', score: 75, color: '#DC2626', cat: 'Security' },
+                { name: 'N+1 Detection', score: 85, color: '#EA580C', cat: 'Performance' },
+                { name: 'Dead Code', score: 60, color: '#64748B', cat: 'Cleanup' },
+                { name: 'License Check', score: 90, color: '#0EA5E9', cat: 'Compliance' },
+                { name: 'DORA Metrics', score: 70, color: '#14B8A6', cat: 'DevOps' },
+                { name: 'OWASP Coverage', score: 65, color: '#7C3AED', cat: 'Standards' },
+              ].map((d, i) => (
+                <motion.div
+                  key={d.name}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={isInView ? { opacity: 1, scale: 1 } : {}}
+                  transition={{ delay: 0.6 + i * 0.02, duration: 0.3 }}
+                  className="relative bg-[#1E1B2E] border border-[#3A3A3A] rounded-xl p-4 hover:border-[#574a7d] transition-all group overflow-hidden"
+                >
+                  {/* Score bar background */}
+                  <div className="absolute bottom-0 left-0 h-1 transition-all duration-700" style={{ width: `${d.score}%`, backgroundColor: d.color, opacity: 0.4 }} />
+                  
+                  {/* Content */}
+                  <div className="flex items-start justify-between mb-2">
+                    <span className="text-white text-sm font-medium group-hover:text-[#a99bff] transition-colors">{d.name}</span>
+                    <span className="text-xs font-mono font-bold" style={{ color: d.color }}>{d.score}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: d.color }} />
+                    <span className="text-[10px] text-[#6B6B6B] font-mono uppercase">{d.cat}</span>
+                  </div>
+
+                  {/* Mini progress bar */}
+                  <div className="mt-2 h-1 bg-[#3A3A3A] rounded-full overflow-hidden">
+                    <motion.div
+                      className="h-full rounded-full"
+                      style={{ backgroundColor: d.color }}
+                      initial={{ width: 0 }}
+                      animate={isInView ? { width: `${d.score}%` } : {}}
+                      transition={{ delay: 0.8 + i * 0.03, duration: 0.6, ease: 'easeOut' }}
+                    />
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Legend */}
+            <div className="flex flex-wrap justify-center gap-4 mt-8 pt-6 border-t border-[#3A3A3A]">
+              {[
+                { label: 'Code Quality', color: '#574a7d' },
+                { label: 'Security', color: '#EF4444' },
+                { label: 'Performance', color: '#EAB308' },
+                { label: 'Compliance', color: '#22C55E' },
+                { label: 'DevOps', color: '#3B82F6' },
+                { label: 'Strategy', color: '#8B5CF6' },
+              ].map(l => (
+                <div key={l.label} className="flex items-center gap-2 text-xs text-[#9A9A9A]">
+                  <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: l.color }} />
+                  {l.label}
+                </div>
+              ))}
+            </div>
+          </div>
         </motion.div>
       </div>
     </section>
