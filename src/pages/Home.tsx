@@ -422,14 +422,14 @@ export default function Home() {
 
               {/* CTA Group */}
               <div className="flex flex-wrap gap-4 mb-12">
-                <button className="hero-cta px-7 py-[14px] rounded-lg bg-[#574a7d] text-white font-body font-medium text-base hover:bg-[#453a68] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center gap-2 group" style={{ opacity: 0 }}>
-                  Start Testing Free
+                <Link to="/mcp" className="hero-cta px-7 py-[14px] rounded-lg bg-[#574a7d] text-white font-body font-medium text-base hover:bg-[#453a68] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center gap-2 group" style={{ opacity: 0 }}>
+                  Install MCP
                   <ArrowRight size={16} className="transition-transform duration-200 group-hover:translate-x-1" />
-                </button>
-                <button className="hero-cta px-7 py-[14px] rounded-lg border border-[#D9D9D3] text-[#333333] font-body font-medium text-base hover:bg-[#E8E5FF] hover:border-[#a99bff] transition-all duration-200 flex items-center gap-2" style={{ opacity: 0 }}>
+                </Link>
+                <Link to="/managed" className="hero-cta px-7 py-[14px] rounded-lg border border-[#D9D9D3] text-[#333333] font-body font-medium text-base hover:bg-[#E8E5FF] hover:border-[#a99bff] transition-all duration-200 flex items-center gap-2" style={{ opacity: 0 }}>
                   <PlayCircle size={16} />
-                  See How It Works
-                </button>
+                  Triage Demo
+                </Link>
               </div>
 
               {/* Stats Row */}
