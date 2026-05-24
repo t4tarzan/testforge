@@ -409,7 +409,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-grid-pattern pointer-events-none" />
 
         <div className="container-tf relative z-10 py-16 lg:py-24">
-          <div className="grid lg:grid-cols-[45%_55%] gap-12 lg:gap-8 items-center">
+          <div className="grid lg:grid-cols-[52%_48%] gap-12 lg:gap-8 items-center">
             {/* Left: Text */}
             <div>
               <p className="section-label mb-4">// PRIVACY-FIRST AUTONOMOUS TESTING ENGINE</p>
