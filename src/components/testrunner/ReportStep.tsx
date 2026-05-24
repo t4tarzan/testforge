@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   CheckCircle2, FileJson, FileText, FileDown, Shield,
-  RotateCcw, Eye, Target, Layers, Sparkles
+  RotateCcw, Eye, Target, Layers, Sparkles, TrendingUp
 } from 'lucide-react';
+import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from 'recharts';
 
 interface ReportStepProps {
   results: any;
@@ -52,7 +53,27 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
 
   const { codebase = {}, security = {}, unit = {}, load = {}, accessibility = {}, vision = {}, scope = {}, stack = {} } = results;
   
-  // Comprehensive score across ALL dimensions (including strategic)
+  // Build dimension scores for radar chart
+  const dimScores = [
+    { dimension: 'Security', score: Math.max(0, 100 - (security.critical || 0) * 20 - (security.high || 0) * 5), fullMark: 100 },
+    { dimension: 'Unit Tests', score: unit.coverage || 0, fullMark: 100 },
+    { dimension: 'Load/Perf', score: load.maxUsers > 100 ? 90 : load.maxUsers > 50 ? 70 : 40, fullMark: 100 },
+    { dimension: 'Accessibility', score: accessibility.score || 0, fullMark: 100 },
+    { dimension: 'Vision', score: vision.score || 0, fullMark: 100 },
+    { dimension: 'Scope', score: scope.coverage || 0, fullMark: 100 },
+    { dimension: 'Stack', score: stack.score || 0, fullMark: 100 },
+    { dimension: 'Contract', score: results.contract?.score || 0, fullMark: 100 },
+    { dimension: 'Visual Reg.', score: results.visualRegression?.score || 0, fullMark: 100 },
+    { dimension: 'Edge Cases', score: results.edgeCases?.score || 0, fullMark: 100 },
+    { dimension: 'Property', score: results.propertyBased?.score || 0, fullMark: 100 },
+    { dimension: 'Chaos', score: results.chaos?.score || 0, fullMark: 100 },
+    { dimension: 'Mutation', score: results.mutation?.score || 0, fullMark: 100 },
+    { dimension: 'Predictive', score: results.predictive?.score || 0, fullMark: 100 },
+  ];
+
+  // Top 3 risks
+  const allFindings = (security.items || []).slice(0, 3);
+  const estimatedFixDays = (security.critical || 0) * 2 + (security.high || 0) * 1 + (security.medium || 0) * 0.5;
   const overallScore = Math.round(
     (accessibility.score || 70) * 0.10 +
     Math.max(0, 100 - (security.critical || 0) * 20 - (security.high || 0) * 5) * 0.15 +
@@ -156,6 +177,68 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
           {results.repo && <span className="font-mono text-sm">{results.repo}</span>}
           {' · '}{codebase.totalFiles} files · {codebase.totalLines} lines
         </p>
+      </div>
+
+      {/* Executive Summary + Radar Chart */}
+      <div className="grid lg:grid-cols-[1fr_400px] gap-6 mb-6">
+        {/* Executive Summary */}
+        <div className="bg-white border border-[#D9D9D3] rounded-2xl p-6">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp size={18} className="text-[#574a7d]" />
+            <h3 className="font-semibold text-[#12101A]">Executive Summary</h3>
+          </div>
+          <p className="text-sm text-[#6B6B6B] mb-4">
+            {overallScore >= 80 ? '🟢 Strong codebase. ' : overallScore >= 50 ? '🟡 Needs attention. ' : '🔴 Critical issues. '}
+            {security.critical || 0} critical, {security.high || 0} high findings. 
+            {vision.score < 50 ? 'Missing observability. ' : ''}
+            {scope.coverage < 30 ? 'Low scope coverage. ' : ''}
+            Estimated fix time: <strong>{estimatedFixDays.toFixed(1)} days</strong>.
+          </p>
+          
+          {/* Top Risks */}
+          {allFindings.length > 0 && (
+            <div>
+              <p className="text-xs font-mono text-[#EF4444] uppercase mb-2">Top Risks</p>
+              {allFindings.map((f: any, i: number) => (
+                <div key={i} className="flex items-start gap-2 py-1.5 border-b border-[#ECEBF5] last:border-0">
+                  <span className="text-xs text-[#9A9A9A] font-mono w-5">{i+1}.</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-[#333333]">{f.title}</p>
+                    {f.filePath && <p className="text-[11px] text-[#9A9A9A] font-mono">{f.filePath}:{f.lineNumber}</p>}
+                  </div>
+                  <SeverityBadge severity={f.severity} />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-[#ECEBF5]">
+            {[
+              { label: 'Fix Est.', value: `${estimatedFixDays.toFixed(1)}d` },
+              { label: 'Dimensions', value: '14' },
+              { label: 'Files', value: codebase.totalFiles },
+            ].map(s => (
+              <div key={s.label} className="text-center">
+                <div className="text-lg font-bold text-[#12101A]">{s.value}</div>
+                <div className="text-[10px] text-[#6B6B6B]">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Radar Chart */}
+        <div className="bg-white border border-[#D9D9D3] rounded-2xl p-6">
+          <h3 className="font-semibold text-[#12101A] mb-2 text-center">Dimension Scores</h3>
+          <ResponsiveContainer width="100%" height={320}>
+            <RadarChart data={dimScores} cx="50%" cy="50%" outerRadius="75%">
+              <PolarGrid stroke="#ECEBF5" />
+              <PolarAngleAxis dataKey="dimension" tick={{ fontSize: 10, fill: '#6B6B6B' }} />
+              <PolarRadiusAxis domain={[0, 100]} tick={{ fontSize: 9, fill: '#9A9A9A' }} />
+              <Radar name="Score" dataKey="score" stroke="#574a7d" fill="#574a7d" fillOpacity={0.2} strokeWidth={2} />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       {/* Score Card */}
