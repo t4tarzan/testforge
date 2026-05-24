@@ -326,11 +326,11 @@ export default function Home() {
   /* ── Split headline text into characters ── */
   const renderAnimatedHeadline = () => {
     const lines = [
-      ['Harden your codebase.', '#333333'],
-      ['Ship with certainty.', '#333333'],
-      ['AI-native testing that', '#333333'],
-      ['runs on your machine —', '#574a7d'],
-      ['your code never leaves your system.', '#333333'],
+      ['Harden your codebase,', '#333333'],
+      ['Ship with certainty.', '#574a7d'],
+      ['AI-native testing', '#333333'],
+      ['Your code never leaves', '#574a7d'],
+      ['your machine.', '#333333'],
     ]
     let charIndex = 0
     return lines.map(([text, color], li) => (
@@ -413,11 +413,11 @@ export default function Home() {
             {/* Left: Text */}
             <div>
               <p className="section-label mb-4">// PRIVACY-FIRST AUTONOMOUS TESTING ENGINE</p>
-              <h1 ref={headlineRef} className="text-display-xl mb-6" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
+              <h1 ref={headlineRef} className="text-display-lg mb-6" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
                 {renderAnimatedHeadline()}
               </h1>
-              <p className="hero-subheadline text-body-lg text-[#6B6B6B] max-w-[520px] mb-8" style={{ opacity: 0 }}>
-                Don&apos;t let AI-generated code ship untested. TestForge runs 13 dimensions of analysis on your machine, finds vulnerabilities, and gives you a battle plan. Your code never leaves your system.
+              <p className="hero-subheadline text-body-lg text-[#6B6B6B] max-w-[480px] mb-8" style={{ opacity: 0 }}>
+                Don&apos;t let AI-generated code ship untested. TestForge runs on your machine, finds vulnerabilities, and gives you a battle plan — your code never leaves your system.
               </p>
 
               {/* CTA Group */}
