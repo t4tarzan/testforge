@@ -46,6 +46,35 @@ export interface AnalysisResults {
     imagesWithoutAlt?: number;
     formsWithoutLabels?: number;
   };
+  vision?: {
+    score?: number;
+    summary?: string;
+    findings?: Array<{
+      severity: string;
+      title: string;
+      description?: string;
+      category?: string;
+      fixSuggestion?: string;
+    }>;
+  };
+  scope?: {
+    coverage?: number;
+    documentedFeatures?: number;
+    implementedFeatures?: number;
+    missingFeatures?: string[];
+  };
+  stack?: {
+    score?: number;
+    strengths?: string[];
+    weaknesses?: string[];
+    recommendations?: string[];
+    findings?: Array<{
+      severity: string;
+      title: string;
+      description?: string;
+      fixSuggestion?: string;
+    }>;
+  };
 }
 
 export function saveAnalysisResults(results: AnalysisResults) {

@@ -1,14 +1,45 @@
 {
-  "name": "testforge-mcp-server",
+  "name": "@testforge/mcp",
   "version": "0.2.0",
-  "description": "TestForge MCP Server — AI-powered testing engine",
+  "description": "TestForge MCP Server — AI-powered testing in your IDE. Analyzes code for security, unit tests, load, accessibility, vision alignment, scope coverage, and stack quality.",
   "type": "module",
-  "main": "src/index.ts",
-  "scripts": {
-    "dev": "tsx src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js"
+  "bin": {
+    "testforge-mcp": "./dist/index.js"
   },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "testing",
+    "mcp",
+    "model-context-protocol",
+    "security",
+    "code-analysis",
+    "ai",
+    "cursor",
+    "vscode",
+    "testforge",
+    "static-analysis",
+    "vision-alignment",
+    "scope-testing",
+    "stack-analysis"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/t4tarzan/testforge",
+    "directory": "mcp-server"
+  },
+  "homepage": "https://testforge-steel.vercel.app",
+  "license": "MIT",
   "dependencies": {
     "fastify": "^4.28.0",
     "@fastify/cors": "^9.0.0",
@@ -20,5 +51,8 @@
     "typescript": "^5.4.0",
     "tsx": "^4.15.0",
     "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

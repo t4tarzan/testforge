@@ -237,4 +237,39 @@ async function main() {
   }
 }
 
-main().catch(console.error);
+// ── CLI Support for npx @testforge/mcp serve | install ──────────────────
+const args = process.argv.slice(2);
+const command = args[0];
+
+if (command === 'install') {
+  console.log(`
+╔══════════════════════════════════════════════════════╗
+║                                                      ║
+║   🧪 TestForge MCP Server v0.2.0                     ║
+║                                                      ║
+║   ✓ MCP server package installed                     ║
+║                                                      ║
+║   To connect to your IDE:                            ║
+║                                                      ║
+║   1. Open Cursor/VSCode Settings → MCP               ║
+║   2. Add server with:                                ║
+║      command: npx                                    ║
+║      args: ["-y", "@testforge/mcp", "serve"]         ║
+║                                                      ║
+║   3. Start testing!                                  ║
+║                                                      ║
+║   Docs: https://testforge-steel.vercel.app/#/docs    ║
+║                                                      ║
+╚══════════════════════════════════════════════════════╝
+`);
+  process.exit(0);
+}
+
+if (command === 'serve' || command === 'start' || !command) {
+  main().catch(console.error);
+} else {
+  console.log(`Usage: npx @testforge/mcp [command]`);
+  console.log(`  serve    Start the MCP server (default)`);
+  console.log(`  install  Show IDE setup instructions`);
+  process.exit(0);
+}

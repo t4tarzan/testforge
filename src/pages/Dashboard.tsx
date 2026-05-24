@@ -1,8 +1,11 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
+import { getAnalysisResults, type AnalysisResults } from '@/lib/analysisStore'
+import { BarChart3, ArrowRight } from 'lucide-react'
 import CountUp from 'react-countup'
 import {
   AreaChart, Area, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
@@ -154,7 +157,7 @@ function ChartTooltip({ active, payload, label }: any) {
    Hero Section
    ═══════════════════════════════════════════ */
 
-function HeroSection() {
+function HeroSection({ analysisData }: { analysisData: AnalysisResults | null }) {
   const heroRef = useRef<HTMLDivElement>(null)
 
   useGSAP(() => {
@@ -165,12 +168,18 @@ function HeroSection() {
     gsap.from('.dash-stat-card', { opacity: 0, y: 30, duration: 0.5, stagger: 0.1, ease: 'power2.out', delay: 0.5 })
   }, { scope: heroRef })
 
-  const stats = [
+  // Use real data when available, fall back to demo stats
+  const stats = analysisData ? [
+    { label: 'Quality Score', value: Math.round((analysisData.vision?.score || 50) * 0.3 + (analysisData.stack?.score || 60) * 0.2 + (analysisData.security?.findings ? Math.max(0, 100 - (analysisData.security.critical || 0) * 20) : 50) * 0.3 + (analysisData.unit?.coverage || 50) * 0.2), suffix: '', color: '#5A8F5E', badge: 'Live' },
+    { label: 'Files Analyzed', value: analysisData.codebase?.totalFiles || 0, suffix: '', color: '#5A8F5E', trend: `${analysisData.codebase?.totalLines?.toLocaleString() || 0} lines`, trendUp: true },
+    { label: 'Security Findings', value: analysisData.security?.findings || 0, suffix: '', color: '#5A8F5E', trend: `${analysisData.security?.critical || 0} critical`, trendUp: false },
+    { label: 'Vision Score', value: analysisData.vision?.score || 0, suffix: '/100', color: '#5A8F5E', trend: analysisData.vision?.summary?.slice(0, 30) || '', trendUp: (analysisData.vision?.score || 0) >= 60 },
+  ] : [
     { label: 'Overall Quality Score', value: 94, suffix: '', color: '#5A8F5E', badge: 'A+' },
     { label: 'Tests This Week', value: 12847, suffix: '', color: '#5A8F5E', trend: '+23%', trendUp: true },
     { label: 'Failure Rate', value: 2.1, suffix: '%', color: '#5A8F5E', trend: '-1.3pp', trendUp: true },
     { label: 'Avg Resolution', value: 4.2, suffix: 'h', color: '#5A8F5E', trend: '-2.1h', trendUp: true },
-  ]
+  ];
 
   return (
     <section ref={heroRef} className="relative w-full bg-[#1A1A1A] overflow-hidden">
@@ -755,9 +764,32 @@ function CTASection() {
    ═══════════════════════════════════════════ */
 
 export default function Dashboard() {
+  const [analysisData, setAnalysisData] = useState<AnalysisResults | null>(null);
+
+  useEffect(() => {
+    setAnalysisData(getAnalysisResults());
+  }, []);
+
   return (
     <div className="min-h-[100dvh]">
-      <HeroSection />
+      {/* Real data banner */}
+      {analysisData && (
+        <div className="bg-gradient-to-r from-[#E8F0E8] to-[#F5F5F0] border-b border-[#A3C9A5] px-4 py-3">
+          <div className="max-w-[1280px] mx-auto flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <BarChart3 size={18} className="text-[#5A8F5E]" />
+              <span className="font-mono text-xs text-[#5A8F5E]">
+                📊 Live data from <strong>{analysisData.repo?.split('/').pop()}</strong>
+                — {analysisData.codebase?.totalFiles} files · {analysisData.security?.findings} findings · Vision {analysisData.vision?.score}/100
+              </span>
+            </div>
+            <Link to="/run-test" className="flex items-center gap-1.5 px-4 py-1.5 bg-[#5A8F5E] text-white rounded-lg text-xs font-medium hover:bg-[#4A7A4E] transition-colors">
+              Run New Test <ArrowRight size={14} />
+            </Link>
+          </div>
+        </div>
+      )}
+      <HeroSection analysisData={analysisData} />
       <QualityScorecardSection />
       <PredictiveModelsSection />
       <RealTimeMetricsSection />
