@@ -325,15 +325,16 @@ export default function Home() {
 
   /* ── Split headline text into characters ── */
   const renderAnimatedHeadline = () => {
-    const parts = [
-      { text: '10x your ', color: '#333333' },
-      { text: 'AI-native dev speed', color: '#5A8F5E' },
-      { text: ' with autonomous testing handling verification', color: '#333333' },
+    const lines = [
+      ['10x your AI-native', '#333333'],
+      ['dev speed with auto-', '#5A8F5E'],
+      ['nomous testing &', '#333333'],
+      ['verification', '#333333'],
     ]
     let charIndex = 0
-    return parts.map((part, pi) => (
-      <span key={pi} style={{ color: part.color }}>
-        {part.text.split('').map((char) => {
+    return lines.map(([text, color], li) => (
+      <span key={li} style={{ color, display: 'block' }}>
+        {text.split('').map((char) => {
           const el = (
             <span key={charIndex} className="hero-char inline-block" style={{ opacity: 0 }}>
               {char === ' ' ? '\u00A0' : char}
@@ -410,7 +411,7 @@ export default function Home() {
           <div className="grid lg:grid-cols-[55%_45%] gap-12 lg:gap-8 items-center">
             {/* Left: Text */}
             <div>
-              <p className="section-label mb-4">// AI-Powered Autonomous Testing</p>
+              <p className="section-label mb-4">// AI-Powered Autonomous Testing & Verification</p>
               <h1 ref={headlineRef} className="text-display-xl mb-6" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
                 {renderAnimatedHeadline()}
               </h1>
