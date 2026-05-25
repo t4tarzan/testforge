@@ -472,12 +472,12 @@ export async function setupMCPServer(app: FastifyInstance) {
 
       const codebase = await scanCodebase(projectPath);
       const securityFindings = await runSecurityAnalysis({ projectPath, fileContents: codebase.fileContents, dependencies: codebase.dependencies, devDependencies: codebase.devDependencies }).catch(() => []);
-      const unitReport = await runUnitAnalysis({ projectPath, fileContents: codebase.fileContents }).catch(() => ({}));
-      const loadReport = await runLoadAnalysis({ projectPath, fileContents: codebase.fileContents, dependencies: codebase.dependencies }).catch(() => ({}));
-      const a11yReport = await runAccessibilityAnalysis({ projectPath, fileContents: codebase.fileContents }).catch(() => ({}));
-      const visionReport = runVisionAnalysis(codebase.fileContents, codebase.dependencies, codebase.devDependencies);
-      const scopeReport = runScopeAnalysis(codebase.fileContents, codebase.dependencies);
-      const stackReport = runStackAnalysis(codebase.fileContents, codebase.dependencies, codebase.devDependencies, codebase.techStack);
+      const unitReport = await runUnitAnalysis({ projectPath, fileContents: codebase.fileContents }).catch(() => ({ testCoverage: 0, totalTestFiles: 0, totalTests: 0, frameworks: [], findings: [] } as any));
+      const loadReport = await runLoadAnalysis({ projectPath, fileContents: codebase.fileContents, dependencies: codebase.dependencies }).catch(() => ({ testCoverage: 0, totalTestFiles: 0, totalTests: 0, frameworks: [], findings: [] } as any));
+      const a11yReport = await runAccessibilityAnalysis({ projectPath, fileContents: codebase.fileContents }).catch(() => ({ testCoverage: 0, totalTestFiles: 0, totalTests: 0, frameworks: [], findings: [] } as any));
+      const visionReport: any = runVisionAnalysis(codebase.fileContents, codebase.dependencies, codebase.devDependencies);
+      const scopeReport: any = runScopeAnalysis(codebase.fileContents, codebase.dependencies);
+      const stackReport: any = runStackAnalysis(codebase.fileContents, codebase.dependencies, codebase.devDependencies, codebase.techStack);
       const contractReport = await runContractAnalysis(codebase.fileContents, codebase.endpoints);
       const visualReport = await runVisualRegressionAnalysis(codebase.fileContents);
       const edgeReport = await runEdgeCaseAnalysis(codebase.fileContents);
@@ -485,10 +485,10 @@ export async function setupMCPServer(app: FastifyInstance) {
       const chaosReport = await runChaosAnalysis(codebase.fileContents, codebase.dependencies, codebase.techStack);
       const mutationReport = await runMutationAnalysis(codebase.fileContents, codebase.devDependencies, codebase.totalFiles, codebase.totalLines);
       const predictiveReport = await runPredictiveAnalysis(codebase.fileContents, codebase.dependencies, codebase.devDependencies);
-      const supplyReport = runSupplyChainAudit(codebase.dependencies, codebase.devDependencies);
+      const supplyReport: any = runSupplyChainAudit(codebase.dependencies, codebase.devDependencies);
       const nPlusOneReport = runNPlusOneDetection(codebase.fileContents);
       const deadReport = runDeadCodeAnalysis(codebase.fileContents, codebase.dependencies);
-      const licenseReport = runLicenseCheck(codebase.dependencies);
+      const licenseReport: any = runLicenseCheck(codebase.dependencies);
       const doraReport = runDoraEstimation(codebase.fileContents, codebase.devDependencies);
       const owaspReport = runOwaspCoverage(securityFindings as any);
       const agenticReport = runAgenticScalePrediction(codebase.fileContents, codebase.dependencies, codebase.techStack, codebase.endpoints, codebase.totalLines);
