@@ -22,8 +22,6 @@ export default async function handler(req, res) {
     status: 'ok',
     version: '0.4.0',
     timestamp: new Date().toISOString(),
-    dbConfigured: dbUrl.startsWith('postgresql://'),
-    dbHost: dbUrl.split('@')[1]?.split('/')[0]?.split('?')[0] || 'unknown',
     database: dbStatus,
     features: { projects: true, testRuns: true, reports: true, auth: true },
   });
