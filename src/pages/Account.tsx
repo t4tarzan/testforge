@@ -715,8 +715,6 @@ function BillingTab() {
 // TAB 7: SETTINGS
 // ═══════════════════════════════════════════════════════════════════════════
 function SettingsTab() {
-  const { user: authUser } = useAuth();
-  const user = authUser || MOCK_USER;
   const [toggles, setToggles] = useState<Record<string, boolean>>({
     'test-run-completed': true,
     'critical-vuln': true,
