@@ -7,9 +7,8 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
 
   let dbStatus = 'not configured';
-  const dbUrl = process.env.DATABASE_URL || '';
 
-  if (dbUrl) {
+  if (process.env.DATABASE_URL) {
     try {
       const { neon } = await import('@neondatabase/serverless');
       const sql = neon(process.env.DATABASE_URL);
@@ -21,11 +20,10 @@ export default async function handler(req, res) {
   }
 
   return res.json({
-    status: 'ok',
-    version: '0.4.0',
+    status: dbStatus === 'connected' ? 'ok' : 'degraded',
+    version: '0.5.0',
     timestamp: new Date().toISOString(),
     database: dbStatus,
     features: { projects: true, testRuns: true, reports: true, auth: true },
   });
 }
-// DB redeploy
