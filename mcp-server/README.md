@@ -35,7 +35,7 @@ npx @whitenoisenpm/testforge-mcp serve
       "command": "npx",
       "args": ["-y", "@whitenoisenpm/testforge-mcp", "serve"],
       "env": {
-        "TESTFORGE_MCP_PORT": "3001"
+        "TESTFORGE_MCP_PORT": "33221"
       }
     }
   }
@@ -57,19 +57,19 @@ When running as a standalone server:
 
 ```bash
 # Clone and analyze any public repo
-curl -X POST http://localhost:3001/clone-and-analyze \
+curl -X POST http://localhost:33221/clone-and-analyze \
   -H "Content-Type: application/json" \
   -d '{"repoUrl":"https://github.com/owner/repo"}'
 
 # Health check
-curl http://localhost:3001/health
+curl http://localhost:33221/health
 ```
 
 ## Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `TESTFORGE_MCP_PORT` | `3001` | Server port |
+| `TESTFORGE_MCP_PORT` | `33221` | Server port |
 | `DATABASE_URL` | - | Neon PostgreSQL connection |
 | `TMP_DIR` | `/tmp/testforge-repos` | Temp directory for cloned repos |
 

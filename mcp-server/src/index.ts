@@ -33,7 +33,10 @@ import {
 } from './analyzers/advanced-analyzer.js';
 import { runAgenticScalePrediction } from './analyzers/agentic-scale.js';
 
-const PORT = Number(process.env.TESTFORGE_MCP_PORT) || 3001;
+// 33221 is the default. It's high enough to avoid common dev-server clashes
+// (3001/3000/5173/8080) and conflicts on developer machines that run a lot
+// of services. Override with TESTFORGE_MCP_PORT=… if needed.
+const PORT = Number(process.env.TESTFORGE_MCP_PORT) || 33221;
 const TMP_DIR = process.env.TMP_DIR || '/tmp/testforge-repos';
 
 async function main() {
@@ -54,7 +57,7 @@ async function main() {
   });
 
   // Health check
-  app.get('/health', async () => ({ status: 'ok', version: '0.2.5' }));
+  app.get('/health', async () => ({ status: 'ok', version: '0.2.18' }));
 
   app.get('/reports', async (request, reply) => {
     const reports = getReports(20);
@@ -349,16 +352,16 @@ async function main() {
     }
   });
 
-  app.get('/api/reports/latest', async () => {
-    return {
-      id: 'TF-2026-001',
-      title: 'Security Hardening & Performance Scaling — express-ecommerce-api',
-      overallScore: 68,
-      criticalCount: 1,
-      highCount: 2,
-      mediumCount: 5,
-      lowCount: 8,
-    };
+  app.get('/api/reports/latest', async (_request, reply) => {
+    // Return the most recent real report from SQLite. If there isn't one yet,
+    // respond 404 so the dashboard renders an empty state instead of showing
+    // fabricated numbers as if they were real results.
+    const recent = getReports(1);
+    if (!recent || recent.length === 0) {
+      return reply.status(404).send({ error: 'No reports yet' });
+    }
+    const latest = recent[0];
+    return getReport(latest.id) || latest;
   });
 
   try {
