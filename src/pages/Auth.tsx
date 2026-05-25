@@ -207,7 +207,7 @@ const Toast = ({ message, type, onClose }: { message: string; type: 'error' | 's
 // ═══════════════════════════════════════════════════════════════════════════
 export default function Auth() {
   const navigate = useNavigate();
-  const { login, loginWithGitHub, isAuthenticated } = useAuth();
+  const { loginWithGitHub, isAuthenticated } = useAuth();
   const [tab, setTab] = useState<'signin' | 'signup'>('signin');
 
   // Form state
@@ -219,7 +219,7 @@ export default function Auth() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -235,26 +235,23 @@ export default function Auth() {
     return re.test(val);
   };
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  // Email/password sign-in isn't shipped yet — only GitHub OAuth works today.
+  // The form validates inputs so users see helpful feedback, but submission
+  // surfaces a clear "use GitHub" message instead of pretending to work.
+  const handleSignIn = (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
     if (!email || !validateEmail(email)) newErrors.signinEmail = 'Please enter a valid email address';
     if (!password || password.length < 6) newErrors.signinPassword = 'Password must be at least 6 characters';
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
-
-    setIsLoading(true);
-    try {
-      await login(email, password);
-      navigate('/account');
-    } catch {
-      setToast({ message: 'Invalid credentials. Please try again.', type: 'error' });
-    } finally {
-      setIsLoading(false);
-    }
+    setToast({
+      message: 'Email sign-in is coming soon. Continue with GitHub for now.',
+      type: 'error',
+    });
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  const handleSignUp = (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
     if (!name.trim()) newErrors.name = 'Name is required';
@@ -267,16 +264,10 @@ export default function Auth() {
     }
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
-
-    setIsLoading(true);
-    try {
-      await login(email, password);
-      navigate('/account');
-    } catch {
-      setToast({ message: 'Something went wrong. Please try again.', type: 'error' });
-    } finally {
-      setIsLoading(false);
-    }
+    setToast({
+      message: 'Email sign-up is coming soon. Continue with GitHub for now.',
+      type: 'error',
+    });
   };
 
   // ── Left Panel ───────────────────────────────────────────────────────────

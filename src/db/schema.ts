@@ -42,11 +42,14 @@ export const findingStatusEnum = pgEnum('finding_status', [
 ]);
 
 // ─── Projects ─────────────────────────────────────────────────────────────
+// userId is the owner (FK -> users.id). Nullable so anonymous/historical
+// rows aren't broken, but new API writes always set it from the session JWT.
 
 export const projects = pgTable(
   'projects',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
     name: varchar('name', { length: 255 }).notNull(),
     repoUrl: text('repo_url'),
     localPath: text('local_path').notNull(),
@@ -56,7 +59,9 @@ export const projects = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
-    uniqueIndex('projects_name_idx').on(table.name),
+    // (user_id, name) is unique per user, so two users can have repos with the same name
+    uniqueIndex('projects_user_name_idx').on(table.userId, table.name),
+    index('projects_user_id_idx').on(table.userId),
     index('projects_repo_url_idx').on(table.repoUrl),
   ]
 );
@@ -122,6 +127,9 @@ export const testRuns = pgTable(
     projectId: uuid('project_id')
       .references(() => projects.id, { onDelete: 'cascade' })
       .notNull(),
+    // Denormalized owner reference — also derivable via projects.userId, but
+    // /api/history filters test_runs directly by user, so an index here matters.
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
     branch: varchar('branch', { length: 100 }).notNull(),
     commitHash: varchar('commit_hash', { length: 40 }),
     status: testRunStatusEnum('status').notNull(),
@@ -137,6 +145,7 @@ export const testRuns = pgTable(
   },
   (table) => [
     index('test_runs_project_id_idx').on(table.projectId),
+    index('test_runs_user_id_idx').on(table.userId),
     index('test_runs_status_idx').on(table.status),
     index('test_runs_branch_idx').on(table.branch),
   ]
@@ -211,9 +220,44 @@ export const reports = pgTable(
   (table) => [index('reports_test_run_id_idx').on(table.testRunId)]
 );
 
+// ─── API Keys ─────────────────────────────────────────────────────────────
+// Used by /api/keys for personal access tokens. Schema mirrors what the
+// handler already writes/reads. keyHash is sha256(key) — unique so an
+// authenticated request can resolve the key to its owner in one lookup.
+
+export const apiKeys = pgTable(
+  'api_keys',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull(),
+    name: varchar('name', { length: 255 }).notNull(),
+    keyPrefix: varchar('key_prefix', { length: 20 }).notNull(),
+    keyHash: varchar('key_hash', { length: 128 }).notNull(),
+    lastUsed: timestamp('last_used', { withTimezone: true }),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('api_keys_key_hash_idx').on(table.keyHash),
+    index('api_keys_user_id_idx').on(table.userId),
+  ]
+);
+
 // ─── Relations ────────────────────────────────────────────────────────────
 
-export const projectsRelations = relations(projects, ({ many }) => ({
+export const usersRelations = relations(users, ({ many }) => ({
+  projects: many(projects),
+  testRuns: many(testRuns),
+  apiKeys: many(apiKeys),
+}));
+
+export const projectsRelations = relations(projects, ({ one, many }) => ({
+  owner: one(users, {
+    fields: [projects.userId],
+    references: [users.id],
+  }),
   testRuns: many(testRuns),
 }));
 
@@ -222,9 +266,20 @@ export const testRunsRelations = relations(testRuns, ({ one, many }) => ({
     fields: [testRuns.projectId],
     references: [projects.id],
   }),
+  owner: one(users, {
+    fields: [testRuns.userId],
+    references: [users.id],
+  }),
   results: many(testResults),
   findings: many(findings),
   reports: many(reports),
+}));
+
+export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
+  owner: one(users, {
+    fields: [apiKeys.userId],
+    references: [users.id],
+  }),
 }));
 
 export const testResultsRelations = relations(testResults, ({ one }) => ({

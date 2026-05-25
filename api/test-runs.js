@@ -1,3 +1,4 @@
+import { withSecurity } from './_security.js';
 const SEED = [{
   id: 'TF-2026-001', projectId: 'proj_001', branch: 'main',
   commitHash: 'a1b2c3d', status: 'completed', overallScore: 68,
@@ -6,12 +7,7 @@ const SEED = [{
   config: { depth: 'normal' },
 }];
 
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-GitHub-User');
-  if (req.method === 'OPTIONS') return res.status(204).end();
-
+async function handler(req, res) {
   const { id } = req.query;
 
   if (process.env.DATABASE_URL) {
@@ -33,3 +29,5 @@ export default async function handler(req, res) {
 
   return res.json(SEED);
 }
+
+export default withSecurity(handler);

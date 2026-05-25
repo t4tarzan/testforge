@@ -1,9 +1,10 @@
+import { withSecurity } from './_security.js';
 // Stripe Webhook — auto-upgrade user plan on payment
 // Set this as webhook endpoint in Stripe Dashboard:
 // https://testforge.run/api/stripe-webhook
 // Events: checkout.session.completed
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const sig = req.headers['stripe-signature'];
@@ -41,3 +42,5 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: e.message });
   }
 }
+
+export default withSecurity(handler, { skipRateLimit: true });

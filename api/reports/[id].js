@@ -1,3 +1,4 @@
+import { withSecurity } from '../_security.js';
 const SEED = {
   id: 'TF-2026-001',
   title: 'Security Hardening & Performance Scaling — express-ecommerce-api',
@@ -21,12 +22,7 @@ const SEED = {
   generatedAt: new Date().toISOString(),
 };
 
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(204).end();
-
+async function handler(req, res) {
   const { id } = req.query;
   const reportId = id || 'TF-2026-001';
 
@@ -47,3 +43,5 @@ export default async function handler(req, res) {
 
   return res.json({ ...SEED, id: reportId });
 }
+
+export default withSecurity(handler);

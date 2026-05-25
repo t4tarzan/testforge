@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
-import { loginUser } from '@/lib/api';
+import { fetchCurrentUser, logoutUser, type CurrentUser } from '@/lib/api';
 import type { UserPlan } from '@/data/seedData';
 
 export interface User {
@@ -24,128 +24,81 @@ interface AuthState {
 }
 
 interface AuthContextValue extends AuthState {
-  login: (email: string, password: string) => Promise<void>;
   loginWithGitHub: () => void;
-  logout: () => void;
+  logout: () => Promise<void>;
+  refresh: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const STORAGE_KEY = 'testforge_auth';
-
-const DEMO_USER: User = {
-  id: 'usr_123',
-  name: 'Alex Chen',
-  email: 'alex@example.com',
-  avatar: 'AC',
-  plan: 'standard',
-  creditsUsed: 1247,
-  creditsTotal: 2000,
-  testsRun: 47,
-  passRate: 82,
-  repos: 5,
-};
-
-function loadAuthFromStorage(): AuthState {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (parsed?.user) {
-        // Fix old users with hardcoded 'standard' plan
-        if (parsed.user.plan === 'standard') {
-          parsed.user.plan = 'free';
-          parsed.user.creditsTotal = 5;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-        }
-        return {
-          user: parsed.user as User,
-          isAuthenticated: true,
-          isLoading: false,
-        };
-      }
-    }
-  } catch {
-    // ignore
-  }
+// Translates the /api/auth/me payload into the shape the rest of the UI uses.
+function toUser(me: CurrentUser): User {
+  const plan = (me.plan || 'free') as UserPlan;
+  const creditsTotal = plan === 'pro' ? 100 : plan === 'enterprise' ? 9999 : 5;
   return {
-    user: null,
-    isAuthenticated: false,
-    isLoading: false,
+    id: me.id,
+    name: me.name || me.login,
+    email: me.email || `${me.login}@github`,
+    avatar: (me.login || 'GH').substring(0, 2).toUpperCase(),
+    plan,
+    creditsUsed: 0,
+    creditsTotal,
+    testsRun: me.testsRun ?? 0,
+    passRate: 0,
+    repos: 0,
   };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AuthState>({ user: null, isAuthenticated: false, isLoading: true });
+  const [state, setState] = useState<AuthState>({
+    user: null,
+    isAuthenticated: false,
+    isLoading: true,
+  });
 
-  useEffect(() => {
-    const saved = loadAuthFromStorage();
-    setState(saved);
-    // Small delay to simulate auth check
-    const timer = setTimeout(() => {
-      setState((s) => ({ ...s, isLoading: false }));
-    }, 300);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const login = useCallback(async (email: string, password: string) => {
+  // Single source of truth: the session cookie. Hydrate by calling /me.
+  const refresh = useCallback(async () => {
     try {
-      // Try API first
-      const { user: apiUser } = await loginUser(email, password);
-      const user: User = {
-        ...apiUser,
-        plan: apiUser.plan as UserPlan,
-      };
-      const newState: AuthState = { user, isAuthenticated: true, isLoading: false };
-      setState(newState);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ user }));
+      const me = await fetchCurrentUser();
+      if (me) {
+        setState({ user: toUser(me), isAuthenticated: true, isLoading: false });
+      } else {
+        setState({ user: null, isAuthenticated: false, isLoading: false });
+      }
     } catch {
-      // Fallback to demo user
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      const newState: AuthState = {
-        user: { ...DEMO_USER, email },
-        isAuthenticated: true,
-        isLoading: false,
-      };
-      setState(newState);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ user: { ...DEMO_USER, email } }));
+      setState({ user: null, isAuthenticated: false, isLoading: false });
     }
   }, []);
 
-  // GitHub OAuth redirect
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  // GitHub OAuth — top-level navigation. The callback sets the session
+  // cookie and redirects to /#/account; the effect below picks that up.
   const loginWithGitHub = useCallback(() => {
     window.location.href = '/api/auth/callback';
   }, []);
 
-  // Handle GitHub OAuth callback (user data in URL hash)
+  // After the OAuth redirect lands on /#/account, re-hydrate from /me so
+  // we pick up the cookie that was just set.
   useEffect(() => {
-    const hash = window.location.hash;
-    if (!hash) return;
-    const match = hash.match(/github_user=([^&]+)/);
-    if (!match) return;
-    try {
-      const githubUser = JSON.parse(decodeURIComponent(match[1]));
-      const user: User = {
-        id: githubUser.id,
-        name: githubUser.name,
-        email: githubUser.email,
-        avatar: githubUser.login?.substring(0, 2).toUpperCase() || 'GH',
-        plan: 'free',
-        creditsUsed: 0, creditsTotal: 5, testsRun: 0, passRate: 0, repos: 0,
-      };
-      setState({ user, isAuthenticated: true, isLoading: false });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ user }));
-      window.history.replaceState(null, '', '/#/account');
-    } catch {}
-  }, []);
+    if (window.location.hash.startsWith('#/account')) {
+      void refresh();
+    }
+  }, [refresh]);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    try {
+      await logoutUser();
+    } catch {
+      // ignore — we still clear local state below
+    }
     setState({ user: null, isAuthenticated: false, isLoading: false });
-    localStorage.removeItem(STORAGE_KEY);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ ...state, login, loginWithGitHub, logout }}>
+    <AuthContext.Provider value={{ ...state, loginWithGitHub, logout, refresh }}>
       {children}
     </AuthContext.Provider>
   );

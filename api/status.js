@@ -1,9 +1,6 @@
+import { withSecurity } from './_security.js';
 // Public status page — SLA monitoring
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  if (req.method === 'OPTIONS') return res.status(204).end();
-
+async function handler(req, res) {
   const services = [
     { name: 'Web Platform', url: 'https://testforge.run', check: async () => {
       const r = await fetch('https://testforge.run/api/health');
@@ -39,3 +36,5 @@ export default async function handler(req, res) {
     services: results,
   });
 }
+
+export default withSecurity(handler, { publicCors: true });
