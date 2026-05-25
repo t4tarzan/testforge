@@ -8,6 +8,7 @@ import { runLoadAnalysis } from './analyzers/load-analyzer.js';
 import { runAccessibilityAnalysis } from './analyzers/accessibility-analyzer.js';
 import { runTestSuite, type ProgressUpdate } from './test-runner.js';
 import { generateReport } from './report-generator.js';
+import { saveReport } from './local-db.js';
 
 /* -------------------------------------------------------------------------- */
 /*                                 SSE Manager                                */
@@ -213,6 +214,18 @@ async function handleTest(params: Record<string, unknown>): Promise<unknown> {
     try {
       await runTestSuite(projectPath, testRunId, dimensions, _db, sendProgress);
       await _db.updateTestRun(testRunId, { status: 'completed', completedAt: new Date().toISOString() });
+
+      // Persist a summary of this run to the SQLite history at
+      // ~/.testforge/history.db so /reports and the dashboard surface it.
+      // /analyze writes to SQLite directly; /test runs dimension-by-dimension
+      // and writes findings to the in-memory _db, so we aggregate here.
+      try {
+        await persistTestRunToSqlite(testRunId, projectPath);
+      } catch (saveErr: unknown) {
+        const msg = saveErr instanceof Error ? saveErr.message : String(saveErr);
+        console.error(chalk.yellow(`[${testRunId}] Failed to persist to SQLite:`), msg);
+      }
+
       sendProgress({ stage: 'done', status: 'completed', progress: 100, message: 'Test suite completed' });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -226,6 +239,51 @@ async function handleTest(params: Record<string, unknown>): Promise<unknown> {
     status: 'running',
     streamUrl: `/mcp/sse`,
   };
+}
+
+// Aggregate the completed test run + findings from _db (in-memory) into the
+// shape saveReport() expects and write a row to SQLite. Fields we don't
+// have at this layer (per-dimension scores beyond findings — stack, unit
+// coverage, accessibility, dora) are omitted; saveReport supplies sensible
+// defaults so the row is still useful for /reports.
+async function persistTestRunToSqlite(testRunId: string, projectPath: string): Promise<void> {
+  const run: Record<string, unknown> | null = (await _db.getTestRun(testRunId)) as any;
+  const findings: Array<Record<string, unknown>> = (await _db.getFindings(testRunId)) as any;
+
+  const summary = (run?.summary as Record<string, unknown>) || {};
+  const bySev: Record<string, number> = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+  for (const f of findings) {
+    const sev = (f.severity as string) || 'info';
+    if (sev in bySev) bySev[sev]++;
+  }
+  const securityFindings = findings.filter(
+    (f) =>
+      String(f.dimension || '').toLowerCase().includes('security') ||
+      String(f.category || '').toLowerCase().includes('security')
+  );
+
+  const data = {
+    testRunId,
+    branch: run?.branch,
+    completedAt: run?.completedAt,
+    codebase: {
+      totalFiles: summary.totalFiles || 0,
+      totalLines: summary.totalLines || 0,
+      endpoints: summary.endpoints || 0,
+      techStack: summary.techStack || [],
+    },
+    security: {
+      findings: securityFindings.length || findings.length,
+      critical: bySev.critical,
+      high: bySev.high,
+      medium: bySev.medium,
+      low: bySev.low,
+    },
+    findings: findings.slice(0, 50), // bound the JSON blob
+  };
+
+  const id = saveReport(data, projectPath);
+  console.log(chalk.green(`[${testRunId}] Persisted to SQLite as ${id}`));
 }
 
 async function handleQuickScan(params: Record<string, unknown>): Promise<unknown> {
@@ -248,6 +306,12 @@ async function handleQuickScan(params: Record<string, unknown>): Promise<unknown
     try {
       await runTestSuite(projectPath, testRunId, dimensions, _db, sendProgress);
       await _db.updateTestRun(testRunId, { status: 'completed', completedAt: new Date().toISOString() });
+      try {
+        await persistTestRunToSqlite(testRunId, projectPath);
+      } catch (saveErr: unknown) {
+        const msg = saveErr instanceof Error ? saveErr.message : String(saveErr);
+        console.error(chalk.yellow(`[${testRunId}] Failed to persist to SQLite:`), msg);
+      }
       sendProgress({ stage: 'done', status: 'completed', progress: 100, message: 'Quick scan completed' });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
