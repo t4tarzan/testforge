@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/context/AuthContext';
 import CountUp from 'react-countup';
 import {
   LayoutDashboard, FlaskConical, GitBranch, KeyRound,
@@ -84,13 +85,19 @@ type TabId = typeof navItems[number]['id'];
 // ═══════════════════════════════════════════════════════════════════════════
 function DashboardTab() {
   const navigate = useNavigate();
-  const user = MOCK_USER;
+  const { user: authUser } = useAuth();
+  const user = authUser || MOCK_USER;
+  const [realStats, setRealStats] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/usage').then(r => r.json()).then(setRealStats).catch(() => {});
+  }, []);
 
   const stats = [
-    { icon: FlaskConical, iconBg: 'bg-[#E8E5FF]', iconColor: 'text-[#574a7d]', value: 2847, label: 'TOTAL TESTS RUN', trend: '+12.5%', trendUp: true },
-    { icon: CheckCircle2, iconBg: 'bg-[rgba(90,143,94,0.1)]', iconColor: 'text-[#574a7d]', value: 87.3, label: 'PASS RATE', trend: '+3.2%', trendUp: true, suffix: '%', decimals: 1 },
-    { icon: GitBranch, iconBg: 'bg-[rgba(74,144,217,0.1)]', iconColor: 'text-[#4A90D9]', value: 12, label: 'ACTIVE REPOSITORIES', trend: '+2', trendUp: true },
-    { icon: Zap, iconBg: 'bg-[rgba(232,168,56,0.1)]', iconColor: 'text-[#E8A838]', value: 1250, label: 'CREDITS REMAINING', trend: '-18%', trendUp: false },
+    { icon: FlaskConical, iconBg: 'bg-[#E8E5FF]', iconColor: 'text-[#574a7d]', value: realStats?.testsRun || user.testsRun || 0, label: 'TOTAL TESTS RUN', trend: realStats?.testsThisMonth ? `${realStats.testsThisMonth} this month` : '', trendUp: true },
+    { icon: CheckCircle2, iconBg: 'bg-[rgba(90,143,94,0.1)]', iconColor: 'text-[#574a7d]', value: realStats?.averageScore || user.passRate || 0, label: 'AVG SCORE', trend: '', trendUp: true, suffix: '', decimals: 0 },
+    { icon: GitBranch, iconBg: 'bg-[rgba(74,144,217,0.1)]', iconColor: 'text-[#4A90D9]', value: user.repos || 0, label: 'ACTIVE REPOSITORIES', trend: '', trendUp: true },
+    { icon: Zap, iconBg: 'bg-[rgba(232,168,56,0.1)]', iconColor: 'text-[#E8A838]', value: realStats?.remainingQuota || user.creditsTotal - user.creditsUsed || 5, label: 'TESTS REMAINING', trend: `Plan: ${user.plan?.toUpperCase() || 'FREE'}`, trendUp: true },
   ];
 
   return (
@@ -111,7 +118,7 @@ function DashboardTab() {
           </p>
         </div>
         <p className="hidden md:block font-mono text-[13px] text-[#9A9A9A]">
-          January 15, 2026
+          {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
         </p>
       </div>
 
@@ -597,10 +604,17 @@ function TeamTab() {
 // TAB 6: BILLING
 // ═══════════════════════════════════════════════════════════════════════════
 function BillingTab() {
+  const { user } = useAuth();
+  const plan = user?.plan || 'free';
+  const planNames: Record<string, string> = { free: 'Free', pro: 'Pro', enterprise: 'Enterprise' };
+  const planLimits: Record<string, number> = { free: 5, pro: 100, enterprise: 999 };
+  const limit = planLimits[plan] || 5;
+  const used = user?.testsRun || 0;
+
   const usageMeters = [
-    { label: 'Test Runs', used: 2847, total: 5000, color: 'bg-[#574a7d]', pct: 57 },
-    { label: 'Repositories', used: 12, total: 50, color: 'bg-[#4A90D9]', pct: 24 },
-    { label: 'Team Members', used: 5, total: 10, color: 'bg-[#7a6fad]', pct: 50 },
+    { label: 'Test Runs', used, total: limit, color: 'bg-[#574a7d]', pct: Math.min(100, Math.round((used / limit) * 100)) },
+    { label: 'Repositories', used: user?.repos || 0, total: plan === 'free' ? 1 : plan === 'pro' ? 10 : 99, color: 'bg-[#4A90D9]', pct: 0 },
+    { label: 'API Calls', used: used * 3, total: limit * 10, color: 'bg-[#7a6fad]', pct: Math.min(100, Math.round((used * 3) / (limit * 10) * 100)) },
   ];
 
   return (
@@ -618,14 +632,19 @@ function BillingTab() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div>
             <p className="font-mono font-medium text-[12px] uppercase text-[#7a6fad] tracking-[0.08em]">
-              PROFESSIONAL PLAN
+              {planNames[plan]?.toUpperCase() || 'FREE'} PLAN
             </p>
             <div className="flex items-baseline mt-2">
-              <span className="font-heading font-bold text-[48px] text-white">$149</span>
+              <span className="font-heading font-bold text-[48px] text-white">{plan === 'free' ? '$0' : plan === 'pro' ? '$29' : '$199'}</span>
               <span className="ml-2 font-heading text-[18px] text-[#9A9A9A]">/month</span>
             </div>
             <div className="mt-4 space-y-1">
-              {['Unlimited test runs', '50 concurrent repositories', 'All 21 test dimensions', 'Priority support'].map((f) => (
+              {[
+                `${limit} test runs/month`,
+                `${plan === 'free' ? 1 : plan === 'pro' ? 10 : 'Unlimited'} repositories`,
+                'All 21 test dimensions',
+                plan === 'free' ? 'Community support' : 'Priority support',
+              ].map((f) => (
                 <div key={f} className="flex items-center gap-2 text-[14px] text-white/80 font-body">
                   <CheckCircle2 size={14} className="text-[#7a6fad]" /> {f}
                 </div>
@@ -633,10 +652,16 @@ function BillingTab() {
             </div>
           </div>
           <div className="flex flex-col items-start md:items-center gap-3">
-            <p className="text-[14px] text-[#9A9A9A] font-body">Renews on Feb 15, 2026</p>
-            <button className="px-6 py-2.5 rounded-lg border border-white/20 text-white font-body font-medium text-[14px] hover:bg-white/5 transition-colors">
-              Change Plan
-            </button>
+            <p className="text-[14px] text-[#9A9A9A] font-body">{plan === 'free' ? 'Free forever' : 'Active subscription'}</p>
+            {plan === 'free' ? (
+              <button onClick={() => navigate('/pricing')} className="px-6 py-2.5 rounded-lg bg-[#7a6fad] text-white font-body font-medium text-[14px] hover:bg-[#574a7d] transition-colors">
+                Upgrade Plan
+              </button>
+            ) : (
+              <button className="px-6 py-2.5 rounded-lg border border-white/20 text-white font-body font-medium text-[14px] hover:bg-white/5 transition-colors">
+                Manage Plan
+              </button>
+            )}
             <button className="text-[13px] text-[#9A9A9A] font-body hover:text-[#D4524A] transition-colors">
               Cancel Subscription
             </button>
