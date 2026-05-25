@@ -63,12 +63,24 @@ jobs:
   e2e:
     name: Playwright (preview URL)
     runs-on: ubuntu-latest
-    # Vercel deploys per-PR previews; the workflow consumes the URL from the
-    # repo variable VERCEL_PREVIEW_URL or a github-script-resolved deployment.
-    # If neither is available the job no-ops (still passes) so CI doesn't
-    # block merges before the preview integration is set up.
+    # Vercel deploys per-PR previews; we Playwright against them.
+    #
+    # Vercel Deployment Protection (SSO) blocks anonymous requests to preview
+    # URLs by default, so every Playwright assertion fails on the SSO redirect
+    # page. To make this job pass:
+    #
+    #   1. In Vercel → Project Settings → Deployment Protection → "Protection
+    #      Bypass for Automation", click "Add Secret". Copy the value.
+    #   2. In GitHub → Repo Settings → Secrets → Actions, add a secret named
+    #      VERCEL_AUTOMATION_BYPASS_SECRET with that value.
+    #
+    # Once the secret is set, this job sends it as both the
+    # x-vercel-protection-bypass header AND ?x-vercel-set-bypass-cookie query
+    # param so the preview bypasses SSO for all Playwright traffic. Until then,
+    # the job runs advisory (continue-on-error) so CI doesn't red-mark PRs.
     if: github.event_name == 'pull_request'
     needs: check
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -112,6 +124,13 @@ jobs:
         if: steps.preview.outputs.url == ''
         run: echo "::notice::Vercel preview URL not available; E2E skipped this run."
 
+      - name: Warn if bypass secret missing
+        if: steps.preview.outputs.url != '' && env.HAS_BYPASS != 'true'
+        env:
+          HAS_BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET != '' && 'true' || 'false' }}
+        run: |
+          echo "::warning::VERCEL_AUTOMATION_BYPASS_SECRET is not set. Playwright will hit Vercel's SSO page on every request and most tests will fail. See .github/workflows/ci.yml header for setup steps."
+
       - name: Install deps
         if: steps.preview.outputs.url != ''
         run: npm ci
@@ -124,6 +143,9 @@ jobs:
         if: steps.preview.outputs.url != ''
         env:
           BASE_URL: ${{ steps.preview.outputs.url }}
+          # Forwarded to playwright.config.ts (read in extraHTTPHeaders). When
+          # the secret is empty, the header is empty and Vercel still gates.
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: npx playwright test
 
       - name: Upload Playwright report
