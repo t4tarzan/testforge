@@ -90,7 +90,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 </div>
 
 <div class="footer">
-  TestForge MCP · <a href="/health">Health</a> · <a href="https://testforge.run">testforge.run</a>
+  🔒 Local analysis — data stored in ~/.testforge/history.db<br>
+  For managed testing with team sharing, visit <a href="https://testforge.run">testforge.run</a>
 </div>
 
 <script>
@@ -228,7 +229,7 @@ function renderReport(d, source, savedId) {
   h += '<div style="font-size:12px;color:#6B6B6B;margin-top:4px">Max agents before failure: '+a.maxPredictedAgents+' | Bottleneck: '+(a.predictedBottleneck||'unknown')+'</div></div>';
   
   // Actions
-  h += '<div class="actions"><a href="https://testforge.run" target="_blank" class="btn-primary">🌐 View on testforge.run</a><button class="btn-outline" onclick="window.print()">🖨️ Print / Save PDF</button></div>';
+  h += '<div class="actions"><button class="btn-outline" onclick="window.print()">🖨️ Print / Save PDF</button></div>';
   h += '</div>';
   
   document.getElementById('report').innerHTML = h;
