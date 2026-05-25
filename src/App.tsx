@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { ErrorBoundary } from '@/components/ui/States';
 import Layout from '@/components/Layout';
 import Home from '@/pages/Home';
 import Pipeline from '@/pages/Pipeline';
@@ -42,7 +44,9 @@ function NoLayout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <AuthProvider>
+      <Toaster position="bottom-right" richColors />
       <Routes>
         {/* Auth page — no layout */}
         <Route path="/auth" element={<NoLayout><Auth /></NoLayout>} />
@@ -96,5 +100,6 @@ export default function App() {
         />
       </Routes>
     </AuthProvider>
+    </ErrorBoundary>
   );
 }
