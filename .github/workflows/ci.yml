@@ -65,22 +65,15 @@ jobs:
     runs-on: ubuntu-latest
     # Vercel deploys per-PR previews; we Playwright against them.
     #
-    # Vercel Deployment Protection (SSO) blocks anonymous requests to preview
-    # URLs by default, so every Playwright assertion fails on the SSO redirect
-    # page. To make this job pass:
-    #
-    #   1. In Vercel → Project Settings → Deployment Protection → "Protection
-    #      Bypass for Automation", click "Add Secret". Copy the value.
-    #   2. In GitHub → Repo Settings → Secrets → Actions, add a secret named
-    #      VERCEL_AUTOMATION_BYPASS_SECRET with that value.
-    #
-    # Once the secret is set, this job sends it as both the
-    # x-vercel-protection-bypass header AND ?x-vercel-set-bypass-cookie query
-    # param so the preview bypasses SSO for all Playwright traffic. Until then,
-    # the job runs advisory (continue-on-error) so CI doesn't red-mark PRs.
+    # Vercel Deployment Protection (SSO) gates the previews — the
+    # VERCEL_AUTOMATION_BYPASS_SECRET GitHub Actions secret (set up via
+    # the Vercel project's "Protection Bypass for Automation" setting) is
+    # forwarded to Playwright via playwright.config.ts, which sends it as
+    # the x-vercel-protection-bypass header and as a cookie so the Vercel
+    # edge routes traffic past SSO. If the secret is removed, Playwright
+    # will see SSO pages and most tests will fail — that's the signal.
     if: github.event_name == 'pull_request'
     needs: check
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

@@ -115,3 +115,5 @@ Schema changes: rolling back the DB is **not safe** mid-launch (would lose user 
 - **Session JWT (`tf_session` cookie)** — httpOnly cookie minted by `/api/auth/callback`, signed with `SESSION_SECRET`. Payload: `{sub:userId, gh:githubId, login, plan, email}`. 30-day expiry.
 - **Request id (`X-Request-Id` header)** — correlation id set by `withSecurity`. Echoes Vercel's `x-vercel-id` if present, else a fresh 16-hex token. Appears in every `req.log.*` line as `rid:`.
 - **`MissingEnvError`** — thrown by `requireEnv()` when a required env var is missing. `withSecurity` catches it and returns `{error:"Server misconfigured", missing:[...]}` — much faster to debug than a generic 500.
+
+<!-- ci: validate Vercel automation bypass routing -->
