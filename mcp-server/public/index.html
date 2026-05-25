@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TestForge MCP — Local Analysis</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #12101A; color: #fff; min-height: 100vh; }
+.header { text-align: center; padding: 40px 20px 20px; }
+.logo { font-size: 32px; font-weight: 700; color: #a99bff; }
+.tagline { color: #6B6B6B; font-size: 14px; margin-top: 4px; }
+.lock { display: inline-block; margin-top: 8px; padding: 4px 12px; background: rgba(87,74,125,0.15); border-radius: 12px; font-size: 11px; color: #a99bff; }
+.container { max-width: 800px; margin: 0 auto; padding: 0 20px; }
+.card { background: #1E1B2E; border: 1px solid #3A3A3A; border-radius: 12px; padding: 28px; margin-bottom: 16px; }
+.card h3 { font-size: 16px; margin-bottom: 16px; color: #a99bff; }
+label { display: block; font-size: 11px; color: #6B6B6B; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 1px; }
+input { width: 100%; padding: 14px; background: #12101A; border: 1px solid #3A3A3A; border-radius: 8px; color: #fff; font-size: 14px; font-family: monospace; margin-bottom: 16px; }
+input:focus { outline: none; border-color: #574a7d; }
+button { width: 100%; padding: 14px; background: #574a7d; border: none; border-radius: 8px; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; margin-bottom: 8px; }
+button:hover { background: #453a68; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-secondary { background: transparent; border: 1px solid #3A3A3A; color: #a99bff; }
+.btn-secondary:hover { background: rgba(87,74,125,0.1); }
+#progress { margin-top: 20px; display: none; }
+.bar { height: 8px; background: #3A3A3A; border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+.bar-fill { height: 100%; background: linear-gradient(90deg, #574a7d, #a99bff); border-radius: 4px; transition: width 0.5s ease; width: 0; }
+#status { font-size: 13px; color: #a99bff; margin-bottom: 6px; }
+#report { display: none; }
+#history { display: none; margin-top: 16px; }
+#history h3 { color: #a99bff; margin-bottom: 12px; }
+.history-item { background: #12101A; border-radius: 8px; padding: 12px; margin-bottom: 6px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: background 0.2s; }
+.history-item:hover { background: #1E1B2E; }
+.history-score { font-size: 22px; font-weight: 700; width: 48px; }
+.history-info { flex: 1; }
+.history-name { font-size: 13px; font-weight: 600; }
+.history-meta { font-size: 11px; color: #6B6B6B; margin-top: 2px; }
+.ring { width: 100px; height: 100px; border-radius: 50%; border: 6px solid #3A3A3A; display: flex; align-items: center; justify-content: center; margin-right: 24px; }
+.ring span { font-size: 32px; font-weight: 700; }
+.score-row { display: flex; align-items: center; margin-bottom: 20px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0; }
+.stat { background: #12101A; border-radius: 8px; padding: 16px; text-align: center; }
+.stat .val { font-size: 24px; font-weight: 700; color: #a99bff; }
+.stat .lbl { font-size: 10px; color: #6B6B6B; text-transform: uppercase; margin-top: 4px; }
+.dims { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 20px; }
+.dim { background: #12101A; border-radius: 8px; padding: 12px; display: flex; align-items: center; gap: 10px; }
+.dim-score { font-size: 24px; font-weight: 700; width: 44px; text-align: center; }
+.dim-info { flex: 1; }
+.dim-name { font-size: 13px; font-weight: 600; }
+.dim-detail { font-size: 10px; color: #6B6B6B; margin-top: 2px; }
+.dim-bar { height: 4px; background: #3A3A3A; border-radius: 2px; margin-top: 4px; overflow: hidden; }
+.dim-fill { height: 100%; border-radius: 2px; }
+.finding { padding: 12px; margin-bottom: 8px; background: #12101A; border-left: 3px solid; border-radius: 0 8px 8px 0; }
+.finding-title { font-size: 13px; font-weight: 600; }
+.finding-file { font-size: 11px; color: #6B6B6B; font-family: monospace; margin-top: 4px; }
+.finding-fix { font-size: 11px; color: #a99bff; margin-top: 4px; }
+.actions { display: flex; gap: 8px; margin-top: 16px; }
+.actions button, .actions a { flex: 1; text-align: center; padding: 12px; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none; }
+.btn-primary { background: #574a7d; color: #fff; border: none; cursor: pointer; }
+.btn-outline { background: transparent; border: 1px solid #3A3A3A; color: #a99bff; cursor: pointer; }
+.footer { text-align: center; padding: 32px 20px; color: #3A3A3A; font-size: 12px; }
+.footer a { color: #a99bff; text-decoration: none; }
+.save-badge { display: inline-block; padding: 2px 8px; background: rgba(34,197,94,0.15); color: #22C55E; border-radius: 8px; font-size: 10px; font-weight: 600; margin-left: 8px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo">🧪 TestForge MCP</div>
+  <div class="tagline">21-dimension analysis — runs entirely on your machine</div>
+  <div class="lock">🔒 Code never leaves your system</div>
+</div>
+
+<div class="container">
+  <div class="card" id="inputCard">
+    <h3>📁 Analyze Your Project</h3>
+    <label>Project Path (absolute path on your machine)</label>
+    <input type="text" id="projectPath" placeholder="/Users/you/projects/my-app">
+    <label>Or paste a GitHub URL to clone &amp; analyze</label>
+    <input type="text" id="repoUrl" placeholder="https://github.com/user/repo">
+    <button onclick="runAnalysis()" id="analyzeBtn">⚡ Run Full Analysis</button>
+  </div>
+
+  <div id="progress">
+    <div id="status">Starting analysis...</div>
+    <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+  </div>
+
+  <div id="report"></div>
+  <div id="history"></div>
+</div>
+
+<div class="footer">
+  TestForge MCP · <a href="/health">Health</a> · <a href="https://testforge.run">testforge.run</a>
+</div>
+
+<script>
+var reportData = null;
+
+async function runAnalysis() {
+  var path = document.getElementById('projectPath').value.trim();
+  var repo = document.getElementById('repoUrl').value.trim();
+  if (!path && !repo) return alert('Enter a project path or GitHub URL');
+  
+  var btn = document.getElementById('analyzeBtn');
+  btn.disabled = true;
+  btn.textContent = 'Running analysis...';
+  
+  document.getElementById('progress').style.display = 'block';
+  document.getElementById('report').style.display = 'none';
+  document.getElementById('report').innerHTML = '';
+  
+  try {
+    var endpoint = repo ? '/clone-and-analyze' : '/analyze';
+    var body = repo ? { repoUrl: repo, branch: 'main' } : { projectPath: path };
+    
+    var stages = ['Scanning codebase', 'Security analysis', 'Unit tests', 'Load analysis', 'Accessibility', 'Strategic dimensions', 'Advanced analysis', 'Generating report'];
+    var stage = 0;
+    var interval = setInterval(function() {
+      if (stage < stages.length) {
+        document.getElementById('status').textContent = stages[stage];
+        document.getElementById('barFill').style.width = Math.round((stage / stages.length) * 90) + '%';
+        stage++;
+      }
+    }, 800);
+    
+    var res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    
+    clearInterval(interval);
+    
+    if (!res.ok) throw new Error(await res.text());
+    reportData = await res.json();
+    
+    document.getElementById('barFill').style.width = '100%';
+    document.getElementById('status').textContent = 'Analysis complete!';
+    
+    // Save to local DB
+    var saveRes = await fetch('/save-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: reportData, source: path || repo })
+    });
+    var saved = await saveRes.json();
+    
+    setTimeout(function() { renderReport(reportData, path || repo, saved.id); }, 200);
+    loadHistory();
+  } catch(e) {
+    document.getElementById('status').textContent = 'Error: ' + e.message;
+    document.getElementById('barFill').style.background = '#EF4444';
+  }
+  
+  btn.disabled = false;
+  btn.textContent = '⚡ Run Full Analysis';
+}
+
+function renderReport(d, source, savedId) {
+  var c = d.codebase || {};
+  var s = d.security || {};
+  var a = d.agentic || {};
+  var items = s.items || [];
+  
+  var overall = Math.round(((a.score||50)*0.2 + ((d.stack||{}).score||60)*0.15 + ((d.unit||{}).coverage||50)*0.15 + Math.max(0,100-(s.critical||0)*20)*0.3 + ((d.accessibility||{}).score||70)*0.1 + ((d.dora||{}).score||50)*0.1));
+  var color = overall >= 80 ? '#22C55E' : overall >= 50 ? '#EAB308' : '#EF4444';
+  
+  var dims = [
+    ['Security', Math.max(0,100-(s.critical||0)*20), s.findings+' findings'],
+    ['Unit Tests', ((d.unit||{}).coverage||0), ((d.unit||{}).testFiles||0)+' test files'],
+    ['Accessibility', ((d.accessibility||{}).score||0), ''],
+    ['Vision', ((d.vision||{}).score||0), ''],
+    ['Stack', ((d.stack||{}).score||0), ''],
+    ['Agentic Scale', a.score||0, a.maxPredictedAgents+' agents'],
+    ['DORA', ((d.dora||{}).score||0), ((d.dora||{}).deploymentFreq||'')],
+    ['Supply Chain', ((d.supplyChain||{}).score||0), ''],
+    ['Chaos', ((d.chaos||{}).score||0), ''],
+    ['Mutation', ((d.mutation||{}).score||0), ''],
+    ['Predictive', ((d.predictive||{}).score||0), ''],
+    ['Contract', ((d.contract||{}).score||0), ''],
+  ];
+  
+  var h = '';
+  h += '<div class="card"><h3>📊 Analysis Report — ' + (source.split('/').pop() || source) + ' <span class="save-badge">💾 Saved</span></h3>';
+  
+  // Score + summary
+  h += '<div class="score-row"><div class="ring" style="border-color:'+color+'"><span style="color:'+color+'">'+overall+'</span></div>';
+  h += '<div><div style="font-size:20px;font-weight:700">Overall Score</div>';
+  h += '<div style="font-size:13px;color:#6B6B6B">'+(c.totalFiles||0)+' files · '+(c.totalLines||0).toLocaleString()+' lines · '+(c.endpoints||0)+' endpoints</div>';
+  h += '<div style="margin-top:8px;font-size:13px;color:#a99bff">🔒 Analyzed entirely on your machine</div></div></div>';
+  
+  // Severity summary
+  h += '<div style="margin-bottom:16px;font-size:14px">';
+  if (s.critical > 0) h += '<span style="color:#EF4444;margin-right:12px">🔴 '+s.critical+' critical</span>';
+  if (s.high > 0) h += '<span style="color:#F97316;margin-right:12px">🟠 '+s.high+' high</span>';
+  if (s.medium > 0) h += '<span style="color:#EAB308;margin-right:12px">🟡 '+s.medium+' medium</span>';
+  h += '<span style="color:#a99bff">🟢 '+(s.low||0)+' low</span></div>';
+  
+  // Dimension grid
+  h += '<div class="dims">';
+  for (var i = 0; i < dims.length; i++) {
+    var dm = dims[i];
+    var n = dm[0], v = dm[1], det = dm[2];
+    var c2 = v >= 80 ? '#22C55E' : v >= 50 ? '#EAB308' : '#EF4444';
+    h += '<div class="dim"><div class="dim-score" style="color:'+c2+'">'+Math.round(v||0)+'</div><div class="dim-info"><div class="dim-name">'+n+'</div>';
+    if (det) h += '<div class="dim-detail">'+det+'</div>';
+    h += '<div class="dim-bar"><div class="dim-fill" style="width:'+Math.min(100,v||0)+'%;background:'+c2+'"></div></div></div></div>';
+  }
+  h += '</div>';
+  
+  // Findings
+  if (items.length > 0) {
+    h += '<h3 style="color:#a99bff;margin:20px 0 12px;font-size:15px">🔒 Top Security Findings</h3>';
+    for (var j = 0; j < Math.min(items.length, 8); j++) {
+      var f = items[j];
+      var sevColors = { critical: '#EF4444', high: '#F97316', medium: '#EAB308', low: '#a99bff' };
+      h += '<div class="finding" style="border-color:'+(sevColors[f.severity]||'#a99bff')+'"><div class="finding-title">['+f.severity.toUpperCase()+'] '+f.title+'</div>';
+      if (f.filePath) h += '<div class="finding-file">'+f.filePath+(f.lineNumber?':'+f.lineNumber:'')+'</div>';
+      if (f.fixSuggestion) h += '<div class="finding-fix">💡 '+f.fixSuggestion.substring(0,150)+'</div>';
+      h += '</div>';
+    }
+  }
+  
+  // Agentic summary
+  h += '<div style="margin-top:16px;padding:16px;background:#12101A;border-radius:8px">';
+  h += '<div style="font-size:14px;font-weight:600;color:#a99bff;margin-bottom:8px">🤖 Agentic Scale: '+a.score+'/100</div>';
+  h += '<div style="font-size:13px;color:#6B6B6B">'+a.resilienceLevel+'</div>';
+  h += '<div style="font-size:12px;color:#6B6B6B;margin-top:4px">Max agents before failure: '+a.maxPredictedAgents+' | Bottleneck: '+(a.predictedBottleneck||'unknown')+'</div></div>';
+  
+  // Actions
+  h += '<div class="actions"><a href="https://testforge.run" target="_blank" class="btn-primary">🌐 View on testforge.run</a><button class="btn-outline" onclick="window.print()">🖨️ Print / Save PDF</button></div>';
+  h += '</div>';
+  
+  document.getElementById('report').innerHTML = h;
+  document.getElementById('report').style.display = 'block';
+  document.getElementById('inputCard').style.display = 'none';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function loadHistory() {
+  try {
+    var res = await fetch('/reports');
+    var reports = await res.json();
+    if (!reports.length) return;
+    
+    var h = '<div class="card"><h3>📚 Report History</h3>';
+    for (var i = 0; i < reports.length; i++) {
+      var r = reports[i];
+      var c = r.overall_score >= 80 ? '#22C55E' : r.overall_score >= 50 ? '#EAB308' : '#EF4444';
+      h += '<div class="history-item" onclick="loadReport(\''+r.id+'\')"><div class="history-score" style="color:'+c+'">'+r.overall_score+'</div><div class="history-info"><div class="history-name">'+(r.source||'').split('/').pop()+'</div><div class="history-meta">'+r.total_findings+' findings · '+r.created_at+'</div></div><div style="color:#a99bff">→</div></div>';
+    }
+    h += '</div>';
+    document.getElementById('history').innerHTML = h;
+    document.getElementById('history').style.display = 'block';
+  } catch(e) {}
+}
+
+async function loadReport(id) {
+  try {
+    var res = await fetch('/reports');
+    var reports = await res.json();
+    for (var i = 0; i < reports.length; i++) {
+      if (reports[i].id === id) {
+        var r = reports[i];
+        var res2 = await fetch('/report-view/'+id);
+        var d = await res2.json();
+        if (d.full_data) {
+          reportData = d.full_data;
+          renderReport(d.full_data, d.source, id);
+        }
+        break;
+      }
+    }
+  } catch(e) { alert('Could not load report: ' + e.message); }
+}
+
+// Load history on page load
+loadHistory();
+</script>
+</body>
+</html>

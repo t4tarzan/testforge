@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import fastifyStatic from '@fastify/static';
 import { execSync } from 'child_process';
 import { mkdirSync, rmSync, existsSync } from 'fs';
 import { join } from 'path';
@@ -46,185 +47,15 @@ async function main() {
     methods: ['GET', 'POST', 'OPTIONS'],
   });
 
+  // Serve static dashboard from public/
+  await app.register(fastifyStatic, {
+    root: join(import.meta.dirname, '..', 'public'),
+    prefix: '/',
+  });
+
   // Health check
   app.get('/health', async () => ({ status: 'ok', version: '0.2.5' }));
 
-  // ── Dashboard UI (served at GET /) ───────────────────────────────────
-  app.get('/', async (request, reply) => {
-    reply.type('text/html');
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TestForge MCP Server</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #12101A; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-    .container { max-width: 680px; width: 100%; padding: 40px; }
-    .logo { font-size: 28px; font-weight: 700; color: #a99bff; margin-bottom: 8px; }
-    .tagline { color: #6B6B6B; font-size: 14px; margin-bottom: 32px; }
-    .card { background: #1E1B2E; border: 1px solid #3A3A3A; border-radius: 12px; padding: 24px; margin-bottom: 16px; }
-    .card h3 { font-size: 16px; margin-bottom: 12px; color: #a99bff; }
-    label { display: block; font-size: 12px; color: #6B6B6B; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 1px; }
-    input, select { width: 100%; padding: 12px; background: #12101A; border: 1px solid #3A3A3A; border-radius: 8px; color: #fff; font-size: 14px; font-family: monospace; margin-bottom: 12px; }
-    input:focus, select:focus { outline: none; border-color: #574a7d; }
-    button { width: 100%; padding: 14px; background: #574a7d; border: none; border-radius: 8px; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-    button:hover { background: #453a68; }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-    #progress { margin-top: 16px; display: none; }
-    .bar { height: 6px; background: #3A3A3A; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
-    .bar-fill { height: 100%; background: linear-gradient(90deg, #574a7d, #a99bff); border-radius: 3px; transition: width 0.3s; width: 0%; }
-    #status { font-size: 13px; color: #a99bff; margin-bottom: 4px; }
-    #result { margin-top: 16px; display: none; }
-    #result a { color: #a99bff; text-decoration: underline; }
-    .status-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
-    .status-ok { background: rgba(87,74,125,0.2); color: #a99bff; }
-    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; }
-    .metric { text-align: center; background: #12101A; border-radius: 8px; padding: 12px 8px; }
-    .metric-value { font-size: 22px; font-weight: 700; color: #a99bff; }
-    .metric-label { font-size: 10px; color: #6B6B6B; text-transform: uppercase; margin-top: 4px; }
-    .env-notice { background: rgba(232,168,56,0.1); border: 1px solid rgba(232,168,56,0.3); border-radius: 8px; padding: 12px; font-size: 12px; color: #E8A838; margin-top: 16px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="logo">🧪 TestForge MCP</div>
-    <div class="tagline">AI CODE? Run TestForge! — v0.2.5 running on localhost:${PORT}</div>
-    
-    <div id="serverStatus" style="margin-bottom:16px;">
-      <span class="status-badge status-ok" id="statusBadge">● Connected</span>
-    </div>
-
-    <div class="card">
-      <h3>📁 Local Analysis</h3>
-      <label>Project Path</label>
-      <input type="text" id="localPath" placeholder="/path/to/your/project" value="/tmp/malibu">
-      <button onclick="runLocal()" id="localBtn">⚡ Analyze Local Project</button>
-    </div>
-
-    <div class="card">
-      <h3>🌐 Remote Analysis (Clone & Analyze)</h3>
-      <label>GitHub Repository URL</label>
-      <input type="text" id="repoUrl" placeholder="https://github.com/user/repo">
-      <label>Branch</label>
-      <input type="text" id="branch" placeholder="main" value="main">
-      <button onclick="runRemote()" id="remoteBtn">🔍 Clone & Analyze</button>
-    </div>
-
-    <div id="progress">
-      <div id="status">Starting analysis...</div>
-      <div class="bar"><div class="bar-fill" id="barFill"></div></div>
-    </div>
-
-    <div id="result"></div>
-
-    <div style="margin-top:24px;text-align:center;">
-      <a href="https://testforge.run" target="_blank" style="color:#a99bff;text-decoration:none;font-size:13px;">🌐 testforge.run</a>
-      <span style="color:#3A3A3A;margin:0 12px;">|</span>
-      <a href="https://testforge.run/#/docs" target="_blank" style="color:#a99bff;text-decoration:none;font-size:13px;">📚 Docs</a>
-      <span style="color:#3A3A3A;margin:0 12px;">|</span>
-      <a href="http://localhost:${PORT}/health" style="color:#a99bff;text-decoration:none;font-size:13px;">❤️ Health</a>
-    </div>
-  </div>
-
-  <script>
-    const PORT = '${PORT}';
-    
-    async function runLocal() {
-      const path = document.getElementById('localPath').value.trim();
-      if (!path) return alert('Enter a project path');
-      startProgress();
-      try {
-        const res = await fetch('/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ projectPath: path })
-        });
-        updateProgress(50, 'Analyzing codebase...');
-        const data = await res.json();
-        updateProgress(100, 'Analysis complete!');
-        showResults(data, path);
-      } catch(e) {
-        document.getElementById('status').textContent = 'Error: ' + e.message;
-      }
-      document.getElementById('localBtn').disabled = false;
-    }
-
-    async function runRemote() {
-      const repo = document.getElementById('repoUrl').value.trim();
-      const branch = document.getElementById('branch').value.trim() || 'main';
-      if (!repo) return alert('Enter a GitHub repo URL');
-      startProgress();
-      document.getElementById('remoteBtn').disabled = true;
-      try {
-        updateProgress(10, 'Cloning repository...');
-        const res = await fetch('/clone-and-analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ repoUrl: repo, branch })
-        });
-        const data = await res.json();
-        updateProgress(100, 'Analysis complete!');
-        showResults(data, repo);
-      } catch(e) {
-        document.getElementById('status').textContent = 'Error: ' + e.message;
-      }
-      document.getElementById('remoteBtn').disabled = false;
-    }
-
-    function startProgress() {
-      document.getElementById('progress').style.display = 'block';
-      document.getElementById('result').style.display = 'none';
-      document.getElementById('status').textContent = 'Starting...';
-      document.getElementById('barFill').style.width = '0%';
-    }
-
-    function updateProgress(pct, msg) {
-      document.getElementById('barFill').style.width = pct + '%';
-      document.getElementById('status').textContent = msg;
-    }
-
-    function showResults(data, source) {
-      document.getElementById('result').style.display = 'block';
-      const c = data.codebase || {};
-      const s = data.security || {};
-      const a = data.agentic || {};
-      const overall = Math.round(((a.score||50)*0.25 + (data.stack?.score||60)*0.15 + (data.unit?.coverage||50)*0.2 + Math.max(0,100-(s.critical||0)*20)*0.4));
-      
-      document.getElementById('result').innerHTML = 
-        '<div class="card">' +
-        '<h3>📊 Analysis Complete — ' + (source.split('/').pop() || source) + '</h3>' +
-        '<div class="metrics">' +
-        '<div class="metric"><div class="metric-value">' + overall + '</div><div class="metric-label">Score</div></div>' +
-        '<div class="metric"><div class="metric-value">' + (c.totalFiles||0) + '</div><div class="metric-label">Files</div></div>' +
-        '<div class="metric"><div class="metric-value">' + (s.findings||0) + '</div><div class="metric-label">Findings</div></div>' +
-        '</div>' +
-        '<p style="margin-top:16px;font-size:13px;color:#6B6B6B;">' + (c.totalLines||0).toLocaleString() + ' lines · ' + (c.endpoints||0) + ' endpoints · ' + (c.techStack||[]).join(', ') + '</p>' +
-        '<p style="margin-top:12px;"><a href="https://testforge.run/#/dashboard" target="_blank" style="color:#a99bff;">📋 View detailed report on testforge.run →</a></p>' +
-        (s.critical > 0 ? '<p style="margin-top:8px;color:#EF4444;font-size:13px;">⚠️ ' + s.critical + ' critical findings — review immediately</p>' : '') +
-        '</div>';
-    }
-
-    // Auto-check health
-    fetch('/health').then(r=>r.json()).then(d=>{
-      document.getElementById('statusBadge').textContent = d.status==='ok' ? '● Connected' : '● Degraded';
-      document.getElementById('statusBadge').className = 'status-badge ' + (d.status==='ok'?'status-ok':'');
-    });
-  </script>
-</body>
-</html>`;
-  });
-
-  // ── Save Report (from dashboard) ───────────────────────────────────
-  app.post('/save-report', async (request, reply) => {
-    const { data, source } = request.body as any;
-    if (!data) return reply.status(400).send({ error: 'data required' });
-    const id = saveReport(data, source || 'local');
-    return reply.send({ saved: true, id });
-  });
-
-  // ── List Reports (for dashboard history) ────────────────────────────
   app.get('/reports', async (request, reply) => {
     const reports = getReports(20);
     return reply.send(reports);
