@@ -257,12 +257,12 @@ export default function TestReport() {
   const [exportToast, setExportToast] = useState<string | null>(null);
 
   useEffect(() => {
+    setLoading(true);
+    setLoadError(id ? null : 'No report id in URL');
     if (!id) {
-      setLoadError('No report id in URL');
+      setLoading(false);
       return;
     }
-    setLoading(true);
-    setLoadError(null);
     getReport(id)
       .then((apiReport) => {
         setReport({
