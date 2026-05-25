@@ -12,6 +12,7 @@ export default async function handler(req, res) {
   try {
     const { neon } = await import('@neondatabase/serverless');
     const db = neon(process.env.DATABASE_URL);
+  const githubUser = req.headers['x-github-user'] || null;
     const body = req.body || {};
     
     // Save project
@@ -32,8 +33,8 @@ export default async function handler(req, res) {
     const runId = crypto.randomUUID();
     const secFindings = body.security?.findings || 0;
     await db`
-      INSERT INTO test_runs (id, project_id, branch, status, overall_score, total_findings, critical_count, high_count, medium_count, low_count, started_at, completed_at, config)
-      VALUES (${runId}, ${projectId}, ${body.branch || 'main'}, 'completed', 
+      INSERT INTO test_runs (id, project_id, user_id, branch, status, overall_score, total_findings, critical_count, high_count, medium_count, low_count, started_at, completed_at, config)
+      VALUES (${runId}, ${projectId}, ${githubUser || 'anonymous'}, ${body.branch || 'main'}, 'completed', 
         ${Math.round(((body.vision?.score || 50) * 0.25 + (body.stack?.score || 60) * 0.15 + (body.unit?.coverage || 50) * 0.1 + (body.accessibility?.score || 70) * 0.1 + Math.max(0, 100 - secFindings * 5) * 0.4))},
         ${secFindings + (body.unit?.findings || 0) + (body.accessibility?.issues || 0)},
         ${body.security?.critical || 0}, ${body.security?.high || 0}, ${body.security?.medium || 0}, ${body.security?.low || 0},
