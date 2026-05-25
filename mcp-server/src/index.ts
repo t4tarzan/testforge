@@ -200,7 +200,7 @@ async function main() {
         '<div class="metric"><div class="metric-value">' + (s.findings||0) + '</div><div class="metric-label">Findings</div></div>' +
         '</div>' +
         '<p style="margin-top:16px;font-size:13px;color:#6B6B6B;">' + (c.totalLines||0).toLocaleString() + ' lines · ' + (c.endpoints||0) + ' endpoints · ' + (c.techStack||[]).join(', ') + '</p>' +
-        '<p style="margin-top:12px;"><a href="https://testforge.run/#/managed" target="_blank" style="color:#a99bff;">📋 View detailed report on testforge.run →</a></p>' +
+        '<p style="margin-top:12px;"><a href="https://testforge.run/#/dashboard" target="_blank" style="color:#a99bff;">📋 View detailed report on testforge.run →</a></p>' +
         (s.critical > 0 ? '<p style="margin-top:8px;color:#EF4444;font-size:13px;">⚠️ ' + s.critical + ' critical findings — review immediately</p>' : '') +
         '</div>';
     }

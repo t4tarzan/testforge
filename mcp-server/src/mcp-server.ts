@@ -455,11 +455,72 @@ export async function setupMCPServer(app: FastifyInstance) {
     return reply.send(response);
   });
 
-  /* -- Legacy REST endpoints for direct access ------------------------------ */
+  /* -- Full analysis (same as clone-and-analyze but for local paths) -- */
   app.post('/analyze', async (request: FastifyRequest, reply: FastifyReply) => {
     const { projectPath } = request.body as { projectPath: string };
-    const result = await handleAnalyze({ projectPath });
-    return reply.send(result);
+    if (!projectPath) return reply.status(400).send({ error: 'projectPath required' });
+    
+    try {
+      const { scanCodebase } = await import('./analyzers/code-scanner.js');
+      const { runSecurityAnalysis } = await import('./analyzers/security-analyzer.js');
+      const { runUnitAnalysis } = await import('./analyzers/unit-analyzer.js');
+      const { runLoadAnalysis } = await import('./analyzers/load-analyzer.js');
+      const { runAccessibilityAnalysis } = await import('./analyzers/accessibility-analyzer.js');
+      const { runVisionAnalysis, runScopeAnalysis, runStackAnalysis } = await import('./analyzers/strategic-analyzer.js');
+      const { runContractAnalysis, runVisualRegressionAnalysis, runEdgeCaseAnalysis, runPropertyBasedAnalysis, runChaosAnalysis, runMutationAnalysis, runPredictiveAnalysis, runSupplyChainAudit, runNPlusOneDetection, runDeadCodeAnalysis, runLicenseCheck, runDoraEstimation, runOwaspCoverage } = await import('./analyzers/advanced-analyzer.js');
+      const { runAgenticScalePrediction } = await import('./analyzers/agentic-scale.js');
+
+      const codebase = await scanCodebase(projectPath);
+      const securityFindings = await runSecurityAnalysis({ projectPath, fileContents: codebase.fileContents, dependencies: codebase.dependencies, devDependencies: codebase.devDependencies }).catch(() => []);
+      const unitReport = await runUnitAnalysis({ projectPath, fileContents: codebase.fileContents }).catch(() => ({}));
+      const loadReport = await runLoadAnalysis({ projectPath, fileContents: codebase.fileContents, dependencies: codebase.dependencies }).catch(() => ({}));
+      const a11yReport = await runAccessibilityAnalysis({ projectPath, fileContents: codebase.fileContents }).catch(() => ({}));
+      const visionReport = runVisionAnalysis(codebase.fileContents, codebase.dependencies, codebase.devDependencies);
+      const scopeReport = runScopeAnalysis(codebase.fileContents, codebase.dependencies);
+      const stackReport = runStackAnalysis(codebase.fileContents, codebase.dependencies, codebase.devDependencies, codebase.techStack);
+      const contractReport = await runContractAnalysis(codebase.fileContents, codebase.endpoints);
+      const visualReport = await runVisualRegressionAnalysis(codebase.fileContents);
+      const edgeReport = await runEdgeCaseAnalysis(codebase.fileContents);
+      const propertyReport = await runPropertyBasedAnalysis(codebase.fileContents);
+      const chaosReport = await runChaosAnalysis(codebase.fileContents, codebase.dependencies, codebase.techStack);
+      const mutationReport = await runMutationAnalysis(codebase.fileContents, codebase.devDependencies, codebase.totalFiles, codebase.totalLines);
+      const predictiveReport = await runPredictiveAnalysis(codebase.fileContents, codebase.dependencies, codebase.devDependencies);
+      const supplyReport = runSupplyChainAudit(codebase.dependencies, codebase.devDependencies);
+      const nPlusOneReport = runNPlusOneDetection(codebase.fileContents);
+      const deadReport = runDeadCodeAnalysis(codebase.fileContents, codebase.dependencies);
+      const licenseReport = runLicenseCheck(codebase.dependencies);
+      const doraReport = runDoraEstimation(codebase.fileContents, codebase.devDependencies);
+      const owaspReport = runOwaspCoverage(securityFindings as any);
+      const agenticReport = runAgenticScalePrediction(codebase.fileContents, codebase.dependencies, codebase.techStack, codebase.endpoints, codebase.totalLines);
+
+      return reply.send({
+        repo: projectPath, branch: 'local', analyzedAt: new Date().toISOString(),
+        codebase: { totalFiles: codebase.totalFiles, totalLines: codebase.totalLines, endpoints: codebase.endpoints, techStack: codebase.techStack, dependencies: codebase.dependencies.length },
+        security: { findings: securityFindings.length, critical: securityFindings.filter((f:any)=>f.severity==='critical').length, high: securityFindings.filter((f:any)=>f.severity==='high').length, medium: securityFindings.filter((f:any)=>f.severity==='medium').length, low: securityFindings.filter((f:any)=>f.severity==='low').length, items: securityFindings.slice(0,10) },
+        unit: { coverage: unitReport.testCoverage||0, testFiles: unitReport.totalTestFiles||0, totalTests: unitReport.totalTests||0, frameworks: unitReport.frameworks||[], findings: unitReport.findings?.length||0 },
+        load: { maxUsers: loadReport.estimatedMaxConcurrentUsers||0, rateLimiting: loadReport.hasRateLimiting||false, caching: loadReport.hasCaching||false, recommendations: loadReport.recommendations||[] },
+        accessibility: { score: a11yReport.score||0, issues: a11yReport.findings?.length||0 },
+        vision: { score: visionReport.score, summary: visionReport.summary, findings: visionReport.findings },
+        scope: { coverage: scopeReport.coverage, documentedFeatures: scopeReport.documentedFeatures, implementedFeatures: scopeReport.implementedFeatures, missingFeatures: scopeReport.missingFeatures },
+        stack: { score: stackReport.score, strengths: stackReport.strengths, weaknesses: stackReport.weaknesses, recommendations: stackReport.recommendations },
+        contract: { score: contractReport.score, totalEndpoints: contractReport.totalEndpoints },
+        visualRegression: { score: visualReport.score, htmlFiles: visualReport.htmlFiles, cssFiles: visualReport.cssFiles },
+        edgeCases: { score: edgeReport.score, potentialCases: edgeReport.potentialCases },
+        propertyBased: { score: propertyReport.score, invariantsDetected: propertyReport.invariantsDetected },
+        chaos: { score: chaosReport.score, resilienceLevel: chaosReport.resilienceLevel, findings: chaosReport.findings },
+        mutation: { score: mutationReport.score, estimatedMutationScore: mutationReport.estimatedMutationScore, totalMutants: mutationReport.totalMutants, killedMutants: mutationReport.killedMutants },
+        predictive: { score: predictiveReport.score, riskLevel: predictiveReport.riskLevel, predictedFailures: predictiveReport.predictedFailures },
+        supplyChain: { score: supplyReport.score, knownVulnerable: supplyReport.knownVulnerable },
+        nPlusOne: { score: nPlusOneReport.score, potentialNPlusOne: nPlusOneReport.potentialNPlusOne },
+        deadCode: { score: deadReport.score, unusedDeps: deadReport.unusedDeps },
+        license: { score: licenseReport.score },
+        dora: { score: doraReport.score, deploymentFreq: doraReport.deploymentFreq, leadTime: doraReport.leadTime, mttr: doraReport.mttr, changeFailRate: doraReport.changeFailRate },
+        owasp: { coverage: owaspReport.coverage, missingCategories: owaspReport.missingCategories },
+        agentic: { score: agenticReport.score, resilienceLevel: agenticReport.resilienceLevel, maxPredictedAgents: agenticReport.maxPredictedAgents, predictedBottleneck: agenticReport.predictedBottleneck, failurePatterns: agenticReport.failurePatterns, findings: agenticReport.findings },
+      });
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
   });
 
   app.post('/test', async (request: FastifyRequest, reply: FastifyReply) => {
