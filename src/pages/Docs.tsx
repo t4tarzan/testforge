@@ -1963,6 +1963,32 @@ function McpUsageGuidePage() {
       </div>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
+        <h2 className="text-heading-sm text-[#12101A] mb-4">🖥️ Local Dashboard (v0.2.17)</h2>
+        <p className="text-body-md text-[#6B6B6B] mb-4">
+          The MCP server now includes a beautiful local dashboard at <code className="bg-[#E8E5FF] px-1.5 py-0.5 rounded text-[#574a7d] font-mono text-sm">http://localhost:3001</code>. No cloud, no sign-in, no hosting needed.
+        </p>
+        <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm text-[#a99bff] overflow-x-auto mb-4">
+          npx @whitenoisenpm/testforge-mcp@0.2.17 serve<br/>
+          open http://localhost:3001
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[
+            { title: '📁 Local Analysis', desc: 'Enter any project path on your machine. Full 21-dimension analysis runs locally.' },
+            { title: '📊 Live Report', desc: 'See the complete report inline — score ring, 12 dimension grid, all findings with fix suggestions.' },
+            { title: '💾 SQLite Storage', desc: 'Results auto-saved to ~/.testforge/history.db. View past reports anytime.' },
+            { title: '📚 Report History', desc: 'Past 20 reports listed. Click any to reload and view full details.' },
+            { title: '🤖 Agentic Scale', desc: 'World-first prediction: how many AI agents can your API handle simultaneously?' },
+            { title: '🖨️ Export', desc: 'Print or save as PDF directly from the dashboard.' },
+          ].map(f => (
+            <div key={f.title} className="border border-[#D9D9D3] rounded-lg p-4">
+              <div className="font-medium text-[#12101A] mb-1">{f.title}</div>
+              <div className="text-sm text-[#6B6B6B]">{f.desc}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
         <h2 className="text-heading-sm text-[#12101A] mb-4">Quick Start Flow</h2>
         <div className="space-y-4">
           {[
