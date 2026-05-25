@@ -13,6 +13,11 @@ import {
   CheckCircle,
   FileSignature,
   GitBranch,
+  Zap,
+  Trash2,
+  FileText,
+  TrendingUp,
+  Cpu,
 } from 'lucide-react';
 
 export interface Dimension {
@@ -304,7 +309,7 @@ export const dimensions: Dimension[] = [
     description: 'Cross-references all dependencies against known CVE databases. Flags vulnerable packages with severity ratings, recommended fix versions, and exploitability assessments.',
     metrics: ['CVE Detection', 'Fix Versions', 'Severity Rating'],
     features: ['Known vulnerability database lookup', 'Fix version recommendations', 'Critical/High/Medium/Low classification', 'Exploitability assessment'],
-    icon: 'shield', category: 'Security', executionSpeed: 'Fast', coverageDepth: 'Deep', aiEnhancement: 'Full',
+    icon: Shield, category: 'Security', executionSpeed: 'Fast', coverageDepth: 'Deep', aiEnhancement: 'Full',
   },
   {
     id: 'n-plus-one',
@@ -315,7 +320,7 @@ export const dimensions: Dimension[] = [
     description: 'Scans for database queries inside loops. Detects missing eager loading, unoptimized joins, and potential N+1 patterns that cause exponential performance degradation.',
     metrics: ['Loop Detection', 'Eager Loading', 'Query Optimization'],
     features: ['ORM query loop detection', 'Missing eager loading identification', 'Performance impact estimation', 'Fix suggestions with code examples'],
-    icon: 'zap', category: 'Performance', executionSpeed: 'Fast', coverageDepth: 'Deep', aiEnhancement: 'Full',
+    icon: Zap, category: 'Performance', executionSpeed: 'Fast', coverageDepth: 'Deep', aiEnhancement: 'Full',
   },
   {
     id: 'dead-code',
@@ -326,7 +331,7 @@ export const dimensions: Dimension[] = [
     description: 'Identifies imported but unused dependencies and potentially dead exports. Estimates bundle size savings from removing unused code.',
     metrics: ['Unused Deps', 'Dead Exports', 'Size Savings'],
     features: ['Unused dependency detection', 'Dead export identification', 'Bundle size savings estimation', 'Safe removal recommendations'],
-    icon: 'trash', category: 'Cleanup', executionSpeed: 'Fast', coverageDepth: 'Medium', aiEnhancement: 'Auto',
+    icon: Trash2, category: 'Cleanup', executionSpeed: 'Fast', coverageDepth: 'Medium', aiEnhancement: 'Auto',
   },
   {
     id: 'license',
@@ -337,7 +342,7 @@ export const dimensions: Dimension[] = [
     description: 'Checks all dependencies for license type. Flags GPL/copyleft risks. Ensures compliance with your organization open source policy.',
     metrics: ['License Type', 'Copyleft Risk', 'Compliance Score'],
     features: ['License type detection', 'GPL/copyleft risk flagging', 'Compliance report', 'Policy enforcement suggestions'],
-    icon: 'file-text', category: 'Compliance', executionSpeed: 'Fast', coverageDepth: 'Medium', aiEnhancement: 'Auto',
+    icon: FileText, category: 'Compliance', executionSpeed: 'Fast', coverageDepth: 'Medium', aiEnhancement: 'Auto',
   },
   {
     id: 'dora',
@@ -348,7 +353,7 @@ export const dimensions: Dimension[] = [
     description: 'Estimates the four DORA metrics from CI/CD configuration and code patterns. Deployment Frequency, Lead Time for Changes, Mean Time to Recovery, and Change Failure Rate.',
     metrics: ['Deploy Freq', 'Lead Time', 'MTTR', 'Change Fail %'],
     features: ['CI/CD configuration analysis', 'Deployment frequency estimation', 'Lead time calculation', 'MTTR and change failure rate prediction', 'Elite/High/Medium/Low classification'],
-    icon: 'trending-up', category: 'DevOps', executionSpeed: 'Fast', coverageDepth: 'Deep', aiEnhancement: 'Full',
+    icon: TrendingUp, category: 'DevOps', executionSpeed: 'Fast', coverageDepth: 'Deep', aiEnhancement: 'Full',
   },
   {
     id: 'owasp',
@@ -359,7 +364,7 @@ export const dimensions: Dimension[] = [
     description: 'Maps all security findings to OWASP Top 10 categories. Reports coverage percentage and identifies gaps in security testing.',
     metrics: ['Coverage %', 'Covered Categories', 'Missing Categories'],
     features: ['OWASP Top 10 mapping', 'Coverage percentage', 'Gap analysis', 'Security posture assessment'],
-    icon: 'shield', category: 'Security', executionSpeed: 'Fast', coverageDepth: 'Deep', aiEnhancement: 'Full',
+    icon: Shield, category: 'Security', executionSpeed: 'Fast', coverageDepth: 'Deep', aiEnhancement: 'Full',
   },
   {
     id: 'edge',
@@ -392,7 +397,7 @@ export const dimensions: Dimension[] = [
     description: 'World first — simulates thousands of AI agents hitting your API simultaneously. Predicts failure patterns, bottlenecks, and cascading failures unique to agentic workloads.',
     metrics: ['Max Agents', 'Bottleneck', 'Failure Patterns', 'Recommendations'],
     features: ['Agentic traffic simulation', 'Max concurrent agent prediction', 'Bottleneck identification', 'Failure pattern analysis', '8 specific resilience recommendations'],
-    icon: 'cpu', category: 'Strategy', executionSpeed: 'Fast', coverageDepth: 'Deep', aiEnhancement: 'Full',
+    icon: Cpu, category: 'Strategy', executionSpeed: 'Fast', coverageDepth: 'Deep', aiEnhancement: 'Full',
   },
 ];
 
