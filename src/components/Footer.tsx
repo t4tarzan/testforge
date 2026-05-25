@@ -60,9 +60,13 @@ export default function Footer() {
                 TestForge
               </span>
             </div>
-            <p className="text-[#9A9A9A] text-sm leading-relaxed mb-6">
+            <p className="text-[#9A9A9A] text-sm leading-relaxed mb-4">
               AI CODE? Run TestForge! 21-dimension analysis in 30 seconds.
             </p>
+            <a href="https://www.producthunt.com/products/testforge?utm_source=badge&utm_medium=badge" target="_blank" rel="noopener" className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 border border-white/10 rounded-lg hover:bg-white/20 transition-all mb-4">
+              <span className="text-sm">🏆</span>
+              <span className="text-xs text-white/80 font-medium">Featured on Product Hunt</span>
+            </a>
             <div className="flex items-center gap-4">
               <a href="https://github.com/t4tarzan/testforge" target="_blank" rel="noopener noreferrer" className="text-[#9A9A9A] hover:text-[#7a6fad] transition-colors duration-200">
                 <Github size={20} />
