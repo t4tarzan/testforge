@@ -17,6 +17,7 @@ import McpIntegration from '@/pages/McpIntegration';
 import Docs from '@/pages/Docs';
 import TestRunner from '@/pages/TestRunner';
 import ManagedTesting from '@/pages/Managed';
+import PressKit from '@/pages/Press';
 import OnboardingModal from '@/components/OnboardingModal';
 
 // Simple auth guard
@@ -81,6 +82,7 @@ export default function App() {
         />
         <Route path="/mcp" element={<Layout><McpIntegration /></Layout>} />
         <Route path="/managed" element={<Layout><ManagedTesting /></Layout>} />
+        <Route path="/press" element={<NoLayout><PressKit /></NoLayout>} />
         <Route path="/docs" element={<NoLayout><Docs /></NoLayout>} />
 
         {/* All other pages — with standard layout (Navbar + Footer) */}
