@@ -52,6 +52,12 @@ function loadAuthFromStorage(): AuthState {
     if (stored) {
       const parsed = JSON.parse(stored);
       if (parsed?.user) {
+        // Fix old users with hardcoded 'standard' plan
+        if (parsed.user.plan === 'standard') {
+          parsed.user.plan = 'free';
+          parsed.user.creditsTotal = 5;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+        }
         return {
           user: parsed.user as User,
           isAuthenticated: true,
@@ -124,8 +130,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: githubUser.name,
         email: githubUser.email,
         avatar: githubUser.login?.substring(0, 2).toUpperCase() || 'GH',
-        plan: 'standard',
-        creditsUsed: 0, creditsTotal: 2000, testsRun: 0, passRate: 0, repos: 0,
+        plan: 'free',
+        creditsUsed: 0, creditsTotal: 5, testsRun: 0, passRate: 0, repos: 0,
       };
       setState({ user, isAuthenticated: true, isLoading: false });
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ user }));
