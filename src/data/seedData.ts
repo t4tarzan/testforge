@@ -557,7 +557,7 @@ export const SEED_REPORT: SeedReport = {
 
 // ── Mock User Data ──────────────────────────────────────────────────────────
 
-export type UserPlan = 'free' | 'starter' | 'standard' | 'enterprise';
+export type UserPlan = 'free' | 'starter' | 'standard' | 'pro' | 'enterprise';
 
 export interface MockUser {
   id: string;

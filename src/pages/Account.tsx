@@ -16,7 +16,6 @@ import {
   XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Area, AreaChart
 } from 'recharts';
-import { useAuth } from '@/context/AuthContext';
 import {
   MOCK_USER, MOCK_TEST_HISTORY, MOCK_API_KEYS,
   MOCK_TEAM_MEMBERS, MOCK_USAGE_DATA, MOCK_INVOICES, MOCK_REPOS,
@@ -654,7 +653,7 @@ function BillingTab() {
           <div className="flex flex-col items-start md:items-center gap-3">
             <p className="text-[14px] text-[#9A9A9A] font-body">{plan === 'free' ? 'Free forever' : 'Active subscription'}</p>
             {plan === 'free' ? (
-              <button onClick={() => navigate('/pricing')} className="px-6 py-2.5 rounded-lg bg-[#7a6fad] text-white font-body font-medium text-[14px] hover:bg-[#574a7d] transition-colors">
+              <button onClick={() => window.location.href = '/#/pricing'} className="px-6 py-2.5 rounded-lg bg-[#7a6fad] text-white font-body font-medium text-[14px] hover:bg-[#574a7d] transition-colors">
                 Upgrade Plan
               </button>
             ) : (
