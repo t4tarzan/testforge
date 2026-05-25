@@ -17,6 +17,7 @@ import McpIntegration from '@/pages/McpIntegration';
 import Docs from '@/pages/Docs';
 import TestRunner from '@/pages/TestRunner';
 import ManagedTesting from '@/pages/Managed';
+import OnboardingModal from '@/components/OnboardingModal';
 
 // Simple auth guard
 function AuthGuard({ children }: { children: React.ReactNode }) {
@@ -45,6 +46,7 @@ function NoLayout({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <ErrorBoundary>
+    <OnboardingModal />
     <AuthProvider>
       <Toaster position="bottom-right" richColors />
       <Routes>
