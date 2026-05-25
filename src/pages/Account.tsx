@@ -8,8 +8,6 @@ import {
   Users, CreditCard, Settings, LogOut, Menu,
   HelpCircle, Zap, Play, FileText, ArrowRight,
   MoreHorizontal, Eye, Download, Search, ChevronDown,
-  ChevronUp, ChevronLeft, ChevronRight, Plus, Copy,
-  Check, UserPlus, FileDown, TrendingUp,
   TrendingDown, CheckCircle2
 } from 'lucide-react';
 import {
