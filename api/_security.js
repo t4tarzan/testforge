@@ -1,8 +1,10 @@
 // Shared security middleware for all Vercel API endpoints.
 // Every handler should be exported as `withSecurity(handler, opts)`.
-// That wrapper handles CORS preflight, security headers, and rate limiting
-// in one place — handlers don't set those themselves any more.
+// That wrapper handles CORS preflight, security headers, rate limiting,
+// request-id correlation, and uniform env-misconfiguration responses.
 import crypto from 'crypto';
+import { newRequestId, makeLogger } from './_log.js';
+import { MissingEnvError } from './_env.js';
 
 // ── CORS allowlist ──────────────────────────────────────────────────────
 // Reflected origin (Vary: Origin), credentials enabled. Anything not on this
@@ -184,12 +186,23 @@ export function withSecurity(handler, opts = {}) {
   const { publicCors = false, maxRequests = 60, skipRateLimit = false } = opts;
 
   return async (req, res) => {
+    // Correlation id: prefer the platform-provided one if present, else
+    // mint our own. Echoed back to the client so they can include it in
+    // bug reports.
+    const requestId =
+      req.headers['x-vercel-id'] ||
+      req.headers['x-request-id'] ||
+      newRequestId();
+    res.setHeader('X-Request-Id', requestId);
+    req.id = requestId;
+    req.log = makeLogger(requestId, req.url);
+
     applySecurityHeaders(res);
     const corsOk = applyCors(req, res, { publicCors });
 
     if (!corsOk) {
-      // Cross-site request from a disallowed origin. Refuse outright.
-      return res.status(403).json({ error: 'Origin not allowed' });
+      req.log.warn('cors_blocked', { origin: req.headers.origin });
+      return res.status(403).json({ error: 'Origin not allowed', requestId });
     }
     if (req.method === 'OPTIONS') {
       return res.status(204).end();
@@ -206,10 +219,27 @@ export function withSecurity(handler, opts = {}) {
       if (!rate.allowed) {
         const retryAfter = Math.max(1, Math.ceil((rate.resetAt - Date.now()) / 1000));
         res.setHeader('Retry-After', retryAfter);
-        return res.status(429).json({ error: 'Rate limit exceeded', retryAfter });
+        req.log.warn('rate_limited', { ip, retryAfter });
+        return res.status(429).json({ error: 'Rate limit exceeded', retryAfter, requestId });
       }
     }
 
-    return handler(req, res);
+    try {
+      return await handler(req, res);
+    } catch (err) {
+      // MissingEnvError → 500 with a clear "configuration" message so
+      // Vinayak doesn't have to chase a generic stack trace.
+      if (err instanceof MissingEnvError) {
+        req.log.error('missing_env', { missing: err.missing });
+        return res.status(500).json({
+          error: 'Server misconfigured',
+          missing: err.missing,
+          requestId,
+        });
+      }
+      req.log.error('unhandled_exception', { err: err.message, stack: err.stack });
+      // Don't leak the stack to the client.
+      return res.status(500).json({ error: 'Internal server error', requestId });
+    }
   };
 }
