@@ -10,6 +10,12 @@ import {
 import { SEED_REPORT } from '@/data/seedData';
 import { getReport } from '@/lib/api';
 import type { TestResult, Finding, TestStatus } from '@/data/seedData';
+import { EmptyState, LoadingSkeleton } from '@/components/ui/States';
+import { FileSearch } from 'lucide-react';
+
+// The shape we render comes from the seed shape — keep the type, drop the
+// value as a runtime fallback. Real reports must come from /api/reports/:id.
+type ReportShape = typeof SEED_REPORT;
 
 const easeOutExpo = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
@@ -245,28 +251,35 @@ function StageSection({ result, index }: { result: TestResult; index: number }) 
 // ═══════════════════════════════════════════════════════════════════════════
 export default function TestReport() {
   const { id } = useParams<{ id: string }>();
-  const [report, setReport] = useState(SEED_REPORT);
+  const [report, setReport] = useState<ReportShape | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [exportToast, setExportToast] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      setLoadError('No report id in URL');
+      return;
+    }
     setLoading(true);
+    setLoadError(null);
     getReport(id)
       .then((apiReport) => {
-        // Map API report to seed format
         setReport({
           id: apiReport.id,
           overallScore: apiReport.overallScore,
-          repo: { owner: 'example', name: 'express-ecommerce-api' },
-          branch: 'main',
-          commit: 'a1b2c3d',
+          repo: {
+            owner: apiReport.testRun?.config?.repoOwner || 'unknown',
+            name: apiReport.testRun?.config?.repoName || 'unknown',
+          },
+          branch: apiReport.testRun?.branch || 'main',
+          commit: apiReport.testRun?.commitHash?.substring(0, 7) || '—',
           startedAt: apiReport.generatedAt || new Date().toISOString(),
           completedAt: new Date().toISOString(),
-          totalDuration: 330000,
+          totalDuration: 0,
           status: 'completed',
           summary: {
-            passed: 42,
+            passed: 0,
             warning: apiReport.mediumCount + apiReport.lowCount,
             failed: apiReport.criticalCount + apiReport.highCount,
             criticalVulns: apiReport.criticalCount,
@@ -277,13 +290,15 @@ export default function TestReport() {
           testResults: [],
           prd: {
             problemStatement: apiReport.title,
-            affectedComponents: (apiReport.phases || []).flatMap(p => p.items.map(i => i.component || '')),
+            affectedComponents: (apiReport.phases || []).flatMap((p) =>
+              p.items.map((i) => i.component || '')
+            ),
             phases: (apiReport.phases || []).map((p, pi) => ({
               phase: pi + 1,
               name: p.name,
               priority: p.priority,
               duration: p.effort,
-              items: p.items.map(i => ({
+              items: p.items.map((i) => ({
                 id: i.id,
                 title: i.title,
                 severity: i.severity as 'critical' | 'high' | 'medium' | 'low',
@@ -291,11 +306,13 @@ export default function TestReport() {
               })),
             })),
           },
-        } as unknown as typeof SEED_REPORT);
+        } as unknown as ReportShape);
       })
-      .catch(() => {
-        // Fallback to seed data
-        setReport(SEED_REPORT);
+      .catch((err: Error) => {
+        // Don't fall back to fake data — surface the real failure so the
+        // user knows something went wrong rather than seeing invented results.
+        setReport(null);
+        setLoadError(err.message || 'Failed to load report');
       })
       .finally(() => setLoading(false));
   }, [id]);
@@ -304,6 +321,31 @@ export default function TestReport() {
     setExportToast(`Exporting ${format}...`);
     setTimeout(() => setExportToast(null), 2500);
   };
+
+  // Guard the whole render: if we don't have a real report yet, show a
+  // loading skeleton (during fetch) or an empty state (no data / error).
+  if (!report) {
+    return (
+      <div className="min-h-[100dvh] bg-[#F7F7FB]">
+        <div className="max-w-[1000px] mx-auto px-4 lg:px-8 py-8">
+          {loading ? (
+            <LoadingSkeleton rows={6} />
+          ) : (
+            <EmptyState
+              icon={<FileSearch size={48} />}
+              title={loadError ? 'Report unavailable' : 'No report selected'}
+              description={
+                loadError
+                  ? `We couldn't load this report: ${loadError}. Run a new analysis or come back once the run completes.`
+                  : 'Pick a test run from your dashboard to view its report.'
+              }
+              action={{ label: 'Back to dashboard', onClick: () => (window.location.hash = '#/dashboard') }}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const sevCounts = [
     { severity: 'critical', count: report.summary.criticalVulns, color: '#D4524A' },
