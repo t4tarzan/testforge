@@ -154,7 +154,7 @@ function DashboardTab() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
         {[
           { icon: Play, iconBg: 'bg-[#574a7d]', iconColor: 'text-white', title: 'Start New Test', subtitle: 'Run a full test suite on any repository', action: () => navigate('/run-test') },
-          { icon: GitBranch, iconBg: 'bg-[#12101A]', iconColor: 'text-white', title: 'Connect Repository', subtitle: 'Link a new Git repo to TestForge', action: () => {} },
+          { icon: GitBranch, iconBg: 'bg-[#12101A]', iconColor: 'text-white', title: 'Connect Repository', subtitle: 'Link a new Git repo to TestForge', action: () => navigate('/managed') },
           { icon: FileText, iconBg: 'bg-[rgba(74,144,217,0.1)]', iconColor: 'text-[#4A90D9]', title: 'View Reports', subtitle: 'Browse and export past test reports', action: () => navigate('/account?tab=test-runs') },
         ].map((card, i) => (
           <motion.div
@@ -431,7 +431,7 @@ function ReposTab() {
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
       <h2 className="font-heading font-medium text-[28px] text-[#12101A]">Repositories</h2>
       <p className="text-[16px] text-[#6B6B6B] font-body mt-1">Manage your connected Git repositories.</p>
-      <button className="mt-6 h-10 px-5 bg-[#574a7d] text-white rounded-lg font-body font-medium text-[14px] flex items-center gap-2 hover:bg-[#4a3d6b] transition-colors">
+      <button onClick={() => navigate('/managed')} className="mt-6 h-10 px-5 bg-[#574a7d] text-white rounded-lg font-body font-medium text-[14px] flex items-center gap-2 hover:bg-[#4a3d6b] transition-colors">
         <Plus size={16} /> Connect Repository
       </button>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
