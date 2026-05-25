@@ -482,20 +482,49 @@ export async function runMutationAnalysis(
     };
   }
 
-  // Estimate mutants based on code size
+  // Estimate mutants from code size. Each source file produces ~3 candidate
+  // mutations on average, plus ~1 per 100 lines of business logic. This is
+  // an order-of-magnitude approximation, not a Stryker substitute.
   const totalMutants = Math.floor(totalFiles * 3 + totalLines / 100);
-  const estimatedMutationScore = hasMutationTool
-    ? 55 + Math.floor(Math.random() * 30)
-    : 35 + Math.floor(Math.random() * 25);
-  const killedMutants = Math.floor(totalMutants * estimatedMutationScore / 100);
+
+  // Estimate mutation score deterministically from the test footprint we
+  // can actually observe: ratio of test files to source files. We can't
+  // measure real coverage without running Stryker, so we surface a coarse
+  // upper bound and tell the user to run the real tool for an exact number.
+  //
+  // Heuristic: a project with 1 test file per 2 source files is "well-tested"
+  // in this rough sense; less than that scales linearly down to a floor.
+  let testFiles = 0;
+  let sourceFiles = 0;
+  for (const fp of Object.keys(fileContents)) {
+    if (fp.includes('node_modules')) continue;
+    if (/\.(test|spec)\.[jt]sx?$/.test(fp) || fp.includes('/__tests__/')) testFiles++;
+    else if (/\.[jt]sx?$/.test(fp)) sourceFiles++;
+  }
+  const testRatio = sourceFiles > 0 ? testFiles / sourceFiles : 0;
+  // Map test-ratio to an estimated mutation score band.
+  //   ratio ≥ 0.5  → 75 (well-tested)
+  //   ratio  0.25  → ~55
+  //   ratio  0.1   → ~40
+  //   ratio  0     → 25 (floor — even untyped JS catches some mutations)
+  const baseScore = Math.min(75, Math.round(25 + testRatio * 100));
+  // If Stryker (or similar) is configured the team is actively running
+  // mutation tests, which empirically lifts effective scores ~10 points.
+  const estimatedMutationScore = hasMutationTool ? Math.min(85, baseScore + 10) : baseScore;
+  const killedMutants = Math.floor((totalMutants * estimatedMutationScore) / 100);
 
   findings.push({
-    severity: estimatedMutationScore < 50 ? 'high' : estimatedMutationScore < 70 ? 'medium' : 'low',
-    title: `Estimated Mutation Score: ${estimatedMutationScore}%`,
-    description: `${killedMutants}/${totalMutants} mutants would be killed. ${totalMutants - killedMutants} would survive — indicating test gaps.`,
-    fixSuggestion: estimatedMutationScore < 70
-      ? 'Add tests for boundary conditions, error paths, and edge cases. Focus on code with most surviving mutants.'
-      : 'Good score! Increase to 80%+ by adding tests for untested branches.',
+    severity:
+      estimatedMutationScore < 50 ? 'high' : estimatedMutationScore < 70 ? 'medium' : 'low',
+    title: `Estimated Mutation Score: ~${estimatedMutationScore}% (heuristic)`,
+    description:
+      `Estimate from test-to-source ratio of ${testFiles}/${sourceFiles}. ` +
+      `~${killedMutants}/${totalMutants} candidate mutants likely killed. ` +
+      `Run Stryker for the exact number.`,
+    fixSuggestion:
+      estimatedMutationScore < 70
+        ? 'Add tests for boundary conditions, error paths, and edge cases. Then run Stryker to confirm.'
+        : 'Strong test footprint. Run Stryker to validate and push toward 80%+.',
     category: 'Mutation Testing',
   });
 
@@ -621,18 +650,19 @@ export async function runPredictiveAnalysis(
   }
 
   const score = Math.max(0, 100 - riskScore);
-  let riskLevel: string;
-  let predictedFailures: number;
 
+  // predictedFailures is now a deterministic function of riskScore: roughly
+  // one expected incident per quarter for every 5 risk points. Same input →
+  // same number, so two runs on identical code produce identical reports.
+  // This is a heuristic, not a forecast — communicate it as such.
+  const predictedFailures = Math.floor(riskScore / 5);
+  let riskLevel: string;
   if (riskScore < 15) {
     riskLevel = 'Low — Codebase shows good engineering practices.';
-    predictedFailures = Math.floor(Math.random() * 3);
   } else if (riskScore < 30) {
     riskLevel = 'Medium — Some risk factors present. Address TODOs and large files.';
-    predictedFailures = 3 + Math.floor(Math.random() * 5);
   } else {
     riskLevel = 'High — Multiple risk factors. High probability of production incidents.';
-    predictedFailures = 8 + Math.floor(Math.random() * 7);
   }
 
   return { score, riskLevel, predictedFailures, findings };

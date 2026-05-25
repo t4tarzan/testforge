@@ -14,10 +14,25 @@ import {
   XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Area, AreaChart
 } from 'recharts';
-import {
-  MOCK_USER, MOCK_TEST_HISTORY,
-  MOCK_USAGE_DATA, MOCK_INVOICES,
-} from '@/data/seedData';
+import { EmptyState } from '@/components/ui/States';
+import { FlaskRound } from 'lucide-react';
+// Demo placeholders for surfaces that aren't wired to live data yet
+// (e.g. avatar initials when no user is signed in). MOCK_TEST_HISTORY /
+// _USAGE_DATA / _INVOICES used to be rendered as if real — they aren't
+// anymore; everything user-visible now comes from the API.
+import { MOCK_USER } from '@/data/seedData';
+
+type RecentRun = {
+  id: string;
+  project_name: string | null;
+  repo_url: string | null;
+  branch: string;
+  status: 'queued' | 'running' | 'completed' | 'failed';
+  overall_score: number | null;
+  completed_at: string | null;
+};
+
+type UsagePoint = { date: string; runs: number };
 
 const easeOutExpo = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
@@ -85,9 +100,37 @@ function DashboardTab() {
   const { user: authUser } = useAuth();
   const user = authUser || MOCK_USER;
   const [realStats, setRealStats] = useState<any>(null);
+  const [recentRuns, setRecentRuns] = useState<RecentRun[] | null>(null);
+  const [usageSeries, setUsageSeries] = useState<UsagePoint[]>([]);
 
   useEffect(() => {
-    fetch('/api/usage').then(r => r.json()).then(setRealStats).catch(() => {});
+    fetch('/api/usage', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setRealStats)
+      .catch(() => {});
+    fetch('/api/history', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((rows: RecentRun[]) => {
+        setRecentRuns(Array.isArray(rows) ? rows : []);
+        // Bucket runs into a 30-day series for the area chart. Empty buckets
+        // render as 0 — no fake data filling in the gaps.
+        const buckets = new Map<string, number>();
+        const today = new Date();
+        for (let i = 29; i >= 0; i--) {
+          const d = new Date(today);
+          d.setDate(today.getDate() - i);
+          buckets.set(d.toISOString().slice(0, 10), 0);
+        }
+        for (const r of rows || []) {
+          if (!r.completed_at) continue;
+          const key = r.completed_at.slice(0, 10);
+          if (buckets.has(key)) buckets.set(key, (buckets.get(key) || 0) + 1);
+        }
+        setUsageSeries(
+          Array.from(buckets.entries()).map(([date, runs]) => ({ date: date.slice(5), runs }))
+        );
+      })
+      .catch(() => setRecentRuns([]));
   }, []);
 
   const stats = [
@@ -203,31 +246,58 @@ function DashboardTab() {
             <span className="text-center">Score</span>
             <span className="text-right">Actions</span>
           </div>
-          {MOCK_TEST_HISTORY.slice(0, 5).map((run, i) => (
-            <motion.div
-              key={run.id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 + i * 0.04, duration: 0.3 }}
-              className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] gap-4 px-6 py-4 border-t border-[#D9D9D3] items-center hover:bg-[#F7F7FB] transition-colors"
-            >
-              <span className="text-[14px] text-[#333333] font-body">{run.repo}</span>
-              <span className="text-[14px] text-[#6B6B6B] font-body">{run.branch}</span>
-              <span className="text-[14px] text-[#6B6B6B] font-body">{run.date}</span>
-              <span className="text-center"><StatusBadge status={run.status} /></span>
-              <span className={`text-center text-[14px] font-semibold font-body ${scoreColor(run.score)}`}>
-                {run.score}/100
-              </span>
-              <div className="flex items-center justify-end gap-2">
-                <button className="w-8 h-8 rounded-[6px] flex items-center justify-center hover:bg-[#F7F7FB] transition-colors">
-                  <Eye size={16} className="text-[#6B6B6B]" />
-                </button>
-                <button className="w-8 h-8 rounded-[6px] flex items-center justify-center hover:bg-[#F7F7FB] transition-colors">
-                  <Download size={16} className="text-[#6B6B6B]" />
-                </button>
-              </div>
-            </motion.div>
-          ))}
+          {recentRuns === null ? (
+            <div className="px-6 py-8 text-center text-[14px] text-[#9A9A9A] font-body">
+              Loading…
+            </div>
+          ) : recentRuns.length === 0 ? (
+            <EmptyState
+              icon={<FlaskRound size={40} />}
+              title="No test runs yet"
+              description="Once you analyze a repository, its runs will appear here."
+              action={{ label: 'Run your first test', onClick: () => navigate('/run-test') }}
+            />
+          ) : (
+            recentRuns.slice(0, 5).map((run, i) => {
+              const repoLabel =
+                run.repo_url?.replace(/^https:\/\/github\.com\//, '') ||
+                run.project_name ||
+                'unknown';
+              const date = run.completed_at
+                ? new Date(run.completed_at).toLocaleDateString()
+                : '—';
+              const score = run.overall_score ?? 0;
+              return (
+                <motion.div
+                  key={run.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4 + i * 0.04, duration: 0.3 }}
+                  className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] gap-4 px-6 py-4 border-t border-[#D9D9D3] items-center hover:bg-[#F7F7FB] transition-colors cursor-pointer"
+                  onClick={() => navigate(`/report/${run.id}`)}
+                >
+                  <span className="text-[14px] text-[#333333] font-body">{repoLabel}</span>
+                  <span className="text-[14px] text-[#6B6B6B] font-body">{run.branch}</span>
+                  <span className="text-[14px] text-[#6B6B6B] font-body">{date}</span>
+                  <span className="text-center"><StatusBadge status={run.status} /></span>
+                  <span className={`text-center text-[14px] font-semibold font-body ${scoreColor(score)}`}>
+                    {score}/100
+                  </span>
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      className="w-8 h-8 rounded-[6px] flex items-center justify-center hover:bg-[#F7F7FB] transition-colors"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/report/${run.id}`); }}
+                    >
+                      <Eye size={16} className="text-[#6B6B6B]" />
+                    </button>
+                    <button className="w-8 h-8 rounded-[6px] flex items-center justify-center hover:bg-[#F7F7FB] transition-colors">
+                      <Download size={16} className="text-[#6B6B6B]" />
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            })
+          )}
         </div>
       </div>
 
@@ -238,7 +308,7 @@ function DashboardTab() {
         </span>
         <div className="bg-white border border-[#D9D9D3] rounded-[12px] p-6 mt-4 h-[320px]">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={MOCK_USAGE_DATA}>
+            <AreaChart data={usageSeries}>
               <defs>
                 <linearGradient id="sageArea" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#574a7d" stopOpacity={0.15} />
@@ -686,26 +756,12 @@ function BillingTab() {
             <span>Status</span>
             <span className="text-right">PDF</span>
           </div>
-          {MOCK_INVOICES.map((inv, i) => (
-            <motion.div
-              key={inv.date}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: i * 0.04 }}
-              className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 px-6 py-4 border-t border-[#D9D9D3] items-center"
-            >
-              <span className="text-[14px] text-[#333333] font-body">{inv.date}</span>
-              <span className="text-[14px] text-[#333333] font-body">{inv.amount}</span>
-              <span className="font-mono text-[12px] uppercase text-[#574a7d] font-medium bg-[#E8E5FF] px-3 py-1 rounded-[4px] w-fit">
-                {inv.status}
-              </span>
-              <div className="text-right">
-                <button className="text-[#574a7d] hover:text-[#4a3d6b] transition-colors">
-                  <FileDown size={16} />
-                </button>
-              </div>
-            </motion.div>
-          ))}
+          {/* No stored invoice history yet — Stripe Customer Portal owns
+              this view for now. Empty state keeps us honest. */}
+          <div className="px-6 py-10 text-center text-[14px] text-[#6B6B6B] font-body border-t border-[#D9D9D3]">
+            No invoices yet. After upgrading, your billing history lives in
+            the Stripe Customer Portal (linked from this page).
+          </div>
         </div>
       </div>
     </motion.div>
@@ -716,6 +772,7 @@ function BillingTab() {
 // TAB 7: SETTINGS
 // ═══════════════════════════════════════════════════════════════════════════
 function SettingsTab() {
+  const { user } = useAuth();
   const [toggles, setToggles] = useState<Record<string, boolean>>({
     'test-run-completed': true,
     'critical-vuln': true,
@@ -746,11 +803,16 @@ function SettingsTab() {
         <h3 className="font-body font-semibold text-[16px] text-[#12101A]">Profile</h3>
         <div className="flex items-center gap-4 mt-4">
           <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#574a7d] to-[#7a6fad] flex items-center justify-center text-white text-[20px] font-semibold">
-            {MOCK_USER.avatar}
+            {user?.avatar || '—'}
           </div>
           <div className="flex gap-4">
-            <button className="text-[14px] text-[#574a7d] font-medium font-body hover:underline">Change Avatar</button>
-            <button className="text-[14px] text-[#D4524A] font-body hover:underline">Remove</button>
+            <button
+              className="text-[14px] text-[#574a7d] font-medium font-body hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled
+              title="Avatar is synced from GitHub"
+            >
+              Synced from GitHub
+            </button>
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -758,15 +820,16 @@ function SettingsTab() {
             <label className="block text-[14px] text-[#333333] font-medium font-body mb-2">Full Name</label>
             <input
               type="text"
-              defaultValue={MOCK_USER.name}
-              className="w-full h-10 bg-white border border-[#D9D9D3] rounded-lg px-4 text-[14px] font-body text-[#12101A] focus:outline-none focus:border-[#574a7d] transition-colors"
+              defaultValue={user?.name || ''}
+              disabled
+              className="w-full h-10 bg-[#F7F7FB] border border-[#D9D9D3] rounded-lg px-4 text-[14px] font-body text-[#6B6B6B] cursor-not-allowed"
             />
           </div>
           <div>
             <label className="block text-[14px] text-[#333333] font-medium font-body mb-2">Email</label>
             <input
               type="email"
-              defaultValue={MOCK_USER.email}
+              defaultValue={user?.email || ''}
               disabled
               className="w-full h-10 bg-[#F7F7FB] border border-[#D9D9D3] rounded-lg px-4 text-[14px] font-body text-[#6B6B6B] cursor-not-allowed"
             />
