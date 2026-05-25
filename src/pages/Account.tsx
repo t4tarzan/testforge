@@ -16,7 +16,7 @@ import {
 } from 'recharts';
 import {
   MOCK_USER, MOCK_TEST_HISTORY,
-  MOCK_TEAM_MEMBERS, MOCK_USAGE_DATA, MOCK_INVOICES,
+  MOCK_USAGE_DATA, MOCK_INVOICES,
 } from '@/data/seedData';
 
 const easeOutExpo = [0.16, 1, 0.3, 1] as [number, number, number, number];
@@ -278,6 +278,29 @@ function DashboardTab() {
             </AreaChart>
           </ResponsiveContainer>
         </div>
+
+        {/* Score History + Export */}
+        {realStats && realStats.testsRun > 0 && (
+          <div className="mt-8 bg-white border border-[#D9D9D3] rounded-[12px] p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-[#12101A]">Activity Summary</h3>
+              <button onClick={() => { const blob = new Blob([JSON.stringify(realStats, null, 2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'testforge-data.json'; a.click(); }} className="text-[13px] text-[#574a7d] font-medium flex items-center gap-1 hover:underline">
+                <FileDown size={14} /> Export Data
+              </button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div><span className="text-[#6B6B6B]">Tests run:</span> <strong className="text-[#12101A]">{realStats.testsRun}</strong></div>
+              <div><span className="text-[#6B6B6B]">This month:</span> <strong className="text-[#12101A]">{realStats.testsThisMonth}</strong></div>
+              <div><span className="text-[#6B6B6B]">Avg score:</span> <strong className="text-[#12101A]">{realStats.averageScore}</strong></div>
+              <div><span className="text-[#6B6B6B]">Findings:</span> <strong className="text-[#12101A]">{realStats.totalFindingsFound}</strong></div>
+            </div>
+            {realStats.remainingQuota <= 5 && (
+              <div className="mt-4 p-3 bg-[#FFF8E1] border border-[#EAB308]/30 rounded-lg text-sm">
+                ⚠️ Only <strong>{realStats.remainingQuota}</strong> test{realStats.remainingQuota === 1 ? '' : 's'} remaining this month. <a href="/#/pricing" className="text-[#574a7d] underline font-medium">Upgrade to Pro</a>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </motion.div>
   );
@@ -529,53 +552,31 @@ function ApiKeysTab() {
 // TAB 5: TEAM
 // ═══════════════════════════════════════════════════════════════════════════
 function TeamTab() {
+  const [members, setMembers] = useState<any[]>([]);
+  useEffect(() => { fetch('/api/orgs').then(r => r.json()).then(d => { if (Array.isArray(d)) setMembers(d); }).catch(() => {}); }, []);
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
-      <h2 className="font-heading font-medium text-[28px] text-[#12101A]">Team Members</h2>
-      <p className="text-[16px] text-[#6B6B6B] font-body mt-1">Manage access for your organization.</p>
+      <h2 className="font-heading font-medium text-[28px] text-[#12101A]">Team</h2>
+      <p className="text-[16px] text-[#6B6B6B] font-body mt-1">Manage your organization and team members.</p>
       <div className="flex items-center justify-between mt-6">
-        <span className="font-mono font-medium text-[13px] text-[#6B6B6B]">{MOCK_TEAM_MEMBERS.length} members</span>
-        <button className="h-10 px-5 bg-[#574a7d] text-white rounded-lg font-body font-medium text-[14px] flex items-center gap-2 hover:bg-[#4a3d6b] transition-colors">
-          <UserPlus size={16} /> Invite Member
-        </button>
+        <span className="font-mono font-medium text-[13px] text-[#6B6B6B]">{members.length} organizations</span>
+        <button className="h-9 px-4 bg-[#574a7d] text-white rounded-lg text-[13px] font-medium flex items-center gap-1.5"><UserPlus size={14} /> Create Org</button>
       </div>
-      <div className="bg-white border border-[#D9D9D3] rounded-[12px] overflow-hidden mt-6">
-        {MOCK_TEAM_MEMBERS.map((member, i) => (
-          <motion.div
-            key={member.id}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: i * 0.04 }}
-            className="flex items-center px-6 py-4 border-t border-[#D9D9D3] first:border-t-0"
-          >
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#574a7d] to-[#7a6fad] flex items-center justify-center text-white text-[13px] font-semibold flex-shrink-0">
-              {member.status === 'pending' ? '--' : member.avatar}
+      {members.length === 0 && <p className="mt-6 text-[#6B6B6B] text-sm">No organizations yet. Create one to invite team members.</p>}
+      <div className="space-y-3 mt-4">
+        {members.map((org, i) => (
+          <div key={org.id || i} className="bg-white border border-[#D9D9D3] rounded-lg p-4 flex items-center justify-between">
+            <div>
+              <p className="font-medium text-[#12101A]">{org.name}</p>
+              <p className="text-xs text-[#6B6B6B]">{org.slug} · Created {new Date(org.created_at).toLocaleDateString()}</p>
             </div>
-            <div className="ml-4 flex-1 min-w-0">
-              <p className="text-[15px] text-[#333333] font-medium font-body">{member.name}</p>
-              <p className="text-[13px] text-[#6B6B6B] font-body">{member.email}</p>
-            </div>
-            <span className={`font-mono font-medium text-[11px] uppercase px-2.5 py-1 rounded-[4px] ${
-              member.role === 'Owner'
-                ? 'bg-[#E8E5FF] text-[#574a7d]'
-                : member.role === 'Admin'
-                ? 'bg-[#F7F7FB] text-[#333333]'
-                : 'bg-transparent border border-[#D9D9D3] text-[#6B6B6B]'
-            }`}>
-              {member.role.toUpperCase()}
-            </span>
-            {member.role !== 'Owner' && (
-              <button className="ml-4 w-8 h-8 rounded-[6px] flex items-center justify-center hover:bg-[#F7F7FB] transition-colors">
-                <MoreHorizontal size={16} className="text-[#9A9A9A]" />
-              </button>
-            )}
-          </motion.div>
+            <span className="text-xs px-2 py-0.5 bg-[#E8E5FF] text-[#574a7d] rounded font-medium">{org.plan || 'free'}</span>
+          </div>
         ))}
       </div>
     </motion.div>
   );
 }
-
 // ═══════════════════════════════════════════════════════════════════════════
 // TAB 6: BILLING
 // ═══════════════════════════════════════════════════════════════════════════
