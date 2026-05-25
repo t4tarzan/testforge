@@ -1,8 +1,8 @@
 # 🧪 TestForge AI
 
-> **AI-powered testing that goes beyond code.** Security, performance, accessibility — plus vision alignment, scope coverage, and stack analysis that no other platform provides.
+> **AI CODE? Run TestForge! — 21-dimension analysis in 30 seconds.** Security, performance, accessibility — plus vision alignment, scope coverage, and stack analysis that no other platform provides.
 
-[![Live Demo](https://img.shields.io/badge/Live-testforge--steel.vercel.app-5A8F5E)](https://testforge-steel.vercel.app)
+[![Live Demo](https://img.shields.io/badge/Live-testforge--steel.vercel.app-5A8F5E)](https://testforge.run)
 [![MCP Server](https://img.shields.io/badge/MCP-testforge--mcp.fly.dev-5A8F5E)](https://testforge-mcp.fly.dev)
 [![GitHub](https://img.shields.io/badge/GitHub-t4tarzan/testforge-5A8F5E)](https://github.com/t4tarzan/testforge)
 
@@ -11,7 +11,7 @@
 ## 🚀 Quick Start
 
 ### Option 1: Use the Web Platform
-Go to **[testforge-steel.vercel.app](https://testforge-steel.vercel.app)** → enter any public repo URL → get a full analysis report in 30 seconds.
+Go to **[testforge.run](https://testforge.run)** → enter any public repo URL → get a full analysis report in 30 seconds.
 
 ### Option 2: IDE Integration (MCP)
 ```bash
@@ -33,7 +33,7 @@ flyctl launch --now
 ```
 ┌──────────────────────────────────────────────────────┐
 │  Vercel — Frontend (React 19 + Vite + Tailwind)     │
-│  https://testforge-steel.vercel.app                  │
+│  https://testforge.run                  │
 │                                                      │
 │  ┌──────────┐  ┌──────────────┐  ┌───────────────┐  │
 │  │ 14 Pages  │  │  API Routes  │  │  Neon PG (DB) │  │

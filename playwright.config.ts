@@ -5,7 +5,7 @@ export default defineConfig({
   timeout: 30000,
   retries: 1,
   use: {
-    baseURL: 'https://testforge-steel.vercel.app',
+    baseURL: 'https://testforge.run',
     headless: true,
     viewport: { width: 1280, height: 720 },
   },

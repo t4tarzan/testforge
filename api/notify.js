@@ -19,7 +19,7 @@ export default async function handler(req, res) {
       if (findings?.length) {
         blocks.push({ type: 'section', text: { type: 'mrkdwn', text: `*Top Findings:*\n${findings.slice(0,5).map((f,i) => `${i+1}. [${f.severity?.toUpperCase()}] ${f.title}`).join('\n')}` } });
       }
-      blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: `🔗 <https://testforge-steel.vercel.app|View full report on TestForge>` }] });
+      blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: `🔗 <https://testforge.run|View full report on TestForge>` }] });
       await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ blocks, attachments: [{ color, text: `TestForge Score: ${score}/100` }] }) });
     } else if (platform === 'discord') {
       await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
           description: summary || '',
           color: parseInt(color.replace('#', ''), 16),
           fields: findings?.slice(0,5).map(f => ({ name: `[${f.severity?.toUpperCase()}] ${f.title}`, value: f.filePath || '' })) || [],
-          url: 'https://testforge-steel.vercel.app',
+          url: 'https://testforge.run',
         }]
       }) });
     }

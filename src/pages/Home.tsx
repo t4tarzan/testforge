@@ -412,7 +412,7 @@ export default function Home() {
           <div className="grid lg:grid-cols-[52%_48%] gap-12 lg:gap-8 items-center">
             {/* Left: Text */}
             <div>
-              <p className="section-label mb-4">// PRIVACY-FIRST AUTONOMOUS TESTING ENGINE</p>
+              <p className="section-label mb-4">// AI CODE? RUN TESTFORGE!</p>
               <h1 ref={headlineRef} className="text-display-lg mb-6" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
                 {renderAnimatedHeadline()}
               </h1>

@@ -9,7 +9,7 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'GITHUB_CLIENT_ID not configured' });
       }
       const stateStr = Math.random().toString(36).substring(2);
-      const redirectUri = encodeURIComponent('https://testforge-steel.vercel.app/api/auth/callback');
+      const redirectUri = encodeURIComponent('https://testforge.run/api/auth/callback');
       const url = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=read:user%20user:email&state=${stateStr}`;
       res.writeHead(302, { Location: url });
       res.end();

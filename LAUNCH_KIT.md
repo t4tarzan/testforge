@@ -16,7 +16,7 @@ TestForge is the first testing platform that analyzes your code across 21 dimens
 🔌 MCP IDE integration (Cursor, VS Code, Windsurf)
 🐳 Self-hosted on Fly.io — your code never leaves your machine
 
-**Link:** https://testforge-steel.vercel.app
+**Link:** https://testforge.run
 **GitHub:** https://github.com/t4tarzan/testforge
 **npm:** npx @whitenoisenpm/testforge-mcp install
 
@@ -62,7 +62,7 @@ The standard ones (but all in one tool):
 
 Tech stack: React 19 + Vite (frontend), Fastify + TypeScript (MCP server), Neon PostgreSQL, Fly.io, Vercel. All open source.
 
-Try it: https://testforge-steel.vercel.app — paste any public repo URL.
+Try it: https://testforge.run — paste any public repo URL.
 GitHub: https://github.com/t4tarzan/testforge
 
 ---
@@ -120,14 +120,14 @@ Drop any GitHub repo URL and get:
 • Supply chain CVE audit
 
 Free tier: 5 tests/month. Open source.
-testforge-steel.vercel.app
+testforge.run
 
 **LinkedIn:**
 After months of building, I'm launching TestForge — an open-source testing platform that analyzes code across 21 dimensions. 
 
 What makes it different from TestRail, Snyk, or SonarQube? It doesn't just check security or code quality — it predicts how your API handles thousands of AI agents at scale.
 
-Try it free: testforge-steel.vercel.app
+Try it free: testforge.run
 GitHub: github.com/t4tarzan/testforge
 
 ---
@@ -136,7 +136,7 @@ GitHub: github.com/t4tarzan/testforge
 
 **Product Name:** TestForge
 **Tagline:** 21-dimension AI-powered testing that runs on your machine
-**Website:** https://testforge-steel.vercel.app
+**Website:** https://testforge.run
 **GitHub:** https://github.com/t4tarzan/testforge
 **npm:** @whitenoisenpm/testforge-mcp
 **Founder:** Vinayak Rao (t4tarzan)

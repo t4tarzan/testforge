@@ -61,7 +61,7 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-[#9A9A9A] text-sm leading-relaxed mb-6">
-              Privacy-first autonomous testing. Harden your codebase, ship with certainty.
+              AI CODE? Run TestForge! 21-dimension analysis in 30 seconds.
             </p>
             <div className="flex items-center gap-4">
               <a href="https://github.com/t4tarzan/testforge" target="_blank" rel="noopener noreferrer" className="text-[#9A9A9A] hover:text-[#7a6fad] transition-colors duration-200">

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const BASE = 'https://testforge-steel.vercel.app';
+const BASE = 'https://testforge.run';
 
 // ═══════════════════════════════════════════════════
 // PAGE RENDERING — Every page loads

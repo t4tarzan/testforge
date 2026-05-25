@@ -1,5 +1,5 @@
 // README Badge Generator — embeddable SVG badge showing TestForge score
-// Usage: <img src="https://testforge-steel.vercel.app/api/badge?repo=owner/name" />
+// Usage: <img src="https://testforge.run/api/badge?repo=owner/name" />
 // Or: /api/badge?score=85 (direct score)
 
 export default async function handler(req, res) {

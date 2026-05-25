@@ -5,8 +5,8 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
 
   const services = [
-    { name: 'Web Platform', url: 'https://testforge-steel.vercel.app', check: async () => {
-      const r = await fetch('https://testforge-steel.vercel.app/api/health');
+    { name: 'Web Platform', url: 'https://testforge.run', check: async () => {
+      const r = await fetch('https://testforge.run/api/health');
       return r.ok ? 'operational' : 'degraded';
     }},
     { name: 'MCP Server', url: 'https://testforge-mcp.fly.dev', check: async () => {

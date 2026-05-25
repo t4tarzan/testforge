@@ -385,7 +385,7 @@ if (command === 'install') {
 ║                                                      ║
 ║   3. Start testing!                                  ║
 ║                                                      ║
-║   Docs: https://testforge-steel.vercel.app/#/docs    ║
+║   Docs: https://testforge.run/#/docs    ║
 ║                                                      ║
 ╚══════════════════════════════════════════════════════╝
 `);

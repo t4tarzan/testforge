@@ -1,6 +1,6 @@
 // Stripe Webhook — auto-upgrade user plan on payment
 // Set this as webhook endpoint in Stripe Dashboard:
-// https://testforge-steel.vercel.app/api/stripe-webhook
+// https://testforge.run/api/stripe-webhook
 // Events: checkout.session.completed
 
 export default async function handler(req, res) {

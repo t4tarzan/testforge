@@ -1,6 +1,6 @@
 // GitHub webhook endpoint — triggers analysis on push
 // Set this as the webhook URL in GitHub repo settings:
-// https://testforge-steel.vercel.app/api/webhook
+// https://testforge.run/api/webhook
 
 import crypto from 'crypto';
 

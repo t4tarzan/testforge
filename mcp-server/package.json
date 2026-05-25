@@ -38,7 +38,7 @@
     "url": "https://github.com/t4tarzan/testforge",
     "directory": "mcp-server"
   },
-  "homepage": "https://testforge-steel.vercel.app",
+  "homepage": "https://testforge.run",
   "license": "MIT",
   "dependencies": {
     "@fastify/cors": "^9.0.0",

@@ -1440,7 +1440,7 @@ function ApiReferencePage() {
     <div>
       <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">API Reference</h1>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
-        The TestForge REST API allows programmatic access to test execution, reporting, and platform management. Base URL: <code className="bg-[#E8E5FF] px-2 py-0.5 rounded text-[#574a7d] font-mono text-sm">https://testforge-steel.vercel.app/api</code>
+        The TestForge REST API allows programmatic access to test execution, reporting, and platform management. Base URL: <code className="bg-[#E8E5FF] px-2 py-0.5 rounded text-[#574a7d] font-mono text-sm">https://testforge.run/api</code>
       </p>
 
       <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">🔬 Analysis Endpoints</h2>

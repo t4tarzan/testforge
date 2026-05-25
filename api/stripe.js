@@ -41,8 +41,8 @@ export default async function handler(req, res) {
       customer_email: email,
       mode: 'subscription',
       line_items: [{ price: priceIds[plan] || priceIds.pro, quantity: 1 }],
-      success_url: 'https://testforge-steel.vercel.app/#/account?checkout=success',
-      cancel_url: 'https://testforge-steel.vercel.app/#/pricing?checkout=canceled',
+      success_url: 'https://testforge.run/#/account?checkout=success',
+      cancel_url: 'https://testforge.run/#/pricing?checkout=canceled',
       metadata: { plan, source: 'testforge-web' },
     });
 
