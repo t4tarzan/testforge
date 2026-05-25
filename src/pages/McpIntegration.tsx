@@ -301,9 +301,9 @@ const ideConfigs = [
   "mcpServers": {
     "testforge": {
       "command": "npx",
-      "args": ["@whitenoisenpm/testforge-mcp", "start"],
+      "args": ["-y", "@whitenoisenpm/testforge-mcp", "serve"],
       "env": {
-        "TESTFORGE_API_KEY": "your-api-key"
+        "TESTFORGE_MCP_PORT": "33221"
       }
     }
   }
@@ -323,7 +323,7 @@ const ideConfigs = [
     "testforge": {
       "type": "stdio",
       "command": "npx",
-      "args": ["@whitenoisenpm/testforge-mcp", "start"]
+      "args": ["-y", "@whitenoisenpm/testforge-mcp", "serve"]
     }
   }
 }`,
@@ -341,7 +341,7 @@ const ideConfigs = [
   "mcpServers": {
     "testforge": {
       "command": "npx",
-      "args": ["@whitenoisenpm/testforge-mcp", "start"]
+      "args": ["-y", "@whitenoisenpm/testforge-mcp", "serve"]
     }
   }
 }`,
@@ -359,10 +359,7 @@ const ideConfigs = [
   "mcpServers": {
     "testforge": {
       "command": "npx",
-      "args": ["@whitenoisenpm/testforge-mcp", "start"],
-      "env": {
-        "TESTFORGE_API_KEY": "tf_..."
-      }
+      "args": ["-y", "@whitenoisenpm/testforge-mcp", "serve"]
     }
   }
 }`,
@@ -374,13 +371,14 @@ const ideConfigs = [
     badge: '',
     badgeColor: '',
     iconBg: '#CC785C',
-    description: 'Set environment variable before starting Claude Code.',
-    config: `# Set your API key
-export TESTFORGE_API_KEY="tf_your_api_key"
-
-# Start Claude Code with MCP
+    description: 'Register the MCP server with Claude Code.',
+    config: `# Add to Claude Code (uses default port 33221)
 claude mcp add testforge \\
-  npx @whitenoisenpm/testforge-mcp start`,
+  npx -y @whitenoisenpm/testforge-mcp serve
+
+# Or override the port:
+TESTFORGE_MCP_PORT=9000 claude mcp add testforge \\
+  npx -y @whitenoisenpm/testforge-mcp serve`,
     buttonText: 'Add to Claude Code',
     buttonStyle: 'ghost' as const,
     language: 'bash',
@@ -396,8 +394,8 @@ claude mcp add testforge \\
   "name": "testforge",
   "transport": "stdio",
   "command": "npx",
-  "args": ["@whitenoisenpm/testforge-mcp", "start"],
-  "description": "AI-powered test generation"
+  "args": ["-y", "@whitenoisenpm/testforge-mcp", "serve"],
+  "description": "21-dimension code analysis (local)"
 }`,
     buttonText: 'Copy Config',
     buttonStyle: 'ghost' as const,

@@ -1440,58 +1440,85 @@ function ApiReferencePage() {
     <div>
       <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">API Reference</h1>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
-        The TestForge REST API allows programmatic access to test execution, reporting, and platform management. Base URL: <code className="bg-[#E8E5FF] px-2 py-0.5 rounded text-[#574a7d] font-mono text-sm">https://testforge.run/api</code>
+        The TestForge REST API gives programmatic access to analysis, history, and account
+        management. Base URL: <code className="bg-[#E8E5FF] px-2 py-0.5 rounded text-[#574a7d] font-mono text-sm">https://testforge.run/api</code>
       </p>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">🔬 Analysis Endpoints</h2>
-      <div className="space-y-6">
-        {[
-          { method: 'GET', path: '/health', desc: 'Health check with database status', example: '{"status":"ok","database":"connected"}' },
-          { method: 'POST', path: '/analyze', desc: 'Analyze a public GitHub repository. Returns 21-dimension analysis.', body: '{"repoUrl":"https://github.com/user/repo"}', example: '{"codebase":{"totalFiles":127},"security":{"findings":4},...}' },
-          { method: 'GET', path: '/analyze', desc: 'Get MCP server connection info and available endpoints', example: '{"mcpServer":"https://testforge-mcp.fly.dev"}' },
-          { method: 'POST', path: '/test', desc: 'Start a test suite run on Fly.io MCP server', body: '{"repoUrl":"...","dimensions":["security","unit"]}', example: '{"testRunId":"...","status":"queued"}' },
-        ].map(e => <EndpointCard key={e.path} {...e} />)}
+      <div className="bg-[#F7F7FB] border border-[#D9D9D3] rounded-xl p-5 mb-8 space-y-3">
+        <h3 className="font-body font-semibold text-[15px] text-[#12101A]">Conventions</h3>
+        <ul className="list-disc list-inside space-y-2 text-[14px] text-[#333333] leading-[1.6]">
+          <li><strong>Auth</strong> — most routes require a signed-in session. The cookie
+            (<code className="font-mono text-[12px] text-[#574a7d]">tf_session</code>, httpOnly +
+            Secure + SameSite=Lax) is minted on GitHub OAuth callback and validated server-side.
+            Anonymous requests to a user-scoped route return <code>401 {'{'}"error":"Not authenticated"{'}'}</code>.</li>
+          <li><strong>CORS</strong> — allowlist: <code className="font-mono text-[12px]">testforge.run</code>,
+            <code className="font-mono text-[12px]">*.vercel.app</code> previews, and localhost. A
+            disallowed Origin gets <code>403 "Origin not allowed"</code>. Credentials are included.</li>
+          <li><strong>Rate limit</strong> — sliding window via Upstash Redis. Default <strong>60 req/min/IP</strong>.
+            Every response carries <code className="font-mono text-[12px]">X-RateLimit-Remaining</code> +
+            <code className="font-mono text-[12px]">X-RateLimit-Reset</code>. Over the limit →
+            <code>429</code> with a <code className="font-mono text-[12px]">Retry-After</code> header.</li>
+          <li><strong>Correlation</strong> — every response includes
+            <code className="font-mono text-[12px]">X-Request-Id</code>. Include this in bug reports
+            so we can find the matching log line.</li>
+          <li><strong>Errors</strong> — missing/misconfigured env vars surface as
+            <code>500 {'{'}"error":"Server misconfigured","missing":[...],"requestId":"..."{'}'}</code>
+            rather than a generic 500 with no detail.</li>
+        </ul>
       </div>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">📊 Data Endpoints</h2>
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">🔬 Analysis</h2>
       <div className="space-y-6">
         {[
-          { method: 'GET', path: '/projects', desc: 'List all analyzed projects from Neon DB', example: '[{"id":"...","name":"express-ecommerce-api"}]' },
-          { method: 'GET', path: '/test-runs', desc: 'List test runs. Query: ?id=run_id for specific run', example: '[{"id":"...","overall_score":68,"total_findings":16}]' },
-          { method: 'GET', path: '/history', desc: 'Last 20 test runs with project names. Dashboard feed.', example: '[{"project_name":"...","overall_score":72}]' },
-          { method: 'GET', path: '/reports/:id', desc: 'Full PRD report with phases and findings', example: '{"title":"...","phases":[...],"findings":[...]}' },
-          { method: 'POST', path: '/save-results', desc: 'Save analysis results to Neon DB', body: '{"repo":"...","security":{...}}', example: '{"saved":true,"runId":"uuid"}' },
-        ].map(e => <EndpointCard key={e.path} {...e} />)}
+          { method: 'GET', path: '/health', desc: 'Health check — pings Neon and reports version. No auth. No rate limit.', example: '{"status":"ok","version":"0.5.0","database":"connected"}' },
+          { method: 'GET', path: '/status', desc: 'Public services rollup — Web, MCP server, DB, npm package. 30s cache. No auth.', example: '{"status":"all_systems_operational","services":[{"name":"Web Platform","status":"operational"},…]}' },
+          { method: 'POST', path: '/analyze', desc: 'Proxies a clone-and-analyze request to the Fly.io MCP server. Returns the full 21-dimension report verbatim. 504 on upstream timeout, 502 on connection failure — never fabricated data. No auth required to analyze public repos.', body: '{"repoUrl":"https://github.com/owner/repo","branch":"main"}', example: '{"codebase":{"totalFiles":402,…},"security":{"findings":29,…},"mutation":{"score":47,…},…}' },
+          { method: 'GET', path: '/analyze', desc: 'Returns the configured MCP server URL + endpoints (for clients that prefer to call it directly).', example: '{"mcpServer":"https://testforge-mcp.fly.dev","endpoints":{…}}' },
+        ].map(e => <EndpointCard key={e.method + e.path} {...e} />)}
       </div>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">🔐 Auth & Users</h2>
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">🔐 Auth (cookie-based)</h2>
       <div className="space-y-6">
         {[
-          { method: 'POST', path: '/auth/login', desc: 'Login with email/password (mock). Returns user + token.', body: '{"email":"user@test.com","password":"pass"}', example: '{"token":"...","user":{"name":"Alex"}}' },
-          { method: 'GET', path: '/auth/callback', desc: 'GitHub OAuth callback. Redirects to GitHub then back with user data.' },
-        ].map(e => <EndpointCard key={e.path} {...e} />)}
+          { method: 'GET', path: '/auth/callback', desc: 'Entry point of the GitHub OAuth flow. Without a code, redirects (302) to github.com/login/oauth/authorize. With a code, exchanges it, upserts the user, mints a 30-day JWT, sets tf_session cookie, and redirects to /#/account.' },
+          { method: 'GET', path: '/auth/me', desc: 'Returns the signed-in user (rehydrated from DB so plan/usage are current). 401 if no session.', example: '{"id":"uuid","login":"username","name":"Name","email":"…","plan":"free","testsRun":12}' },
+          { method: 'POST', path: '/auth/logout', desc: 'Clears the tf_session cookie. GET also accepted for browser bookmarks.', example: '{"ok":true}' },
+          { method: 'POST', path: '/auth/login', desc: '410 Gone — email/password sign-in is not implemented. Use GitHub OAuth instead.', example: '{"error":"Email/password sign-in is not available","next":"Use GitHub OAuth at /api/auth/callback"}' },
+        ].map(e => <EndpointCard key={e.method + e.path} {...e} />)}
       </div>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">🏢 Enterprise Endpoints</h2>
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">📊 User data (cookie required)</h2>
       <div className="space-y-6">
         {[
-          { method: 'GET', path: '/stripe', desc: 'Get pricing plans (Free/Pro/Enterprise)', example: '{"plans":[{"id":"pro","price":29}]}' },
-          { method: 'POST', path: '/stripe', desc: 'Create Stripe checkout session', body: '{"plan":"pro","email":"user@test.com"}', example: '{"ok":true,"checkoutUrl":"..."}' },
-          { method: 'POST', path: '/webhook', desc: 'GitHub push webhook. Triggers analysis on push.', body: '{"ref":"refs/heads/main","repository":{...}}' },
-          { method: 'GET', path: '/orgs', desc: 'List organizations. POST to create.', example: '[{"id":"...","name":"Acme Corp"}]' },
-          { method: 'GET', path: '/status', desc: 'Public status page — checks all 4 services live', example: '{"status":"all_systems_operational"}' },
-          { method: 'GET', path: '/usage', desc: 'API usage stats: tests run, quota, avg score', example: '{"testsRun":47,"remainingQuota":53}' },
-          { method: 'GET', path: '/tasks', desc: 'Enterprise task tracking. PATCH to update status.', example: '{"tasks":[...],"total":86}' },
-        ].map(e => <EndpointCard key={e.path} {...e} />)}
+          { method: 'GET', path: '/projects', desc: 'Projects owned by the signed-in user. Returns [] when empty (no seed data).', example: '[{"id":"uuid","name":"my-repo","repo_url":"https://github.com/owner/repo","branch":"main","tech_stack":["TypeScript"],…}]' },
+          { method: 'GET', path: '/history', desc: 'Latest 20 test runs for the signed-in user, joined with project names.', example: '[{"id":"…","project_name":"my-repo","branch":"main","overall_score":72,"completed_at":"…"}]' },
+          { method: 'GET', path: '/reports/:id', desc: 'Full report for a test run id (or report id). 404 if missing — never returns seed data. Auth-checked: cross-user access returns 404.', example: '{"id":"…","title":"…","overallScore":72,"findings":[…]}' },
+          { method: 'POST', path: '/save-results', desc: 'Persist a managed-mode analysis to Neon. Looks up or creates a project per-user (two users can have repos with the same name).', body: '{"repo":"https://github.com/owner/repo","branch":"main","codebase":{…},"security":{…}}', example: '{"saved":true,"projectId":"uuid","runId":"uuid","findingsSaved":18}' },
+          { method: 'GET / POST / DELETE', path: '/keys', desc: 'Personal API key management. POST returns the key once — store it. Tokens prefixed with tf_; stored as SHA-256 hash.', body: '{"name":"CI/CD"}', example: '{"key":"tf_…","prefix":"tf_abc…","message":"Save this key — it won\'t be shown again"}' },
+          { method: 'GET / POST', path: '/gate', desc: 'Plan quota + usage. GET reports current month\'s tests + repos used (computed from real test_runs / projects counts — no denormalized counters). POST {"action":"test_run"} authorizes consuming one.', example: '{"plan":"free","limits":{"testsPerMonth":5,"repos":1},"usage":{"testsUsed":2,"testsRemaining":3}}' },
+          { method: 'GET', path: '/usage', desc: 'Aggregated stats for the signed-in user only (scoped post-B3).', example: '{"testsRun":47,"testsThisMonth":12,"averageScore":74,"totalFindingsFound":312}' },
+        ].map(e => <EndpointCard key={e.method + e.path} {...e} />)}
       </div>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">🔔 Integrations</h2>
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">💳 Billing</h2>
       <div className="space-y-6">
         {[
-          { method: 'POST', path: '/notify', desc: 'Send results to Slack or Discord webhook', body: '{"platform":"slack","webhookUrl":"...","score":85}' },
-          { method: 'GET', path: '/badge', desc: 'SVG badge for README. Query: ?score=85 or ?repo=owner/name', example: '<svg> badge with score </svg>' },
-          { method: 'POST', path: '/rules', desc: 'Custom rule builder. GET/POST/DELETE custom analysis rules.', body: '{"name":"no-console","pattern":"console.log"}' },
-        ].map(e => <EndpointCard key={e.path} {...e} />)}
+          { method: 'GET', path: '/stripe', desc: 'Public pricing data — Free / Pro / Enterprise tiers with features.', example: '{"plans":[{"id":"pro","name":"Pro","price":29,"features":[…]}]}' },
+          { method: 'POST', path: '/stripe', desc: 'Create a Stripe Checkout session. Requires a session — customer_email is pulled from the JWT, never from the request body. userId is passed in subscription metadata so the webhook can identify the account.', body: '{"plan":"pro"}', example: '{"ok":true,"checkoutUrl":"https://checkout.stripe.com/…"}' },
+          { method: 'POST', path: '/stripe-webhook', desc: 'Stripe → testforge webhook receiver. Signature verified against the raw body. Idempotent: duplicate event ids hit a PK conflict on stripe_events and return {duplicate:true}. Handles checkout.session.completed + customer.subscription.{created,updated,deleted}.', example: '{"received":true}' },
+        ].map(e => <EndpointCard key={e.method + e.path} {...e} />)}
+      </div>
+
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">🏢 Org / integrations</h2>
+      <div className="space-y-6">
+        {[
+          { method: 'GET / POST', path: '/orgs', desc: 'Organization CRUD (post-Pro plan).' },
+          { method: 'POST', path: '/webhook', desc: 'GitHub push webhook. Triggers analysis on push to a watched branch.', body: '{"ref":"refs/heads/main","repository":{"clone_url":"…"}}' },
+          { method: 'POST', path: '/notify', desc: 'Send a result digest to Slack or Discord.', body: '{"platform":"slack","webhookUrl":"https://hooks.slack.com/…","score":85,"findings":12}' },
+          { method: 'GET', path: '/badge', desc: 'SVG badge for README embeds. Public CORS — anyone can hotlink.', example: '?score=85 → <svg>…85/100…</svg>' },
+          { method: 'GET / POST / DELETE', path: '/rules', desc: 'Custom analysis rule registry (per-user).', body: '{"name":"no-console","pattern":"console\\\\.log"}' },
+          { method: 'GET / POST', path: '/tasks', desc: 'Enterprise task tracking (post-Enterprise plan).' },
+        ].map(e => <EndpointCard key={e.method + e.path} {...e} />)}
       </div>
     </div>
   );
@@ -1552,30 +1579,78 @@ function TroubleshootingPage() {
       </ul>
 
       <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
-        MCP server not responding
+        Local MCP server not responding
       </h2>
       <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
         <li>
-          Verify the server is running: <Code>testforge-mcp --status</Code>
+          Health check: <Code>curl http://localhost:33221/health</Code>
         </li>
         <li>
-          Check your API key is set: <Code>echo $TESTFORGE_API_KEY</Code>
+          Port already in use? Override with{' '}
+          <Code>TESTFORGE_MCP_PORT=9000 npx @whitenoisenpm/testforge-mcp serve</Code>
         </li>
         <li>
-          Restart the server: <Code>testforge-mcp restart</Code>
+          The local MCP requires no API key — it's fully on-machine. Don't set{' '}
+          <Code>TESTFORGE_API_KEY</Code>; it's not read by the server.
         </li>
         <li>
-          Check logs: <Code>testforge-mcp logs --follow</Code>
+          SQLite path: <Code>~/.testforge/history.db</Code> (WAL mode).
+        </li>
+        <li>
+          Stale npx cache? <Code>rm -rf ~/.npm/_npx</Code> and retry.
         </li>
       </ul>
 
       <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
-        "Rate limit exceeded" error
+        "Rate limit exceeded" (429) on testforge.run
       </h2>
       <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
-        <li>Free tier: 10 requests/minute</li>
-        <li>Wait 60 seconds and retry</li>
-        <li>Consider upgrading to Pro for higher limits</li>
+        <li>Default: <strong>60 requests/minute per IP</strong> on the managed service.</li>
+        <li>
+          Wait the seconds in the <Code>Retry-After</Code> response header and retry.
+        </li>
+        <li>
+          Inspect the <Code>X-RateLimit-Remaining</Code> + <Code>X-RateLimit-Reset</Code>{' '}
+          headers to pace your calls.
+        </li>
+        <li>Pro / Enterprise plans get higher caps; contact sales for custom limits.</li>
+      </ul>
+
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
+        "Origin not allowed" (403)
+      </h2>
+      <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
+        <li>
+          CORS allowlist: <Code>testforge.run</Code>, <Code>*.vercel.app</Code> previews,{' '}
+          localhost on common dev ports.
+        </li>
+        <li>
+          From a server-side script (no Origin header), the allowlist is bypassed —
+          use <Code>curl</Code> without setting <Code>Origin</Code> and it works.
+        </li>
+        <li>
+          Embedding from another domain? Use an API key on a custom backend, not direct
+          browser calls.
+        </li>
+      </ul>
+
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
+        "Not authenticated" (401)
+      </h2>
+      <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-6 ml-2">
+        <li>
+          You're hitting a user-scoped endpoint without a session. Sign in at{' '}
+          <a href="/#/auth" className="text-[#574a7d] hover:underline">/#/auth</a>{' '}
+          (GitHub OAuth).
+        </li>
+        <li>
+          From <Code>fetch()</Code>, make sure you pass <Code>credentials: 'include'</Code>{' '}
+          so the <Code>tf_session</Code> cookie rides along.
+        </li>
+        <li>
+          From <Code>curl</Code>, the session is httpOnly so you can't reuse it; use an API
+          key instead via the <Code>X-API-Key</Code> header.
+        </li>
       </ul>
 
       <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
@@ -1621,13 +1696,38 @@ function ChangelogPage() {
         <div>
           <div className="flex items-center gap-3 mb-3">
             <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
+              v2.1.0
+            </h2>
+            <span className="font-mono text-[12px] text-[#9A9A9A]">
+              2026-05-25
+            </span>
+            <span className="font-mono font-medium text-[11px] uppercase px-2 py-0.5 rounded bg-[#E8E5FF] text-[#574a7d]">
+              Latest
+            </span>
+          </div>
+          <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] ml-2 mb-2">
+            <li><strong>Auth model overhaul</strong> — replaced client-asserted <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">x-github-user</code> header with signed httpOnly <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">tf_session</code> JWT cookie (jose, HS256, 30d).</li>
+            <li><strong>CORS allowlist</strong> — every API handler wrapped with a single security middleware; cross-origin requests refused (403) outside testforge.run, *.vercel.app previews, and localhost.</li>
+            <li><strong>Rate limit on Upstash</strong> — sliding-window via <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">@upstash/ratelimit</code>; in-memory fallback with warning when Upstash isn't configured.</li>
+            <li><strong>DB schema for multi-user</strong> — added <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">user_id</code> FKs on projects/test_runs, full <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">api_keys</code> + <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">stripe_events</code> tables. Idempotent <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">scripts/migrate-to-v1.sql</code>.</li>
+            <li><strong>Analyzer determinism</strong> — removed <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">Math.random()</code> from mutation + predictive dimensions. Same input → same output across runs.</li>
+            <li><strong>No more seed-data leaks</strong> — <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">/api/reports/:id</code> returns 404 for missing reports (was a fake express-ecommerce-api report). <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">/api/analyze</code> returns 502/504 on upstream failure instead of fabricated numbers. Account dashboard wired to real <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">/api/history</code>.</li>
+            <li><strong>Stripe webhook hardening</strong> — raw-body signature verification, idempotency via <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">stripe_events</code> PK conflict, userId in subscription metadata.</li>
+            <li><strong>Observability</strong> — <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">X-Request-Id</code> on every response (Vercel correlation id when available), structured JSON logger, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">requireEnv()</code> contract that surfaces missing env vars as a clean 500 with field names.</li>
+            <li><strong>Real analyzer tests</strong> — 10 vitest cases drive <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">scanCodebase</code>/<code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">runSecurityAnalysis</code> against on-disk fixture projects (was: tautology assertions that never touched the engine).</li>
+            <li><strong>CI on Vercel previews</strong> — Playwright runs against the PR's preview URL using <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">VERCEL_AUTOMATION_BYPASS_SECRET</code>. Lint+build, vitest, and e2e all blocking.</li>
+            <li><strong>MCP local server</strong> — default port changed <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">3001 → 33221</code> (avoid collisions). <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">npx @whitenoisenpm/testforge-mcp@0.2.19</code> now persists <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">/test</code> + <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">/quick-scan</code> runs to <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">~/.testforge/history.db</code>.</li>
+            <li><strong>Operational</strong> — new <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">scripts/smoke.sh</code> 10-assertion post-deploy check, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">RUNBOOK.md</code> with pre-launch checklist and incident playbooks.</li>
+          </ul>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
               v2.0.0
             </h2>
             <span className="font-mono text-[12px] text-[#9A9A9A]">
               2026-01-15
-            </span>
-            <span className="font-mono font-medium text-[11px] uppercase px-2 py-0.5 rounded bg-[#E8E5FF] text-[#574a7d]">
-              Latest
             </span>
           </div>
           <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] ml-2">
