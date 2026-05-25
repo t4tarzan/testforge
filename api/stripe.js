@@ -30,8 +30,8 @@ export default async function handler(req, res) {
   try {
     const { plan, email } = req.body || {};
     const priceIds = {
-      pro: process.env.STRIPE_PRICE_ID || 'price_pro_monthly',
-      enterprise: 'price_enterprise_monthly',
+      pro: process.env.STRIPE_PRICE_ID || 'price_1TaqhbSEIejCLOFDhq2TOg9b',
+      enterprise: 'price_1TaqhbSEIejCLOFDIu8fIUtM',
     };
 
     const Stripe = (await import('stripe')).default;
