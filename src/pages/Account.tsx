@@ -7,7 +7,7 @@ import {
   LayoutDashboard, FlaskConical, GitBranch, KeyRound,
   Users, CreditCard, Settings, LogOut, Menu,
   HelpCircle, Zap, Play, FileText, ArrowRight,
-  MoreHorizontal, Eye, Download, Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
+  MoreHorizontal, Eye, Download, Search, ChevronLeft, ChevronRight,
   TrendingDown, TrendingUp, CheckCircle2, Plus, UserPlus, FileDown
 } from 'lucide-react';
 import {
@@ -287,39 +287,32 @@ function DashboardTab() {
 // TAB 2: TEST RUNS
 // ═══════════════════════════════════════════════════════════════════════════
 function TestRunsTab() {
+  const [runs, setRuns] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [sortCol, setSortCol] = useState<string | null>(null);
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
   const perPage = 10;
 
+  useEffect(() => {
+    fetch('/api/history').then(r => r.json()).then(d => { if (Array.isArray(d)) setRuns(d); }).catch(() => {});
+  }, []);
+
   const filtered = useMemo(() => {
-    let rows = [...MOCK_TEST_HISTORY, ...MOCK_TEST_HISTORY.map((r, i) => ({ ...r, id: r.id + '-dup' + i }))].slice(0, 20);
-    rows = rows.map((r, i) => ({
+    let rows = runs.map(r => ({
       ...r,
-      duration: `${Math.floor(Math.random() * 8) + 1}m ${String(Math.floor(Math.random() * 59)).padStart(2, '0')}s`,
-      score: r.score - (i % 3) * 5,
+      repo: r.project_name || 'Unknown',
+      score: r.overall_score || 0,
+      status: r.status || 'completed',
+      date: r.completed_at ? new Date(r.completed_at).toLocaleDateString() : '—',
+      findings: r.total_findings || 0,
     }));
-    if (search) rows = rows.filter((r) => r.repo.toLowerCase().includes(search.toLowerCase()));
-    if (statusFilter !== 'all') rows = rows.filter((r) => r.status === statusFilter);
-    if (sortCol) {
-      rows.sort((a, b) => {
-        const av = (a as unknown as Record<string, string | number>)[sortCol];
-        const bv = (b as unknown as Record<string, string | number>)[sortCol];
-        return sortDir === 'asc' ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
-      });
-    }
+    if (search) rows = rows.filter(r => r.repo.toLowerCase().includes(search.toLowerCase()));
+    if (statusFilter !== 'all') rows = rows.filter(r => r.status === statusFilter);
     return rows;
-  }, [search, statusFilter, sortCol, sortDir]);
+  }, [runs, search, statusFilter]);
 
   const totalPages = Math.ceil(filtered.length / perPage);
   const paged = filtered.slice((page - 1) * perPage, page * perPage);
-
-  const handleSort = (col: string) => {
-    if (sortCol === col) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    else { setSortCol(col); setSortDir('desc'); }
-  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
@@ -366,11 +359,9 @@ function TestRunsTab() {
           ].map((col) => (
             <button
               key={col.key}
-              onClick={() => handleSort(col.key)}
-              className="flex items-center gap-1 text-left hover:text-[#574a7d] transition-colors"
+              className="flex items-center gap-1 text-left hover:text-[#574a7d] transition-colors cursor-pointer"
             >
               {col.label}
-              {sortCol === col.key && (sortDir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
             </button>
           ))}
           <span className="text-right">Actions</span>
@@ -724,6 +715,8 @@ function BillingTab() {
 // TAB 7: SETTINGS
 // ═══════════════════════════════════════════════════════════════════════════
 function SettingsTab() {
+  const { user: authUser } = useAuth();
+  const user = authUser || MOCK_USER;
   const [toggles, setToggles] = useState<Record<string, boolean>>({
     'test-run-completed': true,
     'critical-vuln': true,
