@@ -78,6 +78,10 @@ export const users = pgTable(
     avatarUrl: text('avatar_url'),
     login: varchar('login', { length: 100 }).notNull(),
     plan: varchar('plan', { length: 20 }).default('free').notNull(),
+    // Stripe customer id is set the first time the user upgrades; used by
+    // the Customer Portal link and by the webhook to identify which user
+    // a billing event belongs to.
+    stripeCustomerId: varchar('stripe_customer_id', { length: 100 }),
     testsRun: integer('tests_run').default(0),
     lastLoginAt: timestamp('last_login_at', { withTimezone: true }).defaultNow(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -86,8 +90,19 @@ export const users = pgTable(
   (table) => [
     uniqueIndex('users_github_id_idx').on(table.githubId),
     index('users_email_idx').on(table.email),
+    index('users_stripe_customer_id_idx').on(table.stripeCustomerId),
   ]
 );
+
+// ─── Stripe events (webhook idempotency) ─────────────────────────────────
+// Insert each Stripe event id on first receipt. The PK conflict on a
+// repeat delivery is the idempotency check — no double-upgrades.
+
+export const stripeEvents = pgTable('stripe_events', {
+  id: varchar('id', { length: 100 }).primaryKey(),
+  type: varchar('type', { length: 80 }).notNull(),
+  receivedAt: timestamp('received_at', { withTimezone: true }).defaultNow().notNull(),
+});
 
 // ─── Organizations ───────────────────────────────────────────────────────
 

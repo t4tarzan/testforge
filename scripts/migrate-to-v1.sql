@@ -8,6 +8,8 @@
 --    • api_keys table did not exist → /api/keys was completely broken
 --    • projects had a global unique(name) — two users couldn't have repos
 --      with the same name. Replaced with unique(user_id, name).
+--    • users.stripe_customer_id was missing → stripe-webhook UPDATE failed
+--    • stripe_events table did not exist → no idempotency on webhook replays
 --
 --  How to apply:
 --    A) Neon SQL Editor — paste this whole file, run.
@@ -54,5 +56,20 @@ CREATE TABLE IF NOT EXISTS api_keys (
 
 CREATE UNIQUE INDEX IF NOT EXISTS api_keys_key_hash_idx ON api_keys (key_hash);
 CREATE INDEX        IF NOT EXISTS api_keys_user_id_idx   ON api_keys (user_id);
+
+-- 4. users.stripe_customer_id (the webhook needs it to look up which
+--    account a payment belongs to). Was only on organizations before.
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS stripe_customer_id varchar(100);
+CREATE INDEX IF NOT EXISTS users_stripe_customer_id_idx
+  ON users (stripe_customer_id);
+
+-- 5. stripe_events — webhook idempotency. PK conflict on a duplicate
+--    delivery is the "already processed" check.
+CREATE TABLE IF NOT EXISTS stripe_events (
+  id          varchar(100) PRIMARY KEY,
+  type        varchar(80)  NOT NULL,
+  received_at timestamptz  NOT NULL DEFAULT now()
+);
 
 COMMIT;
