@@ -2,7 +2,7 @@
 
 > **AI CODE? Run TestForge! — 21-dimension analysis in 30 seconds.** Security, performance, accessibility — plus vision alignment, scope coverage, and stack analysis that no other platform provides.
 
-[![Live Demo](https://img.shields.io/badge/Live-testforge--steel.vercel.app-5A8F5E)](https://testforge.run)
+[![Live Demo](https://img.shields.io/badge/Live-testforge.run-5A8F5E)](https://testforge.run)
 [![MCP Server](https://img.shields.io/badge/MCP-testforge--mcp.fly.dev-5A8F5E)](https://testforge-mcp.fly.dev)
 [![GitHub](https://img.shields.io/badge/GitHub-t4tarzan/testforge-5A8F5E)](https://github.com/t4tarzan/testforge)
 
