@@ -9,6 +9,7 @@
 // sees the JWT — it only reads /api/auth/me which validates the cookie.
 
 import { SignJWT, jwtVerify } from 'jose';
+import { requireEnv, MissingEnvError } from './_env.js';
 
 const COOKIE_NAME = 'tf_session';
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 days
@@ -16,14 +17,13 @@ const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 days
 let cachedSecret = null;
 function getSecret() {
   if (cachedSecret) return cachedSecret;
-  const raw = process.env.SESSION_SECRET;
-  if (!raw || raw.length < 32) {
-    // Fail loudly during request — better than silently accepting bad sessions.
-    throw new Error(
-      'SESSION_SECRET is not configured (need ≥32 chars). Add it in Vercel env.'
-    );
+  const { SESSION_SECRET } = requireEnv('SESSION_SECRET');
+  if (SESSION_SECRET.length < 32) {
+    // Throw the same error type so withSecurity surfaces a clear hint
+    // instead of a generic 500.
+    throw new MissingEnvError(['SESSION_SECRET (need ≥32 chars)']);
   }
-  cachedSecret = new TextEncoder().encode(raw);
+  cachedSecret = new TextEncoder().encode(SESSION_SECRET);
   return cachedSecret;
 }
 
