@@ -17,8 +17,8 @@ import {
   Tooltip, ResponsiveContainer, Area, AreaChart
 } from 'recharts';
 import {
-  MOCK_USER, MOCK_TEST_HISTORY, MOCK_API_KEYS,
-  MOCK_TEAM_MEMBERS, MOCK_USAGE_DATA, MOCK_INVOICES, MOCK_REPOS,
+  MOCK_USER, MOCK_TEST_HISTORY,
+  MOCK_TEAM_MEMBERS, MOCK_USAGE_DATA, MOCK_INVOICES,
 } from '@/data/seedData';
 
 const easeOutExpo = [0.16, 1, 0.3, 1] as [number, number, number, number];
@@ -433,6 +433,8 @@ function TestRunsTab() {
 // TAB 3: REPOSITORIES
 // ═══════════════════════════════════════════════════════════════════════════
 function ReposTab() {
+  const [repos, setRepos] = useState<any[]>([]);
+  useEffect(() => { fetch('/api/projects').then(r => r.json()).then(d => { if (Array.isArray(d)) setRepos(d); }).catch(() => {}); }, []);
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
       <h2 className="font-heading font-medium text-[28px] text-[#12101A]">Repositories</h2>
@@ -440,41 +442,18 @@ function ReposTab() {
       <button onClick={() => window.location.href = '/#/managed'} className="mt-6 h-10 px-5 bg-[#574a7d] text-white rounded-lg font-body font-medium text-[14px] flex items-center gap-2 hover:bg-[#4a3d6b] transition-colors">
         <Plus size={16} /> Connect Repository
       </button>
+      {repos.length === 0 && <p className="mt-6 text-[#6B6B6B] text-sm">No repositories connected yet. Run your first test on the Managed page.</p>}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        {MOCK_REPOS.map((repo, i) => (
-          <motion.div
-            key={repo.id}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.08, duration: 0.3 }}
-            className="bg-white border border-[#D9D9D3] rounded-[12px] p-6 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-all duration-300"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <GitBranch size={18} className="text-[#574a7d]" />
-                <span className="font-body font-semibold text-[16px] text-[#12101A]">{repo.owner}/{repo.name}</span>
-              </div>
-              <StatusBadge status={repo.status} />
+        {repos.map((repo) => (
+          <div key={repo.id} className="bg-white border border-[#D9D9D3] rounded-[12px] p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <GitBranch size={18} className="text-[#574a7d]" />
+              <h3 className="font-semibold text-[#12101A]">{repo.name}</h3>
             </div>
-            <div className="flex gap-8 mt-4">
-              {[
-                { value: `${repo.branches}`, label: 'branches' },
-                { value: `${repo.runs}`, label: 'runs' },
-                { value: `Last: ${repo.lastRun}`, label: '' },
-              ].map((s) => (
-                <div key={s.label || s.value}>
-                  <span className="font-body font-semibold text-[18px] text-[#12101A]">{s.value}</span>
-                  {s.label && <span className="ml-1 font-mono font-medium text-[11px] uppercase text-[#6B6B6B]">{s.label}</span>}
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 text-[13px] text-[#6B6B6B] font-body">{repo.branchList}</p>
-            <div className="flex items-center gap-4 mt-4 pt-4 border-t border-[#D9D9D3]">
-              <button className="text-[14px] text-[#574a7d] font-medium font-body hover:underline">Run Test</button>
-              <button className="text-[14px] text-[#6B6B6B] font-body hover:text-[#333333]">Settings</button>
-              <button className="text-[14px] text-[#D4524A] font-body hover:underline">Disconnect</button>
-            </div>
-          </motion.div>
+            <p className="text-sm text-[#6B6B6B] mb-2">{repo.repo_url || repo.repoUrl || ''}</p>
+            {repo.tech_stack && <div className="flex flex-wrap gap-1.5">{(Array.isArray(repo.tech_stack) ? repo.tech_stack : []).slice(0,4).map((t: string) => <span key={t} className="text-[10px] px-2 py-0.5 bg-[#E8E5FF] text-[#574a7d] rounded font-mono">{t}</span>)}</div>}
+            <p className="text-xs text-[#9A9A9A] mt-3">Added {new Date(repo.created_at || repo.createdAt).toLocaleDateString()}</p>
+          </div>
         ))}
       </div>
     </motion.div>
@@ -485,21 +464,43 @@ function ReposTab() {
 // TAB 4: API KEYS
 // ═══════════════════════════════════════════════════════════════════════════
 function ApiKeysTab() {
-  const [keys, setKeys] = useState(MOCK_API_KEYS);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [keys, setKeys] = useState<any[]>([]);
+  const [newKey, setNewKey] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleCopy = (id: string) => {
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+  useEffect(() => {
+    fetch('/api/keys').then(r => r.json()).then(d => { if (Array.isArray(d)) setKeys(d); }).catch(() => {});
+  }, []);
+
+  const handleGenerate = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/keys', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'API Key ' + (keys.length + 1) }) });
+      const data = await res.json();
+      if (data.key) { setNewKey(data.key); fetch('/api/keys').then(r => r.json()).then(d => { if (Array.isArray(d)) setKeys(d); }); }
+    } catch {}
+    setLoading(false);
+  };
+
+  const handleRevoke = async (id: string) => {
+    await fetch('/api/keys?id=' + id, { method: 'DELETE' });
+    setKeys(keys.filter(k => k.id !== id));
   };
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
       <h2 className="font-heading font-medium text-[28px] text-[#12101A]">API Keys</h2>
       <p className="text-[16px] text-[#6B6B6B] font-body mt-1">Manage API keys for programmatic access.</p>
-      <button className="mt-6 h-10 px-5 bg-[#574a7d] text-white rounded-lg font-body font-medium text-[14px] flex items-center gap-2 hover:bg-[#4a3d6b] transition-colors">
-        <Plus size={16} /> Generate New Key
+      <button onClick={handleGenerate} disabled={loading} className="mt-6 h-10 px-5 bg-[#574a7d] text-white rounded-lg font-body font-medium text-[14px] flex items-center gap-2 hover:bg-[#4a3d6b] transition-colors disabled:opacity-50">
+        <Plus size={16} /> {loading ? 'Generating...' : 'Generate New Key'}
       </button>
+      {newKey && (
+        <div className="mt-4 p-4 bg-[#E8E5FF] border border-[#a39fd4] rounded-lg">
+          <p className="text-sm font-medium text-[#574a7d] mb-1">New API Key — copy it now:</p>
+          <code className="text-sm font-mono bg-white px-3 py-1.5 rounded border border-[#D9D9D3] block break-all">{newKey}</code>
+          <p className="text-xs text-[#6B6B6B] mt-2">This key won't be shown again. Store it securely.</p>
+        </div>
+      )}
       <div className="bg-white border border-[#D9D9D3] rounded-[12px] overflow-hidden mt-6">
         <div className="grid grid-cols-[1.5fr_2fr_1fr_1fr_1fr_1fr] gap-4 px-6 py-3 bg-[#F7F7FB] font-mono font-medium text-[12px] uppercase text-[#6B6B6B]">
           <span>Name</span>
@@ -509,37 +510,24 @@ function ApiKeysTab() {
           <span>Status</span>
           <span className="text-right">Actions</span>
         </div>
+        {keys.length === 0 && (
+          <div className="px-6 py-8 text-center text-[#6B6B6B] text-sm">No API keys yet. Generate one to get started.</div>
+        )}
         {keys.map((key, i) => (
           <motion.div
             key={key.id}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: i * 0.04 }}
-            className={`grid grid-cols-[1.5fr_2fr_1fr_1fr_1fr_1fr] gap-4 px-6 py-4 border-t border-[#D9D9D3] items-center ${
-              key.status === 'revoked' ? 'opacity-50' : ''
-            }`}
+            className="grid grid-cols-[1.5fr_2fr_1fr_1fr_1fr_1fr] gap-4 px-6 py-4 border-t border-[#D9D9D3] items-center"
           >
             <span className="text-[14px] text-[#333333] font-body">{key.name}</span>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-[13px] text-[#6B6B6B]">{key.key}</span>
-              <button onClick={() => handleCopy(key.id)} className="text-[#574a7d] hover:text-[#4a3d6b] transition-colors">
-                {copiedId === key.id ? <Check size={14} /> : <Copy size={14} />}
-              </button>
-            </div>
-            <span className="text-[14px] text-[#6B6B6B] font-body">{key.createdAt}</span>
-            <span className="text-[14px] text-[#6B6B6B] font-body">{key.lastUsed}</span>
-            <span className={`font-mono text-[12px] uppercase font-medium ${key.status === 'active' ? 'text-[#574a7d]' : 'text-[#9A9A9A]'}`}>
-              {key.status}
-            </span>
+            <span className="font-mono text-[13px] text-[#6B6B6B]">{key.key_prefix || '••••••••••'}</span>
+            <span className="text-[14px] text-[#6B6B6B] font-body">{key.created_at ? new Date(key.created_at).toLocaleDateString() : '—'}</span>
+            <span className="text-[14px] text-[#6B6B6B] font-body">{key.last_used ? new Date(key.last_used).toLocaleDateString() : 'Never'}</span>
+            <span className="font-mono text-[12px] uppercase font-medium text-[#574a7d]">Active</span>
             <div className="text-right">
-              {key.status === 'active' && (
-                <button
-                  onClick={() => setKeys((prev) => prev.map((k) => k.id === key.id ? { ...k, status: 'revoked' as const } : k))}
-                  className="text-[14px] text-[#D4524A] font-body hover:underline"
-                >
-                  Revoke
-                </button>
-              )}
+              <button onClick={() => handleRevoke(key.id)} className="text-[#D4524A] hover:text-red-700 text-sm transition-colors">Revoke</button>
             </div>
           </motion.div>
         ))}
