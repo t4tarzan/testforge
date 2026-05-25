@@ -1,10 +1,6 @@
+import { withSecurity } from './_security.js';
 // Slack/Discord notification webhook
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(204).end();
-
+async function handler(req, res) {
   const { platform, webhookUrl, repo, score, summary, findings } = req.body || {};
   if (!webhookUrl || !platform) return res.status(400).json({ error: 'platform and webhookUrl required' });
 
@@ -38,3 +34,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: e.message });
   }
 }
+
+export default withSecurity(handler);

@@ -1,11 +1,13 @@
 // In development, proxy through Vite. In production, use same-origin /api (Vercel functions)
 const API_BASE = '/api';
 
-// Generic fetch wrapper with error handling
+// Generic fetch wrapper. `credentials: 'include'` ensures the tf_session
+// cookie rides along on every API call so the server can identify the user.
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}${path}`;
   try {
     const res = await fetch(url, {
+      credentials: 'include',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -25,26 +27,30 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 
 // ─── Auth ─────────────────────────────────────────────────────────────────
 
-export interface LoginResponse {
-  token: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    avatar: string;
-    plan: string;
-    creditsUsed: number;
-    creditsTotal: number;
-    testsRun: number;
-    passRate: number;
-    repos: number;
-  };
+export interface CurrentUser {
+  id: string;
+  githubId: string;
+  login: string;
+  name: string;
+  email: string | null;
+  avatar: string | null;
+  plan: string;
+  testsRun: number;
 }
 
-export async function loginUser(email: string, password: string): Promise<LoginResponse> {
-  return apiFetch<LoginResponse>('/auth/login', {
+// Returns the signed-in user, or null if there is no session.
+// 401 from /api/auth/me is the expected "not signed in" state, not an error.
+export async function fetchCurrentUser(): Promise<CurrentUser | null> {
+  const res = await fetch(`${API_BASE}/auth/me`, { credentials: 'include' });
+  if (res.status === 401) return null;
+  if (!res.ok) throw new Error(`/auth/me failed: ${res.status}`);
+  return res.json();
+}
+
+export async function logoutUser(): Promise<void> {
+  await fetch(`${API_BASE}/auth/logout`, {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    credentials: 'include',
   });
 }
 

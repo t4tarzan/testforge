@@ -1,12 +1,8 @@
+import { withSecurity } from './_security.js';
 // Stripe Checkout — create payment sessions
 // Requires STRIPE_SECRET_KEY + STRIPE_PRICE_ID in Vercel env
 
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(204).end();
-
+async function handler(req, res) {
   // GET: return pricing info
   if (req.method === 'GET') {
     return res.json({
@@ -51,3 +47,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ ok: false, error: e.message });
   }
 }
+
+export default withSecurity(handler);

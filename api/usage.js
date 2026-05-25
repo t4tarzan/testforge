@@ -1,8 +1,6 @@
+import { withSecurity } from './_security.js';
 // API Usage Dashboard — track usage per user/org
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  if (req.method === 'OPTIONS') return res.status(204).end();
+async function handler(req, res) {
   if (!process.env.DATABASE_URL) return res.json({ testsRun: 0, testsThisMonth: 0, remainingQuota: 100 });
 
   try {
@@ -27,3 +25,5 @@ export default async function handler(req, res) {
     return res.json({ error: e.message });
   }
 }
+
+export default withSecurity(handler);
