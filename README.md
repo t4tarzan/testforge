@@ -1,82 +1,107 @@
 # 🧪 TestForge — AI CODE? Run TestForge!
 
-> **21-dimension AI-powered testing. Drop any repo URL. Get a full report in 30 seconds.**
+> **21-dimension AI-powered testing. Drop any repo URL. Get a full report in under 2 seconds.**
 
 [![Website](https://img.shields.io/badge/testforge.run-574a7d)](https://testforge.run)
-[![npm](https://img.shields.io/badge/npm-testforge--mcp-574a7d)](https://www.npmjs.com/package/@whitenoisenpm/testforge-mcp)
-[![Product Hunt](https://img.shields.io/badge/Product_Hunt-Featured-DA552F)](https://www.producthunt.com/products/testforge)
+[![npm](https://img.shields.io/badge/npm-%40whitenoisenpm%2Ftestforge--mcp-574a7d)](https://www.npmjs.com/package/@whitenoisenpm/testforge-mcp)
+[![CI](https://img.shields.io/badge/CI-passing-22c55e)](https://github.com/t4tarzan/testforge/actions)
 [![License](https://img.shields.io/badge/license-BUSL--1.1-blue)](LICENSE)
 
 ---
 
 ## 🚀 Try It
 
-```
-https://testforge.run
-```
+**Web (managed):** https://testforge.run — drop any public GitHub repo URL, get a 21-dimension report.
 
-Paste any public GitHub repo URL → 21-dimension analysis in 30 seconds.
+**Local (MCP):**
+```bash
+npx @whitenoisenpm/testforge-mcp@latest serve
+open http://localhost:33221
+```
+Dashboard accepts a local project path **or** a GitHub URL. Code never leaves your machine; results persist to `~/.testforge/history.db`.
 
 ---
 
-## 📊 What We Analyze (21 Dimensions)
+## 📊 What We Analyze (21 dimensions)
 
-| Category | Dimensions | Competitor Coverage |
-|----------|-----------|-------------------|
-| **Code Quality** | Security (SAST), Unit Tests, Load/Perf, Accessibility | Snyk ✅, SonarQube ✅ |
-| **API** | Contract Testing, Visual Regression | TestSigma ✅ |
-| **Advanced** | Edge Cases, Property-Based, Chaos, Mutation, Predictive | **Only TestForge** 🟣 |
-| **Strategic** | Vision & Goals, Scope Coverage, Stack Analysis | **Only TestForge** 🟣 |
-| **Enterprise** | Agentic Scale, DORA Metrics, Supply Chain, N+1 Queries, Dead Code, License, OWASP | **Only TestForge** 🟣 |
+| Category | Dimensions | Where it's run |
+|---|---|---|
+| **Code Quality** | Security (SAST), Unit Tests, Load/Perf, Accessibility | Fly.io (managed) + local MCP |
+| **API** | Contract testing, Visual regression | same |
+| **Advanced** | Edge cases, Property-based, Chaos, Mutation, Predictive | same |
+| **Strategic** | Vision & goals, Scope coverage, Stack analysis | same |
+| **Enterprise** | Agentic-scale, DORA, Supply chain, N+1 queries, Dead code, License, OWASP | same |
+
+All analyzers are deterministic — same input always produces the same output (post-S1 refactor). No LLM calls, no `Math.random()`.
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-┌──────────────────────────────────────────────────────┐
-│  Vercel — Frontend (React 19 + Vite + Tailwind)     │
-│  testforge.run                                       │
-│  ┌──────────┐  ┌──────────────┐  ┌───────────────┐  │
-│  │ 15 Pages  │  │ 18 API Routes│  │  Neon PG (DB) │  │
-│  │ HashRouter│  │  Serverless  │  │  8 tables     │  │
-│  └──────────┘  └──────┬───────┘  └───────────────┘  │
-│                       │                              │
-└───────────────────────┼──────────────────────────────┘
-                        │
-┌───────────────────────┼──────────────────────────────┐
-│  Fly.io — MCP Server  │ https://testforge-mcp.fly.dev│
-│  clone-and-analyze endpoint                          │
-│  8 analyzer modules, 21 dimensions                   │
-└──────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│  Vercel — Frontend + 22 API routes (testforge.run)      │
+│  React 19 + Vite + Tailwind + shadcn/ui                  │
+│                                                          │
+│  Auth:  GitHub OAuth → tf_session JWT cookie (httpOnly)  │
+│  Edge:  CORS allowlist, X-Request-Id, Upstash rate-limit │
+│  Data:  Neon Postgres via Drizzle ORM                    │
+└────────────────────────────┬─────────────────────────────┘
+                             │
+                             │  /api/analyze passes through
+                             ▼
+┌──────────────────────────────────────────────────────────┐
+│  Fly.io — MCP Server (testforge-mcp.fly.dev)             │
+│  Fastify + TypeScript, 8 analyzer modules                │
+│  Same analyzers as the npm-published @whitenoisenpm/     │
+│  testforge-mcp package.                                  │
+└──────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────┐
+│  Local MCP (npm package, default port 33221)             │
+│  npx @whitenoisenpm/testforge-mcp@latest serve           │
+│  SQLite at ~/.testforge/history.db (WAL mode)            │
+│  🔒 No outbound calls except git clone + npm registry    │
+└──────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 🔐 Security model
+
+- **Auth:** GitHub OAuth only. The callback mints a 30-day HS256 JWT and sets it as an `httpOnly`, `secure`, `sameSite=Lax` cookie named `tf_session`. Frontend never sees the token. Anonymous requests to user-scoped routes return `401`, not seed data.
+- **CORS:** Allowlist enforced via `Vary: Origin` + origin reflection. Allowed: `https://testforge.run`, `*.vercel.app` preview deployments, and `localhost` dev ports. Anything else gets `403 "Origin not allowed"`.
+- **Rate limit:** Sliding window via Upstash Redis (`@upstash/ratelimit`). Default 60 req/min/IP. Falls back to in-memory with a console warning when Upstash isn't configured.
+- **Request id:** Every API response carries `X-Request-Id` (echoes Vercel's id when present). Logged with every line via the structured JSON logger — search Vercel logs by `rid:` for correlation.
+- **Stripe webhook:** Signature verified against the raw request body (`bodyParser: false`). Idempotent — duplicate event IDs return `200 {duplicate:true}` via a `stripe_events` PK conflict.
+- **Secrets posture:** all credentials live in Vercel project env. `.gitignore` covers `.env`, `.env*`, `.vercel`, `.secure/`.
 
 ---
 
 ## 📦 Quick Start
 
-### Web Platform
-```bash
+### Use the managed service
+```
 open https://testforge.run
 ```
+Sign in with GitHub. Click "Managed", paste a repo URL.
 
-### MCP IDE Integration
+### Run the MCP locally
 ```bash
-npx @whitenoisenpm/testforge-mcp install
-```
-Works with Cursor, VS Code, Windsurf, Claude Code.
+# IDE integration (Cursor / VS Code / Windsurf / Claude Desktop)
+npx @whitenoisenpm/testforge-mcp@latest install
 
-### CLI Score
-```bash
-npx @whitenoisenpm/testforge-mcp score https://github.com/user/repo
+# Or boot the standalone server
+npx @whitenoisenpm/testforge-mcp@latest serve
+# Dashboard: http://localhost:33221
 ```
-CI/CD friendly — exit code based on threshold.
 
-### Self-Hosted
+Port override: `TESTFORGE_MCP_PORT=9000 npx ...`. SQLite path: `~/.testforge/history.db`.
+
+### Self-host the analyzer (Fly.io)
 ```bash
 git clone https://github.com/t4tarzan/testforge
-cd testforge/mcp-server
-flyctl launch --now
+cd testforge/mcp-server && flyctl launch --now
 ```
 
 ---
@@ -84,12 +109,15 @@ flyctl launch --now
 ## 🛠️ Local Development
 
 ```bash
-git clone https://github.com/t4tarzan/testforge
-cd testforge
+git clone https://github.com/t4tarzan/testforge && cd testforge
 npm install
-npm run dev    # → localhost:9999
-npm run build  # → dist/
+npm run dev     # frontend + api on http://localhost:9999
+
+# In another terminal:
+cd mcp-server && npm install && npm run dev   # analyzer on :33221
 ```
+
+Environment variables: copy `.env.example` to `.env`. The required ones to run anything authenticated are `DATABASE_URL`, `SESSION_SECRET`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`. See `RUNBOOK.md` for the full launch checklist.
 
 ---
 
@@ -107,16 +135,47 @@ npm run build  # → dist/
 
 Full API docs at [testforge.run/#/docs](https://testforge.run/#/docs). Quick reference:
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/health` | Health check (DB + MCP + Stripe) |
-| POST | `/api/analyze` | Analyze a GitHub repo |
-| GET | `/api/projects` | List projects (user-scoped) |
-| GET | `/api/history` | Test history (user-scoped) |
-| POST | `/api/save-results` | Save analysis to DB |
-| POST | `/api/stripe` | Create checkout session |
-| POST | `/api/keys` | Generate API key |
-| GET | `/api/badge` | SVG score badge |
+| Method | Endpoint | Auth | Notes |
+|---|---|---|---|
+| GET | `/api/health` | none | DB ping + version |
+| GET | `/api/status` | none | All-services rollup (parallel checks) |
+| GET | `/api/badge?score=N` | none | SVG badge for README embedding |
+| GET | `/api/auth/callback` | none | OAuth start + callback; sets `tf_session` cookie |
+| GET | `/api/auth/me` | cookie | Current user; 401 if not signed in |
+| POST | `/api/auth/logout` | cookie | Clears `tf_session` |
+| POST | `/api/analyze` | none | Proxies to Fly.io MCP; 502/504 on upstream failure (no fake fallback) |
+| GET | `/api/projects` | cookie | User's projects |
+| GET | `/api/history` | cookie | User's test runs |
+| GET | `/api/reports/:id` | cookie | One report; 404 (not seed) when missing |
+| POST | `/api/save-results` | cookie | Persist an analysis run |
+| GET/POST/DELETE | `/api/keys` | cookie | API key CRUD |
+| GET/POST | `/api/gate` | cookie | Plan quota — usage from real `test_runs` counts |
+| GET/POST | `/api/stripe` | cookie (POST) | Checkout session |
+| POST | `/api/stripe-webhook` | Stripe signature | Idempotent via `stripe_events` table |
+| POST | `/api/webhook` | none | GitHub CI/CD webhook (notify/Slack/Discord) |
+
+All responses include `X-Request-Id` and rate-limit headers (`X-RateLimit-Remaining`, `X-RateLimit-Reset`).
+
+---
+
+## 🧪 Tests & CI
+
+```bash
+# Frontend + API E2E (Playwright)
+npx playwright test
+# Set BASE_URL=https://<preview>.vercel.app to run against a preview.
+
+# Analyzer integration tests (vitest, against fixture projects)
+cd mcp-server && npm test
+```
+
+CI runs on every PR via `.github/workflows/ci.yml`:
+
+- **Lint + build** — blocking. `tsc -b && vite build`.
+- **Analyzer tests** — blocking. `vitest run` against `mcp-server/tests/fixtures/{vulnerable,clean}-app`.
+- **Playwright (preview URL)** — blocking. Pulls the PR's Vercel preview URL, sends requests with the `x-vercel-protection-bypass` header so Vercel's SSO doesn't gate the run.
+
+The bypass requires `VERCEL_AUTOMATION_BYPASS_SECRET` set as a GitHub Actions secret (mirroring Vercel's project-level "Protection Bypass for Automation"). See `.github/workflows/ci.yml` for the full setup steps.
 
 ---
 
@@ -124,39 +183,42 @@ Full API docs at [testforge.run/#/docs](https://testforge.run/#/docs). Quick ref
 
 ```
 testforge/
-├── api/                    # 18 Vercel serverless functions
-├── mcp-server/             # Fly.io MCP server (8 analyzers)
-├── src/
-│   ├── pages/              # 15 page components
-│   ├── components/         # UI components (40+ shadcn/ui)
-│   ├── lib/                # API client, analysis store
-│   ├── db/                 # Drizzle ORM schema (8 tables)
-│   └── context/            # Auth context
-├── e2e/                    # Playwright E2E tests
-├── scripts/                # DB seed scripts
-└── public/                 # Static assets
+├── api/                    # Vercel serverless functions
+│   ├── _security.js        # withSecurity wrapper: CORS allowlist, rate limit, security headers, request-id, error catch
+│   ├── _session.js         # jose-based HS256 JWT cookie, requireSession helper
+│   ├── _env.js             # requireEnv() — typed env contract with clear missing-var errors
+│   ├── _log.js             # JSON-line structured logger with per-request rid
+│   ├── auth/               # callback, me, logout
+│   ├── reports/[id].js     # single report; 404 (not seed) when missing
+│   └── ...                 # analyze, projects, history, keys, gate, stripe, …
+├── mcp-server/             # Fly.io / npm-published MCP server
+│   ├── src/
+│   │   ├── analyzers/      # 8 modules covering 21 dimensions
+│   │   ├── local-db.ts     # SQLite via better-sqlite3
+│   │   ├── mcp-server.ts   # /test, /quick-scan with SQLite persistence
+│   │   └── index.ts        # Fastify app, port 33221
+│   └── tests/
+│       ├── analyzers.test.ts   # vitest against real fixtures
+│       └── fixtures/{vulnerable,clean}-app/
+├── src/                    # React 19 frontend (Vite)
+│   ├── pages/              # 15 page components (HashRouter)
+│   ├── context/AuthContext.tsx  # Hydrates from /api/auth/me cookie
+│   └── db/schema.ts        # Drizzle ORM (8 tables, FK cascade)
+├── drizzle/                # Generated migration baseline
+├── scripts/
+│   ├── migrate-to-v1.sql   # Idempotent one-shot to bring an existing Neon DB up to v1
+│   ├── wrap-handlers.js    # Codemod that wraps every api/*.js with withSecurity
+│   └── smoke.sh            # 10-assertion post-deploy smoke test
+├── e2e/                    # Playwright E2E suite
+├── RUNBOOK.md              # Pre-launch checklist + incident playbooks
+└── LOG.md                  # Original build log
 ```
-
----
-
-## 📊 Test Suite
-
-```bash
-# E2E tests (Playwright)
-npx playwright test
-
-# Unit tests (Vitest)
-cd mcp-server && npx vitest run
-```
-
-- **31 E2E tests** — every page + API endpoint
-- **29 unit tests** — every analyzer independently tested
 
 ---
 
 ## 🏆 Built With
 
-React 19 · TypeScript · Vite · Tailwind · Fastify · Neon PostgreSQL · Drizzle ORM · Fly.io · Vercel · Stripe · Playwright · Vitest · GSAP · Recharts · Framer Motion
+React 19 · TypeScript · Vite · Tailwind · shadcn/ui · Fastify · Neon Postgres · Drizzle ORM · Fly.io · Vercel · Stripe · Upstash Redis · jose · Playwright · Vitest · GSAP · Recharts · Framer Motion · better-sqlite3
 
 ---
 
