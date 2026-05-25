@@ -1,8 +1,11 @@
-import { withSecurity } from './_security.js';
+// /api/analyze — thin proxy to the MCP server on Fly.io.
+// We don't fabricate analysis results when the upstream is slow or down.
+// The client should surface the error and offer retry/queueing.
+import { withSecurity, isValidRepoUrl } from './_security.js';
+
 const MCP_SERVER = process.env.MCP_SERVER_URL || 'https://testforge-mcp.fly.dev';
 
 async function handler(req, res) {
-  // GET: return cached or direct Fly.io URL for clients to call
   if (req.method === 'GET') {
     return res.json({
       mcpServer: MCP_SERVER,
@@ -11,47 +14,54 @@ async function handler(req, res) {
         test: `${MCP_SERVER}/test`,
         health: `${MCP_SERVER}/health`,
       },
-      note: 'For real-time analysis, call the MCP server directly. This API returns mock data as fallback.',
     });
   }
 
-  // POST: try Fly.io first, fall back to mock data
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   const { repoUrl, branch = 'main' } = req.body || {};
-
   if (!repoUrl) {
-    return res.json({
-      endpoints: 24, middleware: 8, files: 127, dependencies: 18,
-      devDependencies: 12, techStack: ['Node.js', 'Express', 'MongoDB', 'JWT', 'Stripe'],
-      totalFiles: 127, totalLines: 8432, analyzedAt: new Date().toISOString(),
-    });
+    return res.status(400).json({ error: 'repoUrl required' });
+  }
+  if (!isValidRepoUrl(repoUrl)) {
+    return res.status(400).json({ error: 'repoUrl must be a public GitHub URL' });
   }
 
-  // Fire-and-forget to Fly.io (Vercel has 10s timeout)
+  // Vercel functions get ~10s; budget 9s for the upstream and reserve the
+  // remainder for our own response handling.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 9000);
+
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-    
-    const response = await fetch(`${MCP_SERVER}/clone-and-analyze`, {
+    const upstream = await fetch(`${MCP_SERVER}/clone-and-analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ repoUrl, branch }),
       signal: controller.signal,
     });
     clearTimeout(timeout);
-    
-    const data = await response.json();
-    return res.json(data);
+
+    // Pass through the upstream status and body verbatim — the MCP server
+    // is the source of truth, including for errors.
+    const body = await upstream.text();
+    res.status(upstream.status);
+    res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json');
+    return res.send(body);
   } catch (e) {
-    // Timeout or error — tell client to retry
-    return res.json({
-      repo: repoUrl,
-      status: 'analyzing',
-      message: 'Analysis started on MCP server. Results will appear shortly.',
+    clearTimeout(timeout);
+    const isTimeout = e.name === 'AbortError';
+    return res.status(isTimeout ? 504 : 502).json({
+      error: isTimeout ? 'MCP server timed out' : 'MCP server unreachable',
+      detail: e.message,
       mcpServer: MCP_SERVER,
-      retryUrl: `${MCP_SERVER}/clone-and-analyze`,
-      mockData: {
-        totalFiles: 127, totalLines: 8432, endpoints: 24,
-        techStack: ['Node.js', 'Express'],
+      // Hint the client toward async polling. Avoids fabricated numbers in
+      // the UI while the user waits for the real analysis to land.
+      retry: {
+        endpoint: `${MCP_SERVER}/clone-and-analyze`,
+        method: 'POST',
+        body: { repoUrl, branch },
       },
     });
   }
