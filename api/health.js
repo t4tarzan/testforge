@@ -1,7 +1,9 @@
+import { applySecurityHeaders } from '../_security.js';
+
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  applySecurityHeaders(res);
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-GitHub-User, X-API-Key');
   if (req.method === 'OPTIONS') return res.status(204).end();
 
   let dbStatus = 'not configured';
