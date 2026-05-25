@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-const BASE = 'https://testforge.run';
+// Same env override as playwright.config.ts. Tests can also use the
+// fixture's `baseURL` directly, but a few absolute URLs remain below.
+const BASE = process.env.BASE_URL || 'https://testforge.run';
 
 // ═══════════════════════════════════════════════════
 // PAGE RENDERING — Every page loads

@@ -100,8 +100,13 @@ export async function runSecurityAnalysis(config: SecurityConfig): Promise<Secur
 /* -------------------------------------------------------------------------- */
 
 function checkSqlInjection(lines: string[], filePath: string, findings: SecurityFinding[]) {
+  // NOTE on `$`: PostgreSQL parameter placeholders like $1, $2 are SAFE — they
+  // mean "bind the Nth array argument here". Only template-literal `${...}`
+  // interpolation is unsafe. The patterns below require `\$\{` (template
+  // literal) rather than a bare `$`, otherwise we'd flag clean code that
+  // uses parameterized queries.
   const patterns = [
-    { regex: /\.\s*(find|findOne|findMany|query|exec|raw|execute)\s*\([^)]*[\+`$]/, title: 'Potential SQL/NoSQL Injection', desc: 'User input may be concatenated directly into a database query.' },
+    { regex: /\.\s*(find|findOne|findMany|query|exec|raw|execute)\s*\([^)]*(\+|`[^`]*\$\{|\$\{)/, title: 'Potential SQL/NoSQL Injection', desc: 'User input may be concatenated directly into a database query.' },
     { regex: /(?:query|execute|raw)\s*\(\s*(?:`[^`]*\$\{|[^)]*\+[^)]*\+[^)]*)/, title: 'String Concatenation in DB Query', desc: 'Database query uses string concatenation or template literals with variables.' },
     { regex: /(?:SELECT|INSERT|UPDATE|DELETE)\s+.*\+.*\+/, title: 'SQL Query String Concatenation', desc: 'SQL query built via string concatenation — vulnerable to injection.' },
     { regex: /db\.[\w]+\s*\(\s*\{.*\$where\s*:/, title: 'NoSQL $where Injection', desc: 'Using $where operator with user input in MongoDB query.' },
