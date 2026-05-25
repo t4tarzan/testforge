@@ -225,7 +225,7 @@ export default function PipelineHero({ onStartRun }: { onStartRun: () => void })
   return (
     <section className="relative min-h-[85dvh] flex flex-col items-center justify-center bg-[#12101A] overflow-hidden px-6 sm:px-12 lg:px-16 pt-[72px] pb-20">
       {/* Light gradient strip at top so navbar is visible */}
-      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#F7F7FB] via-[#F7F7FB]/60 to-transparent z-0 pointer-events-none" />
+      <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-b from-[#F7F7FB] via-[#F7F7FB]/90 to-transparent z-10 pointer-events-none" />
       {/* Background image fallback */}
       <div
         className="absolute inset-0 z-0 opacity-20"
@@ -235,7 +235,7 @@ export default function PipelineHero({ onStartRun }: { onStartRun: () => void })
           backgroundPosition: 'center',
         }}
       />
-      <div className="absolute inset-0 z-0 bg-gradient-to-b from-[#12101A]/60 via-[#12101A]/80 to-[#12101A]" />
+      <div className="absolute inset-0 z-0 bg-gradient-to-b from-transparent via-[#12101A]/50 to-[#12101A] mt-24" />
 
       {/* Particle field */}
       <div className="absolute inset-0 z-[2]">
