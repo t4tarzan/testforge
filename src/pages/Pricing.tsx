@@ -10,7 +10,6 @@ import {
   ArrowRight,
   Sparkles,
   Zap,
-  Shield,
   Building2,
 } from 'lucide-react'
 
@@ -126,7 +125,7 @@ function PricingCardsSection() {
       yearlyDiscount: '30% savings',
       description: 'For growing teams with active CI/CD pipelines.',
       cta: 'Upgrade to Pro',
-      ctaStyle: 'secondary' as const,
+      ctaStyle: 'primary' as const,
       features: [
         'Everything in Free, plus:',
         '100 test runs/month',
@@ -141,30 +140,6 @@ function PricingCardsSection() {
       badge: { text: 'Most Popular', bg: '#574a7d', color: '#FFFFFF' },
       borderColor: '#D9D9D3',
       recommended: false,
-    },
-    {
-      name: 'Pro',
-      icon: Shield,
-      monthlyPrice: 99,
-      yearlyPrice: 69,
-      yearlyDiscount: 'Save $198/year',
-      description: 'For engineering teams shipping production code.',
-      cta: 'Get Started',
-      ctaStyle: 'primary' as const,
-      features: [
-        'Everything in Starter, plus:',
-        'Unlimited test runs',
-        '10 repositories',
-        'The Integrator — full intelligence',
-        'Predictive models & dashboard',
-        'Advanced security testing',
-        'Visual regression testing',
-        'Accessibility testing',
-        'Team collaboration (up to 10)',
-      ],
-      badge: { text: 'Recommended', bg: '#574a7d', color: '#FFFFFF' },
-      borderColor: '#574a7d',
-      recommended: true,
     },
     {
       name: 'Enterprise',
@@ -226,7 +201,7 @@ function PricingCardsSection() {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 max-w-[1200px] mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 max-w-[1200px] mx-auto">
           {tiers.map((tier) => (
             <motion.div
               key={tier.name}
