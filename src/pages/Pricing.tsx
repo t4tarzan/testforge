@@ -67,6 +67,22 @@ function PricingCardsSection() {
   const sectionRef = useRef<HTMLDivElement>(null)
   const [isYearly, setIsYearly] = useState(false)
 
+  const handleUpgrade = async (plan: string) => {
+    if (plan === 'free') { window.location.href = '/#/managed'; return; }
+    if (plan === 'enterprise') { window.location.href = 'mailto:sales@testforge.dev'; return; }
+    try {
+      const res = await fetch('/api/stripe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan, email: '' }),
+      });
+      const data = await res.json();
+      if (data.checkoutUrl) window.location.href = data.checkoutUrl;
+    } catch (e) {
+      console.error('Stripe error:', e);
+    }
+  };
+
   useGSAP(() => {
     if (!sectionRef.current) return
     gsap.from('.pricing-card', {
@@ -85,49 +101,49 @@ function PricingCardsSection() {
       icon: Sparkles,
       monthlyPrice: 0,
       yearlyPrice: 0,
-      yearlyDiscount: null,
+      yearlyDiscount: '25% savings',
       description: 'For individual developers exploring AI-powered testing.',
       cta: 'Get Started',
       ctaStyle: 'secondary' as const,
       features: [
         'All 21 testing dimensions',
-        '50 test runs/month',
+        '5 test runs/month',
         '1 repository',
-        'Basic PRD generation (5/month)',
+        'Basic reports (JSON/Markdown)',
         'Community support',
-        'GitHub integration',
-        '7-day data retention',
+        'Public repos only',
+        'MCP IDE integration',
       ],
       badge: null,
       borderColor: '#D9D9D3',
       recommended: false,
     },
     {
-      name: 'Starter',
+      name: 'Pro',
       icon: Zap,
       monthlyPrice: 29,
       yearlyPrice: 19,
       yearlyDiscount: '30% savings',
       description: 'For growing teams with active CI/CD pipelines.',
-      cta: 'Try For Free',
+      cta: 'Upgrade to Pro',
       ctaStyle: 'secondary' as const,
       features: [
         'Everything in Free, plus:',
-        '500 test runs/month',
-        '3 repositories',
-        'Full PRD generation (unlimited)',
-        'The Integrator — basic',
+        '100 test runs/month',
+        '10 repositories',
+        'Private repo support',
+        'Full 21-dimension reports',
         'Priority email support',
-        'GitLab + Bitbucket',
-        '30-day data retention',
-        'Slack notifications',
+        'CI/CD webhook integration',
+        'Slack/Discord notifications',
+        'README badge generator',
       ],
-      badge: { text: '1st Month Discount', bg: '#E8E5FF', color: '#574a7d' },
+      badge: { text: 'Most Popular', bg: '#574a7d', color: '#FFFFFF' },
       borderColor: '#D9D9D3',
       recommended: false,
     },
     {
-      name: 'Standard',
+      name: 'Pro',
       icon: Shield,
       monthlyPrice: 99,
       yearlyPrice: 69,
@@ -153,11 +169,11 @@ function PricingCardsSection() {
     {
       name: 'Enterprise',
       icon: Building2,
-      monthlyPrice: null,
-      yearlyPrice: null,
-      yearlyDiscount: null,
+      monthlyPrice: 199,
+      yearlyPrice: 149,
+      yearlyDiscount: '25% savings',
       description: 'For organizations with complex testing requirements.',
-      cta: 'Contact Us',
+      cta: 'Contact Sales',
       ctaStyle: 'ghost' as const,
       features: [
         'Everything in Standard, plus:',
@@ -293,6 +309,11 @@ function PricingCardsSection() {
 
               {/* CTA Button */}
               <button
+                onClick={() => {
+                  if (tier.name === 'Free') { window.location.href = '/#/managed'; return; }
+                  if (tier.name === 'Enterprise') { window.location.href = 'mailto:sales@testforge.dev'; return; }
+                  handleUpgrade('pro');
+                }}
                 className={`w-full py-3 rounded-lg font-body font-medium text-base mb-6 transition-all duration-200 ${
                   tier.ctaStyle === 'primary'
                     ? 'bg-[#574a7d] text-white hover:bg-[#4a3d6b] hover:scale-[1.02] active:scale-[0.98]'
@@ -303,7 +324,7 @@ function PricingCardsSection() {
                     : 'border border-[#D9D9D3] text-[#333333] hover:bg-[#E8E5FF] hover:border-[#a39fd4]'
                 }`}
               >
-                {tier.cta}
+                {tier.name === 'Free' ? 'Start Testing Free' : tier.name === 'Enterprise' ? 'Contact Sales' : tier.cta}
               </button>
 
               {/* Features */}
