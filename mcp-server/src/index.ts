@@ -418,7 +418,7 @@ if (command === 'serve' || command === 'start' || !command) {
     );
     console.log(score);
     process.exit(score >= 70 ? 0 : 1);
-  } catch (e) {
+  } catch (e: any) {
     console.error(e.message);
     process.exit(2);
   }
