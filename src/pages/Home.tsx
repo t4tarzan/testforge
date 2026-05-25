@@ -481,6 +481,17 @@ export default function Home() {
         <div className="container-tf">
           <ScrollReveal>
             <p className="section-label text-center mb-6">// Trusted by engineering teams that take testing seriously</p>
+
+            {/* Product Hunt Badge */}
+            <div className="flex justify-center mb-8">
+              <a href="https://www.producthunt.com/products/testforge?utm_source=badge&utm_medium=badge" target="_blank" rel="noopener" className="inline-flex items-center gap-3 px-5 py-3 bg-white border border-[#D9D9D3] rounded-xl hover:border-[#a99bff] transition-all shadow-sm">
+                <span className="text-2xl">🏆</span>
+                <div>
+                  <div className="text-sm font-semibold text-[#12101A]">Featured on Product Hunt</div>
+                  <div className="text-xs text-[#6B6B6B]">AI Code? Run TestForge!</div>
+                </div>
+              </a>
+            </div>
           </ScrollReveal>
           <div className="flex flex-wrap items-center justify-center gap-8 lg:gap-12">
             {['GitHub', 'Vercel', 'Stripe', 'Linear', 'Figma', 'Supabase', 'Railway'].map((name, i) => (
