@@ -1,11 +1,7 @@
+import { withSecurity } from './_security.js';
 const MCP_SERVER = process.env.MCP_SERVER_URL || 'https://testforge-mcp.fly.dev';
 
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(204).end();
-
+async function handler(req, res) {
   // GET: return test status
   if (req.method === 'GET') {
     const { id } = req.query;
@@ -46,3 +42,5 @@ export default async function handler(req, res) {
     });
   }
 }
+
+export default withSecurity(handler);

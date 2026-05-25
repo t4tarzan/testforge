@@ -1,32 +1,32 @@
-const SEED = [{
-  id: 'proj_001', name: 'express-ecommerce-api',
-  repoUrl: 'https://github.com/example/express-ecommerce-api',
-  localPath: '/projects/express-ecommerce-api', branch: 'main',
-  techStack: ['Node.js', 'Express', 'MongoDB', 'JWT'],
-  createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-}];
+// GET /api/projects — list projects owned by the signed-in user.
+// Returns 401 if not authenticated. Empty list (not seed data) if the user
+// has no projects yet — the UI shows an empty state.
+import { withSecurity } from './_security.js';
+import { requireSession } from './_session.js';
 
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-GitHub-User');
-  if (req.method === 'OPTIONS') return res.status(204).end();
+async function handler(req, res) {
+  const session = await requireSession(req, res);
+  if (!session) return;
 
-  const githubUser = req.headers['x-github-user'] || null;
-
-  if (process.env.DATABASE_URL) {
-    try {
-      const { neon } = await import('@neondatabase/serverless');
-      const sql = neon(process.env.DATABASE_URL);
-      const githubUser = req.headers['x-github-user'] || null;
-      const rows = githubUser
-        ? await sql`SELECT * FROM projects WHERE user_id = ${githubUser} OR user_id IS NULL ORDER BY updated_at DESC`
-        : await sql`SELECT * FROM projects ORDER BY updated_at DESC`;
-      if (rows.length > 0) return res.json(rows);
-    } catch (e) {
-      console.error('[projects] DB error:', e.message);
-    }
+  if (!process.env.DATABASE_URL) {
+    return res.status(500).json({ error: 'DATABASE_URL not configured' });
   }
 
-  return res.json(SEED);
+  try {
+    const { neon } = await import('@neondatabase/serverless');
+    const sql = neon(process.env.DATABASE_URL);
+    const rows = await sql`
+      SELECT id, user_id, name, repo_url, local_path, branch, tech_stack,
+             created_at, updated_at
+      FROM projects
+      WHERE user_id = ${session.userId}
+      ORDER BY updated_at DESC
+    `;
+    return res.json(rows);
+  } catch (e) {
+    console.error('[projects] DB error:', e.message);
+    return res.status(500).json({ error: 'Failed to load projects' });
+  }
 }
+
+export default withSecurity(handler);

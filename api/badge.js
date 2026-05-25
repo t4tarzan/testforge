@@ -1,8 +1,9 @@
+import { withSecurity } from './_security.js';
 // README Badge Generator — embeddable SVG badge showing TestForge score
 // Usage: <img src="https://testforge.run/api/badge?repo=owner/name" />
 // Or: /api/badge?score=85 (direct score)
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const { repo, score: scoreParam } = req.query || {};
   
   let score = parseInt(scoreParam) || 0;
@@ -55,3 +56,5 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'public, max-age=300');
   return res.send(svg);
 }
+
+export default withSecurity(handler, { publicCors: true });

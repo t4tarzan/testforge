@@ -1,11 +1,7 @@
 import { sql } from 'drizzle-orm';
 
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(204).end();
-
+import { withSecurity } from './_security.js';
+async function handler(req, res) {
   if (!process.env.DATABASE_URL) {
     return res.json({ error: 'Database not configured', tasks: [] });
   }
@@ -52,3 +48,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: e.message });
   }
 }
+
+export default withSecurity(handler);

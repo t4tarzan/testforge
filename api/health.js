@@ -1,11 +1,6 @@
-import { applySecurityHeaders } from '../_security.js';
-
-export default async function handler(req, res) {
+import { withSecurity } from './_security.js';
+async function handler(req, res) {
   applySecurityHeaders(res);
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-GitHub-User, X-API-Key');
-  if (req.method === 'OPTIONS') return res.status(204).end();
-
   let dbStatus = 'not configured';
 
   if (process.env.DATABASE_URL) {
@@ -27,3 +22,5 @@ export default async function handler(req, res) {
     features: { projects: true, testRuns: true, reports: true, auth: true },
   });
 }
+
+export default withSecurity(handler, { skipRateLimit: true });
