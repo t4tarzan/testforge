@@ -1,30 +1,33 @@
-# 🧪 TestForge AI
+# 🧪 TestForge — AI CODE? Run TestForge!
 
-> **AI CODE? Run TestForge! — 21-dimension analysis in 30 seconds.** Security, performance, accessibility — plus vision alignment, scope coverage, and stack analysis that no other platform provides.
+> **21-dimension AI-powered testing. Drop any repo URL. Get a full report in 30 seconds.**
 
-[![Live Demo](https://img.shields.io/badge/Live-testforge.run-5A8F5E)](https://testforge.run)
-[![MCP Server](https://img.shields.io/badge/MCP-testforge--mcp.fly.dev-5A8F5E)](https://testforge-mcp.fly.dev)
-[![GitHub](https://img.shields.io/badge/GitHub-t4tarzan/testforge-5A8F5E)](https://github.com/t4tarzan/testforge)
+[![Website](https://img.shields.io/badge/testforge.run-574a7d)](https://testforge.run)
+[![npm](https://img.shields.io/badge/npm-testforge--mcp-574a7d)](https://www.npmjs.com/package/@whitenoisenpm/testforge-mcp)
+[![Product Hunt](https://img.shields.io/badge/Product_Hunt-Featured-DA552F)](https://www.producthunt.com/products/testforge)
+[![License](https://img.shields.io/badge/license-BUSL--1.1-blue)](LICENSE)
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Try It
 
-### Option 1: Use the Web Platform
-Go to **[testforge.run](https://testforge.run)** → enter any public repo URL → get a full analysis report in 30 seconds.
-
-### Option 2: IDE Integration (MCP)
-```bash
-npx @whitenoisenpm/testforge-mcp install
 ```
-Then in Cursor/VS Code: Settings → MCP → Add server → command: `npx`, args: `["-y", "@whitenoisenpm/testforge-mcp", "serve"]`
-
-### Option 3: Self-Host (Docker / Fly.io)
-```bash
-git clone https://github.com/t4tarzan/testforge
-cd testforge/mcp-server
-flyctl launch --now
+https://testforge.run
 ```
+
+Paste any public GitHub repo URL → 21-dimension analysis in 30 seconds.
+
+---
+
+## 📊 What We Analyze (21 Dimensions)
+
+| Category | Dimensions | Competitor Coverage |
+|----------|-----------|-------------------|
+| **Code Quality** | Security (SAST), Unit Tests, Load/Perf, Accessibility | Snyk ✅, SonarQube ✅ |
+| **API** | Contract Testing, Visual Regression | TestSigma ✅ |
+| **Advanced** | Edge Cases, Property-Based, Chaos, Mutation, Predictive | **Only TestForge** 🟣 |
+| **Strategic** | Vision & Goals, Scope Coverage, Stack Analysis | **Only TestForge** 🟣 |
+| **Enterprise** | Agentic Scale, DORA Metrics, Supply Chain, N+1 Queries, Dead Code, License, OWASP | **Only TestForge** 🟣 |
 
 ---
 
@@ -33,165 +36,87 @@ flyctl launch --now
 ```
 ┌──────────────────────────────────────────────────────┐
 │  Vercel — Frontend (React 19 + Vite + Tailwind)     │
-│  https://testforge.run                  │
-│                                                      │
+│  testforge.run                                       │
 │  ┌──────────┐  ┌──────────────┐  ┌───────────────┐  │
-│  │ 14 Pages  │  │  API Routes  │  │  Neon PG (DB) │  │
-│  │ HashRouter│  │  /api/*.js   │  │  5 tables     │  │
+│  │ 15 Pages  │  │ 18 API Routes│  │  Neon PG (DB) │  │
+│  │ HashRouter│  │  Serverless  │  │  8 tables     │  │
 │  └──────────┘  └──────┬───────┘  └───────────────┘  │
 │                       │                              │
 └───────────────────────┼──────────────────────────────┘
                         │
 ┌───────────────────────┼──────────────────────────────┐
-│  Fly.io — MCP Server  │                              │
-│  https://testforge-mcp.fly.dev                       │
-│                       ▼                              │
-│  ┌──────────────────────────────────────────────┐    │
-│  │  Analysis Engine                             │    │
-│  │  • Code Scanner (files, endpoints, deps)     │    │
-│  │  • Security (SAST, vulnerability detection)  │    │
-│  │  • Unit Test Analysis (coverage, frameworks) │    │
-│  │  • Load Analysis (rate limiting, caching)    │    │
-│  │  • Accessibility (WCAG compliance)           │    │
-│  │  • Vision & Goal Alignment ⭐                │    │
-│  │  • Scope Coverage ⭐                         │    │
-│  │  • Stack Choice Analysis ⭐                  │    │
-│  └──────────────────────────────────────────────┘    │
+│  Fly.io — MCP Server  │ https://testforge-mcp.fly.dev│
+│  clone-and-analyze endpoint                          │
+│  8 analyzer modules, 21 dimensions                   │
 └──────────────────────────────────────────────────────┘
 ```
 
-⭐ = Unique differentiators — competitors don't do this
-
 ---
 
-## 📊 What We Analyze (8 Dimensions)
+## 📦 Quick Start
 
-| Dimension | What It Checks | Weight |
-|-----------|---------------|--------|
-| 👁️ **Vision & Goals** | Observability, feature flags, analytics, CI/CD maturity | 25% |
-| 🎯 **Scope Coverage** | Documented vs implemented features, README traceability | 15% |
-| 📦 **Stack Choice** | TypeScript, testing, ORM, caching, architecture | 15% |
-| 🔒 **Security** | SAST scanning, vulnerability detection, OWASP checks | 15% |
-| 🧪 **Unit Tests** | Coverage estimation, framework detection, untested functions | 10% |
-| ⚡ **Load/Performance** | Rate limiting, caching, connection pooling | 10% |
-| ♿ **Accessibility** | WCAG compliance, alt text, form labels | 10% |
-| 📝 **Codebase** | Files, lines, endpoints, tech stack, dependencies | — |
+### Web Platform
+```bash
+open https://testforge.run
+```
 
----
+### MCP IDE Integration
+```bash
+npx @whitenoisenpm/testforge-mcp install
+```
+Works with Cursor, VS Code, Windsurf, Claude Code.
 
-## 📄 Pages
+### CLI Score
+```bash
+npx @whitenoisenpm/testforge-mcp score https://github.com/user/repo
+```
+CI/CD friendly — exit code based on threshold.
 
-| Page | Route | Description |
-|------|-------|-------------|
-| Home | `/` | Hero, features, testimonials, stats |
-| Pipeline | `/#/pipeline` | 13-stage testing pipeline visualization |
-| Integrator | `/#/integrator` | 4-layer integration intelligence engine |
-| Testing Dimensions | `/#/testing-dimensions` | All testing types explained |
-| PRD Generator | `/#/prd-generator` | Converts findings into structured PRDs |
-| Dashboard | `/#/dashboard` | Analytics with real data integration |
-| Pricing | `/#/pricing` | Plans and feature comparison |
-| **Test Runner** | `/#/run-test` | 🔥 Submit real repos → get real reports |
-| Test Report | `/#/report/:id` | View generated test reports |
-| MCP Integration | `/#/mcp` | IDE setup instructions |
-| Documentation | `/#/docs` | Comprehensive guides |
-| Auth | `/#/auth` | Sign in / Sign up |
-| Account | `/#/account` | User dashboard |
+### Self-Hosted
+```bash
+git clone https://github.com/t4tarzan/testforge
+cd testforge/mcp-server
+flyctl launch --now
+```
 
 ---
 
 ## 🛠️ Local Development
 
 ```bash
-# Clone the repo
-git clone https://github.com/t4tarzan/testforge.git
+git clone https://github.com/t4tarzan/testforge
 cd testforge
-
-# Install dependencies
 npm install
-
-# Start dev server (Vite + API proxy)
-npm run dev
-# → Frontend: http://localhost:9999
-# → API: http://localhost:3002 (proxied through Vite)
-
-# Build for production
-npm run build
-# → Output: dist/
-
-# Run MCP server locally
-cd mcp-server
-npm install
-npx tsx src/index.ts
-# → http://localhost:3001
+npm run dev    # → localhost:9999
+npm run build  # → dist/
 ```
 
 ---
 
-## 🚢 Deployment
+## 💰 Pricing
 
-### Frontend (Vercel)
-```bash
-npm run build
-vercel --prod
-```
-Auto-deploys on push to `main`.
-
-### MCP Server (Fly.io)
-```bash
-cd mcp-server
-flyctl deploy
-```
-
-### Database (Neon PostgreSQL)
-```bash
-# Set DATABASE_URL in Vercel/Fly.io env
-npx drizzle-kit push  # Push schema
-node scripts/seed.js   # Seed demo data
-```
-
----
-
-## 📦 npm Package
-
-```bash
-# Publish (from mcp-server/)
-cd mcp-server
-npm publish --access public
-
-# Users can then:
-npx @whitenoisenpm/testforge-mcp install   # Show IDE setup guide
-npx @whitenoisenpm/testforge-mcp serve     # Start MCP server
-```
+| Plan | Price | Tests/Month | Repos | Key Features |
+|------|-------|-------------|-------|-------------|
+| **Free** | $0 | 5 | 1 | All 21 dimensions, public repos |
+| **Pro** | $29/mo | 100 | 10 | Private repos, CI/CD webhooks, Slack/Discord |
+| **Enterprise** | $199/mo | Unlimited | Unlimited | SSO, SLA, dedicated support, custom integrations |
 
 ---
 
 ## 🔌 API Reference
 
-### Vercel API (`/api/*`)
+Full API docs at [testforge.run/#/docs](https://testforge.run/#/docs). Quick reference:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/health` | Health check with DB status |
-| GET | `/api/projects` | List projects |
-| GET | `/api/test-runs` | List test runs |
-| GET | `/api/reports/:id` | Get report by ID |
-| POST | `/api/auth/login` | Login (mock) |
-| POST | `/api/analyze` | Analyze repo (proxies to Fly.io) |
-| GET | `/api/analyze` | Get MCP server endpoints |
-| POST | `/api/test` | Start test suite |
-
-### Fly.io MCP Server
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/health` | Server health |
-| POST | `/clone-and-analyze` | Clone repo → full analysis |
-| POST | `/analyze` | Analyze local path |
-| POST | `/test` | Start test suite |
-| GET | `/test/:id/progress` | Test progress |
-| GET | `/report/:id` | Generated report |
-| POST | `/mcp/messages` | MCP protocol |
-| GET | `/mcp/sse` | SSE progress stream |
+| GET | `/api/health` | Health check (DB + MCP + Stripe) |
+| POST | `/api/analyze` | Analyze a GitHub repo |
+| GET | `/api/projects` | List projects (user-scoped) |
+| GET | `/api/history` | Test history (user-scoped) |
+| POST | `/api/save-results` | Save analysis to DB |
+| POST | `/api/stripe` | Create checkout session |
+| POST | `/api/keys` | Generate API key |
+| GET | `/api/badge` | SVG score badge |
 
 ---
 
@@ -199,78 +124,42 @@ npx @whitenoisenpm/testforge-mcp serve     # Start MCP server
 
 ```
 testforge/
-├── api/                    # Vercel serverless functions
-│   ├── health.js
-│   ├── analyze.js
-│   ├── test.js
-│   ├── projects.js
-│   ├── test-runs.js
-│   ├── auth/login.js
-│   └── reports/[id].js
-├── mcp-server/             # MCP server (deployed on Fly.io)
-│   ├── src/
-│   │   ├── index.ts        # Entry point + CLI
-│   │   ├── mcp-server.ts   # MCP protocol + routes
-│   │   ├── test-runner.ts  # Test orchestration
-│   │   ├── report-generator.ts
-│   │   └── analyzers/
-│   │       ├── code-scanner.ts
-│   │       ├── security-analyzer.ts
-│   │       ├── unit-analyzer.ts
-│   │       ├── load-analyzer.ts
-│   │       ├── accessibility-analyzer.ts
-│   │       └── strategic-analyzer.ts  ⭐ Vision, Scope, Stack
-│   ├── Dockerfile
-│   ├── fly.toml
-│   └── package.json
-├── scripts/
-│   └── seed.js             # DB seed script
+├── api/                    # 18 Vercel serverless functions
+├── mcp-server/             # Fly.io MCP server (8 analyzers)
 ├── src/
-│   ├── components/         # React components
-│   │   ├── ui/             # shadcn/ui (40+)
-│   │   ├── pipeline/
-│   │   ├── integrator/
-│   │   ├── testing/
-│   │   ├── mcp/
-│   │   └── testrunner/
-│   ├── pages/              # 14 page components
-│   ├── lib/                # Utilities
-│   │   ├── api.ts          # API client
-│   │   ├── analysisStore.ts # Shared analysis data
-│   │   └── utils.ts
-│   ├── db/                 # Drizzle ORM
-│   │   ├── schema.ts       # 5 tables
-│   │   └── client.ts
-│   ├── context/            # Auth context
-│   ├── data/               # Seed/mock data
-│   └── index.css           # Global styles
-├── public/                 # Static assets
-├── vercel.json             # Vercel config
-├── vite.config.ts
-├── tailwind.config.js
-└── package.json
+│   ├── pages/              # 15 page components
+│   ├── components/         # UI components (40+ shadcn/ui)
+│   ├── lib/                # API client, analysis store
+│   ├── db/                 # Drizzle ORM schema (8 tables)
+│   └── context/            # Auth context
+├── e2e/                    # Playwright E2E tests
+├── scripts/                # DB seed scripts
+└── public/                 # Static assets
 ```
 
 ---
 
-## 🆚 vs Competitors
+## 📊 Test Suite
 
-| Feature | TestForge | TestRail | TestSigma | Snyk | SonarQube |
-|---------|-----------|----------|-----------|------|-----------|
-| Security scanning | ✅ | ❌ | ❌ | ✅ | ✅ |
-| Unit test analysis | ✅ | ❌ | ✅ | ❌ | ✅ |
-| Load/performance | ✅ | ❌ | ✅ | ❌ | ❌ |
-| Accessibility | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Vision alignment** | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Scope coverage** | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Stack analysis** | ✅ | ❌ | ❌ | ❌ | ❌ |
-| MCP IDE integration | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Self-hosted option | ✅ | ✅ | ❌ | ✅ | ✅ |
-| Free tier | ✅ | ❌ | ❌ | ✅ | ✅ |
+```bash
+# E2E tests (Playwright)
+npx playwright test
+
+# Unit tests (Vitest)
+cd mcp-server && npx vitest run
+```
+
+- **31 E2E tests** — every page + API endpoint
+- **29 unit tests** — every analyzer independently tested
+
+---
+
+## 🏆 Built With
+
+React 19 · TypeScript · Vite · Tailwind · Fastify · Neon PostgreSQL · Drizzle ORM · Fly.io · Vercel · Stripe · Playwright · Vitest · GSAP · Recharts · Framer Motion
 
 ---
 
 ## 📄 License
 
-MIT
-
+BUSL-1.1 — Free for non-production use and self-hosting. Commercial managed service requires a paid plan at [testforge.run](https://testforge.run).

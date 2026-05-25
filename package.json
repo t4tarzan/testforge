@@ -1,6 +1,7 @@
 {
   "name": "my-app",
   "private": true,
+  "homepage": "https://testforge.run",
   "version": "0.0.0",
   "type": "module",
   "scripts": {
