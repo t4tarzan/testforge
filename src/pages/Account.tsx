@@ -7,8 +7,8 @@ import {
   LayoutDashboard, FlaskConical, GitBranch, KeyRound,
   Users, CreditCard, Settings, LogOut, Menu,
   HelpCircle, Zap, Play, FileText, ArrowRight,
-  MoreHorizontal, Eye, Download, Search, ChevronDown,
-  TrendingDown, CheckCircle2
+  MoreHorizontal, Eye, Download, Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
+  TrendingDown, TrendingUp, CheckCircle2, Plus, UserPlus, FileDown
 } from 'lucide-react';
 import {
   XAxis, YAxis, CartesianGrid,
