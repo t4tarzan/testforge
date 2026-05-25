@@ -9,6 +9,7 @@ import { runSecurityAnalysis } from './analyzers/security-analyzer.js';
 import { runUnitAnalysis } from './analyzers/unit-analyzer.js';
 import { runLoadAnalysis } from './analyzers/load-analyzer.js';
 import { runAccessibilityAnalysis } from './analyzers/accessibility-analyzer.js';
+import { saveReport, getReports, getReport } from './local-db.js';
 import {
   runVisionAnalysis,
   runScopeAnalysis,
@@ -213,6 +214,28 @@ async function main() {
   </script>
 </body>
 </html>`;
+  });
+
+  // ── Save Report (from dashboard) ───────────────────────────────────
+  app.post('/save-report', async (request, reply) => {
+    const { data, source } = request.body as any;
+    if (!data) return reply.status(400).send({ error: 'data required' });
+    const id = saveReport(data, source || 'local');
+    return reply.send({ saved: true, id });
+  });
+
+  // ── List Reports (for dashboard history) ────────────────────────────
+  app.get('/reports', async (request, reply) => {
+    const reports = getReports(20);
+    return reply.send(reports);
+  });
+
+  // ── Get Single Report ───────────────────────────────────────────────
+  app.get('/report-view/:id', async (request, reply) => {
+    const { id } = request.params as any;
+    const report = getReport(id);
+    if (!report) return reply.status(404).send({ error: 'Report not found' });
+    return reply.send(report);
   });
 
   // ── Clone & Analyze (accepts git URLs) ─────────────────────────────────
