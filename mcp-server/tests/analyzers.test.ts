@@ -20,6 +20,7 @@ import {
   runNPlusOneDetection,
   runDeadCodeAnalysis,
   runContractAnalysis,
+  runOwaspCoverage,
 } from '../src/analyzers/advanced-analyzer.js';
 import { runUnitAnalysis } from '../src/analyzers/unit-analyzer.js';
 import { runAccessibilityAnalysis } from '../src/analyzers/accessibility-analyzer.js';
@@ -1166,6 +1167,93 @@ describe('load-analyzer — Phase 5 pass 6: AST middleware/pattern detection', (
     });
     const breaker = report.findings.find((f) => /circuit breaker/i.test(f.title));
     expect(breaker).toBeUndefined();
+  });
+});
+
+describe('advanced-analyzer — Phase 5 pass 7: OWASP coverage (honest analyzer-gap framing)', () => {
+  it('reports analyzer-coverage as a stable score, not project-finding count', async () => {
+    // Empty findings list — analyzer-coverage shouldn't depend on this project's vulns.
+    const reportEmpty = runOwaspCoverage([]);
+    // Some real findings — same analyzer-coverage score.
+    const reportWithFindings = runOwaspCoverage([
+      { severity: 'critical', category: 'SQL Injection', title: 'sqli', description: '', fixSuggestion: '' },
+      { severity: 'high', category: 'XSS', title: 'xss', description: '', fixSuggestion: '' },
+    ]);
+    expect(reportEmpty.score).toBe(reportWithFindings.score);
+    // 8 of 10 categories have rules → 80%
+    expect(reportEmpty.score).toBe(80);
+  });
+
+  it('flags the analyzer gaps (A08 + A10) with honest framing', async () => {
+    const report = runOwaspCoverage([]);
+    expect(report.missingCategories).toContain('A08:2021 — Software and Data Integrity Failures');
+    expect(report.missingCategories).toContain('A10:2021 — Server-Side Request Forgery');
+    const gap = report.findings.find((f) => /analyzer coverage/i.test(f.title));
+    expect(gap).toBeTruthy();
+    expect(gap!.description).toMatch(/gaps in the analyzer itself/);
+  });
+
+  it('buckets findings into the correct OWASP categories', async () => {
+    const report = runOwaspCoverage([
+      { severity: 'critical', category: 'SQL Injection', title: '', description: '', fixSuggestion: '' },
+      { severity: 'high', category: 'XSS', title: '', description: '', fixSuggestion: '' },
+      { severity: 'high', category: 'Hardcoded Secrets', title: '', description: '', fixSuggestion: '' },
+      { severity: 'medium', category: 'CORS Misconfiguration', title: '', description: '', fixSuggestion: '' },
+    ]);
+    const a03 = report.byCategory.find((c) => c.code === 'A03');
+    expect(a03).toBeTruthy();
+    expect(a03!.findings.total).toBe(2); // SQL Injection + XSS
+    expect(a03!.findings.critical).toBe(1);
+    expect(a03!.findings.high).toBe(1);
+    const a02 = report.byCategory.find((c) => c.code === 'A02');
+    expect(a02!.findings.total).toBe(1); // Hardcoded Secrets
+    const a05 = report.byCategory.find((c) => c.code === 'A05');
+    expect(a05!.findings.total).toBe(1); // CORS
+  });
+
+  it('emits a category rollup finding when there is a concentrated critical', async () => {
+    const report = runOwaspCoverage([
+      { severity: 'critical', category: 'SQL Injection', title: '', description: '', fixSuggestion: '' },
+    ]);
+    const rollup = report.findings.find((f) => /A03:2021/.test(f.title));
+    expect(rollup).toBeTruthy();
+    expect(rollup!.severity).toBe('critical');
+  });
+
+  it('emits a category rollup finding when 3+ high-severity findings stack', async () => {
+    const report = runOwaspCoverage([
+      { severity: 'high', category: 'XSS', title: '', description: '', fixSuggestion: '' },
+      { severity: 'high', category: 'XSS', title: '', description: '', fixSuggestion: '' },
+      { severity: 'high', category: 'XSS', title: '', description: '', fixSuggestion: '' },
+    ]);
+    const rollup = report.findings.find((f) => /A03:2021/.test(f.title));
+    expect(rollup).toBeTruthy();
+    expect(rollup!.severity).toBe('high');
+  });
+
+  it('does not emit a rollup for sparse low/medium findings', async () => {
+    const report = runOwaspCoverage([
+      { severity: 'medium', category: 'CORS Misconfiguration', title: '', description: '', fixSuggestion: '' },
+      { severity: 'low', category: 'XSS', title: '', description: '', fixSuggestion: '' },
+    ]);
+    const rollups = report.findings.filter((f) => /A0\d:2021/.test(f.title));
+    expect(rollups.length).toBe(0);
+  });
+
+  it('integration: maps findings from a real vulnerable fixture', async () => {
+    const info = await scanCodebase(VULNERABLE);
+    const sec = await (await import('../src/analyzers/security-analyzer.js')).runSecurityAnalysis({
+      projectPath: VULNERABLE,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    // runOwaspCoverage's input type expects critical|high|medium|low — drop 'info'.
+    const usable = sec.filter((f) => f.severity !== 'info') as Parameters<typeof runOwaspCoverage>[0];
+    const report = runOwaspCoverage(usable);
+    // The vulnerable fixture has SQL injection — A03 must be non-empty.
+    const a03 = report.byCategory.find((c) => c.code === 'A03');
+    expect(a03!.findings.total).toBeGreaterThan(0);
   });
 });
 
