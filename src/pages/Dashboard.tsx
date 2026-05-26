@@ -450,6 +450,18 @@ function PredictiveModelsSection() {
           <span className="text-[#574a7d]">Predict</span> failures before they happen.
         </h2>
 
+        {/* Dashboard snapshot — relocated from homepage hero */}
+        <div className="mb-14 lg:mb-16 max-w-[1200px]">
+          <div className="relative rounded-xl border-2 border-[#E8E5FF] shadow-xl overflow-hidden bg-white p-1.5">
+            <img
+              src="/hero-dashboard.jpg"
+              alt="TestForge dashboard — predictive models view"
+              className="w-full h-auto rounded-lg block"
+              loading="lazy"
+            />
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-7 max-w-[1200px]">
           {models.map((model) => (
             <motion.div

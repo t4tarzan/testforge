@@ -65,7 +65,7 @@ const DemoVideo = memo(function DemoVideo() {
             {showPoster && (
               <div
                 className="absolute inset-0 bg-cover bg-center"
-                style={{ backgroundImage: 'url(/hero-pipeline-abstract.jpg)' }}
+                style={{ backgroundImage: 'url(/demos/local-mcp-poster.jpg)' }}
               >
                 <div className="absolute inset-0 bg-[#12101A]/50" />
               </div>
@@ -75,11 +75,12 @@ const DemoVideo = memo(function DemoVideo() {
             <video
               ref={videoRef}
               className="w-full h-full object-cover"
-              src="/pipeline-demo.mp4"
-              poster="/hero-pipeline-abstract.jpg"
+              src="/demos/testforge-mcp-demo.mp4"
+              poster="/demos/local-mcp-poster.jpg"
               muted={isMuted}
               playsInline
               loop
+              preload="metadata"
               onEnded={() => setIsPlaying(false)}
               onPause={() => setIsPlaying(false)}
               onPlay={() => setIsPlaying(true)}
