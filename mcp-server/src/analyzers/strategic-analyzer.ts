@@ -248,6 +248,78 @@ export async function runScopeAnalysis(
 /**
  * Analyze tech stack choices — is the stack appropriate for the use case?
  */
+// Stack analysis (pass 16 — strict dep-name matching + extra signals).
+//
+// The previous version used `dep.includes('vite')` which would have
+// fooled itself: vitest is a TEST framework, not a bundler, but
+// "vite" is a substring of "vitest". Same risk with `.includes('jest')`
+// matching unrelated packages. Now uses strict Sets per category.
+//
+// Added signals:
+//   - tsconfig strict mode detection (TypeScript without strict is
+//     still risky)
+//   - Modern framework detection (Next.js / Remix / Astro / SvelteKit / Nuxt)
+//   - Runtime type validation (Zod / Yup / Joi / ajv / typia / valibot)
+//   - tRPC / type-safe RPC stack signal
+
+const TEST_FRAMEWORK_DEPS = new Set([
+  'jest', 'vitest', 'mocha', 'ava', 'tap', 'node-tap',
+  '@japa/runner', 'uvu', 'tape',
+]);
+
+const LINT_DEPS = new Set([
+  'eslint', 'prettier', '@biomejs/biome', 'biome', 'rome',
+  'standard', 'xo', 'oxlint',
+]);
+
+const ORM_DEPS = new Set([
+  'prisma', '@prisma/client', 'drizzle-orm', 'drizzle-kit',
+  'typeorm', 'sequelize', 'sequelize-typescript',
+  'mongoose', 'mikro-orm', '@mikro-orm/core',
+  'kysely', 'knex', 'objection',
+]);
+
+const CACHE_DEPS = new Set([
+  'redis', 'ioredis', 'node-redis', '@upstash/redis',
+  'memcached', 'lru-cache', '@isaacs/lru-cache',
+  'node-cache', 'cache-manager',
+]);
+
+const MONOREPO_DEPS = new Set([
+  'turbo', 'nx', '@nrwl/nx', 'lerna', 'rush', '@microsoft/rush',
+  '@changesets/cli', 'changesets',
+]);
+
+// "Modern bundler" specifically — NOT vitest (which contains "vite").
+const MODERN_BUNDLER_DEPS = new Set([
+  'vite', '@vitejs/plugin-react', '@vitejs/plugin-vue',
+  'esbuild', '@esbuild/linux-x64',
+  '@swc/core', '@swc/cli',
+  'turbopack', '@parcel/core', 'parcel',
+  'rspack', '@rspack/core',
+  'rollup',
+]);
+
+const MODERN_FRAMEWORK_DEPS = new Set([
+  'next', 'remix', 'react-router', '@remix-run/node',
+  'astro', '@astrojs/node', 'nuxt', '@nuxt/kit',
+  'svelte', 'svelte-kit', '@sveltejs/kit',
+  'solid-js', '@solidjs/start', 'qwik', '@builder.io/qwik',
+  'hono', 'h3',
+]);
+
+const VALIDATION_DEPS = new Set([
+  'zod', 'yup', 'joi', 'ajv', 'typia',
+  'valibot', 'arktype', 'effect', 'io-ts',
+  'class-validator', 'superstruct', 'runtypes',
+]);
+
+const TRPC_DEPS = new Set([
+  '@trpc/server', '@trpc/client', '@trpc/react-query', '@trpc/next',
+]);
+
+const TS_RUNTIMES = new Set(['tsx', 'tsm', 'ts-node', 'esno', '@swc-node/register']);
+
 export async function runStackAnalysis(
   fileContents: Record<string, string>,
   dependencies: string[],
@@ -259,104 +331,146 @@ export async function runStackAnalysis(
   const weaknesses: string[] = [];
   const recommendations: string[] = [];
 
-  // Check TypeScript adoption
+  const allDeps = [...dependencies, ...devDependencies];
+  const has = (set: Set<string>) => allDeps.some((d) => set.has(d));
+  const matched = (set: Set<string>) => allDeps.filter((d) => set.has(d));
+
+  // ── TypeScript adoption (techStack-based, untouched)
   const hasTypeScript = techStack.includes('TypeScript');
   if (hasTypeScript) {
     strengths.push('TypeScript provides type safety and better developer experience');
   } else if (dependencies.length > 10) {
     findings.push({
       severity: 'medium',
-      title: 'JavaScript Without TypeScript',
-      description: 'For projects with 10+ dependencies, TypeScript significantly reduces runtime errors and improves maintainability.',
+      title: 'JavaScript without TypeScript',
+      description: `${dependencies.length} dependencies in JavaScript. TypeScript would catch a class of runtime errors at compile time, especially across module boundaries.`,
       category: 'Stack Quality',
-      fixSuggestion: 'Migrate to TypeScript. Start with strict: false and gradually enable stricter checks.',
+      fixSuggestion: 'Migrate incrementally: rename files to .ts one at a time. Start with `"strict": false` and tighten over weeks.',
     });
     weaknesses.push('Missing TypeScript — higher risk of runtime type errors');
   }
 
-  // Check for testing framework
-  const hasTesting = devDependencies.some(d =>
-    d.includes('jest') || d.includes('vitest') || d.includes('mocha') || d.includes('ava')
-  );
+  // ── tsconfig strict mode detection (new in pass 16)
+  if (hasTypeScript && fileContents['tsconfig.json']) {
+    try {
+      const ts = JSON.parse(fileContents['tsconfig.json']);
+      const co = (ts.compilerOptions ?? {}) as Record<string, unknown>;
+      const strict = co.strict === true ||
+        (co.strictNullChecks === true && co.noImplicitAny === true);
+      if (strict) {
+        strengths.push('tsconfig strict mode enabled — catches null/undefined errors at compile time');
+      } else {
+        findings.push({
+          severity: 'low',
+          title: 'TypeScript without strict mode',
+          description: 'tsconfig.json found but `compilerOptions.strict` is not true. The default loose mode lets `any`-typed values flow freely; null/undefined errors slip past the compiler.',
+          category: 'Stack Quality',
+          fixSuggestion: 'Set `"strict": true` in tsconfig (turns on strictNullChecks, noImplicitAny, strictFunctionTypes, etc.). For an existing codebase, use `tsc --noEmit` to see what breaks, then file by file.',
+        });
+      }
+    } catch { /* unparseable — ignore */ }
+  }
+
+  // ── Test framework — strict Set match.
+  const hasTesting = has(TEST_FRAMEWORK_DEPS);
   if (hasTesting) {
-    strengths.push('Testing framework configured — enabling quality assurance');
+    strengths.push(`Testing framework configured (${matched(TEST_FRAMEWORK_DEPS).join(', ')})`);
   } else {
     findings.push({
       severity: 'high',
-      title: 'No Testing Framework',
-      description: 'No test framework detected. This is the #1 predictor of production bugs and regression issues.',
+      title: 'No testing framework detected',
+      description: 'No jest / vitest / mocha / ava / tap dep found. Tests are the #1 predictor of low regression rates.',
       category: 'Stack Quality',
-      fixSuggestion: 'Add Vitest (fast, Vite-native) or Jest. Start with unit tests for critical business logic.',
+      fixSuggestion: 'Vitest is the fast modern default (Vite-native, ESM-first). Start with unit tests for the most-edited modules.',
     });
     weaknesses.push('No testing framework — cannot verify code correctness');
   }
 
-  // Check for linting/formatting
-  const hasLinting = devDependencies.some(d =>
-    d.includes('eslint') || d.includes('prettier') || d.includes('biome')
-  );
-  if (hasLinting) {
-    strengths.push('Linting/formatting configured — consistent code quality');
+  // ── Linting (Set match)
+  if (has(LINT_DEPS)) {
+    strengths.push(`Linting/formatting configured (${matched(LINT_DEPS).join(', ')})`);
   }
 
-  // Check for ORM/database layer
-  const hasDB = techStack.some(t => ['MongoDB', 'PostgreSQL', 'MySQL'].includes(t));
-  const hasORM = dependencies.some(d =>
-    d.includes('prisma') || d.includes('drizzle') || d.includes('typeorm') ||
-    d.includes('sequelize') || d.includes('mongoose')
-  );
+  // ── DB + ORM — strict Set match for ORM.
+  const hasDB = techStack.some((t) => ['MongoDB', 'PostgreSQL', 'MySQL', 'SQLite'].includes(t));
+  const hasORM = has(ORM_DEPS);
   if (hasDB && !hasORM) {
     findings.push({
       severity: 'medium',
-      title: 'Database Without ORM',
-      description: 'Direct database access without an ORM increases risk of SQL injection and makes migrations difficult.',
+      title: 'Database without ORM',
+      description: 'A database is in use, but no ORM/query-builder (Prisma / Drizzle / TypeORM / Mongoose / Kysely / Knex) dep is declared.',
       category: 'Stack Safety',
-      fixSuggestion: 'Add Prisma or Drizzle ORM for type-safe database access, automatic migrations, and query optimization.',
+      fixSuggestion: 'Drizzle (lightweight, SQL-first) or Prisma (heavier, migrations + Studio) for relational. Mongoose for MongoDB. Direct queries are error-prone.',
     });
     weaknesses.push('No ORM — direct DB access is error-prone');
   }
-  if (hasORM) {
-    strengths.push('ORM/ODM configured — type-safe database operations');
-  }
+  if (hasORM) strengths.push(`ORM/ODM configured (${matched(ORM_DEPS).join(', ')})`);
 
-  // Check for caching layer
-  const hasCache = dependencies.some(d => d.includes('redis') || d.includes('ioredis'));
+  // ── Cache (Set match — no more substring "cache" false positives)
+  const hasCache = has(CACHE_DEPS);
   if (dependencies.length > 15 && !hasCache) {
     findings.push({
       severity: 'low',
-      title: 'No Caching Layer for Growing App',
-      description: 'With 15+ dependencies, your app likely has performance-sensitive paths that would benefit from caching.',
+      title: 'No caching layer for growing app',
+      description: `${dependencies.length} direct deps, no Redis / ioredis / memcached / LRU-cache. Even an in-process LRU pays off for hot paths.`,
       category: 'Performance',
-      fixSuggestion: 'Add Redis for caching frequent queries, sessions, and rate limiting.',
+      fixSuggestion: 'Cache layer for queries + sessions + rate-limit counters. Redis for cross-instance share, LRU-cache for in-process hot data.',
     });
   }
 
-  // Check for monorepo tooling
-  const isMonorepo = dependencies.some(d => d.includes('turbo') || d.includes('nx') || d.includes('lerna')) ||
-    fileContents['turbo.json'] !== undefined;
-
-  if (isMonorepo) {
-    strengths.push('Monorepo tooling detected — organized codebase structure');
-  }
+  // ── Monorepo tooling (Set + turbo.json presence)
+  const isMonorepo = has(MONOREPO_DEPS) || fileContents['turbo.json'] !== undefined
+    || fileContents['nx.json'] !== undefined || fileContents['pnpm-workspace.yaml'] !== undefined;
+  if (isMonorepo) strengths.push('Monorepo tooling detected — organized codebase structure');
 
   if (dependencies.length > 20 && !isMonorepo) {
     findings.push({
       severity: 'low',
-      title: 'Large App Without Monorepo Tooling',
-      description: 'With 20+ dependencies, consider monorepo tooling (Turborepo/Nx) for better build caching and organization.',
+      title: 'Large app without monorepo tooling',
+      description: `${dependencies.length} deps without a workspace manager (Turborepo / Nx / pnpm workspaces). Build cache and parallelism are leaving cycles on the table.`,
       category: 'Architecture',
-      fixSuggestion: 'Evaluate Turborepo or Nx for build caching, parallel task execution, and dependency graph visualization.',
+      fixSuggestion: 'Turborepo has the lowest adoption cost (drop-in for existing repos). Nx is heavier but ships codegen + generators.',
     });
   }
 
-  // Bundler check
-  const usesModernBundler = dependencies.some(d =>
-    d.includes('vite') || d.includes('esbuild') || d.includes('swc') || d.includes('turbopack')
-  );
-  if (usesModernBundler) {
-    strengths.push('Modern bundler (Vite/esbuild) — fast development experience');
+  // ── Bundler — strict Set match so "vite" no longer counts when only
+  //    "vitest" is present.
+  const bundlerHits = matched(MODERN_BUNDLER_DEPS);
+  if (bundlerHits.length > 0) {
+    strengths.push(`Modern bundler (${bundlerHits.join(', ')}) — fast development experience`);
   }
 
+  // ── Framework — NEW in pass 16
+  const frameworkHits = matched(MODERN_FRAMEWORK_DEPS);
+  if (frameworkHits.length > 0) {
+    strengths.push(`Modern framework (${frameworkHits.join(', ')})`);
+  }
+
+  // ── Runtime validation — NEW
+  if (has(VALIDATION_DEPS)) {
+    const v = matched(VALIDATION_DEPS).join(', ');
+    strengths.push(`Runtime validation library detected (${v}) — type-safe boundary parsing`);
+  } else if (dependencies.length > 10 && techStack.some((t) => ['Express', 'Fastify', 'Koa', 'Hono', 'NestJS'].includes(t))) {
+    findings.push({
+      severity: 'medium',
+      title: 'API server without runtime validation library',
+      description: 'No Zod / Yup / Joi / ajv / Valibot / Effect dep found in an API server. Request bodies cross trust boundaries — TS types alone don\'t enforce them at runtime.',
+      category: 'Stack Safety',
+      fixSuggestion: 'Zod is the most popular modern choice (TS-first, derives types). Pipe every request body through a parsed schema before any handler logic runs.',
+    });
+  }
+
+  // ── tRPC — NEW
+  if (has(TRPC_DEPS)) {
+    strengths.push('tRPC detected — end-to-end type-safe API surface');
+  }
+
+  // ── TS runtime — NEW (acknowledges projects running TS without a build step)
+  if (has(TS_RUNTIMES)) {
+    strengths.push(`TypeScript runtime detected (${matched(TS_RUNTIMES).join(', ')}) — running TS without a build step`);
+  }
+
+  // ── Score: base 70, +5 per strength, weighted finding deductions.
   const score = Math.max(0, 70 + strengths.length * 5 - findings.reduce((s, f) =>
     s + (f.severity === 'high' ? 15 : f.severity === 'medium' ? 8 : 3), 0
   ));
@@ -365,7 +479,9 @@ export async function runStackAnalysis(
     hasTesting ? 'Maintain test coverage above 70%' : 'Add a testing framework immediately',
     hasTypeScript ? 'Enable strict mode in tsconfig' : 'Consider TypeScript migration',
     'Review dependencies monthly for security updates',
-    hasDB ? 'Ensure database backups are automated' : 'Set up database backup strategy'
+    hasDB ? 'Ensure database backups are automated' : 'Set up database backup strategy',
+    has(VALIDATION_DEPS) ? 'Pipe every request through a Zod/Valibot schema before handler logic'
+                         : 'Add a runtime validation library at the request boundary',
   );
 
   return {

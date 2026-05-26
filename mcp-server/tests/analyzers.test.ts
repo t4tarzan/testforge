@@ -32,7 +32,7 @@ import {
 import { runUnitAnalysis } from '../src/analyzers/unit-analyzer.js';
 import { runAccessibilityAnalysis } from '../src/analyzers/accessibility-analyzer.js';
 import { runLoadAnalysis } from '../src/analyzers/load-analyzer.js';
-import { runVisionAnalysis, runScopeAnalysis } from '../src/analyzers/strategic-analyzer.js';
+import { runVisionAnalysis, runScopeAnalysis, runStackAnalysis } from '../src/analyzers/strategic-analyzer.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const VULNERABLE = resolve(__dirname, 'fixtures/vulnerable-app');
@@ -61,6 +61,8 @@ const STRATEGIC_WEAK = resolve(__dirname, 'fixtures/strategic-weak');
 const EDGE_CASES = resolve(__dirname, 'fixtures/edge-cases');
 const VISUAL_QUALITY = resolve(__dirname, 'fixtures/visual-quality');
 const PROPERTY_QUALITY = resolve(__dirname, 'fixtures/property-quality');
+const STACK_MODERN = resolve(__dirname, 'fixtures/stack-modern');
+const STACK_LEGACY = resolve(__dirname, 'fixtures/stack-legacy');
 
 describe('code-scanner', () => {
   let vulnInfo: CodebaseInfo;
@@ -1883,6 +1885,87 @@ describe('advanced-analyzer — Phase 5 pass 15: visual regression + property-ba
     const report = await runPropertyBasedAnalysis(empty);
     const noInv = report.findings.find((f) => /No runtime invariants/i.test(f.title));
     expect(noInv).toBeTruthy();
+  });
+});
+
+describe('strategic-analyzer — Phase 5 pass 16: stack polish (strict dep sets + new signals)', () => {
+  it('modern stack: detects testing + linting + ORM + cache + bundler + framework + validation + tRPC', async () => {
+    const info = await scanCodebase(STACK_MODERN);
+    const report = await runStackAnalysis(
+      info.fileContents, info.dependencies, info.devDependencies, [...info.techStack, 'TypeScript', 'Hono', 'PostgreSQL'],
+    );
+    expect(report.strengths.some((s) => /Testing framework/.test(s))).toBe(true);
+    expect(report.strengths.some((s) => /Linting/.test(s))).toBe(true);
+    expect(report.strengths.some((s) => /ORM/.test(s))).toBe(true);
+    expect(report.strengths.some((s) => /Modern bundler/.test(s))).toBe(true);
+    expect(report.strengths.some((s) => /Modern framework/.test(s))).toBe(true);
+    expect(report.strengths.some((s) => /Runtime validation/.test(s))).toBe(true);
+    expect(report.strengths.some((s) => /tRPC/.test(s))).toBe(true);
+    expect(report.strengths.some((s) => /TypeScript runtime/.test(s))).toBe(true);
+    expect(report.score).toBeGreaterThanOrEqual(90);
+  });
+
+  it('modern stack: tsconfig strict mode acknowledged', async () => {
+    const info = await scanCodebase(STACK_MODERN);
+    const report = await runStackAnalysis(
+      info.fileContents, info.dependencies, info.devDependencies, [...info.techStack, 'TypeScript'],
+    );
+    expect(report.strengths.some((s) => /strict mode enabled/.test(s))).toBe(true);
+  });
+
+  it('legacy stack: missing testing + ORM + TS findings fire', async () => {
+    const info = await scanCodebase(STACK_LEGACY);
+    const report = await runStackAnalysis(
+      info.fileContents, info.dependencies, info.devDependencies, [...info.techStack, 'MongoDB'],
+    );
+    expect(report.findings.find((f) => /No testing framework/.test(f.title))).toBeTruthy();
+    expect(report.findings.find((f) => /Database without ORM/.test(f.title))).toBeTruthy();
+    expect(report.findings.find((f) => /JavaScript without TypeScript/.test(f.title))).toBeTruthy();
+  });
+
+  it('legacy stack: vitest-mock-extended substring does NOT count as a real test framework', async () => {
+    // legacy fixture has `vitest-mock-extended` (a real package — Jest mock helper).
+    // Old substring matcher with d.includes("vitest") would falsely count this
+    // as having vitest installed. Strict Set must not be fooled.
+    const info = await scanCodebase(STACK_LEGACY);
+    const report = await runStackAnalysis(
+      info.fileContents, info.dependencies, info.devDependencies, info.techStack,
+    );
+    expect(report.findings.find((f) => /No testing framework/.test(f.title))).toBeTruthy();
+  });
+
+  it('legacy stack: vite-something-else does NOT count as a modern bundler', async () => {
+    // Same trap — old `d.includes('vite')` would match.
+    const info = await scanCodebase(STACK_LEGACY);
+    const report = await runStackAnalysis(
+      info.fileContents, info.dependencies, info.devDependencies, info.techStack,
+    );
+    expect(report.strengths.some((s) => /Modern bundler/.test(s))).toBe(false);
+  });
+
+  it('TS without strict mode is flagged at low severity', async () => {
+    // Synthesize a project with tsconfig.json but no strict.
+    const fc: Record<string, string> = {
+      'package.json': '{"name":"x","devDependencies":{"vitest":"^1.0.0","typescript":"^5.0.0"}}',
+      'tsconfig.json': '{"compilerOptions":{"target":"ES2022"}}',
+      'src/index.ts': 'export const x = 1;',
+    };
+    const report = await runStackAnalysis(fc, [], ['vitest', 'typescript'], ['TypeScript']);
+    const finding = report.findings.find((f) => /TypeScript without strict mode/.test(f.title));
+    expect(finding).toBeTruthy();
+    expect(finding!.severity).toBe('low');
+  });
+
+  it('API server without validation library fires medium finding', async () => {
+    // Express server, no Zod / Yup / Joi.
+    const fc: Record<string, string> = {
+      'package.json': '{"name":"x","dependencies":{"express":"^4.18.0","helmet":"^7.0.0","cors":"^2.8.5","cookie-parser":"^1.4.6","compression":"^1.7.4","express-rate-limit":"^7.0.0","body-parser":"^1.20.0","morgan":"^1.10.0","dotenv":"^16.0.0","jsonwebtoken":"^9.0.0","bcrypt":"^5.0.0"}}',
+      'src/server.js': "const express=require('express');const app=express();app.listen(0);",
+    };
+    const deps = Object.keys(JSON.parse(fc['package.json']).dependencies);
+    const report = await runStackAnalysis(fc, deps, [], ['Express']);
+    const finding = report.findings.find((f) => /without runtime validation library/.test(f.title));
+    expect(finding).toBeTruthy();
   });
 });
 

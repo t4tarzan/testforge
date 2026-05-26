@@ -1,0 +1,18 @@
+{
+  "name": "fixture-stack-legacy",
+  "version": "0.0.1",
+  "dependencies": {
+    "express": "^4.18.0",
+    "vitest-mock-extended": "^1.0.0",
+    "vite-something-else": "^1.0.0",
+    "lodash": "^4.17.20",
+    "moment": "^2.0.0",
+    "mongodb": "^5.0.0",
+    "request": "^2.0.0",
+    "uuid": "^9.0.0",
+    "body-parser": "^1.0.0",
+    "cors": "^2.0.0",
+    "dotenv": "^16.0.0",
+    "winston": "^3.0.0"
+  }
+}
