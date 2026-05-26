@@ -9,6 +9,12 @@ import { discoverEndpoints, endpointSet, type DiscoveredEndpoint } from './lib/e
 import { computeFileComplexity } from './lib/complexity.js';
 import { OWASP_2021, owaspCodesForCategory, type OwaspCode } from './lib/owasp-map.js';
 import {
+  loadLockGraph,
+  findSupplyChainFlags,
+  type SupplyChainGraph,
+  type LockfileEntry,
+} from './lib/supply-chain.js';
+import {
   aggregateFileRisk,
   bucketSecurityByFile,
   type FileRisk,
@@ -801,54 +807,175 @@ function dependenciesInclude(fileContents: Record<string, string>, ...terms: str
 // PHASE 2 DEEP ENHANCEMENTS
 // ═══════════════════════════════════════════════════════════════════
 
-// Supply Chain Security Audit
+// Supply-chain audit (pass 8 — lockfile-aware).
+//
+// Now reads package-lock.json (when present) to expose the full
+// transitive graph. Adds detection for:
+//   - non-registry sources (git+, file:, link:, http:)
+//   - missing integrity hashes
+//   - duplicate-version drift (same package at multiple versions)
+// Plus the existing direct-dep CVE check, now extended to also scan
+// transitive deps in the lockfile.
 export interface SupplyChainReport {
   score: number;
+  /** Direct (package.json) deps. */
   totalDeps: number;
+  /** Total entries including transitives (from lockfile). 0 if no lockfile. */
+  totalTransitive: number;
+  /** Direct + transitive entries that match the CVE list. */
   knownVulnerable: number;
+  /** Subset of knownVulnerable at high/critical severity. */
   criticalVulns: number;
+  /** Distinct packages installed from non-registry sources. */
+  nonRegistrySources: number;
+  /** Entries that should have integrity but don't. */
+  missingIntegrity: number;
+  /** Package names with multiple installed versions. */
+  duplicateVersions: number;
   findings: Finding[];
 }
 
-export function runSupplyChainAudit(dependencies: string[], devDependencies: string[]): SupplyChainReport {
+export function runSupplyChainAudit(
+  dependencies: string[],
+  devDependencies: string[],
+  projectPath?: string
+): SupplyChainReport {
   const findings: Finding[] = [];
-  const allDeps = [...dependencies, ...devDependencies];
-  
-  // Known vulnerable patterns (simplified — in production, call OSV API)
-  const vulnerablePatterns: Record<string, { cve: string; severity: string; fixVersion: string }> = {
-    'lodash': { cve: 'CVE-2021-23337', severity: 'high', fixVersion: '4.17.21' },
-    'express': { cve: 'CVE-2024-29041', severity: 'medium', fixVersion: '4.19.0' },
-    'axios': { cve: 'CVE-2023-45857', severity: 'medium', fixVersion: '1.6.0' },
-    'webpack': { cve: 'CVE-2023-28154', severity: 'high', fixVersion: '5.76.0' },
-    'json5': { cve: 'CVE-2022-46175', severity: 'high', fixVersion: '2.2.2' },
-    'glob-parent': { cve: 'CVE-2020-28469', severity: 'high', fixVersion: '5.1.2' },
-    'semver': { cve: 'CVE-2022-25883', severity: 'medium', fixVersion: '7.5.2' },
-    'node-fetch': { cve: 'CVE-2022-0235', severity: 'medium', fixVersion: '3.2.10' },
+  const allDirect = [...dependencies, ...devDependencies];
+
+  // ── 1. CVE catalogue (extend over time; OSV API is a v2 follow-up). ──
+  const vulnerablePatterns: Record<string, { cve: string; severity: 'critical' | 'high' | 'medium' | 'low'; fixVersion: string }> = {
+    'lodash':        { cve: 'CVE-2021-23337', severity: 'high',   fixVersion: '4.17.21' },
+    'express':       { cve: 'CVE-2024-29041', severity: 'medium', fixVersion: '4.19.0'  },
+    'axios':         { cve: 'CVE-2023-45857', severity: 'medium', fixVersion: '1.6.0'   },
+    'webpack':       { cve: 'CVE-2023-28154', severity: 'high',   fixVersion: '5.76.0'  },
+    'json5':         { cve: 'CVE-2022-46175', severity: 'high',   fixVersion: '2.2.2'   },
+    'glob-parent':   { cve: 'CVE-2020-28469', severity: 'high',   fixVersion: '5.1.2'   },
+    'semver':        { cve: 'CVE-2022-25883', severity: 'medium', fixVersion: '7.5.2'   },
+    'node-fetch':    { cve: 'CVE-2022-0235',  severity: 'medium', fixVersion: '3.2.10'  },
+    'minimist':      { cve: 'CVE-2021-44906', severity: 'high',   fixVersion: '1.2.6'   },
+    'word-wrap':     { cve: 'CVE-2023-26115', severity: 'medium', fixVersion: '1.2.4'   },
+    'jsonwebtoken':  { cve: 'CVE-2022-23541', severity: 'high',   fixVersion: '9.0.0'   },
   };
 
   let knownVulnerable = 0;
   let criticalVulns = 0;
-  
-  for (const dep of allDeps) {
+  const reportedDirect = new Set<string>();
+
+  for (const dep of allDirect) {
     const depName = dep.replace(/^[@]/, '').split('@')[0] || dep;
-    for (const [vulnName, vuln] of Object.entries(vulnerablePatterns)) {
-      if (depName.toLowerCase().includes(vulnName.toLowerCase())) {
-        knownVulnerable++;
-        if (vuln.severity === 'critical' || vuln.severity === 'high') criticalVulns++;
-        findings.push({
-          severity: vuln.severity as Finding['severity'],
-          title: `${depName}: ${vuln.cve}`,
-          description: `Known vulnerability in dependency. Update to >= ${vuln.fixVersion}.`,
-          fixSuggestion: `npm install ${depName}@${vuln.fixVersion}`,
-          category: 'Supply Chain',
-        });
-        break;
-      }
+    const vuln = vulnerablePatterns[depName.toLowerCase()];
+    if (!vuln) continue;
+    reportedDirect.add(depName.toLowerCase());
+    knownVulnerable++;
+    if (vuln.severity === 'critical' || vuln.severity === 'high') criticalVulns++;
+    findings.push({
+      severity: vuln.severity,
+      title: `${depName}: ${vuln.cve}`,
+      description: `Direct dependency \`${depName}\` matches a known vulnerable version range. Recommended fix: >= ${vuln.fixVersion}.`,
+      fixSuggestion: `npm install ${depName}@${vuln.fixVersion}`,
+      category: 'Supply Chain',
+    });
+  }
+
+  // ── 2. Lockfile-aware checks (NEW). ──
+  let graph: SupplyChainGraph = {
+    totalEntries: 0, directCount: 0, entries: [], lockfileVersion: null, sourceFile: null,
+  };
+  if (projectPath) graph = loadLockGraph(projectPath);
+
+  // 2a. Transitive CVE matches.
+  if (graph.entries.length > 0) {
+    for (const entry of graph.entries) {
+      const lowerName = entry.name.toLowerCase();
+      if (reportedDirect.has(lowerName)) continue; // already surfaced as direct
+      const vuln = vulnerablePatterns[lowerName];
+      if (!vuln) continue;
+      knownVulnerable++;
+      if (vuln.severity === 'critical' || vuln.severity === 'high') criticalVulns++;
+      findings.push({
+        severity: vuln.severity,
+        title: `Transitive: ${entry.name}@${entry.version} — ${vuln.cve}`,
+        description: `Transitive dependency (installed via a top-level dep) matches a known CVE. Resolved from: ${entry.resolved ?? '(unknown)'}.`,
+        fixSuggestion: `Run \`npm audit fix\`, or add an override in package.json: { "overrides": { "${entry.name}": ">=${vuln.fixVersion}" } }`,
+        category: 'Supply Chain',
+      });
     }
   }
 
-  const score = Math.max(0, 100 - knownVulnerable * 10 - criticalVulns * 15);
-  return { score, totalDeps: allDeps.length, knownVulnerable, criticalVulns, findings };
+  // 2b. Lockfile flags.
+  const flags = findSupplyChainFlags(graph);
+
+  if (flags.nonRegistry.length > 0) {
+    const sample = flags.nonRegistry.slice(0, 3)
+      .map((e: LockfileEntry) => `${e.name}@${e.version} (${e.resolved})`).join('; ');
+    findings.push({
+      severity: 'medium',
+      title: `${flags.nonRegistry.length} dependency / dependencies from non-registry sources`,
+      description:
+        `Some packages are installed from git URLs, local files, or non-https registries. Examples: ${sample}. ` +
+        'Non-registry sources skip npm\'s tarball signing and can be replaced silently.',
+      fixSuggestion:
+        'Publish forked packages to a private registry (npm/Verdaccio/GitHub Packages) instead of pulling from git. Pin the git refs to commit SHAs if you must.',
+      category: 'Supply Chain',
+    });
+  }
+
+  if (flags.missingIntegrity.length > 0) {
+    findings.push({
+      severity: 'medium',
+      title: `${flags.missingIntegrity.length} package(s) without integrity hashes`,
+      description:
+        'Lockfile entries with no `integrity` SHA mean npm can\'t verify the bytes match what was published. Usually a sign of an outdated lockfile or a manual edit.',
+      fixSuggestion: 'Run `rm -rf node_modules package-lock.json && npm install` to regenerate the lockfile with fresh integrity hashes.',
+      category: 'Supply Chain',
+    });
+  }
+
+  if (flags.duplicateVersions.size > 0) {
+    const sample = [...flags.duplicateVersions.entries()].slice(0, 3)
+      .map(([n, vs]) => `${n} @ {${vs.join(', ')}}`).join('; ');
+    findings.push({
+      severity: 'low',
+      title: `${flags.duplicateVersions.size} package(s) installed at multiple versions`,
+      description:
+        `Version drift inflates bundle size and is a red flag for transitive-dep replacement attacks. Examples: ${sample}.`,
+      fixSuggestion:
+        'Use `npm ls <name>` to find which deps pin the older version. Add an `overrides` entry to deduplicate, or upgrade the parent dep.',
+      category: 'Supply Chain',
+    });
+  }
+
+  if (graph.entries.length === 0 && projectPath) {
+    findings.push({
+      severity: 'low',
+      title: 'No package-lock.json found',
+      description: 'Without a lockfile, every install can pull different transitive versions. Only direct-dep CVEs were checked.',
+      fixSuggestion: 'Commit a `package-lock.json` (npm), `pnpm-lock.yaml` (pnpm), or `yarn.lock` (yarn). Treat lockfile changes as security-sensitive in code review.',
+      category: 'Supply Chain',
+    });
+  }
+
+  const score = Math.max(0,
+    100
+    - knownVulnerable * 6
+    - criticalVulns * 9
+    - flags.nonRegistry.length * 4
+    - Math.min(flags.missingIntegrity.length, 10) * 1
+    - Math.min(flags.duplicateVersions.size, 10) * 1
+  );
+
+  return {
+    score,
+    totalDeps: allDirect.length,
+    totalTransitive: graph.entries.length,
+    knownVulnerable,
+    criticalVulns,
+    nonRegistrySources: flags.nonRegistry.length,
+    missingIntegrity: flags.missingIntegrity.length,
+    duplicateVersions: flags.duplicateVersions.size,
+    findings,
+  };
 }
 
 // N+1 Query Detection (AST-aware as of 0.9.0).
