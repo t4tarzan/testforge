@@ -22,6 +22,7 @@ import {
   runContractAnalysis,
 } from '../src/analyzers/advanced-analyzer.js';
 import { runUnitAnalysis } from '../src/analyzers/unit-analyzer.js';
+import { runAccessibilityAnalysis } from '../src/analyzers/accessibility-analyzer.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const VULNERABLE = resolve(__dirname, 'fixtures/vulnerable-app');
@@ -34,6 +35,7 @@ const DEAD_CODE = resolve(__dirname, 'fixtures/dead-code');
 const TEST_QUALITY = resolve(__dirname, 'fixtures/test-quality');
 const CONTRACTS = resolve(__dirname, 'fixtures/contracts');
 const CONTRACTS_MISSING = resolve(__dirname, 'fixtures/contracts-missing');
+const A11Y_JSX = resolve(__dirname, 'fixtures/a11y-jsx');
 
 describe('code-scanner', () => {
   let vulnInfo: CodebaseInfo;
@@ -999,6 +1001,77 @@ describe('advanced-analyzer — Phase 5 pass 4: predictive (cross-signal)', () =
     expect(report.topRiskyFiles.length).toBe(0);
     expect(report.riskLevel).toMatch(/Low/i);
     expect(report.score).toBeGreaterThanOrEqual(95);
+  });
+});
+
+describe('accessibility-analyzer — Phase 5 pass 5: AST-based JSX a11y checks', () => {
+  it('flags <img> without alt attribute', async () => {
+    const report = await runAccessibilityAnalysis({ projectPath: A11Y_JSX });
+    const imgNoAlt = report.findings.find((f) => /img.*alt/i.test(f.title));
+    expect(imgNoAlt).toBeTruthy();
+    expect(imgNoAlt!.severity).toBe('high');
+    expect(imgNoAlt!.wcagCriterion).toMatch(/1\.1\.1/);
+  });
+
+  it('does NOT flag <img alt="…"> (accessible) or <img alt=""> (decorative)', async () => {
+    const report = await runAccessibilityAnalysis({ projectPath: A11Y_JSX });
+    // GoodImg and DecorativeImg should not show up in a11y findings.
+    const imgFindings = report.findings.filter((f) => /img.*alt/i.test(f.title));
+    // Only ONE BadImg should fire — at the line of <img src="/hero.png" />.
+    expect(imgFindings.length).toBe(1);
+  });
+
+  it('flags icon-only <button> without aria-label', async () => {
+    const report = await runAccessibilityAnalysis({ projectPath: A11Y_JSX });
+    const btn = report.findings.find((f) => /button.*accessible name/i.test(f.title));
+    expect(btn).toBeTruthy();
+    expect(btn!.severity).toBe('high');
+  });
+
+  it('flags <a target="_blank"> without rel="noopener"', async () => {
+    const report = await runAccessibilityAnalysis({ projectPath: A11Y_JSX });
+    const ext = report.findings.find((f) => /noopener/i.test(f.title));
+    expect(ext).toBeTruthy();
+    expect(ext!.severity).toBe('medium');
+  });
+
+  it('does NOT flag <a target="_blank" rel="noopener noreferrer">', async () => {
+    const report = await runAccessibilityAnalysis({ projectPath: A11Y_JSX });
+    // Only ONE noopener finding (the bad case), not two.
+    const noopener = report.findings.filter((f) => /noopener/i.test(f.title));
+    expect(noopener.length).toBe(1);
+  });
+
+  it('flags <input> without label / aria-label', async () => {
+    const report = await runAccessibilityAnalysis({ projectPath: A11Y_JSX });
+    const input = report.findings.find((f) => /input.*label/i.test(f.title));
+    expect(input).toBeTruthy();
+  });
+
+  it('does NOT flag <input type="hidden">', async () => {
+    const report = await runAccessibilityAnalysis({ projectPath: A11Y_JSX });
+    // Hidden inputs are excluded; only ONE input-no-label finding should fire.
+    const inputFindings = report.findings.filter((f) => /input.*label/i.test(f.title));
+    expect(inputFindings.length).toBe(1);
+  });
+
+  it('flags <div onClick> without role + tabIndex', async () => {
+    const report = await runAccessibilityAnalysis({ projectPath: A11Y_JSX });
+    const clickable = report.findings.find((f) => /onClick.*role\+tabIndex/i.test(f.title));
+    expect(clickable).toBeTruthy();
+    expect(clickable!.severity).toBe('medium');
+  });
+
+  it('does NOT flag <div role="button" tabIndex={0} onClick>', async () => {
+    const report = await runAccessibilityAnalysis({ projectPath: A11Y_JSX });
+    const clickable = report.findings.filter((f) => /onClick.*role\+tabIndex/i.test(f.title));
+    expect(clickable.length).toBe(1); // only ClickableDiv, not AccessibleDivButton
+  });
+
+  it('flags empty aria-label="" as an anti-pattern', async () => {
+    const report = await runAccessibilityAnalysis({ projectPath: A11Y_JSX });
+    const empty = report.findings.find((f) => /aria-label.*empty string/i.test(f.title));
+    expect(empty).toBeTruthy();
   });
 });
 
