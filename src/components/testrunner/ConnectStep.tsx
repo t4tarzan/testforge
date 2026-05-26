@@ -5,6 +5,8 @@ import { GitBranch, Play, Loader2, AlertCircle } from 'lucide-react';
 const MCP_URL = 'https://testforge-mcp.fly.dev';
 
 interface ConnectStepProps {
+  // Receives the analyzer's full result object — dynamic shape, see ReportStep.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onComplete: (results: any) => void;
 }
 
@@ -36,8 +38,8 @@ export default function ConnectStep({ onComplete }: ConnectStepProps) {
       const data = await res.json();
       setProgress('Analysis complete!');
       setTimeout(() => onComplete(data), 500);
-    } catch (e: any) {
-      setError(e.message || 'Failed to analyze repository');
+    } catch (e) {
+      setError((e as Error)?.message || 'Failed to analyze repository');
       setLoading(false);
     }
   };

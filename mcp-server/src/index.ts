@@ -10,7 +10,7 @@ import { runSecurityAnalysis } from './analyzers/security-analyzer.js';
 import { runUnitAnalysis } from './analyzers/unit-analyzer.js';
 import { runLoadAnalysis } from './analyzers/load-analyzer.js';
 import { runAccessibilityAnalysis } from './analyzers/accessibility-analyzer.js';
-import { saveReport, getReports, getReport } from './local-db.js';
+import { getReports, getReport } from './local-db.js';
 import {
   runVisionAnalysis,
   runScopeAnalysis,
@@ -66,7 +66,7 @@ async function main() {
 
   // ── Get Single Report ───────────────────────────────────────────────
   app.get('/report-view/:id', async (request, reply) => {
-    const { id } = request.params as any;
+    const { id } = request.params as { id: string };
     const report = getReport(id);
     if (!report) return reply.status(404).send({ error: 'Report not found' });
     return reply.send(report);
@@ -150,7 +150,7 @@ async function main() {
       const deadCodeReport = runDeadCodeAnalysis(codebase.fileContents, codebase.dependencies);
       const licenseReport = runLicenseCheck(codebase.dependencies);
       const doraReport = runDoraEstimation(codebase.fileContents, codebase.devDependencies);
-      const owaspReport = runOwaspCoverage(securityFindings as any);
+      const owaspReport = runOwaspCoverage(securityFindings.filter(f => f.severity !== 'info') as Parameters<typeof runOwaspCoverage>[0]);
 
       // ── Agentic Scale Prediction (21st dimension) ─────────────────────
       const agenticReport = runAgenticScalePrediction(
@@ -177,10 +177,10 @@ async function main() {
         },
         security: {
           findings: securityFindings.length,
-          critical: securityFindings.filter((f: any) => f.severity === 'critical').length,
-          high: securityFindings.filter((f: any) => f.severity === 'high').length,
-          medium: securityFindings.filter((f: any) => f.severity === 'medium').length,
-          low: securityFindings.filter((f: any) => f.severity === 'low').length,
+          critical: securityFindings.filter(f => f.severity === 'critical').length,
+          high: securityFindings.filter(f => f.severity === 'high').length,
+          medium: securityFindings.filter(f => f.severity === 'medium').length,
+          low: securityFindings.filter(f => f.severity === 'low').length,
           items: securityFindings.slice(0, 10),
         },
         unit: {
@@ -307,10 +307,10 @@ async function main() {
           findings: agenticReport.findings,
         },
       });
-    } catch (err: any) {
-      // Clean up on error
-      try { if (existsSync(projectPath)) rmSync(projectPath, { recursive: true, force: true }); } catch {}
-      return reply.status(500).send({ error: err.message, repo: repoUrl });
+    } catch (err) {
+      // Clean up on error — swallow secondary IO errors during cleanup
+      try { if (existsSync(projectPath)) rmSync(projectPath, { recursive: true, force: true }); } catch { /* cleanup best-effort */ }
+      return reply.status(500).send({ error: (err as Error).message, repo: repoUrl });
     }
   });
 
@@ -347,8 +347,8 @@ async function main() {
           ]},
         ]
       };
-    } catch (err: any) {
-      reply.status(404).send({ error: 'Report not found', message: err.message });
+    } catch (err) {
+      reply.status(404).send({ error: 'Report not found', message: (err as Error).message });
     }
   });
 
@@ -442,8 +442,8 @@ if (command === 'serve' || command === 'start' || !command) {
     );
     console.log(score);
     process.exit(score >= 70 ? 0 : 1);
-  } catch (e: any) {
-    console.error(e.message);
+  } catch (e) {
+    console.error((e as Error).message);
     process.exit(2);
   }
 } else {

@@ -138,7 +138,7 @@ export async function runVisualRegressionAnalysis(
   const findings: Finding[] = [];
   let htmlFiles = 0, cssFiles = 0;
 
-  for (const [filePath, content] of Object.entries(fileContents)) {
+  for (const filePath of Object.keys(fileContents)) {
     if (filePath.endsWith('.html') || filePath.endsWith('.jsx') || filePath.endsWith('.tsx')) htmlFiles++;
     if (filePath.endsWith('.css') || filePath.endsWith('.scss') || filePath.endsWith('.less')) cssFiles++;
   }
@@ -868,7 +868,6 @@ export function runDoraEstimation(fileContents: Record<string, string>, devDepen
   const hasCI = Object.keys(fileContents).some(f => f.includes('.github/workflows') || f.includes('.gitlab-ci')) ||
     allContent.includes('github-actions') || allContent.includes('circleci');
   const hasDocker = Object.keys(fileContents).some(f => f.includes('Dockerfile'));
-  const hasLinting = devDependencies.some(d => d.includes('eslint') || d.includes('prettier'));
   const hasTests = devDependencies.some(d => d.includes('jest') || d.includes('vitest'));
   const hasMonitoring = devDependencies.some(d => d.includes('sentry') || d.includes('datadog'));
 

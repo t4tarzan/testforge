@@ -10,8 +10,12 @@ import { saveAnalysisResults } from '@/lib/analysisStore';
 export default function TestRunner() {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  // Dynamic analyzer response; threaded directly into <ReportStep />.
+  // See AnalysisResults note in ReportStep.tsx.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [analysisResults, setAnalysisResults] = useState<any>(null);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleConnectComplete = useCallback((results: any) => {
     setAnalysisResults(results);
     saveAnalysisResults(results); // Persist for Dashboard & PRD Generator

@@ -197,7 +197,7 @@ export async function generateReport(
 /*                           Score Calculation                                */
 /* -------------------------------------------------------------------------- */
 
-function calculateMetrics(findings: FindingRecord[], testRun: TestRunRecord): PRDReport['metrics'] {
+function calculateMetrics(findings: FindingRecord[], _testRun: TestRunRecord): PRDReport['metrics'] {
   // Security score: 100 minus weighted deductions
   const securityFindings = findings.filter(f => f.dimension === 'security');
   const securityDeductions = securityFindings.reduce(

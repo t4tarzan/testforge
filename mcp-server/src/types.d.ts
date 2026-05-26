@@ -1,5 +1,5 @@
 declare module '@testforge/db' {
-  export function createClient(connectionString?: string): any;
+  export function createClient(connectionString?: string): unknown;
 }
 
 declare module 'better-sqlite3' {
@@ -7,15 +7,15 @@ declare module 'better-sqlite3' {
     interface Database {
       exec(sql: string): this;
       prepare(sql: string): Statement;
-      pragma(pragma: string, options?: { simple?: boolean }): any;
+      pragma(pragma: string, options?: { simple?: boolean }): unknown;
       close(): void;
     }
     interface Statement {
-      run(...params: any[]): { changes: number; lastInsertRowid: number | bigint };
-      get(...params: any[]): any;
-      all(...params: any[]): any[];
+      run(...params: unknown[]): { changes: number; lastInsertRowid: number | bigint };
+      get(...params: unknown[]): unknown;
+      all(...params: unknown[]): unknown[];
     }
   }
-  function BetterSqlite3(filename: string, options?: { readonly?: boolean; fileMustExist?: boolean; timeout?: number; verbose?: Function }): BetterSqlite3.Database;
+  function BetterSqlite3(filename: string, options?: { readonly?: boolean; fileMustExist?: boolean; timeout?: number; verbose?: (sql: string, ...params: unknown[]) => void }): BetterSqlite3.Database;
   export = BetterSqlite3;
 }

@@ -253,8 +253,7 @@ function countTests(content: string): number {
 
   // it('...', ...) or test('...', ...)
   const testRegex = /(?:it|test)\s*\(\s*['"`]/g;
-  let match: RegExpExecArray | null;
-  while ((match = testRegex.exec(content)) !== null) {
+  while (testRegex.exec(content) !== null) {
     count++;
   }
 

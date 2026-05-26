@@ -37,7 +37,6 @@ import {
   confidenceFor,
   describeFlow,
   evaluateTaint,
-  identifySanitizer,
   type TaintInfo,
   type TaintTable,
 } from './lib/taint.js';

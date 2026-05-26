@@ -34,11 +34,9 @@ jobs:
           cache: 'npm'
       - run: npm ci
 
-      # Lint is currently non-blocking: the codebase has ~120 pre-existing
-      # eslint errors. Surface them as a soft signal until they're paid down
-      # (then flip continue-on-error to false).
-      - name: Lint (advisory)
-        continue-on-error: true
+      # Lint is now a blocking check. Backlog cleared 2026-05-26; warnings
+      # are allowed (see eslint.config.js) but errors fail the build.
+      - name: Lint
         run: npm run lint
 
       # The production build IS blocking. If tsc or vite fails, the PR can't
