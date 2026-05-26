@@ -708,7 +708,7 @@ function CliInstallationPage() {
         Verify installation:
       </p>
       <DocCodeBlock
-        code={"testforge --version\n# testforge/2.4.1 darwin-arm64 node-v20.11.0"}
+        code={"testforge-mcp --version\n# @whitenoisenpm/testforge-mcp/0.24.0 darwin-arm64 node-v20.11.0"}
         language="bash"
       />
 
@@ -1470,7 +1470,7 @@ function ApiReferencePage() {
       <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">🔬 Analysis</h2>
       <div className="space-y-6">
         {[
-          { method: 'GET', path: '/health', desc: 'Health check — pings Neon and reports version. No auth. No rate limit.', example: '{"status":"ok","version":"0.5.0","database":"connected"}' },
+          { method: 'GET', path: '/health', desc: 'Health check — pings Neon and reports version. No auth. No rate limit.', example: '{"status":"ok","version":"0.24.0","database":"connected"}' },
           { method: 'GET', path: '/status', desc: 'Public services rollup — Web, MCP server, DB, npm package. 30s cache. No auth.', example: '{"status":"all_systems_operational","services":[{"name":"Web Platform","status":"operational"},…]}' },
           { method: 'POST', path: '/analyze', desc: 'Proxies a clone-and-analyze request to the Fly.io MCP server. Returns the full 21-dimension report verbatim. 504 on upstream timeout, 502 on connection failure — never fabricated data. No auth required to analyze public repos.', body: '{"repoUrl":"https://github.com/owner/repo","branch":"main"}', example: '{"codebase":{"totalFiles":402,…},"security":{"findings":29,…},"mutation":{"score":47,…},…}' },
           { method: 'GET', path: '/analyze', desc: 'Returns the configured MCP server URL + endpoints (for clients that prefer to call it directly).', example: '{"mcpServer":"https://testforge-mcp.fly.dev","endpoints":{…}}' },
@@ -1696,13 +1696,49 @@ function ChangelogPage() {
         <div>
           <div className="flex items-center gap-3 mb-3">
             <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
+              mcp 0.24.0 — analyzer deepening (passes 1-16)
+            </h2>
+            <span className="font-mono text-[12px] text-[#9A9A9A]">
+              2026-05-26
+            </span>
+            <span className="font-mono font-medium text-[11px] uppercase px-2 py-0.5 rounded bg-[#E8E5FF] text-[#574a7d]">
+              Latest
+            </span>
+          </div>
+          <p className="font-body text-[16px] text-[#333333] leading-[1.7] ml-2 mb-3">
+            18 npm releases (<code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">0.6.0 → 0.24.0</code>) over a single day. Every one of the 21 dimensions moved from substring-matching to AST-based analysis. Substring traps fixed across the board — <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">dep.includes('vite')</code> no longer matches <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">vitest</code>, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">readme.includes('auth')</code> no longer matches "author", a real GPL list replaces the previous mis-classified one that called React "GPL-licensed."
+          </p>
+          <ul className="list-disc list-inside space-y-2 font-body text-[15px] text-[#333333] leading-[1.7] ml-2 mb-2">
+            <li><strong>Spine, phases 4a → 4c</strong> — cross-function taint (intra-file), cross-file taint (project-wide), user-authored rules DSL (<code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">.testforge/rules.yaml</code>).</li>
+            <li><strong>Pass 1 (0.9.0)</strong> — N+1 query detection + dead-code (AST-aware, follows for/while/forEach/map/filter/reduce, skips <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">Promise.all</code> parallelization).</li>
+            <li><strong>Pass 2 (0.10.0)</strong> — unit test quality. Detects assertion-less tests, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">.skip</code> / <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">.only</code> rot, empty test bodies, isolated test files.</li>
+            <li><strong>Pass 3 (0.11.0)</strong> — contract analysis. Parses real OpenAPI YAML, cross-references against AST-discovered route handlers, flags undocumented + orphan endpoints.</li>
+            <li><strong>Pass 4 (0.12.0)</strong> — predictive failures with per-file cross-signal aggregation + AST-based cyclomatic complexity. Top-N hotspots surfaced with audit-trail reasons.</li>
+            <li><strong>Pass 5 (0.13.0)</strong> — JSX accessibility with WCAG-mapped rules (img alt, button name, anchor noopener, input label, role+tabIndex on click handlers, empty aria-label).</li>
+            <li><strong>Pass 6 (0.14.0)</strong> — load patterns. AST-detects rate-limit middleware registration, compression, pool construction, timeouts, health endpoints, circuit breakers. New HIGH-severity finding: sync I/O inside route handlers.</li>
+            <li><strong>Pass 7 (0.15.0)</strong> — OWASP coverage redesigned to be honest: separates analyzer-coverage from project-findings, calls out gaps (A08 + A10 not yet covered).</li>
+            <li><strong>Pass 8 (0.16.0)</strong> — supply-chain lockfile audit. Parses <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">package-lock.json</code> for transitive CVE matches, non-registry sources (git+, file:), missing integrity hashes, duplicate-version drift.</li>
+            <li><strong>Pass 9 (0.17.0)</strong> — license audit rewritten. Old <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">knownGPL</code> list contained MIT-licensed react/vue/angular — fixed. Now walks node_modules, classifies SPDX into permissive / weak-copyleft / strong-copyleft / proprietary / unknown.</li>
+            <li><strong>Pass 10 (0.18.0)</strong> — chaos / resilience patterns. AST-detects <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">process.on('SIGTERM')</code> graceful shutdown, unhandledRejection guards, retry libraries + manual retry loops, global error handlers, Idempotency-Key header reads.</li>
+            <li><strong>Pass 11 (0.19.0)</strong> — mutation testing via assertion-quality analysis. Classifies each matcher as strong / weak / snapshot, scores by variety.</li>
+            <li><strong>Pass 12 (0.20.0)</strong> — DORA metrics reframed from fabricated estimates ("Daily") to honest "Capability: Good/Partial/Weak" framing per axis. Parses CI YAML for jobs + type-check steps.</li>
+            <li><strong>Pass 13 (0.21.0)</strong> — vision + scope precise matching. Strict dep-name sets (no more substring traps), word-boundary feature matching, README excluded from implementation check (so docs can't satisfy their own claims).</li>
+            <li><strong>Pass 14 (0.22.0)</strong> — AST edge-case detection. Six rules: parseInt-no-radix, JSON.parse-untrycaught (try-block range tracked), new Date on non-literal string, loose equality (with <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">== null</code> exception), Number coercion inline-only, switch without default.</li>
+            <li><strong>Pass 15 (0.23.0)</strong> — visual regression + property-based both moved to AST. Real JSX style-prop counts (not substrings of "style="), fast-check/jsverify detection, removed the noisy "function with too many this.* refs is impure" heuristic.</li>
+            <li><strong>Pass 16 (0.24.0)</strong> — stack analysis polished. Strict dep-name sets fix <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">vitest</code> being counted as a bundler. New signals: tsconfig strict-mode detection, modern frameworks (Next/Remix/Astro/Nuxt/SvelteKit/Hono), runtime validation (Zod/Yup/Joi/Valibot/Effect), tRPC, TS runtimes.</li>
+          </ul>
+          <p className="font-body text-[15px] text-[#333333] leading-[1.7] ml-2 mt-3">
+            Tests: <strong>30 → 166</strong> (5.5×). Lint backlog cleared in 0.8.1: 127 errors → 0, CI lint gate now blocking. All 21 dimensions substantively deepened.
+          </p>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
               v2.1.0
             </h2>
             <span className="font-mono text-[12px] text-[#9A9A9A]">
               2026-05-25
-            </span>
-            <span className="font-mono font-medium text-[11px] uppercase px-2 py-0.5 rounded bg-[#E8E5FF] text-[#574a7d]">
-              Latest
             </span>
           </div>
           <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] ml-2 mb-2">
@@ -1716,7 +1752,7 @@ function ChangelogPage() {
             <li><strong>Observability</strong> — <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">X-Request-Id</code> on every response (Vercel correlation id when available), structured JSON logger, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">requireEnv()</code> contract that surfaces missing env vars as a clean 500 with field names.</li>
             <li><strong>Real analyzer tests</strong> — 10 vitest cases drive <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">scanCodebase</code>/<code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">runSecurityAnalysis</code> against on-disk fixture projects (was: tautology assertions that never touched the engine).</li>
             <li><strong>CI on Vercel previews</strong> — Playwright runs against the PR's preview URL using <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">VERCEL_AUTOMATION_BYPASS_SECRET</code>. Lint+build, vitest, and e2e all blocking.</li>
-            <li><strong>MCP local server</strong> — default port changed <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">3001 → 33221</code> (avoid collisions). <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">npx @whitenoisenpm/testforge-mcp@0.2.19</code> now persists <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">/test</code> + <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">/quick-scan</code> runs to <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">~/.testforge/history.db</code>.</li>
+            <li><strong>MCP local server</strong> — default port changed <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">3001 → 33221</code> (avoid collisions). <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">npx @whitenoisenpm/testforge-mcp@latest</code> persists <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">/test</code> + <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">/quick-scan</code> runs to <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">~/.testforge/history.db</code>.</li>
             <li><strong>Operational</strong> — new <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">scripts/smoke.sh</code> 10-assertion post-deploy check, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">RUNBOOK.md</code> with pre-launch checklist and incident playbooks.</li>
           </ul>
         </div>
@@ -1914,7 +1950,7 @@ function McpIdeSetupPage() {
         <div className="space-y-3">
           {[
             { tool: 'testforge_analyze', desc: 'Scan your codebase for endpoints, dependencies, tech stack, and structure' },
-            { tool: 'testforge_test', desc: 'Run the full 20-dimension test suite across your project' },
+            { tool: 'testforge_test', desc: 'Run the full 21-dimension test suite across your project' },
             { tool: 'testforge_quick_scan', desc: 'Fast 30-second security + unit test scan' },
             { tool: 'testforge_report', desc: 'Generate a structured PRD report from test results' },
           ].map(t => (
@@ -2063,13 +2099,13 @@ function McpUsageGuidePage() {
       </div>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#12101A] mb-4">🖥️ Local Dashboard (v0.2.17)</h2>
+        <h2 className="text-heading-sm text-[#12101A] mb-4">🖥️ Local Dashboard (v0.24.0)</h2>
         <p className="text-body-md text-[#6B6B6B] mb-4">
-          The MCP server now includes a beautiful local dashboard at <code className="bg-[#E8E5FF] px-1.5 py-0.5 rounded text-[#574a7d] font-mono text-sm">http://localhost:3001</code>. No cloud, no sign-in, no hosting needed.
+          The MCP server ships with a local dashboard at <code className="bg-[#E8E5FF] px-1.5 py-0.5 rounded text-[#574a7d] font-mono text-sm">http://localhost:33221</code>. No cloud, no sign-in, no hosting needed.
         </p>
         <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm text-[#a99bff] overflow-x-auto mb-4">
-          npx @whitenoisenpm/testforge-mcp@0.2.17 serve<br/>
-          open http://localhost:3001
+          npx @whitenoisenpm/testforge-mcp@latest serve<br/>
+          open http://localhost:33221
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[
@@ -2165,14 +2201,14 @@ function ContainerDeploymentPage() {
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
         <h2 className="text-heading-sm text-[#12101A] mb-4">Docker Deployment</h2>
         <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm text-[#a39fd4] overflow-x-auto">
-          {`docker build -t testforge-mcp .\ndocker run -p 3001:3001 \\\\\\n  -e DATABASE_URL=your_neon_url \\\\\\n  testforge-mcp`}
+          {`docker build -t testforge-mcp .\ndocker run -p 33221:33221 \\\\\\n  -e DATABASE_URL=your_neon_url \\\\\\n  testforge-mcp`}
         </div>
       </section>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
         <h2 className="text-heading-sm text-[#12101A] mb-4">Docker Compose (with DB)</h2>
         <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm text-[#a39fd4] overflow-x-auto">
-          {`version: '3.8'\nservices:\n  testforge:\n    build: ./mcp-server\n    ports:\n      - "3001:3001"\n    environment:\n      - DATABASE_URL=postgresql://user:pass@db:5432/testforge\n  db:\n    image: postgres:16\n    environment:\n      - POSTGRES_USER=user\n      - POSTGRES_PASSWORD=pass\n      - POSTGRES_DB=testforge`}
+          {`version: '3.8'\nservices:\n  testforge:\n    build: ./mcp-server\n    ports:\n      - "33221:33221"\n    environment:\n      - DATABASE_URL=postgresql://user:pass@db:5432/testforge\n  db:\n    image: postgres:16\n    environment:\n      - POSTGRES_USER=user\n      - POSTGRES_PASSWORD=pass\n      - POSTGRES_DB=testforge`}
         </div>
       </section>
 
@@ -2181,9 +2217,9 @@ function ContainerDeploymentPage() {
         <div className="space-y-4">
           {[
             { platform: 'Railway', steps: '1. Create new service → Deploy from GitHub repo\n2. Set DATABASE_URL env var\n3. Railway auto-detects Dockerfile and deploys' },
-            { platform: 'Render', steps: '1. New Web Service → Connect GitHub repo\n2. Select Docker runtime\n3. Set port to 3001 and add env vars' },
-            { platform: 'Google Cloud Run', steps: '1. gcloud builds submit --tag gcr.io/PROJECT/testforge\n2. gcloud run deploy --image gcr.io/PROJECT/testforge --port 3001\n3. Set DATABASE_URL via Secret Manager' },
-            { platform: 'AWS ECS / Fargate', steps: '1. Push image to ECR\n2. Create ECS task definition with port 3001\n3. Create Fargate service with DATABASE_URL secret' },
+            { platform: 'Render', steps: '1. New Web Service → Connect GitHub repo\n2. Select Docker runtime\n3. Set port to 33221 and add env vars' },
+            { platform: 'Google Cloud Run', steps: '1. gcloud builds submit --tag gcr.io/PROJECT/testforge\n2. gcloud run deploy --image gcr.io/PROJECT/testforge --port 33221\n3. Set DATABASE_URL via Secret Manager' },
+            { platform: 'AWS ECS / Fargate', steps: '1. Push image to ECR\n2. Create ECS task definition with port 33221\n3. Create Fargate service with DATABASE_URL secret' },
           ].map(p => (
             <div key={p.platform} className="border border-[#D9D9D3] rounded-lg p-4">
               <h3 className="font-medium text-[#12101A] mb-2">{p.platform}</h3>

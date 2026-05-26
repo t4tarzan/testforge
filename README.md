@@ -34,15 +34,26 @@ Dashboard accepts a local project path **or** a GitHub URL. The npm package ship
 
 ## 📊 What We Analyze (21 dimensions)
 
-| Category | Dimensions | Where it's run |
+| Category | Dimensions | Detection method |
 |---|---|---|
-| **Code Quality** | Security (SAST), Unit Tests, Load/Perf, Accessibility | Fly.io (managed) + local MCP |
-| **API** | Contract testing, Visual regression | same |
-| **Advanced** | Edge cases, Property-based, Chaos, Mutation, Predictive | same |
-| **Strategic** | Vision & goals, Scope coverage, Stack analysis | same |
-| **Enterprise** | Agentic-scale, DORA, Supply chain, N+1 queries, Dead code, License, OWASP | same |
+| **Code Quality** | Security (SAST), Unit Tests, Load/Perf, Accessibility | Babel AST + taint tracking |
+| **API** | Contract testing (OpenAPI cross-ref), Visual regression | AST + YAML parsing |
+| **Advanced** | Edge cases, Property-based, Chaos, Mutation, Predictive | AST + cross-signal aggregation |
+| **Strategic** | Vision & goals, Scope coverage, Stack analysis | Strict dep-name sets + tsconfig parse |
+| **Enterprise** | Agentic-scale, DORA, Supply chain (lockfile), N+1 queries, Dead code, License (SPDX), OWASP | AST + package-lock parse + node_modules walk |
 
-All analyzers are deterministic — same input always produces the same output (post-S1 refactor). No LLM calls, no `Math.random()`.
+All analyzers are deterministic — same input always produces the same output. No LLM calls, no `Math.random()`. Every dimension shipped substantive AST-based depth in v0.6.0 → v0.24.0 (16 deepening passes; see the [mcp-server changelog](./mcp-server/README.md)).
+
+### 🆕 Recent work (2026-05-26)
+
+Today shipped **18 npm releases** (`0.6.0 → 0.24.0`) covering:
+
+- **Spine (phases 4a/4b/4c)** — intra-file → cross-file taint propagation + user-authored rules DSL (`.testforge/rules.yaml`)
+- **16 deepening passes** across all 21 dimensions: substring-matching → AST analysis. Substring traps fixed across the board (e.g. `dep.includes('vite')` no longer matches `vitest`)
+- **127 → 0** ESLint errors with CI gate now blocking
+- **30 → 166** vitest tests (5.5×)
+
+Full per-pass detail in [`mcp-server/README.md` changelog](./mcp-server/README.md#changelog-highlights).
 
 ---
 
