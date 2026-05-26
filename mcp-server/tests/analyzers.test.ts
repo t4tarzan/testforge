@@ -29,6 +29,7 @@ import {
 import { runUnitAnalysis } from '../src/analyzers/unit-analyzer.js';
 import { runAccessibilityAnalysis } from '../src/analyzers/accessibility-analyzer.js';
 import { runLoadAnalysis } from '../src/analyzers/load-analyzer.js';
+import { runVisionAnalysis, runScopeAnalysis } from '../src/analyzers/strategic-analyzer.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const VULNERABLE = resolve(__dirname, 'fixtures/vulnerable-app');
@@ -52,6 +53,8 @@ const CHAOS_FRAGILE = resolve(__dirname, 'fixtures/chaos-fragile');
 const MUTATION_QUALITY = resolve(__dirname, 'fixtures/mutation-quality');
 const DORA_MATURE = resolve(__dirname, 'fixtures/dora-mature');
 const DORA_IMMATURE = resolve(__dirname, 'fixtures/dora-immature');
+const STRATEGIC_STRONG = resolve(__dirname, 'fixtures/strategic-strong');
+const STRATEGIC_WEAK = resolve(__dirname, 'fixtures/strategic-weak');
 
 describe('code-scanner', () => {
   let vulnInfo: CodebaseInfo;
@@ -1651,6 +1654,80 @@ describe('advanced-analyzer — Phase 5 pass 12: DORA signals (capability framin
     expect(report.findings.find((f) => /No CODEOWNERS/i.test(f.title))).toBeUndefined();
     expect(report.findings.find((f) => /type-check step/i.test(f.title))).toBeUndefined();
     expect(report.findings.find((f) => /feature-flag platform/i.test(f.title))).toBeUndefined();
+  });
+});
+
+describe('strategic-analyzer — Phase 5 pass 13: vision + scope (word-boundary, exact deps)', () => {
+  it('vision: strong fixture passes — no findings fire', async () => {
+    const info = await scanCodebase(STRATEGIC_STRONG);
+    const report = await runVisionAnalysis(info.fileContents, info.dependencies, info.devDependencies);
+    expect(report.score).toBeGreaterThanOrEqual(95);
+    expect(report.findings).toEqual([]);
+  });
+
+  it('vision: weak fixture flags missing observability / analytics / flags / versioning', async () => {
+    const info = await scanCodebase(STRATEGIC_WEAK);
+    const report = await runVisionAnalysis(info.fileContents, info.dependencies, info.devDependencies);
+    expect(report.findings.find((f) => /observability/i.test(f.title))).toBeTruthy();
+    expect(report.findings.find((f) => /product analytics/i.test(f.title))).toBeTruthy();
+    expect(report.findings.find((f) => /feature-flag/i.test(f.title))).toBeTruthy();
+  });
+
+  it('vision: substring-trap deps (cache-analytics, crypto-analytics-lib) do NOT count as product analytics', async () => {
+    // The weak fixture has these deps explicitly so the old substring
+    // matcher would have falsely concluded analytics is present.
+    const info = await scanCodebase(STRATEGIC_WEAK);
+    const report = await runVisionAnalysis(info.fileContents, info.dependencies, info.devDependencies);
+    expect(report.findings.find((f) => /product analytics/i.test(f.title))).toBeTruthy();
+  });
+
+  it('scope: documented + implemented features match → no scope-gap finding', async () => {
+    const info = await scanCodebase(STRATEGIC_STRONG);
+    const report = await runScopeAnalysis(info.fileContents, info.dependencies);
+    // Strong fixture documents Auth/Payments/Search/Notifications/Admin AND implements them.
+    expect(report.coverage).toBeGreaterThanOrEqual(80);
+    expect(report.missingFeatures).toEqual([]);
+    expect(report.findings.find((f) => /not implemented/i.test(f.title))).toBeUndefined();
+  });
+
+  it('scope: weak fixture surfaces scope gap (Payments + Notifications in README but no impl)', async () => {
+    const info = await scanCodebase(STRATEGIC_WEAK);
+    const report = await runScopeAnalysis(info.fileContents, info.dependencies);
+    expect(report.missingFeatures.length).toBeGreaterThan(0);
+    const gap = report.findings.find((f) => /not implemented/i.test(f.title));
+    expect(gap).toBeTruthy();
+    expect(gap!.description).toMatch(/Payments|Notifications/);
+  });
+
+  it('scope: extracts the Features section from the README', async () => {
+    const info = await scanCodebase(STRATEGIC_STRONG);
+    const report = await runScopeAnalysis(info.fileContents, info.dependencies);
+    // The strong fixture's Features section names 5 things; documentedFeatures should reflect that.
+    expect(report.documentedFeatures).toBeGreaterThanOrEqual(4);
+  });
+
+  it('scope: finds README under non-standard casing too', async () => {
+    // Synthesize a project where the readme is lowercase.
+    const fc: Record<string, string> = {
+      'package.json': '{"name":"x"}',
+      'readme.md': '## Features\n- Authentication via JWT\n',
+    };
+    const report = await runScopeAnalysis(fc, []);
+    expect(report.documentedFeatures).toBeGreaterThan(0);
+  });
+
+  it('scope: word boundary matching — "author" no longer trips "auth" detection', async () => {
+    // README mentions an "author" but no auth feature. Implementation
+    // has no auth either. With substring matching, "author" would have
+    // tripped "Authentication is implemented" — false positive.
+    const fc: Record<string, string> = {
+      'package.json': '{"name":"x"}',
+      'README.md': '## About\nAuthored by Jane Doe.\n',
+      'src/index.js': '// no auth code here',
+    };
+    const report = await runScopeAnalysis(fc, []);
+    // Documented features should be zero — "author" must not count as a feature mention.
+    expect(report.documentedFeatures).toBe(0);
   });
 });
 

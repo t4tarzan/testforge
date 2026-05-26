@@ -1,6 +1,16 @@
 // Strategic Analysis — dimensions competitors don't cover
 // Vision alignment, scope coverage, stack choice, feature matrix
 
+import {
+  findReadme,
+  hasProductAnalytics,
+  hasFeatureFlags,
+  hasErrorTracking,
+  hasAPM,
+  hasAnyKeyword,
+  extractFeaturesSection,
+} from './lib/strategic-signals.js';
+
 export interface StrategicReport {
   vision: VisionAnalysis;
   scope: ScopeAnalysis;
@@ -58,91 +68,63 @@ export interface FeatureMatrixAnalysis {
 export async function runVisionAnalysis(
   fileContents: Record<string, string>,
   dependencies: string[],
-  _devDependencies: string[]
+  devDependencies: string[]
 ): Promise<VisionAnalysis> {
   const findings: VisionFinding[] = [];
-  const allContent = Object.values(fileContents).join('\n');
+  const allDeps = [...dependencies, ...devDependencies];
 
-  // Check for observability/metrics
-  const hasMetrics = dependencies.some(d =>
-    d.includes('prometheus') || d.includes('datadog') || d.includes('newrelic') ||
-    d.includes('opentelemetry') || d.includes('sentry') || d.includes('bugsnag') ||
-    d.includes('logrocket')
-  );
-
-  if (!hasMetrics) {
+  // ── Observability is split into APM (tracing/metrics) and error tracking
+  //    (Sentry/Rollbar/Bugsnag). Both matter; recognize them separately.
+  const observabilityPresent = hasAPM(allDeps) || hasErrorTracking(allDeps);
+  if (!observabilityPresent) {
     findings.push({
       severity: 'high',
-      title: 'No Observability/Metrics Detected',
-      description: 'Without metrics, you cannot measure if your product is achieving its business goals. Add monitoring to track user behavior, performance, and business KPIs.',
+      title: 'No observability stack detected',
+      description: 'No APM (OpenTelemetry/Datadog/NewRelic/Honeycomb) and no error tracking (Sentry/Rollbar/Bugsnag) dep detected. Without these, you can\'t correlate user-impacting issues with code changes.',
       category: 'Observability',
-      fixSuggestion: 'Add OpenTelemetry for tracing, Prometheus for metrics, and Sentry for error tracking. Set up dashboards for key business metrics.',
+      fixSuggestion: 'Start with Sentry — fastest path to crash/error visibility. Add OpenTelemetry if you need full tracing. Wire up alerts to a notification channel humans actually read.',
     });
   }
 
-  // Check for feature flags
-  const hasFeatureFlags = dependencies.some(d =>
-    d.includes('launchdarkly') || d.includes('unleash') || d.includes('flagsmith') ||
-    d.includes('growthbook') || d.includes('feature-flags')
-  );
-
-  if (!hasFeatureFlags) {
+  // ── Feature flag platform — strict dep name matching now.
+  if (!hasFeatureFlags(allDeps)) {
     findings.push({
       severity: 'medium',
-      title: 'No Feature Flag System',
-      description: 'Feature flags enable gradual rollouts, A/B testing, and quick rollbacks. Without them, every release is all-or-nothing — increasing deployment risk.',
+      title: 'No feature-flag platform',
+      description: 'Feature flags decouple deploy from release: kill-switch on regressions, staged rollouts to a % of users, A/B test cohorts. Releases without them are all-or-nothing.',
       category: 'Delivery Velocity',
-      fixSuggestion: 'Integrate LaunchDarkly, Unleash, or GrowthBook. Use feature flags for all new features to enable canary releases and A/B testing.',
+      fixSuggestion: 'For early-stage: Posthog (free tier, JS-SDK-only). For larger teams: LaunchDarkly / Statsig. Even a homegrown flags table beats no kill-switch.',
     });
   }
 
-  // Check for analytics
-  const hasAnalytics = dependencies.some(d =>
-    d.includes('analytics') || d.includes('mixpanel') || d.includes('amplitude') ||
-    d.includes('segment') || d.includes('posthog') || d.includes('heap') ||
-    d.includes('ga4') || d.includes('google-analytics')
-  );
-
-  if (!hasAnalytics) {
+  // ── Product analytics — strict dep name matching (was: substring of "analytics" matched cache-analytics, crypto-analytics-lib, …).
+  if (!hasProductAnalytics(allDeps)) {
     findings.push({
       severity: 'high',
-      title: 'No Product Analytics',
-      description: 'You cannot improve what you cannot measure. Product analytics tell you if features are actually delivering value to users.',
+      title: 'No product analytics dependency',
+      description: 'No Posthog / Mixpanel / Amplitude / Segment / Heap / Plausible / Fathom dep detected. Without telemetry on feature adoption + user journeys, you can\'t close the loop between code shipped and value delivered.',
       category: 'Product Intelligence',
-      fixSuggestion: 'Add PostHog (open-source) or Mixpanel for product analytics. Track feature adoption, user journeys, and conversion funnels.',
+      fixSuggestion: 'PostHog (open source, generous free tier) is the lowest-friction start. Track 3-5 key events: signup, activation, first-value-moment, retention, churn signal.',
     });
   }
 
-  // Check for CI/CD maturity
-  const hasCI = fileContents['.github/workflows'] !== undefined ||
-    dependencies.some(d => d.includes('jest') || d.includes('vitest')) ||
-    allContent.includes('npm test') || allContent.includes('npm run test');
-
-  if (!hasCI && Object.keys(fileContents).length > 5) {
-    findings.push({
-      severity: 'medium',
-      title: 'No CI/CD Pipeline Detected',
-      description: 'Without CI/CD, you cannot ship with confidence. Automated testing and deployment are essential for maintaining velocity.',
-      category: 'Delivery Pipeline',
-      fixSuggestion: 'Set up GitHub Actions or GitLab CI. Add automated testing, linting, and deployment pipelines.',
-    });
-  }
-
-  // Check for API versioning (indicates product maturity)
-  const hasVersioning = allContent.includes('/v1/') || allContent.includes('/v2/') ||
-    allContent.includes('api-version') || allContent.includes('apiVersion');
-
+  // ── API versioning — match on path-segment, not loose `/v1/` substring.
+  const allContent = Object.values(fileContents).join('\n');
+  const hasVersioning = /['"`]\/v\d+\//.test(allContent);
   if (!hasVersioning && Object.keys(fileContents).length > 10) {
     findings.push({
       severity: 'low',
-      title: 'No API Versioning',
-      description: 'As your product grows, API versioning becomes critical for maintaining backward compatibility while shipping new features.',
+      title: 'No API versioning convention',
+      description: 'No `/v1/`, `/v2/` path-prefixed routes detected (as string literals — not comments). Breaking changes will hit every consumer at once.',
       category: 'API Maturity',
-      fixSuggestion: 'Implement API versioning via URL path (/v1/, /v2/) or header-based versioning. Document breaking changes.',
+      fixSuggestion: 'Adopt URL-based versioning (`/v1/users`). Document the deprecation policy in your README.',
     });
   }
 
-  // Calculate score
+  // Removed: the CI/CD finding from this dimension. CI/CD is now DORA's
+  // territory (pass 12, lib/dora-signals.ts) — surfacing it from two
+  // dimensions made the dashboard noisy.
+
   const deductions = findings.reduce((sum, f) =>
     sum + (f.severity === 'high' ? 20 : f.severity === 'medium' ? 10 : 5), 0
   );
@@ -152,10 +134,10 @@ export async function runVisionAnalysis(
     score,
     findings,
     summary: score >= 80
-      ? 'Strong product engineering practices. Well-instrumented for measuring success.'
+      ? 'Product-engineering vision signals look strong: observability + analytics + feature flags wired up.'
       : score >= 50
-        ? 'Basic engineering in place but missing key observability and delivery practices.'
-        : 'Critical gaps in observability and delivery pipeline. Cannot effectively measure product success.',
+        ? 'Some vision signals present but key telemetry / flag infrastructure is missing.'
+        : 'Critical gaps in product-engineering vision: cannot measure feature adoption or roll back regressions.',
   };
 }
 
@@ -168,24 +150,37 @@ export async function runScopeAnalysis(
   _dependencies: string[]
 ): Promise<ScopeAnalysis> {
   const findings: VisionFinding[] = [];
-  const allContent = Object.values(fileContents).join('\n').toLowerCase();
+  // For implementation detection, scan SOURCE files only — including
+  // the README in `allContent` would let documentation satisfy its
+  // own claim. Exclude .md / .markdown / .rst / .txt and package.json
+  // (often duplicates README prose).
+  const implContent = Object.entries(fileContents)
+    .filter(([p]) =>
+      !/\.(?:md|markdown|rst|txt)$/i.test(p) &&
+      p !== 'package.json' &&
+      !/(?:^|\/)README(?:\.[a-zA-Z]+)?$/i.test(p)
+    )
+    .map(([, v]) => v)
+    .join('\n');
+  const readme = findReadme(fileContents);
+  // Prefer matching against an explicit Features section in the README;
+  // fall back to the full README only if no such section exists.
+  const featuresSection = extractFeaturesSection(readme);
+  const docHaystack = featuresSection || readme;
 
-  // Extract mentioned features from README/package.json
-  const readme = fileContents['README.md'] || '';
-  const pkgJson = fileContents['package.json'] || '';
-
-  // Detect feature mentions in documentation
+  // Feature patterns now match on WORD BOUNDARIES (not substring), so
+  // "auth" no longer matches "author" / "authorization-library-name".
   const featurePatterns = [
-    { name: 'Authentication', patterns: ['auth', 'login', 'signup', 'register', 'jwt', 'oauth', 'sso'] },
-    { name: 'Payments', patterns: ['payment', 'stripe', 'checkout', 'billing', 'invoice', 'subscription'] },
-    { name: 'Search', patterns: ['search', 'filter', 'query', 'elasticsearch', 'full-text'] },
-    { name: 'Notifications', patterns: ['notification', 'email', 'alert', 'push', 'webhook'] },
-    { name: 'File Upload', patterns: ['upload', 'file', 'image', 'storage', 's3', 'multer'] },
-    { name: 'API/Integration', patterns: ['api', 'rest', 'graphql', 'webhook', 'integration'] },
-    { name: 'Admin/Dashboard', patterns: ['admin', 'dashboard', 'panel', 'manage'] },
-    { name: 'Reporting', patterns: ['report', 'analytics', 'export', 'csv', 'pdf', 'chart'] },
-    { name: 'User Management', patterns: ['user', 'profile', 'account', 'role', 'permission'] },
-    { name: 'Real-time', patterns: ['websocket', 'socket', 'real-time', 'live', 'streaming'] },
+    { name: 'Authentication',  patterns: ['auth', 'login', 'signup', 'register', 'jwt', 'oauth', 'sso', 'authentication', 'session'] },
+    { name: 'Payments',        patterns: ['payment', 'payments', 'stripe', 'checkout', 'billing', 'invoice', 'invoices', 'subscription', 'subscriptions'] },
+    { name: 'Search',          patterns: ['search', 'filter', 'elasticsearch', 'meilisearch', 'algolia', 'full-text'] },
+    { name: 'Notifications',   patterns: ['notification', 'notifications', 'email', 'webhook', 'webhooks', 'sms', 'push'] },
+    { name: 'File Upload',     patterns: ['upload', 'uploads', 'attachment', 'attachments', 's3', 'cloudinary', 'multer'] },
+    { name: 'API',             patterns: ['api', 'rest', 'graphql', 'grpc', 'openapi', 'swagger'] },
+    { name: 'Admin/Dashboard', patterns: ['admin', 'dashboard', 'panel', 'console'] },
+    { name: 'Reporting',       patterns: ['report', 'reports', 'export', 'exports', 'csv', 'xlsx', 'pdf'] },
+    { name: 'User Management', patterns: ['user management', 'users', 'profile', 'profiles', 'roles', 'permissions', 'rbac'] },
+    { name: 'Real-time',       patterns: ['websocket', 'websockets', 'sse', 'real-time', 'realtime', 'streaming', 'live updates'] },
   ];
 
   const documentedFeatures: string[] = [];
@@ -194,8 +189,8 @@ export async function runScopeAnalysis(
   const features: FeatureMatrixAnalysis['features'] = [];
 
   for (const fp of featurePatterns) {
-    const isDocumented = fp.patterns.some(p => readme.includes(p) || pkgJson.includes(p));
-    const isImplemented = fp.patterns.some(p => allContent.includes(p));
+    const isDocumented = hasAnyKeyword(docHaystack, fp.patterns);
+    const isImplemented = hasAnyKeyword(implContent, fp.patterns);
 
     if (isDocumented) documentedFeatures.push(fp.name);
     if (isImplemented) implementedFeatures.push(fp.name);
@@ -212,20 +207,28 @@ export async function runScopeAnalysis(
   if (missingFeatures.length > 0) {
     findings.push({
       severity: 'high',
-      title: `${missingFeatures.length} Documented Features Not Implemented`,
-      description: `Features mentioned in docs but not found in code: ${missingFeatures.join(', ')}. This indicates scope misalignment between documentation and implementation.`,
+      title: `${missingFeatures.length} documented feature(s) not implemented`,
+      description: `Feature mentioned in README but no matching keyword found in source: ${missingFeatures.join(', ')}. Scope misaligned between documentation and code.`,
       category: 'Scope Gap',
-      fixSuggestion: `Either implement: ${missingFeatures.slice(0, 3).join(', ')} or update documentation to reflect current scope.`,
+      fixSuggestion: `Either implement: ${missingFeatures.slice(0, 3).join(', ')}, or update documentation to reflect the current scope.`,
     });
   }
 
-  if (documentedFeatures.length === 0) {
+  if (!readme) {
     findings.push({
       severity: 'medium',
-      title: 'No Feature Documentation Found',
-      description: 'README.md and package.json do not describe product features. This makes scope testing impossible and indicates poor documentation practices.',
+      title: 'No README found',
+      description: 'No `README.md` / `README` / `docs/README.md` (case-insensitive) found. Without a top-level README, the project\'s scope and onboarding are invisible.',
       category: 'Documentation',
-      fixSuggestion: 'Add a Features section to README.md listing all product capabilities. This enables scope traceability.',
+      fixSuggestion: 'Add a `README.md` to the repo root. At minimum: what the project does (one paragraph), how to run it, and a Features section listing key capabilities.',
+    });
+  } else if (documentedFeatures.length === 0) {
+    findings.push({
+      severity: 'medium',
+      title: 'README has no recognisable feature documentation',
+      description: 'README found, but no `## Features` section and no feature keywords matched anywhere. This makes scope traceability impossible.',
+      category: 'Documentation',
+      fixSuggestion: 'Add a `## Features` section to the README listing the product capabilities. Each bullet should be specific (e.g. "OAuth signup via Google + GitHub" rather than "Authentication").',
     });
   }
 
