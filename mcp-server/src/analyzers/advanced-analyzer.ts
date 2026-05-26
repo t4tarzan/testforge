@@ -16,6 +16,7 @@ import {
 } from './lib/supply-chain.js';
 import { auditLicenses, type LicenseCategory, type PackageLicense } from './lib/license-audit.js';
 import { findChaosPatterns, type ChaosPatternHit } from './lib/chaos-patterns.js';
+import { analyzeAssertionQuality, type TestFileAssertionStats } from './lib/mutation-quality.js';
 import {
   aggregateFileRisk,
   bucketSecurityByFile,
@@ -607,11 +608,39 @@ export async function runChaosAnalysis(
 // 6. MUTATION TESTING — Test quality assessment
 // ═══════════════════════════════════════════════════════════════════
 
+// Mutation Testing (pass 11 — assertion-quality-aware).
+//
+// True mutation testing requires running mutated code (Stryker etc.).
+// What we CAN do statically is estimate test quality from assertion
+// SHAPES, which strongly correlates with mutation-kill rate:
+//
+//   - STRONG matchers   (toBe(specificValue), toEqual({…}), toThrow,
+//                        toHaveLength, toMatchObject, …) kill many mutants
+//   - WEAK matchers     (toBeTruthy, toBeDefined, toBeNull, …) catch
+//                        almost nothing — a mutation 42→41 still passes
+//   - SNAPSHOT matchers catch SOME mutants but are brittle
+//
+// We walk test files and aggregate these signals, then surface them
+// alongside the existing test-to-source ratio.
 export interface MutationReport {
   score: number;
   estimatedMutationScore: number;
   totalMutants: number;
   killedMutants: number;
+  /** Per-file assertion-quality stats. Includes test files only. */
+  assertionStats: TestFileAssertionStats[];
+  /** Project-level rollup. */
+  assertionTotals: {
+    total: number;
+    strong: number;
+    weak: number;
+    snapshot: number;
+    other: number;
+    weakRatio: number;
+    snapshotRatio: number;
+    /** Total distinct strong-matcher types used across all test files. */
+    overallVariety: number;
+  };
   findings: Finding[];
 }
 
@@ -623,7 +652,7 @@ export async function runMutationAnalysis(
 ): Promise<MutationReport> {
   const findings: Finding[] = [];
   const hasTestFramework = devDependencies.some(d =>
-    d.includes('jest') || d.includes('vitest') || d.includes('mocha')
+    d.includes('jest') || d.includes('vitest') || d.includes('mocha') || d.includes('ava')
   );
   const hasMutationTool = devDependencies.some(d =>
     d.includes('stryker') || d.includes('mutant')
@@ -632,8 +661,13 @@ export async function runMutationAnalysis(
   if (!hasTestFramework) {
     return {
       score: 0, estimatedMutationScore: 0, totalMutants: 0, killedMutants: 0,
+      assertionStats: [],
+      assertionTotals: {
+        total: 0, strong: 0, weak: 0, snapshot: 0, other: 0,
+        weakRatio: 0, snapshotRatio: 0, overallVariety: 0,
+      },
       findings: [{
-        severity: 'high', title: 'Mutation Testing Requires Tests',
+        severity: 'high', title: 'Mutation testing requires tests',
         description: 'No test framework found. Mutation testing measures test quality by injecting bugs.',
         fixSuggestion: 'Set up Jest or Vitest. Write unit tests. Then run Stryker for mutation testing.',
         category: 'Mutation Testing',
@@ -641,56 +675,123 @@ export async function runMutationAnalysis(
     };
   }
 
-  // Estimate mutants from code size. Each source file produces ~3 candidate
-  // mutations on average, plus ~1 per 100 lines of business logic. This is
-  // an order-of-magnitude approximation, not a Stryker substitute.
-  const totalMutants = Math.floor(totalFiles * 3 + totalLines / 100);
-
-  // Estimate mutation score deterministically from the test footprint we
-  // can actually observe: ratio of test files to source files. We can't
-  // measure real coverage without running Stryker, so we surface a coarse
-  // upper bound and tell the user to run the real tool for an exact number.
-  //
-  // Heuristic: a project with 1 test file per 2 source files is "well-tested"
-  // in this rough sense; less than that scales linearly down to a floor.
+  // ── Per-test-file AST analysis: assertion quality. ─────────────────
+  const assertionStats: TestFileAssertionStats[] = [];
+  const allDistinctMatchers = new Set<string>();
   let testFiles = 0;
   let sourceFiles = 0;
-  for (const fp of Object.keys(fileContents)) {
+
+  for (const [fp, content] of Object.entries(fileContents)) {
     if (fp.includes('node_modules')) continue;
-    if (/\.(test|spec)\.[jt]sx?$/.test(fp) || fp.includes('/__tests__/')) testFiles++;
+    const isTest = /\.(test|spec)\.[jt]sx?$/.test(fp) || fp.includes('/__tests__/');
+    if (isTest) testFiles++;
     else if (/\.[jt]sx?$/.test(fp)) sourceFiles++;
+    if (!isTest) continue;
+    if (!isParseable(fp)) continue;
+    const parsed = parseFile(fp, content);
+    if (!parsed.ast) continue;
+    const stats = analyzeAssertionQuality(fp, parsed.ast);
+    if (stats.total > 0) {
+      assertionStats.push(stats);
+      for (const h of stats.hits) {
+        if (h.class === 'strong') allDistinctMatchers.add(h.matcher);
+      }
+    }
   }
+
+  // Aggregate.
+  const totals = assertionStats.reduce((acc, s) => {
+    acc.total += s.total; acc.strong += s.strong; acc.weak += s.weak;
+    acc.snapshot += s.snapshot; acc.other += s.other; return acc;
+  }, { total: 0, strong: 0, weak: 0, snapshot: 0, other: 0 });
+  const weakRatio = totals.total > 0 ? totals.weak / totals.total : 0;
+  const snapshotRatio = totals.total > 0 ? totals.snapshot / totals.total : 0;
+
+  // ── Mutant count estimate (unchanged from prior version). ─────────
+  const totalMutants = Math.floor(totalFiles * 3 + totalLines / 100);
+
+  // ── Score: combine test-to-source ratio + assertion quality. ──────
+  //   baseScore from test-to-source:  25..75
+  //   adjustments:
+  //     - high variety (distinct strong matchers ≥ 5)        : +5
+  //     - very weak (weakRatio > 0.3)                         : −10
+  //     - snapshot-heavy (snapshotRatio > 0.5)                : −5
+  //     - has Stryker / @stryker-mutator/core                 : +10
   const testRatio = sourceFiles > 0 ? testFiles / sourceFiles : 0;
-  // Map test-ratio to an estimated mutation score band.
-  //   ratio ≥ 0.5  → 75 (well-tested)
-  //   ratio  0.25  → ~55
-  //   ratio  0.1   → ~40
-  //   ratio  0     → 25 (floor — even untyped JS catches some mutations)
   const baseScore = Math.min(75, Math.round(25 + testRatio * 100));
-  // If Stryker (or similar) is configured the team is actively running
-  // mutation tests, which empirically lifts effective scores ~10 points.
-  const estimatedMutationScore = hasMutationTool ? Math.min(85, baseScore + 10) : baseScore;
+  let adjusted = baseScore;
+  if (allDistinctMatchers.size >= 5) adjusted += 5;
+  if (weakRatio > 0.3) adjusted -= 10;
+  if (snapshotRatio > 0.5) adjusted -= 5;
+  if (hasMutationTool) adjusted += 10;
+  const estimatedMutationScore = Math.max(10, Math.min(90, adjusted));
   const killedMutants = Math.floor((totalMutants * estimatedMutationScore) / 100);
 
   findings.push({
     severity:
       estimatedMutationScore < 50 ? 'high' : estimatedMutationScore < 70 ? 'medium' : 'low',
-    title: `Estimated Mutation Score: ~${estimatedMutationScore}% (heuristic)`,
+    title: `Estimated mutation score: ~${estimatedMutationScore}% (heuristic)`,
     description:
-      `Estimate from test-to-source ratio of ${testFiles}/${sourceFiles}. ` +
+      `Inputs: ${testFiles} test files / ${sourceFiles} source files (ratio ${testRatio.toFixed(2)}), ` +
+      `${totals.total} assertions (${totals.strong} strong, ${totals.weak} weak, ${totals.snapshot} snapshot), ` +
+      `${allDistinctMatchers.size} distinct strong-matcher type(s)${hasMutationTool ? ', Stryker present' : ''}. ` +
       `~${killedMutants}/${totalMutants} candidate mutants likely killed. ` +
-      `Run Stryker for the exact number.`,
+      'Run Stryker for the exact number.',
     fixSuggestion:
       estimatedMutationScore < 70
-        ? 'Add tests for boundary conditions, error paths, and edge cases. Then run Stryker to confirm.'
-        : 'Strong test footprint. Run Stryker to validate and push toward 80%+.',
+        ? 'Boost the kill rate: replace `toBeTruthy()` with `toBe(specificValue)`, add boundary-condition tests, vary the matcher types you use.'
+        : 'Strong test footprint. Run Stryker to validate.',
     category: 'Mutation Testing',
   });
 
-  if (!hasMutationTool) {
+  // ── Per-anti-pattern surfacing. ───────────────────────────────────
+  // Weak-assertion-heavy files.
+  const weakHeavy = assertionStats.filter((s) => s.total >= 3 && s.weak / s.total > 0.5);
+  if (weakHeavy.length > 0) {
     findings.push({
       severity: 'medium',
-      title: 'Mutation Testing Tool Not Configured',
+      title: `${weakHeavy.length} test file(s) dominated by weak assertions`,
+      description:
+        'Files where >50% of assertions are toBeTruthy / toBeFalsy / toBeDefined / toBeNull. ' +
+        `Examples: ${weakHeavy.slice(0, 3).map((s) => `${s.filePath} (${s.weak}/${s.total} weak)`).join('; ')}.`,
+      fixSuggestion:
+        'A mutation that changes `42` to `41` still satisfies `toBeTruthy()`. Replace with `toBe(42)` or `toEqual({…})` to actually catch behaviour changes.',
+      category: 'Mutation Testing',
+    });
+  }
+
+  // Snapshot-only files.
+  const snapshotOnly = assertionStats.filter((s) => s.total >= 2 && s.snapshot / s.total >= 0.9);
+  if (snapshotOnly.length > 0) {
+    findings.push({
+      severity: 'low',
+      title: `${snapshotOnly.length} test file(s) dominated by snapshot assertions`,
+      description:
+        `Files where ≥90% of assertions are toMatchSnapshot / toMatchInlineSnapshot. ` +
+        `Examples: ${snapshotOnly.slice(0, 3).map((s) => `${s.filePath} (${s.snapshot}/${s.total})`).join('; ')}.`,
+      fixSuggestion:
+        'Snapshots catch SOME mutants but are brittle (changes in unrelated fields cause failures). Mix in concrete assertions on the values that actually matter.',
+      category: 'Mutation Testing',
+    });
+  }
+
+  // Low variety overall.
+  if (allDistinctMatchers.size < 4 && assertionStats.length >= 3) {
+    findings.push({
+      severity: 'low',
+      title: `Low matcher variety: only ${allDistinctMatchers.size} distinct strong-matcher type(s) across all tests`,
+      description:
+        'A test suite that uses only one or two matcher shapes (e.g. all `toBe`) misses categories of mutations that other matchers would catch — `toEqual` for object equality, `toThrow` for error paths, `toHaveLength` for array sizes, etc.',
+      fixSuggestion:
+        'Audit your assertion library — use the right matcher for each property. The Jest docs\' "Expect" page is a checklist of options.',
+      category: 'Mutation Testing',
+    });
+  }
+
+  if (!hasMutationTool) {
+    findings.push({
+      severity: 'low',
+      title: 'Mutation testing tool not configured',
       description: 'Stryker Mutator or similar not found in devDependencies. Install to get real mutation scores.',
       fixSuggestion: 'npm install -D @stryker-mutator/core && npx stryker init',
       category: 'Mutation Testing',
@@ -702,6 +803,13 @@ export async function runMutationAnalysis(
     estimatedMutationScore,
     totalMutants,
     killedMutants,
+    assertionStats,
+    assertionTotals: {
+      ...totals,
+      weakRatio: Math.round(weakRatio * 100) / 100,
+      snapshotRatio: Math.round(snapshotRatio * 100) / 100,
+      overallVariety: allDistinctMatchers.size,
+    },
     findings,
   };
 }
