@@ -228,6 +228,64 @@ describe('security-analyzer — finding shape', () => {
   });
 });
 
+describe('security-analyzer — Phase 2: taint engine + sanitizers', () => {
+  it('reports ZERO high-confidence findings on the sanitized-patterns fixture', async () => {
+    const info = await scanCodebase(FALSE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: FALSE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    // Findings might exist for the sanitized file (low/medium confidence
+    // because a sanitizer was observed on the path), but high-confidence
+    // taint findings are the contract — those must be zero.
+    const sanitizedFile = findings.filter((f) => f.filePath.endsWith('sanitized-patterns.js'));
+    const high = sanitizedFile.filter((f) => f.confidence === 'high');
+    expect(high).toEqual([]);
+  });
+
+  it('reports HIGH confidence on the true-positives fixture (no sanitizers)', async () => {
+    const info = await scanCodebase(TRUE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: TRUE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const dangerous = findings.filter((f) => f.filePath.endsWith('vulnerabilities.js'));
+    // Every category that's a real source-to-sink should produce at least
+    // one HIGH confidence finding in this fixture.
+    const highByCategory = new Set(
+      dangerous.filter((f) => f.confidence === 'high').map((f) => f.category)
+    );
+    const expected = ['SQL Injection', 'Dangerous Functions', 'Path Traversal', 'Open Redirect', 'XSS', 'Sensitive Data Exposure'];
+    const missing = expected.filter((c) => !highByCategory.has(c));
+    expect(missing).toEqual([]);
+  });
+
+  it('attaches a flow narrative to taint-based findings', async () => {
+    const info = await scanCodebase(TRUE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: TRUE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    // The SQL injection on the /search route went via an intermediate
+    // variable — the analyzer should attach a flow story mentioning
+    // "request".
+    const sql = findings.find(
+      (f) =>
+        f.category === 'SQL Injection' &&
+        f.filePath.endsWith('vulnerabilities.js') &&
+        f.confidence === 'high'
+    );
+    expect(sql).toBeTruthy();
+    expect(sql?.flow).toMatch(/request/i);
+  });
+});
+
 describe('advanced-analyzer — determinism (S1)', () => {
   it('mutation analysis returns the same score on identical input', async () => {
     const info = await scanCodebase(CLEAN);

@@ -57,7 +57,7 @@ async function main() {
   });
 
   // Health check
-  app.get('/health', async () => ({ status: 'ok', version: '0.3.0' }));
+  app.get('/health', async () => ({ status: 'ok', version: '0.4.0' }));
 
   app.get('/reports', async (request, reply) => {
     const reports = getReports(20);
