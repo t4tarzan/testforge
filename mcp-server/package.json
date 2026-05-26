@@ -1,6 +1,6 @@
 {
   "name": "@whitenoisenpm/testforge-mcp",
-  "version": "0.2.19",
+  "version": "0.3.0",
   "description": "TestForge MCP Server — AI-powered testing in your IDE. Analyzes code for security, unit tests, load, accessibility, vision alignment, scope coverage, and stack quality.",
   "type": "module",
   "bin": {
@@ -44,6 +44,9 @@
   "homepage": "https://testforge.run",
   "license": "MIT",
   "dependencies": {
+    "@babel/parser": "^7.29.7",
+    "@babel/traverse": "^7.29.7",
+    "@babel/types": "^7.29.7",
     "@fastify/cors": "^9.0.0",
     "@fastify/static": "^7.0.4",
     "better-sqlite3": "^12.10.0",
@@ -54,6 +57,7 @@
     "glob": "^10.4.0"
   },
   "devDependencies": {
+    "@types/babel__traverse": "^7.28.0",
     "@types/node": "^20.0.0",
     "tsx": "^4.15.0",
     "typescript": "^5.4.0",

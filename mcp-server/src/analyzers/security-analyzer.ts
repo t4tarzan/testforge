@@ -1,16 +1,64 @@
+// Security analyzer — AST-based static analysis for JS/TS/JSX/TSX projects.
+//
+// Replaces the previous regex-per-line approach. Each check is now an AST
+// visitor that examines structured nodes (CallExpression, MemberExpression,
+// JSXAttribute, etc.) rather than substrings, which means:
+//
+//   • Fewer false positives. `db.query('SELECT 1')` is a string literal call,
+//     not a concat — we know from the node shape.
+//   • Precise locations: line AND column.
+//   • Honors inline suppressions (`// testforge-disable-next-line ...`).
+//   • Per-finding confidence (`high` / `medium` / `low`).
+//
+// Project-level checks (rate-limit dep, vulnerable deps, missing helmet)
+// stay as they were — they're config-shape, not code-shape.
+
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { glob } from 'glob';
+import traverseModule from '@babel/traverse';
+import * as t from '@babel/types';
+
+import { parseFile, isParseable } from './lib/parse.js';
+import {
+  collectSuppressions,
+  isSuppressed,
+  type SuppressionTable,
+} from './lib/suppressions.js';
+import {
+  containsReqAccess,
+  getCalleeName,
+  hasPropertyNamed,
+  hasUnsafeInterpolation,
+  isDbQueryCall,
+  isReqAccess,
+  isStringConcatWithVar,
+  nodeLoc,
+  snippetForLine,
+} from './lib/visitors.js';
+
+// @babel/traverse ships an interop default — in ESM it's `traverseModule.default`.
+const traverse = (traverseModule as unknown as { default?: typeof traverseModule }).default
+  ?? traverseModule;
+
+/* -------------------------------------------------------------------------- */
+/* Public types                                                                */
+/* -------------------------------------------------------------------------- */
 
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';
+export type Confidence = 'high' | 'medium' | 'low';
 
 export interface SecurityFinding {
   id?: string;
   severity: Severity;
+  /** New in 0.3.0 — per-finding confidence. Old consumers can ignore. */
+  confidence?: Confidence;
   title: string;
   description: string;
   filePath: string;
   lineNumber: number;
+  /** New in 0.3.0 — column number where the issue starts (0-based). */
+  column?: number;
   codeSnippet: string;
   fixSuggestion: string;
   category: string;
@@ -23,474 +71,881 @@ interface SecurityConfig {
   devDependencies: string[];
 }
 
-/**
- * Run security analysis on the codebase.
- * Uses regex-based pattern matching to detect common vulnerabilities.
- * This runs entirely locally — no code ever leaves the machine.
- */
-export async function runSecurityAnalysis(config: SecurityConfig): Promise<SecurityFinding[]> {
+/* -------------------------------------------------------------------------- */
+/* Per-file timeout — wall-clock budget for parse + traverse                  */
+/* -------------------------------------------------------------------------- */
+
+const PER_FILE_MS = 250;
+
+/* -------------------------------------------------------------------------- */
+/* Entry                                                                      */
+/* -------------------------------------------------------------------------- */
+
+export async function runSecurityAnalysis(
+  config: SecurityConfig
+): Promise<SecurityFinding[]> {
   const findings: SecurityFinding[] = [];
   const allDeps = [...config.dependencies, ...config.devDependencies];
 
-  // Ensure we have file contents to analyze
   let fileContents = config.fileContents;
   if (!fileContents || Object.keys(fileContents).length === 0) {
     fileContents = await loadFileContents(config.projectPath);
   }
 
-  const files = Object.entries(fileContents);
-
-  for (const [filePath, content] of files) {
-    const lines = content.split('\n');
-
-    // 1. SQL Injection
-    checkSqlInjection(lines, filePath, findings);
-
-    // 2. Authentication Bypass
-    checkAuthBypass(lines, filePath, findings);
-
-    // 3. XSS (Cross-Site Scripting)
-    checkXSS(lines, filePath, findings);
-
-    // 4. Sensitive Data Exposure
-    checkSensitiveDataExposure(lines, filePath, findings);
-
-    // 5. CORS Misconfiguration
-    checkCORSMisconfiguration(lines, filePath, findings);
-
-    // 6. Hardcoded Secrets
-    checkHardcodedSecrets(lines, filePath, findings);
-
-    // 7. Insecure Direct Object References
-    checkIDOR(lines, filePath, findings);
-
-    // 8. Path Traversal
-    checkPathTraversal(lines, filePath, findings);
-
-    // 9. eval() / new Function() usage
-    checkDangerousFunctions(lines, filePath, findings);
-
-    // 10. Unvalidated Redirects
-    checkUnvalidatedRedirects(lines, filePath, findings);
+  for (const [filePath, content] of Object.entries(fileContents)) {
+    if (!isParseable(filePath)) continue;
+    const fileFindings = analyzeFile(filePath, content);
+    findings.push(...fileFindings);
   }
 
-  // 11. Missing Rate Limiting (project-level check)
+  // ── Project-level checks (regex / dep-list, unchanged shape) ────────
   checkMissingRateLimit(allDeps, findings, config.projectPath);
-
-  // 12. Insecure Dependencies (project-level check)
   checkInsecureDependencies(allDeps, findings);
-
-  // 13. Missing Security Headers (project-level check)
   checkMissingSecurityHeaders(fileContents, findings);
 
-  // Deduplicate findings by (title + filePath + lineNumber)
+  return dedupeFindings(findings);
+}
+
+function dedupeFindings(findings: SecurityFinding[]): SecurityFinding[] {
   const seen = new Set<string>();
-  const deduped = findings.filter((f) => {
-    const key = `${f.title}|${f.filePath}|${f.lineNumber}`;
+  return findings.filter((f) => {
+    const key = `${f.category}|${f.filePath}|${f.lineNumber}|${f.column ?? 0}|${f.title}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
+}
 
-  return deduped;
+function analyzeFile(filePath: string, content: string): SecurityFinding[] {
+  const startedAt = Date.now();
+  const parsed = parseFile(filePath, content);
+
+  if (parsed.oversize) {
+    return [
+      {
+        severity: 'info',
+        confidence: 'high',
+        title: 'File too large to analyze',
+        description: `File exceeds the 500 KB analyzer cap. Likely generated / bundled output; security findings for this file are not produced.`,
+        filePath,
+        lineNumber: 1,
+        codeSnippet: '',
+        fixSuggestion: 'Exclude generated files from the analyzed tree (e.g. dist/, build/, .next/).',
+        category: 'Coverage',
+      },
+    ];
+  }
+
+  if (!parsed.ast) {
+    return [
+      {
+        severity: 'info',
+        confidence: 'low',
+        title: 'File could not be parsed',
+        description: parsed.error
+          ? `Babel parser rejected this file: ${parsed.error.slice(0, 200)}`
+          : 'Babel parser rejected this file. Findings for it may be incomplete.',
+        filePath,
+        lineNumber: 1,
+        codeSnippet: '',
+        fixSuggestion: 'Verify the file compiles cleanly. If it does, the analyzer plugin list may need extending.',
+        category: 'Coverage',
+      },
+    ];
+  }
+
+  const suppressions = collectSuppressions(parsed.ast);
+  const isTestFile = /\.(?:test|spec)\.[mc]?[jt]sx?$/.test(filePath) || filePath.endsWith('.d.ts');
+  const raw: SecurityFinding[] = [];
+
+  // First pass — collect local variables that are tainted by string-concat
+  // with request-borne input. Used by the SQL-injection check to flag
+  // `const q = 'select ...' + req.x; db.query(q);` even though the
+  // `db.query` argument is just an identifier.
+  const taintedLocals = collectTaintedLocals(parsed.ast);
+
+  try {
+    traverse(parsed.ast, {
+      enter(path) {
+        if (Date.now() - startedAt > PER_FILE_MS) {
+          path.stop(); // bail out gracefully — file gets partial coverage
+          return;
+        }
+      },
+      CallExpression(path) {
+        checkSqlInjection(path.node, filePath, content, raw, taintedLocals);
+        checkDangerousFunctions(path.node, filePath, content, raw);
+        checkPathTraversal(path.node, filePath, content, raw);
+        checkUnvalidatedRedirect(path.node, filePath, content, raw);
+        checkResSinks(path.node, filePath, content, raw);
+        checkAuthBypassRoute(path.node, filePath, content, raw, isTestFile);
+        checkCorsCall(path.node, filePath, content, raw);
+        checkSensitiveResponseJson(path.node, filePath, content, raw);
+      },
+      AssignmentExpression(path) {
+        checkInnerHtmlAssignment(path.node, filePath, content, raw);
+      },
+      JSXAttribute(path) {
+        checkDangerouslySetInnerHTML(path.node, filePath, content, raw);
+      },
+      VariableDeclarator(path) {
+        checkHardcodedSecret(path.node, filePath, content, raw);
+        checkSensitiveReturn(path.node, filePath, content, raw);
+      },
+      ReturnStatement(path) {
+        checkSensitiveReturn(path.node, filePath, content, raw);
+      },
+      StringLiteral(path) {
+        checkSecretStringLiteral(path.node, filePath, content, raw);
+      },
+    });
+  } catch (e) {
+    // traverse blew up — keep what we collected so far, emit an info note
+    raw.push({
+      severity: 'info',
+      confidence: 'low',
+      title: 'Analyzer traversal aborted',
+      description: e instanceof Error ? e.message.slice(0, 200) : String(e),
+      filePath,
+      lineNumber: 1,
+      codeSnippet: '',
+      fixSuggestion: 'Report the file shape to the TestForge team.',
+      category: 'Coverage',
+    });
+  }
+
+  // Apply suppressions
+  return raw.filter((f) => !isSuppressed(suppressions, f.lineNumber, f.category));
 }
 
 /* -------------------------------------------------------------------------- */
-/*                              Check Functions                               */
+/* Check helpers                                                              */
 /* -------------------------------------------------------------------------- */
 
-function checkSqlInjection(lines: string[], filePath: string, findings: SecurityFinding[]) {
-  // NOTE on `$`: PostgreSQL parameter placeholders like $1, $2 are SAFE — they
-  // mean "bind the Nth array argument here". Only template-literal `${...}`
-  // interpolation is unsafe. The patterns below require `\$\{` (template
-  // literal) rather than a bare `$`, otherwise we'd flag clean code that
-  // uses parameterized queries.
-  const patterns = [
-    { regex: /\.\s*(find|findOne|findMany|query|exec|raw|execute)\s*\([^)]*(\+|`[^`]*\$\{|\$\{)/, title: 'Potential SQL/NoSQL Injection', desc: 'User input may be concatenated directly into a database query.' },
-    { regex: /(?:query|execute|raw)\s*\(\s*(?:`[^`]*\$\{|[^)]*\+[^)]*\+[^)]*)/, title: 'String Concatenation in DB Query', desc: 'Database query uses string concatenation or template literals with variables.' },
-    { regex: /(?:SELECT|INSERT|UPDATE|DELETE)\s+.*\+.*\+/, title: 'SQL Query String Concatenation', desc: 'SQL query built via string concatenation — vulnerable to injection.' },
-    { regex: /db\.[\w]+\s*\(\s*\{.*\$where\s*:/, title: 'NoSQL $where Injection', desc: 'Using $where operator with user input in MongoDB query.' },
-    { regex: /\$\{[^}]*\w+[^(]?\}.*\b(?:query|find|select)\b/, title: 'Template Literal in DB Query', desc: 'Template literal used in database query construction.' },
-  ];
+function push(
+  raw: SecurityFinding[],
+  filePath: string,
+  content: string,
+  node: t.Node,
+  partial: Omit<SecurityFinding, 'filePath' | 'lineNumber' | 'codeSnippet' | 'column'>
+) {
+  const loc = nodeLoc(node);
+  raw.push({
+    ...partial,
+    filePath,
+    lineNumber: loc.line,
+    column: loc.column,
+    codeSnippet: snippetForLine(content, loc.line),
+  });
+}
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    for (const p of patterns) {
-      if (p.regex.test(line)) {
-        findings.push({
-          severity: 'critical',
-          title: p.title,
-          description: p.desc,
-          filePath,
-          lineNumber: i + 1,
-          codeSnippet: line.trim().slice(0, 120),
-          fixSuggestion: 'Use parameterized queries (prepared statements) or an ORM. Never concatenate user input into SQL/NoSQL queries.',
-          category: 'SQL Injection',
-        });
-        break; // One finding per line max
+/* -------------------------------------------------------------------------- */
+/* 1. SQL / NoSQL injection                                                   */
+/* -------------------------------------------------------------------------- */
+
+function checkSqlInjection(
+  call: t.CallExpression,
+  filePath: string,
+  content: string,
+  out: SecurityFinding[],
+  taintedLocals: Set<string>
+) {
+  const name = getCalleeName(call.callee);
+  if (!isDbQueryCall(name)) return;
+
+  const firstArg = call.arguments[0];
+  if (!firstArg) return;
+
+  // Three dangerous shapes:
+  //   1. db.query(`SELECT ... ${x}`)             — template-literal w/ interp
+  //   2. db.query('SELECT ' + x)                  — string concat w/ variable
+  //   3. const q = '...' + req.x; db.query(q);   — tainted local passed in
+  const inlineUnsafe =
+    hasUnsafeInterpolation(firstArg as t.Node) ||
+    isStringConcatWithVar(firstArg as t.Node);
+
+  let taintedVia: 'inline' | 'local' | null = null;
+  let fromReq = false;
+
+  if (inlineUnsafe) {
+    taintedVia = 'inline';
+    fromReq = containsReqAccess(firstArg as t.Node);
+  } else if (t.isIdentifier(firstArg) && taintedLocals.has(firstArg.name)) {
+    // Local-flow case: the variable was initialized from a concat that
+    // touched req.* somewhere up the file. We mark fromReq=true because
+    // the taint-collection step only ever sets that condition.
+    taintedVia = 'local';
+    fromReq = true;
+  }
+
+  if (!taintedVia) return;
+
+  push(out, filePath, content, call, {
+    severity: 'critical',
+    confidence: fromReq ? 'high' : 'medium',
+    title: 'Potential SQL/NoSQL Injection',
+    description:
+      taintedVia === 'inline'
+        ? `${name}() is called with a string built from variables. ` +
+          (fromReq
+            ? 'A descendant of the argument reads from req.* — tainted-input → query sink.'
+            : 'Variables interpolated into a query string become injection vectors when fed user input.')
+        : `${name}() is called with a local variable that was initialized from a request-tainted string concatenation. ` +
+          'The query reaches a database call without parameter binding.',
+    fixSuggestion:
+      'Use parameterized queries (placeholders like $1, $2) or an ORM. ' +
+      'Never concatenate or interpolate variables into a query string — let the driver bind them.',
+    category: 'SQL Injection',
+  });
+}
+
+/**
+ * One-pass collection of local variables that were initialized from a
+ * request-tainted concatenation/template — e.g. `const q = '...' + req.x`.
+ * Identifier-by-name, with no scope precision: false positives are bounded
+ * because the SQL sink will only fire when the SAME name appears as a
+ * db.query arg. False negatives are bounded because shadowing the name in
+ * a nested scope still flags (which is desirable for SAST).
+ */
+function collectTaintedLocals(ast: t.File): Set<string> {
+  const tainted = new Set<string>();
+  traverse(ast, {
+    VariableDeclarator(path) {
+      const id = path.node.id;
+      const init = path.node.init;
+      if (!t.isIdentifier(id) || !init) return;
+      const isConcatWithReq =
+        (isStringConcatWithVar(init) || hasUnsafeInterpolation(init)) &&
+        containsReqAccess(init);
+      const isDirectReq = isReqAccess(init) || containsReqAccess(init);
+      if (isConcatWithReq || isDirectReq) {
+        tainted.add(id.name);
       }
-    }
+    },
+    AssignmentExpression(path) {
+      const n = path.node;
+      if (n.operator !== '=' || !t.isIdentifier(n.left)) return;
+      const isConcatWithReq =
+        (isStringConcatWithVar(n.right) || hasUnsafeInterpolation(n.right)) &&
+        containsReqAccess(n.right);
+      const isDirectReq = isReqAccess(n.right) || containsReqAccess(n.right);
+      if (isConcatWithReq || isDirectReq) {
+        tainted.add(n.left.name);
+      }
+    },
+  });
+  return tainted;
+}
+
+/* -------------------------------------------------------------------------- */
+/* 5b. res.json({password: ...}) — sensitive field in response payload         */
+/* -------------------------------------------------------------------------- */
+
+function checkSensitiveResponseJson(
+  call: t.CallExpression,
+  filePath: string,
+  content: string,
+  out: SecurityFinding[]
+) {
+  const callee = call.callee;
+  if (!t.isMemberExpression(callee) || callee.computed) return;
+  const propName = t.isIdentifier(callee.property) ? callee.property.name : '';
+  if (propName !== 'json') return;
+  const obj = callee.object;
+  if (!t.isIdentifier(obj) || !['res', 'response', 'reply', 'ctx'].includes(obj.name)) return;
+
+  const arg = call.arguments[0];
+  if (!arg || !t.isObjectExpression(arg)) return;
+  const sensitiveFields = ['password', 'passwordhash', 'pwd', 'secret', 'token', 'access_token', 'refresh_token'];
+  const matched = findPropertyName(arg, sensitiveFields);
+  if (!matched) return;
+
+  push(out, filePath, content, call, {
+    severity: 'high',
+    confidence: 'high',
+    title: `${matched} field in response body`,
+    description: `${obj.name}.json() is shipping an object with a \`${matched}\` property — sensitive data exposure.`,
+    fixSuggestion: 'Strip sensitive fields before responding. Use a projection (Drizzle column list / Prisma select) at the DB layer so the field never enters the response object.',
+    category: 'Sensitive Data Exposure',
+  });
+}
+
+/** Returns the first matching property name on an ObjectExpression, or null. */
+function findPropertyName(obj: t.ObjectExpression, names: string[]): string | null {
+  for (const p of obj.properties) {
+    if (!t.isObjectProperty(p)) continue;
+    const k = p.key;
+    const keyName = t.isIdentifier(k) ? k.name : t.isStringLiteral(k) ? k.value : null;
+    if (keyName && names.includes(keyName.toLowerCase())) return keyName;
+  }
+  return null;
+}
+
+/* -------------------------------------------------------------------------- */
+/* 2. eval / new Function / exec / setTimeout("...")                          */
+/* -------------------------------------------------------------------------- */
+
+function checkDangerousFunctions(
+  call: t.CallExpression,
+  filePath: string,
+  content: string,
+  out: SecurityFinding[]
+) {
+  const name = getCalleeName(call.callee);
+  const firstArg = call.arguments[0] as t.Node | undefined;
+
+  // eval(...)
+  if (name === 'eval') {
+    const fromReq = !!firstArg && containsReqAccess(firstArg);
+    push(out, filePath, content, call, {
+      severity: 'critical',
+      confidence: fromReq ? 'high' : 'medium',
+      title: 'eval() Usage',
+      description: fromReq
+        ? 'eval() called with an expression that reads req.* — direct RCE vulnerability.'
+        : 'eval() executes arbitrary code. Avoid in production code.',
+      fixSuggestion:
+        'Replace eval with JSON.parse for JSON, with a real parser for DSLs, or with explicit dispatch tables for known commands.',
+      category: 'Dangerous Functions',
+    });
+    return;
+  }
+
+  // new Function("...")
+  if (
+    t.isNewExpression(call as unknown as t.Node) &&
+    t.isIdentifier((call as unknown as t.NewExpression).callee, { name: 'Function' })
+  ) {
+    push(out, filePath, content, call, {
+      severity: 'critical',
+      confidence: 'medium',
+      title: 'Function() Constructor',
+      description: 'new Function() creates a function from a string — equivalent to eval().',
+      fixSuggestion: 'Use a real function declaration or a safe dispatch table.',
+      category: 'Dangerous Functions',
+    });
+    return;
+  }
+
+  // child_process.exec / execSync
+  if (/(?:^|\.)(exec|execSync)$/.test(name) && /child_process/.test(name)) {
+    const fromReq = !!firstArg && containsReqAccess(firstArg);
+    push(out, filePath, content, call, {
+      severity: 'critical',
+      confidence: fromReq ? 'high' : 'medium',
+      title: 'Shell Command Execution',
+      description: fromReq
+        ? 'exec() called with a string containing user input — command injection.'
+        : 'child_process.exec runs a shell. Prefer execFile/spawn with an array of args.',
+      fixSuggestion:
+        'Switch to execFile() or spawn() with the command and args as separate arguments. Never pass user input through a shell.',
+      category: 'Dangerous Functions',
+    });
+    return;
+  }
+
+  // setTimeout/setInterval with a string body
+  if ((name === 'setTimeout' || name === 'setInterval') && firstArg && t.isStringLiteral(firstArg)) {
+    push(out, filePath, content, call, {
+      severity: 'high',
+      confidence: 'high',
+      title: `${name}(string) is eval-equivalent`,
+      description: `${name} with a string argument evaluates that string in the global scope.`,
+      fixSuggestion: `Pass a function instead: ${name}(() => { ... }, ms).`,
+      category: 'Dangerous Functions',
+    });
   }
 }
 
-function checkAuthBypass(lines: string[], filePath: string, findings: SecurityFinding[]) {
-  const patterns = [
-    { regex: /(?:router|app|fastify)\.(get|post|put|delete|patch)\s*\([^)]*\)\s*,?\s*(?!.*auth)(?!.*middleware)/, title: 'Route Without Auth Middleware', desc: 'Route handler does not appear to use authentication middleware.' },
-    { regex: /(?:req\.user|req\.session)\s*===?\s*(?:undefined|null)\s*\?\s*(?:next|res\.)/, title: 'Manual Auth Check with Early Return', desc: 'Authentication check may be bypassed due to incomplete validation.' },
-    { regex: /if\s*\(\s*!req\.(user|session|isAuthenticated)/, title: 'Conditional Auth Check', desc: 'Route has conditional authentication that may be bypassed.' },
-    { regex: /passport\.(authenticate)\s*\(\s*['"]jwt['"]\s*\)\s*,?\s*\(?\s*\)?\s*=>/, title: 'JWT Auth Route', desc: 'Route uses JWT authentication — verify token expiration and secret handling.' },
-  ];
+/* -------------------------------------------------------------------------- */
+/* 3. Path traversal                                                          */
+/* -------------------------------------------------------------------------- */
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    for (const p of patterns) {
-      if (p.regex.test(line)) {
-        // Skip test files and type definitions
-        if (filePath.includes('.test.') || filePath.includes('.spec.') || filePath.endsWith('.d.ts')) continue;
-        findings.push({
-          severity: 'high',
-          title: p.title,
-          description: p.desc,
-          filePath,
-          lineNumber: i + 1,
-          codeSnippet: line.trim().slice(0, 120),
-          fixSuggestion: 'Add authentication middleware (e.g., passport.authenticate, custom auth middleware) to all protected routes. Ensure consistent auth enforcement.',
-          category: 'Authentication Bypass',
-        });
-        break;
-      }
-    }
-  }
+const FS_READ_NAMES = ['readFile', 'readFileSync', 'createReadStream', 'sendFile', 'open', 'openSync'];
+
+function checkPathTraversal(
+  call: t.CallExpression,
+  filePath: string,
+  content: string,
+  out: SecurityFinding[]
+) {
+  const name = getCalleeName(call.callee);
+  const isFsRead = FS_READ_NAMES.some((n) => name === n || name.endsWith(`.${n}`));
+  const isPathBuild = name === 'path.join' || name === 'path.resolve';
+  if (!isFsRead && !isPathBuild) return;
+
+  const argHasReq = call.arguments.some((a) => containsReqAccess(a as t.Node));
+  const argHasConcat = call.arguments.some((a) => isStringConcatWithVar(a as t.Node) || hasUnsafeInterpolation(a as t.Node));
+  if (!argHasReq && !argHasConcat) return;
+
+  push(out, filePath, content, call, {
+    severity: 'high',
+    confidence: argHasReq ? 'high' : 'low',
+    title: 'Path Traversal Risk',
+    description: argHasReq
+      ? `${name}() received a path built from req.* — open path traversal.`
+      : `${name}() received a path built by string concatenation. Verify the input is sanitized.`,
+    fixSuggestion:
+      'Normalize and validate the path against an allowlist (e.g. resolve, then ensure the result starts with the expected base directory). ' +
+      'Prefer file ids → server-resolved paths over user-supplied paths.',
+    category: 'Path Traversal',
+  });
 }
 
-function checkXSS(lines: string[], filePath: string, findings: SecurityFinding[]) {
-  const patterns = [
-    { regex: /res\.(send|json|render|write)\s*\(\s*(?:req\.(body|query|params)|.*\+.*req\.)/, title: 'Unsanitized User Input in Response', desc: 'User input is reflected in the response without sanitization.' },
-    { regex: /innerHTML\s*=\s*(?:req\.|[^'"]*\+[^'"]*req\.)/, title: 'innerHTML with User Input', desc: 'Setting innerHTML with user-controlled data enables XSS attacks.' },
-    { regex: /dangerouslySetInnerHTML\s*=\s*\{\{\s*__html\s*:\s*(?:req\.|[^}]*req\.)/, title: 'dangerouslySetInnerHTML with User Input', desc: 'React dangerouslySetInnerHTML used with potentially untrusted content.' },
-    { regex: /eval\s*\(\s*(?:req\.|[^)]*req\.)/, title: 'eval() with User Input', desc: 'User input passed to eval() — critical XSS vulnerability.' },
-    { regex: /document\.(write|writeln)\s*\(\s*(?:req\.|location|[^)]*req\.)/, title: 'document.write with User Input', desc: 'document.write with user input enables DOM-based XSS.' },
-  ];
+/* -------------------------------------------------------------------------- */
+/* 4. Unvalidated / open redirect                                             */
+/* -------------------------------------------------------------------------- */
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    for (const p of patterns) {
-      if (p.regex.test(line)) {
-        findings.push({
-          severity: 'high',
-          title: p.title,
-          description: p.desc,
-          filePath,
-          lineNumber: i + 1,
-          codeSnippet: line.trim().slice(0, 120),
-          fixSuggestion: 'Sanitize all user input before rendering. Use libraries like DOMPurify for HTML, escape output with template engines, or use React/Vue built-in escaping.',
-          category: 'XSS',
-        });
-        break;
-      }
-    }
-  }
+function checkUnvalidatedRedirect(
+  call: t.CallExpression,
+  filePath: string,
+  content: string,
+  out: SecurityFinding[]
+) {
+  const name = getCalleeName(call.callee);
+  if (!/(?:^|\.)redirect$/.test(name)) return;
+  const arg = call.arguments[call.arguments.length - 1] as t.Node | undefined;
+  if (!arg || !containsReqAccess(arg)) return;
+
+  push(out, filePath, content, call, {
+    severity: 'medium',
+    confidence: 'high',
+    title: 'Unvalidated Redirect',
+    description: `${name}() called with a URL derived from req.* — attacker-controlled redirect (phishing vector).`,
+    fixSuggestion:
+      'Validate the redirect target against an explicit allowlist of paths or domains. Prefer redirecting to internal route names.',
+    category: 'Open Redirect',
+  });
 }
 
-function checkSensitiveDataExposure(lines: string[], filePath: string, findings: SecurityFinding[]) {
-  const patterns = [
-    { regex: /res\.json\s*\(\s*\{[^}]*password/, title: 'Password Field in API Response', desc: 'Password or hash returned in API response — sensitive data exposure.' },
-    { regex: /res\.json\s*\(\s*\{[^}]*secret/, title: 'Secret in API Response', desc: 'Secret or key returned in API response.' },
-    { regex: /res\.json\s*\(\s*\{[^}]*token/, title: 'Token in API Response', desc: 'Authentication token returned alongside other user data.' },
-    { regex: /console\.(log|warn|error)\s*\(.*(?:password|secret|token|key)/, title: 'Sensitive Data in Logs', desc: 'Sensitive values logged to console.' },
-    { regex: /\.select\s*\(\s*['"]`?[^'"`]*['"`]*\)/, title: 'Database Field Selection', desc: 'Verify that password fields are excluded from select queries.' },
-    { regex: /return\s+\{[^}]*password[^}]*\}/, title: 'Password in Return Object', desc: 'Password field included in returned object.' },
-  ];
+/* -------------------------------------------------------------------------- */
+/* 5. res.send / res.json / res.write with req.* (reflected XSS)              */
+/* -------------------------------------------------------------------------- */
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    for (const p of patterns) {
-      if (p.regex.test(line)) {
-        findings.push({
-          severity: 'high',
-          title: p.title,
-          description: p.desc,
-          filePath,
-          lineNumber: i + 1,
-          codeSnippet: line.trim().slice(0, 120),
-          fixSuggestion: 'Exclude sensitive fields (password, secret, token) from API responses. Use projection/select to omit fields from DB queries. Never log sensitive data.',
-          category: 'Sensitive Data Exposure',
-        });
-        break;
-      }
-    }
-  }
+function checkResSinks(
+  call: t.CallExpression,
+  filePath: string,
+  content: string,
+  out: SecurityFinding[]
+) {
+  const callee = call.callee;
+  if (!t.isMemberExpression(callee) || callee.computed) return;
+  const propName = t.isIdentifier(callee.property) ? callee.property.name : '';
+  if (!['send', 'write', 'render'].includes(propName)) return;
+
+  const obj = callee.object;
+  if (!t.isIdentifier(obj) || !['res', 'response', 'reply', 'ctx'].includes(obj.name)) return;
+
+  const arg = call.arguments[0] as t.Node | undefined;
+  if (!arg || !containsReqAccess(arg)) return;
+
+  // res.json reflecting req data is generally safer (proper content-type),
+  // but res.send / res.write / res.render render as HTML in many setups.
+  push(out, filePath, content, call, {
+    severity: 'high',
+    confidence: 'medium',
+    title: 'Unsanitized User Input in Response',
+    description:
+      `${obj.name}.${propName}() echoes a request value back to the client. If the value contains HTML, this is reflected XSS.`,
+    fixSuggestion:
+      'Escape with a templating engine, or use res.json() for data responses with a strict Content-Type. ' +
+      'For HTML, use a sanitizer (DOMPurify, sanitize-html).',
+    category: 'XSS',
+  });
 }
 
-function checkCORSMisconfiguration(lines: string[], filePath: string, findings: SecurityFinding[]) {
-  const patterns = [
-    { regex: /cors\s*\(\s*\{\s*origin\s*:\s*['"]\*['"]/, title: 'CORS Allowing All Origins', desc: 'CORS is configured to allow requests from any origin (origin: "*").' },
-    { regex: /cors\s*\(\s*\)/, title: 'CORS with Default Config', desc: 'CORS middleware used without configuration — may allow all origins depending on version.' },
-    { regex: /Access-Control-Allow-Origin\s*:\s*\*/, title: 'Wildcard CORS Header', desc: 'Response header allows any origin.' },
-    { regex: /credentials\s*:\s*true[^,]*,?[^}]*origin\s*:\s*['"]\*['"]/, title: 'CORS Credentials with Wildcard Origin', desc: 'Using credentials: true with wildcard origin is invalid and dangerous.' },
-  ];
+/* -------------------------------------------------------------------------- */
+/* 6. Auth bypass (heuristic — only when test/d.ts excluded)                  */
+/* -------------------------------------------------------------------------- */
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    for (const p of patterns) {
-      if (p.regex.test(line)) {
-        findings.push({
-          severity: 'medium',
-          title: p.title,
-          description: p.desc,
-          filePath,
-          lineNumber: i + 1,
-          codeSnippet: line.trim().slice(0, 120),
-          fixSuggestion: 'Configure CORS with explicit allowed origins. Use environment variables for origin whitelist. Never use origin: "*" with credentials: true.',
-          category: 'CORS Misconfiguration',
-        });
-        break;
-      }
-    }
-  }
+const ROUTE_METHODS = new Set(['get', 'post', 'put', 'delete', 'patch']);
+
+function checkAuthBypassRoute(
+  call: t.CallExpression,
+  filePath: string,
+  content: string,
+  out: SecurityFinding[],
+  isTestFile: boolean
+) {
+  if (isTestFile) return;
+
+  // Match `router.get('/x', handler)` or `app.post('/x', mw, handler)`.
+  const callee = call.callee;
+  if (!t.isMemberExpression(callee) || callee.computed) return;
+  const propName = t.isIdentifier(callee.property) ? callee.property.name : '';
+  if (!ROUTE_METHODS.has(propName)) return;
+  const obj = callee.object;
+  if (!t.isIdentifier(obj) || !['router', 'app', 'fastify'].includes(obj.name)) return;
+
+  // Heuristic: a route with only the path + a single handler (no middleware)
+  // is the canonical "no auth attached" shape. If the user wraps every route
+  // in a global middleware, this fires false-positive — confidence: low.
+  // We DON'T fire when the handler is a function expression literal that
+  // itself contains `req.user` or `passport` references — that suggests
+  // auth is being handled inline.
+  const handler = call.arguments[call.arguments.length - 1] as t.Node | undefined;
+  if (!handler) return;
+  if (call.arguments.length > 2) return; // probably has middleware already
+  if (containsTokenLike(handler)) return;
+
+  push(out, filePath, content, call, {
+    severity: 'high',
+    confidence: 'low',
+    title: 'Route Without Inline Auth',
+    description: `${obj.name}.${propName}() declares a route with no visible auth middleware. If your app uses a global auth middleware, mark this finding suppressed.`,
+    fixSuggestion:
+      'Either declare a route-scoped auth middleware (e.g. `app.get(path, requireAuth, handler)`) or document a global middleware in the entry file. ' +
+      'Add `// testforge-disable-next-line authentication-bypass` to suppress if your global middleware is intentional.',
+    category: 'Authentication Bypass',
+  });
 }
 
-function checkHardcodedSecrets(lines: string[], filePath: string, findings: SecurityFinding[]) {
-  const patterns = [
-    { regex: /(?:api[_-]?key|apikey)\s*[:=]\s*['"][a-zA-Z0-9_\-]{20,}['"]/i, title: 'Hardcoded API Key', desc: 'Potential hardcoded API key detected in source code.' },
-    { regex: /(?:password|passwd|pwd)\s*[:=]\s*['"][^'"]{4,}['"]/i, title: 'Hardcoded Password', desc: 'Potential hardcoded password detected in source code.' },
-    { regex: /(?:secret|private[_-]?key)\s*[:=]\s*['"][a-zA-Z0-9_\-/+]{20,}['"]/i, title: 'Hardcoded Secret/Private Key', desc: 'Potential hardcoded secret or private key.' },
-    { regex: /bearer\s+[a-zA-Z0-9_\-\.]{20,}/i, title: 'Hardcoded Bearer Token', desc: 'Hardcoded bearer token found in source.' },
-    { regex: /(?:AKIA|ASIA)[A-Z0-9]{16}/, title: 'AWS Access Key ID', desc: 'AWS access key ID pattern detected.' },
-    { regex: /ghp_[a-zA-Z0-9]{36}/, title: 'GitHub Personal Access Token', desc: 'GitHub personal access token pattern found.' },
-    { regex: /gho_[a-zA-Z0-9]{36}/, title: 'GitHub OAuth Token', desc: 'GitHub OAuth token pattern found.' },
-    { regex: /sk-[a-zA-Z0-9]{20,}/, title: 'Potential API Secret Key', desc: 'API secret key pattern detected (e.g., Stripe, OpenAI).' },
-  ];
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    for (const p of patterns) {
-      if (p.regex.test(line)) {
-        // Skip environment variable defaults that are obviously placeholders
-        if (line.includes('process.env.') || line.includes('process?.env')) continue;
-        // Skip config files that reference env vars
-        if (line.includes('${') && line.includes('}')) continue;
-
-        findings.push({
-          severity: 'critical',
-          title: p.title,
-          description: p.desc,
-          filePath,
-          lineNumber: i + 1,
-          codeSnippet: line.trim().slice(0, 120),
-          fixSuggestion: 'Move secrets to environment variables (.env file). Use a secrets manager (AWS Secrets Manager, HashiCorp Vault, Doppler). Never commit secrets to version control.',
-          category: 'Hardcoded Secrets',
-        });
-        break;
+function containsTokenLike(node: t.Node): boolean {
+  let found = false;
+  // Use the lightweight walker imported from visitors? We need it for
+  // arbitrary node shapes. Inline a tiny one for clarity here.
+  const visit = (n: t.Node) => {
+    if (found) return;
+    if (
+      t.isIdentifier(n) &&
+      /^(?:passport|requireAuth|isAuth|verifyJwt|authMiddleware|authenticate|auth0|clerk)$/i.test(n.name)
+    ) {
+      found = true;
+      return;
+    }
+    if (t.isMemberExpression(n)) {
+      const prop = (n.property as t.Identifier)?.name;
+      if (prop && /^(?:user|session|isAuthenticated|auth)$/.test(prop)) {
+        const obj = n.object;
+        if (t.isIdentifier(obj, { name: 'req' }) || t.isIdentifier(obj, { name: 'request' })) {
+          found = true;
+          return;
+        }
       }
     }
-  }
-}
-
-function checkIDOR(lines: string[], filePath: string, findings: SecurityFinding[]) {
-  // Check for routes that access resources by ID without ownership verification
-  const patterns = [
-    { regex: /(?:get|find|findOne|findUnique)\s*\(\s*\{[^}]*id\s*:\s*(?:req\.(params|body|query)\.(id|userId))/, title: 'Potential IDOR — No Ownership Check', desc: 'Resource accessed by ID without verifying the requesting user owns it.' },
-    { regex: /(?:delete|remove|destroy)\s*\(\s*\{[^}]*id\s*:\s*(?:req\.(params|body|query)\.(id|userId))/, title: 'Potential IDOR on Delete', desc: 'Delete operation by ID without ownership verification — IDOR vulnerability.' },
-    { regex: /(?:update|patch|put)\s*\(\s*\{[^}]*where\s*:\s*\{[^}]*id\s*:\s*(?:req\.(params|body|query))/, title: 'Potential IDOR on Update', desc: 'Update operation by ID without verifying ownership.' },
-  ];
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    for (const p of patterns) {
-      if (p.regex.test(line)) {
-        findings.push({
-          severity: 'high',
-          title: p.title,
-          description: p.desc,
-          filePath,
-          lineNumber: i + 1,
-          codeSnippet: line.trim().slice(0, 120),
-          fixSuggestion: 'Verify resource ownership before every read/update/delete. Add a WHERE clause with userId or check req.user.id matches resource.ownerId.',
-          category: 'IDOR',
-        });
-        break;
+    for (const key of Object.keys(n)) {
+      const c = (n as unknown as Record<string, unknown>)[key];
+      if (!c) continue;
+      if (Array.isArray(c)) {
+        for (const x of c) {
+          if (x && typeof x === 'object' && (x as Partial<t.Node>).type) visit(x as t.Node);
+        }
+      } else if (typeof c === 'object' && (c as Partial<t.Node>).type) {
+        visit(c as t.Node);
       }
     }
-  }
+  };
+  visit(node);
+  return found;
 }
 
-function checkPathTraversal(lines: string[], filePath: string, findings: SecurityFinding[]) {
-  const patterns = [
-    { regex: /(?:readFile|readFileSync|createReadStream|sendFile)\s*\(\s*(?:req\.(body|params|query)|.*\+.*req\.)/, title: 'Path Traversal Risk', desc: 'File path constructed from user input without sanitization.' },
-    { regex: /path\.(join|resolve)\s*\([^)]*(?:req\.(body|params|query)|.*\+.*req\.)/, title: 'Path Traversal via path.join', desc: 'User input used in path construction.' },
-    { regex: /fs\.(?:readFile|readFileSync)\s*\(\s*[^)]*\+/, title: 'Dynamic File Path', desc: 'File path built via string concatenation — may allow directory traversal.' },
-  ];
+/* -------------------------------------------------------------------------- */
+/* 7. CORS misconfig (call shape rather than substring)                       */
+/* -------------------------------------------------------------------------- */
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    for (const p of patterns) {
-      if (p.regex.test(line)) {
-        findings.push({
-          severity: 'high',
-          title: p.title,
-          description: p.desc,
-          filePath,
-          lineNumber: i + 1,
-          codeSnippet: line.trim().slice(0, 120),
-          fixSuggestion: 'Sanitize file paths with path.normalize(), validate against an allowlist, and use a dedicated upload directory. Never use raw user input as a file path.',
-          category: 'Path Traversal',
-        });
-        break;
-      }
-    }
+function checkCorsCall(
+  call: t.CallExpression,
+  filePath: string,
+  content: string,
+  out: SecurityFinding[]
+) {
+  const name = getCalleeName(call.callee);
+  if (name !== 'cors') return;
+
+  const opts = call.arguments[0] as t.Node | undefined;
+  if (!opts) {
+    // bare cors() — default in many versions is *
+    push(out, filePath, content, call, {
+      severity: 'medium',
+      confidence: 'medium',
+      title: 'CORS with Default Config',
+      description: 'cors() called with no options. Some versions default to "Access-Control-Allow-Origin: *".',
+      fixSuggestion: 'Pass an options object with an explicit origin allowlist.',
+      category: 'CORS Misconfiguration',
+    });
+    return;
   }
-}
+  if (!t.isObjectExpression(opts)) return;
 
-function checkDangerousFunctions(lines: string[], filePath: string, findings: SecurityFinding[]) {
-  const patterns = [
-    { regex: /(?<!\w)eval\s*\(/, title: 'Dangerous eval() Usage', desc: 'eval() executes arbitrary code and is extremely dangerous.' },
-    { regex: /new\s+Function\s*\(/, title: 'Dangerous Function Constructor', desc: 'new Function() creates functions from strings — arbitrary code execution risk.' },
-    { regex: /child_process\.(exec|execSync)\s*\(/, title: 'Command Execution', desc: 'Shell command execution detected — potential command injection.' },
-    { regex: /setTimeout\s*\(\s*['"`]/, title: 'String in setTimeout', desc: 'setTimeout with string argument is similar to eval().' },
-    { regex: /setInterval\s*\(\s*['"`]/, title: 'String in setInterval', desc: 'setInterval with string argument is similar to eval().' },
-  ];
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    for (const p of patterns) {
-      if (p.regex.test(line)) {
-        findings.push({
-          severity: 'critical',
-          title: p.title,
-          description: p.desc,
-          filePath,
-          lineNumber: i + 1,
-          codeSnippet: line.trim().slice(0, 120),
-          fixSuggestion: 'Avoid eval() and new Function(). Use JSON.parse() for JSON, use safe alternatives for dynamic code. For command execution, use execFile() or spawn() with arrays instead of string commands.',
-          category: 'Dangerous Functions',
-        });
-        break;
-      }
-    }
-  }
-}
-
-function checkUnvalidatedRedirects(lines: string[], filePath: string, findings: SecurityFinding[]) {
-  const patterns = [
-    { regex: /res\.redirect\s*\(\s*(?:req\.(query|body|params)\.(?:redirect|url|to|next)|[^)]*req\.)/, title: 'Unvalidated Redirect', desc: 'Redirect URL from user input — open redirect vulnerability.' },
-    { regex: /(?:window|document)\.location\s*=\s*(?:req\.|location\.(?:href|search)|[^'"]*req\.)/, title: 'Client-Side Open Redirect', desc: 'Client-side redirect using user-controlled URL.' },
-  ];
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    for (const p of patterns) {
-      if (p.regex.test(line)) {
-        findings.push({
-          severity: 'medium',
-          title: p.title,
-          description: p.desc,
-          filePath,
-          lineNumber: i + 1,
-          codeSnippet: line.trim().slice(0, 120),
-          fixSuggestion: 'Validate redirect URLs against an allowlist. Only redirect to known, trusted domains. Prefer internal route names over URL parameters.',
-          category: 'Open Redirect',
-        });
-        break;
-      }
-    }
-  }
-}
-
-function checkMissingRateLimit(allDeps: string[], findings: SecurityFinding[], projectPath: string) {
-  const hasRateLimit = allDeps.some(d =>
-    d.includes('rate-limit') || d.includes('express-rate-limit') || d.includes('fastify-rate-limit') || d.includes('fastify-ratelimit')
+  // origin: "*" or origin: true
+  const originProp = opts.properties.find(
+    (p): p is t.ObjectProperty =>
+      t.isObjectProperty(p) && t.isIdentifier(p.key, { name: 'origin' })
+  );
+  const credsProp = opts.properties.find(
+    (p): p is t.ObjectProperty =>
+      t.isObjectProperty(p) && t.isIdentifier(p.key, { name: 'credentials' })
   );
 
+  const wildcard =
+    !!originProp &&
+    ((t.isStringLiteral(originProp.value) && originProp.value.value === '*') ||
+      t.isBooleanLiteral(originProp.value, { value: true }));
+
+  if (wildcard) {
+    const credsTrue = !!credsProp && t.isBooleanLiteral(credsProp.value, { value: true });
+    push(out, filePath, content, call, {
+      severity: credsTrue ? 'high' : 'medium',
+      confidence: 'high',
+      title: credsTrue
+        ? 'CORS Wildcard Origin With Credentials'
+        : 'CORS Allowing All Origins',
+      description: credsTrue
+        ? '`origin: "*" || true` with `credentials: true` is invalid (browser refuses) AND dangerous if it ever works.'
+        : 'CORS allows requests from any origin.',
+      fixSuggestion:
+        'Define an allowlist (`origin: [...]`) or a function that returns true only for known hosts.',
+      category: 'CORS Misconfiguration',
+    });
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* 8. innerHTML = <expr that reads req.*>                                     */
+/* -------------------------------------------------------------------------- */
+
+function checkInnerHtmlAssignment(
+  node: t.AssignmentExpression,
+  filePath: string,
+  content: string,
+  out: SecurityFinding[]
+) {
+  if (node.operator !== '=') return;
+  const left = node.left;
+  if (!t.isMemberExpression(left) || left.computed) return;
+  const prop = (left.property as t.Identifier)?.name;
+  if (prop !== 'innerHTML' && prop !== 'outerHTML') return;
+  if (!containsReqAccess(node.right)) return;
+
+  push(out, filePath, content, node, {
+    severity: 'high',
+    confidence: 'high',
+    title: 'innerHTML with user input',
+    description: `${prop} is being assigned a value that reads from req.*. DOM-based XSS.`,
+    fixSuggestion:
+      'Use textContent (escapes), or sanitize with DOMPurify before assigning to innerHTML.',
+    category: 'XSS',
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* 9. <element dangerouslySetInnerHTML={{__html: req.*}}>                     */
+/* -------------------------------------------------------------------------- */
+
+function checkDangerouslySetInnerHTML(
+  attr: t.JSXAttribute,
+  filePath: string,
+  content: string,
+  out: SecurityFinding[]
+) {
+  if (!t.isJSXIdentifier(attr.name) || attr.name.name !== 'dangerouslySetInnerHTML') return;
+  const v = attr.value;
+  if (!t.isJSXExpressionContainer(v)) return;
+  if (!t.isObjectExpression(v.expression)) return;
+  const htmlProp = v.expression.properties.find(
+    (p): p is t.ObjectProperty =>
+      t.isObjectProperty(p) && t.isIdentifier(p.key, { name: '__html' })
+  );
+  if (!htmlProp) return;
+  if (!containsReqAccess(htmlProp.value)) return;
+
+  push(out, filePath, content, attr, {
+    severity: 'high',
+    confidence: 'high',
+    title: 'dangerouslySetInnerHTML with user input',
+    description: 'React dangerouslySetInnerHTML is being assigned an expression that reads from req.* — XSS.',
+    fixSuggestion:
+      'Render the value as text (default React escaping) or pass through DOMPurify.sanitize() first.',
+    category: 'XSS',
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* 10. Hardcoded secrets in var declarations + literals                       */
+/* -------------------------------------------------------------------------- */
+
+const SECRET_NAME_RE = /^(?:api_?key|secret|password|passwd|pwd|token|private_?key|aws_?secret|client_?secret)$/i;
+
+function checkHardcodedSecret(
+  node: t.VariableDeclarator,
+  filePath: string,
+  content: string,
+  out: SecurityFinding[]
+) {
+  if (!t.isIdentifier(node.id)) return;
+  if (!SECRET_NAME_RE.test(node.id.name)) return;
+  const init = node.init;
+  if (!init || !t.isStringLiteral(init)) return;
+  if (init.value.length < 8) return; // probably a placeholder
+  if (/^\$\{/.test(init.value) || init.value.includes('process.env')) return;
+
+  push(out, filePath, content, node, {
+    severity: 'critical',
+    confidence: 'high',
+    title: `Hardcoded ${node.id.name}`,
+    description: `\`${node.id.name}\` is initialized with a string literal in source.`,
+    fixSuggestion: 'Read from process.env or a secret store. Never commit secrets to version control.',
+    category: 'Hardcoded Secrets',
+  });
+}
+
+const SECRET_LITERAL_RE = [
+  /^(?:AKIA|ASIA)[A-Z0-9]{16}$/,                       // AWS access key
+  /^ghp_[A-Za-z0-9]{36}$/,                              // GitHub PAT
+  /^gho_[A-Za-z0-9]{36}$/,                              // GitHub OAuth
+  /^xox[bporsa]-[A-Za-z0-9-]+$/,                        // Slack
+  /^sk-[A-Za-z0-9]{20,}$/,                              // OpenAI / Stripe
+  /^sk_live_[A-Za-z0-9]{24,}$/,                         // Stripe live
+];
+
+function checkSecretStringLiteral(
+  node: t.StringLiteral,
+  filePath: string,
+  content: string,
+  out: SecurityFinding[]
+) {
+  const v = node.value;
+  if (v.length < 16) return;
+  if (!SECRET_LITERAL_RE.some((re) => re.test(v))) return;
+
+  push(out, filePath, content, node, {
+    severity: 'critical',
+    confidence: 'high',
+    title: 'Hardcoded secret literal',
+    description: `Literal matches a known secret prefix (AWS / GitHub / Slack / Stripe / OpenAI).`,
+    fixSuggestion: 'Rotate this secret immediately, then read from process.env.',
+    category: 'Hardcoded Secrets',
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* 11. Sensitive returns — `return { password, ... }` or `res.json({pw...})`  */
+/* -------------------------------------------------------------------------- */
+
+function checkSensitiveReturn(
+  node: t.VariableDeclarator | t.ReturnStatement,
+  filePath: string,
+  content: string,
+  out: SecurityFinding[]
+) {
+  const expr = t.isReturnStatement(node) ? node.argument : node.init;
+  if (!expr || !t.isObjectExpression(expr)) return;
+  if (!hasPropertyNamed(expr, ['password', 'passwordhash', 'pwd', 'secret', 'token', 'access_token'])) return;
+
+  push(out, filePath, content, node, {
+    severity: 'high',
+    confidence: 'medium',
+    title: 'Sensitive Field in Returned Object',
+    description: 'An object returned from this location contains a property named password/secret/token. Verify it isn\'t shipped to clients.',
+    fixSuggestion: 'Strip sensitive fields before returning. Use a projection (Prisma select / Drizzle column list) at the DB layer.',
+    category: 'Sensitive Data Exposure',
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Project-level checks (unchanged behavior)                                  */
+/* -------------------------------------------------------------------------- */
+
+function checkMissingRateLimit(
+  allDeps: string[],
+  findings: SecurityFinding[],
+  projectPath: string
+) {
+  const hasRateLimit = allDeps.some(
+    (d) => d.includes('rate-limit') || d.includes('ratelimit')
+  );
   if (!hasRateLimit) {
     findings.push({
       severity: 'medium',
+      confidence: 'medium',
       title: 'Missing Rate Limiting',
-      description: 'No rate limiting package detected in dependencies. API endpoints may be vulnerable to brute-force and DoS attacks.',
+      description:
+        'No rate-limit package detected. Auth endpoints in particular should be rate-limited against brute-force.',
       filePath: `${projectPath}/package.json`,
       lineNumber: 1,
-      codeSnippet: 'Dependencies: ' + allDeps.join(', '),
-      fixSuggestion: 'Install express-rate-limit (Express) or @fastify/rate-limit (Fastify). Apply rate limiting to all API endpoints, especially auth routes.',
+      codeSnippet: '',
+      fixSuggestion:
+        'Install express-rate-limit, @fastify/rate-limit, or roll a Redis-backed limiter.',
       category: 'Rate Limiting',
     });
   }
 }
 
 function checkInsecureDependencies(allDeps: string[], findings: SecurityFinding[]) {
-  // Known vulnerable package versions (simplified check — in production use npm audit or Snyk)
-  const vulnerablePackages: Record<string, { severity: Severity; reason: string }> = {
-    'lodash': { severity: 'medium', reason: 'Versions < 4.17.21 have prototype pollution vulnerability CVE-2021-23337' },
-    'minimist': { severity: 'medium', reason: 'Versions < 1.2.6 have prototype pollution vulnerability' },
-    'axios': { severity: 'medium', reason: 'Versions < 0.21.1 have SSRF vulnerability CVE-2020-28168' },
-    'jsonwebtoken': { severity: 'high', reason: 'Versions < 9.0.0 have algorithm confusion vulnerability' },
-    'express': { severity: 'medium', reason: 'Versions < 4.17.3 have qs dependency vulnerability' },
-    'node-fetch': { severity: 'low', reason: 'Versions < 2.6.7 have information disclosure vulnerability' },
-    'semver': { severity: 'high', reason: 'Versions < 7.5.2 have ReDoS vulnerability CVE-2022-25883' },
-    'word-wrap': { severity: 'medium', reason: 'Versions < 1.2.4 have ReDoS vulnerability' },
+  const vulnerable: Record<string, { severity: Severity; reason: string }> = {
+    lodash: { severity: 'medium', reason: 'Versions < 4.17.21 — prototype pollution CVE-2021-23337' },
+    minimist: { severity: 'medium', reason: 'Versions < 1.2.6 — prototype pollution' },
+    axios: { severity: 'medium', reason: 'Versions < 0.21.1 — SSRF CVE-2020-28168' },
+    jsonwebtoken: { severity: 'high', reason: 'Versions < 9.0.0 — algorithm confusion' },
+    express: { severity: 'medium', reason: 'Versions < 4.17.3 — qs dep CVE' },
+    'node-fetch': { severity: 'low', reason: 'Versions < 2.6.7 — info disclosure' },
+    semver: { severity: 'high', reason: 'Versions < 7.5.2 — ReDoS CVE-2022-25883' },
+    'word-wrap': { severity: 'medium', reason: 'Versions < 1.2.4 — ReDoS' },
   };
-
   for (const dep of allDeps) {
-    // Check exact match or starts with
-    const vuln = vulnerablePackages[dep];
-    if (vuln) {
+    const v = vulnerable[dep];
+    if (v) {
       findings.push({
-        severity: vuln.severity,
+        severity: v.severity,
+        confidence: 'low',
         title: `Potentially Vulnerable Dependency: ${dep}`,
-        description: vuln.reason,
+        description: v.reason,
         filePath: 'package.json',
         lineNumber: 1,
-        codeSnippet: `"${dep}": "..."`,
-        fixSuggestion: `Run 'npm audit' or 'pnpm audit' to check exact versions. Update ${dep} to the latest patched version.`,
+        codeSnippet: `"${dep}": "…"`,
+        fixSuggestion: `Run npm/pnpm audit; update ${dep} to a patched version.`,
         category: 'Vulnerable Dependencies',
       });
     }
   }
 }
 
-function checkMissingSecurityHeaders(fileContents: Record<string, string>, findings: SecurityFinding[]) {
-  // Check if helmet or similar security middleware is used
-  const hasHelmet = Object.values(fileContents).some(content =>
-    content.includes('helmet') || content.includes('hsts') || content.includes('X-Frame-Options')
-  );
-
-  if (!hasHelmet) {
-    // Only flag if it's an Express/Fastify app
-    const isWebApp = Object.values(fileContents).some(content =>
-      content.includes('express()') || content.includes('fastify()') || content.includes('createServer')
-    );
-
-    if (isWebApp) {
-      findings.push({
-        severity: 'medium',
-        title: 'Missing Security Headers',
-        description: 'Security headers middleware (helmet) not detected. Application may be missing X-Frame-Options, HSTS, CSP, and other security headers.',
-        filePath: 'app entry file',
-        lineNumber: 1,
-        codeSnippet: 'No helmet() or security header configuration found',
-        fixSuggestion: 'Install helmet (Express) or @fastify/helmet and add as global middleware. Configure CSP, HSTS, and framing policies.',
-        category: 'Security Headers',
-      });
-    }
+function checkMissingSecurityHeaders(
+  fileContents: Record<string, string>,
+  findings: SecurityFinding[]
+) {
+  const all = Object.values(fileContents).join('\n');
+  const hasHelmet = /helmet|@fastify\/helmet|hsts|X-Frame-Options/.test(all);
+  const isWebApp = /express\s*\(|fastify\s*\(|http\.createServer|Bun\.serve/.test(all);
+  if (isWebApp && !hasHelmet) {
+    findings.push({
+      severity: 'medium',
+      confidence: 'medium',
+      title: 'Missing Security Headers',
+      description: 'Web app detected but no helmet / equivalent middleware found.',
+      filePath: 'app entry file',
+      lineNumber: 1,
+      codeSnippet: '',
+      fixSuggestion:
+        'Install helmet (Express) or @fastify/helmet and register it globally. Configure CSP and HSTS.',
+      category: 'Security Headers',
+    });
   }
 }
 
 /* -------------------------------------------------------------------------- */
-/*                              Helpers                                       */
+/* File loader (used only when caller doesn't pre-populate fileContents)      */
 /* -------------------------------------------------------------------------- */
 
 async function loadFileContents(projectPath: string): Promise<Record<string, string>> {
   const fileContents: Record<string, string> = {};
-  const patterns = ['**/*.{ts,js,tsx,jsx}', '!**/node_modules/**', '!**/.git/**', '!**/dist/**', '!**/build/**'];
+  const patterns = [
+    '**/*.{ts,tsx,js,jsx,mjs,cjs,mts,cts}',
+    '!**/node_modules/**',
+    '!**/.git/**',
+    '!**/dist/**',
+    '!**/build/**',
+    '!**/.next/**',
+    '!**/coverage/**',
+    '!**/*.min.js',
+  ];
   const files = await glob(patterns, { cwd: projectPath, absolute: false });
-
   for (const f of files) {
     try {
-      const content = readFileSync(join(projectPath, f), 'utf-8');
-      fileContents[f] = content;
+      fileContents[f] = readFileSync(join(projectPath, f), 'utf-8');
     } catch {
-      // skip
+      // skip unreadable
     }
   }
-
   return fileContents;
 }

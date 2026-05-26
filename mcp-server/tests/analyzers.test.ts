@@ -22,6 +22,8 @@ import {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const VULNERABLE = resolve(__dirname, 'fixtures/vulnerable-app');
 const CLEAN = resolve(__dirname, 'fixtures/clean-app');
+const TRUE_POS = resolve(__dirname, 'fixtures/true-positives');
+const FALSE_POS = resolve(__dirname, 'fixtures/false-positives');
 
 describe('code-scanner', () => {
   let vulnInfo: CodebaseInfo;
@@ -73,15 +75,20 @@ describe('security-analyzer — vulnerable fixture', () => {
     expect(sql[0].filePath).toContain('src/server.js');
   });
 
-  it('flags eval(req.query.code) as XSS / code injection', async () => {
+  it('flags eval(req.query.code) as dangerous-functions / RCE', async () => {
     const findings = await runSecurityAnalysis({
       projectPath: VULNERABLE,
       fileContents: vulnInfo.fileContents,
       dependencies: vulnInfo.dependencies,
       devDependencies: vulnInfo.devDependencies,
     });
-    const xss = findings.filter((f) => f.category === 'XSS');
-    expect(xss.some((f) => /eval/i.test(f.title))).toBe(true);
+    // The AST analyzer categorizes eval as "Dangerous Functions" (more
+    // accurate than XSS — it's RCE, not just script-injection).
+    const dangerous = findings.filter((f) => f.category === 'Dangerous Functions');
+    const evalFinding = dangerous.find((f) => /eval/i.test(f.title));
+    expect(evalFinding).toBeTruthy();
+    // When the argument came from req.*, confidence should be high.
+    expect(evalFinding?.confidence).toBe('high');
   });
 
   it('flags password leakage in /me response', async () => {
@@ -107,6 +114,117 @@ describe('security-analyzer — clean fixture', () => {
     });
     const critical = findings.filter((f) => f.severity === 'critical');
     expect(critical).toEqual([]);
+  });
+});
+
+describe('security-analyzer — true-positive corpus (AST advantage)', () => {
+  it('flags every category in true-positives/src/vulnerabilities.js', async () => {
+    const info = await scanCodebase(TRUE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: TRUE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const categoriesFound = new Set(findings.map((f) => f.category));
+    const expected = [
+      'SQL Injection',
+      'Dangerous Functions',
+      'Path Traversal',
+      'Open Redirect',
+      'XSS',
+      'Sensitive Data Exposure',
+      'CORS Misconfiguration',
+      'Hardcoded Secrets',
+    ];
+    const missing = expected.filter((c) => !categoriesFound.has(c));
+    expect(missing).toEqual([]);
+  });
+
+  it('detects SQL injection via an intermediate variable (intra-procedural taint)', async () => {
+    const info = await scanCodebase(TRUE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: TRUE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    // The fixture's /search endpoint assigns the tainted concat to `q`
+    // and *then* passes `q` to db.query. Regex-only analyzers miss this.
+    const sql = findings.filter((f) => f.category === 'SQL Injection');
+    const searchFinding = sql.find((f) => f.filePath.endsWith('vulnerabilities.js'));
+    expect(searchFinding).toBeTruthy();
+    expect(searchFinding?.confidence).toBe('high');
+  });
+
+  it('suppression comments silence the targeted finding only', async () => {
+    const info = await scanCodebase(TRUE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: TRUE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const inSuppressed = findings.filter((f) => f.filePath.endsWith('suppressed.js'));
+    // Path traversal on the /read route is suppressed → no finding from it.
+    const pathTrav = inSuppressed.filter((f) => f.category === 'Path Traversal');
+    expect(pathTrav.length).toBe(0);
+    // Dangerous Functions on /exec route is suppressed → also gone.
+    const danger = inSuppressed.filter((f) => f.category === 'Dangerous Functions');
+    expect(danger.length).toBe(0);
+  });
+});
+
+describe('security-analyzer — false-positive corpus', () => {
+  it('does NOT flag parameterized queries or safe template literals as SQL injection', async () => {
+    const info = await scanCodebase(FALSE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: FALSE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const sql = findings.filter((f) => f.category === 'SQL Injection');
+    expect(sql).toEqual([]);
+  });
+
+  it('does NOT report SQL/XSS/path-traversal on safe-patterns.js', async () => {
+    const info = await scanCodebase(FALSE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: FALSE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const noisy = findings.filter(
+      (f) =>
+        f.filePath.endsWith('safe-patterns.js') &&
+        ['SQL Injection', 'XSS', 'Path Traversal', 'Open Redirect'].includes(f.category)
+    );
+    expect(noisy).toEqual([]);
+  });
+});
+
+describe('security-analyzer — finding shape', () => {
+  it('every finding carries category, line, confidence, fix suggestion', async () => {
+    const info = await scanCodebase(TRUE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: TRUE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    expect(findings.length).toBeGreaterThan(0);
+    for (const f of findings) {
+      expect(f.category).toBeTruthy();
+      expect(f.lineNumber).toBeGreaterThan(0);
+      expect(['critical', 'high', 'medium', 'low', 'info']).toContain(f.severity);
+      if (f.severity !== 'info') {
+        expect(['high', 'medium', 'low']).toContain(f.confidence);
+        expect(typeof f.fixSuggestion).toBe('string');
+        expect(f.fixSuggestion.length).toBeGreaterThan(20);
+      }
+    }
   });
 });
 

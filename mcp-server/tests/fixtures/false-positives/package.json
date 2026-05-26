@@ -1,0 +1,10 @@
+{
+  "name": "fixture-false-positives",
+  "version": "0.0.1",
+  "description": "Code patterns that LOOK suspicious to a naive regex but are safe. The AST analyzer should NOT flag any of these.",
+  "dependencies": {
+    "pg": "^8.11.0",
+    "express-rate-limit": "^7.0.0",
+    "helmet": "^7.0.0"
+  }
+}
