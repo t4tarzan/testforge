@@ -1,0 +1,10 @@
+{
+  "name": "fixture-dead-code",
+  "version": "0.0.1",
+  "description": "Dead-code detection fixture — unused exports + unused deps.",
+  "dependencies": {
+    "express": "^4.18.0",
+    "lodash": "^4.17.21",
+    "unused-package": "^1.0.0"
+  }
+}

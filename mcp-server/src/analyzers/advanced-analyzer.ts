@@ -1,6 +1,11 @@
 // Advanced Analyzers — completing all 13 testing dimensions
 // Contract, Visual Regression, Edge Case, Property-Based, Chaos, Mutation, Predictive
 
+import { parseFile, isParseable } from './lib/parse.js';
+import { findNPlusOneHits } from './lib/n-plus-one.js';
+import { findDeadCode } from './lib/dead-code.js';
+import type * as t from '@babel/types';
+
 export interface AdvancedReport {
   contract: ContractReport;
   visualRegression: VisualReport;
@@ -731,7 +736,15 @@ export function runSupplyChainAudit(dependencies: string[], devDependencies: str
   return { score, totalDeps: allDeps.length, knownVulnerable, criticalVulns, findings };
 }
 
-// N+1 Query Detection
+// N+1 Query Detection (AST-aware as of 0.9.0).
+//
+// Walks each parseable file looking for db.query / db.findOne / sql`...` /
+// prisma.x / mongoose.x / sequelize.x calls inside loop constructs
+// (for / for-of / for-in / while / do-while / arr.{forEach,map,filter,…}).
+// Skips Promise.all / Promise.allSettled wrappers (parallelised, not N+1).
+//
+// Replaces the prior line-counting regex which over-fired on inner
+// closures and missed db calls inside arrow-function loop bodies.
 export interface NPlusOneReport { score: number; potentialNPlusOne: number; findings: Finding[]; }
 
 export function runNPlusOneDetection(fileContents: Record<string, string>): NPlusOneReport {
@@ -740,92 +753,113 @@ export function runNPlusOneDetection(fileContents: Record<string, string>): NPlu
 
   for (const [filePath, content] of Object.entries(fileContents)) {
     if (filePath.includes('node_modules') || filePath.includes('test')) continue;
-    const lines = content.split('\n');
-    
-    // Detect: for/while loop with DB query inside
-    let inLoop = false;
-    let loopDepth = 0;
-    
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (line.match(/for\s*\(|while\s*\(|\.forEach\(|\.map\(/)) { inLoop = true; loopDepth++; }
-      if (line.includes('}') && inLoop) { loopDepth--; if (loopDepth === 0) inLoop = false; }
-      
-      if (inLoop && (line.includes('.find(') || line.includes('.findOne(') || 
-          line.includes('await db') || line.includes('sql`') || line.includes('prisma.') ||
-          line.includes('mongoose.') || line.includes('sequelize.'))) {
-        potentialNPlusOne++;
-        if (findings.length < 5) {
-          findings.push({
-            severity: 'high',
-            title: `Potential N+1 Query in Loop`,
-            description: `Database query detected inside a loop at ${filePath}:${i+1}. This will cause N+1 queries.`,
-            filePath,
-            lineNumber: i + 1,
-            fixSuggestion: 'Use eager loading (.include(), .populate(), JOINs) or batch queries (WHERE IN) instead of querying in a loop.',
-            category: 'N+1 Query',
-          });
-        }
-      }
+    if (!isParseable(filePath)) continue;
+
+    const parsed = parseFile(filePath, content);
+    if (!parsed.ast) continue;
+
+    const hits = findNPlusOneHits(parsed.ast);
+    potentialNPlusOne += hits.length;
+
+    for (const hit of hits) {
+      if (findings.length >= 8) break;
+      const lines = content.split('\n');
+      const snippet = (lines[hit.line - 1] || '').trim().slice(0, 140);
+      findings.push({
+        severity: 'high',
+        title: `Potential N+1 Query in ${hit.loopKind}`,
+        description: `\`${hit.calleeName}()\` is invoked inside a \`${hit.loopKind}\` loop at ${filePath}:${hit.line}. Each iteration issues its own DB round-trip.\nLine: ${snippet}`,
+        filePath,
+        lineNumber: hit.line,
+        fixSuggestion:
+          'Batch the query: pre-build the id list, fire one query with `WHERE id IN (...)`, ' +
+          'or use eager-loading (`.include()` / `.populate()` / `JOIN`). For parallelisation only, ' +
+          'wrap in `Promise.all([...].map(...))` so the round-trips overlap.',
+        category: 'N+1 Query',
+      });
     }
   }
 
-  const score = Math.max(0, 100 - potentialNPlusOne * 15);
+  // Score model: each N+1 detection costs 12 points; cap at 100.
+  const score = Math.max(0, 100 - potentialNPlusOne * 12);
   return { score: Math.min(100, score), potentialNPlusOne, findings };
 }
 
-// Dead Code & Unused Dependencies
-export interface DeadCodeReport { score: number; unusedDeps: string[]; deadFunctions: number; findings: Finding[]; }
+// Dead Code & Unused Dependencies (AST-aware as of 0.9.0).
+//
+// Replaces the prior `allContent.includes(name)` heuristic which marked
+// the symbol's OWN declaration as a usage and treated common words
+// (process, data, …) as "referenced everywhere." This version:
+//   - Parses every file once.
+//   - For each declared/exported symbol, asks: does ANY OTHER file
+//     reference an identifier with this name? Only then "used."
+//   - For deps: matches on the module ROOT, so `lodash/get` counts as
+//     a use of `lodash`.
+//
+// Limitation: cross-file identifier matching is still name-based, so a
+// global `app` declared in two files would be considered cross-used.
+// Acceptable for a static analyzer; future work can do scope-aware
+// resolution.
+export interface DeadCodeReport {
+  score: number;
+  unusedDeps: string[];
+  deadFunctions: number;
+  findings: Finding[];
+}
 
 export function runDeadCodeAnalysis(fileContents: Record<string, string>, dependencies: string[]): DeadCodeReport {
   const findings: Finding[] = [];
-  const allContent = Object.values(fileContents).join('\n');
-  const unusedDeps: string[] = [];
 
-  // Check if each dependency is actually imported
-  for (const dep of dependencies) {
-    const depName = dep.replace(/^[@]/, '').split('@')[0] || dep;
-    const importPattern = new RegExp(`(from\\s+['"]${depName}|require\\(['"]${depName})`, 'i');
-    if (!importPattern.test(allContent)) {
-      unusedDeps.push(dep);
-    }
+  // Parse every parseable file once. Skip oversize / unparseable.
+  const asts = new Map<string, t.File>();
+  for (const [filePath, content] of Object.entries(fileContents)) {
+    if (filePath.includes('node_modules') || filePath.includes('test')) continue;
+    if (!isParseable(filePath)) continue;
+    const parsed = parseFile(filePath, content);
+    if (parsed.ast) asts.set(filePath, parsed.ast);
   }
 
-  if (unusedDeps.length > 0) {
+  const report = findDeadCode(asts, dependencies);
+
+  if (report.unusedDeps.length > 0) {
     findings.push({
       severity: 'medium',
-      title: `${unusedDeps.length} Unused Dependencies`,
-      description: `Dependencies not imported anywhere: ${unusedDeps.slice(0, 5).join(', ')}. These increase bundle size and attack surface.`,
-      fixSuggestion: 'Remove unused dependencies with: npm uninstall ' + unusedDeps.slice(0, 3).join(' '),
+      title: `${report.unusedDeps.length} Unused Dependencies`,
+      description: `Dependencies not imported anywhere: ${report.unusedDeps.slice(0, 5).join(', ')}${report.unusedDeps.length > 5 ? ', …' : ''}. These increase bundle size, install time, and supply-chain attack surface.`,
+      fixSuggestion: 'Remove with: `npm uninstall ' + report.unusedDeps.slice(0, 3).join(' ') + '`. ' +
+        'Confirm with `npx depcheck` before removing — some packages are loaded by side-effect (Babel plugins, polyfills) without explicit imports.',
       category: 'Dead Code',
     });
   }
 
-  // Count exported but unused functions (heuristic)
-  let deadFunctions = 0;
-  for (const [fp, content] of Object.entries(fileContents)) {
-    if (fp.includes('node_modules') || fp.includes('test')) continue;
-    const exports = content.match(/export\s+(const|function|class)\s+(\w+)/g) || [];
-    for (const exp of exports) {
-      const name = exp.split(/\s+/)[2];
-      if (name && !allContent.includes(name) && deadFunctions < 10) {
-        deadFunctions++;
-      }
-    }
+  // Group dead exports by file for a concise top-N listing.
+  const deadByFile = new Map<string, string[]>();
+  for (const { filePath, name } of report.unusedExports) {
+    if (!deadByFile.has(filePath)) deadByFile.set(filePath, []);
+    deadByFile.get(filePath)!.push(name);
   }
-
-  if (deadFunctions > 3) {
+  const deadFunctions = report.unusedExports.length;
+  if (deadFunctions > 0) {
+    const top = [...deadByFile.entries()].slice(0, 5);
+    const detail = top.map(([f, names]) => `  ${f}: ${names.slice(0, 5).join(', ')}${names.length > 5 ? '…' : ''}`).join('\n');
     findings.push({
-      severity: 'low',
-      title: `${deadFunctions}+ Potentially Unused Exports`,
-      description: 'Functions exported but possibly never imported. Consider removing or marking as @internal.',
-      fixSuggestion: 'Use TypeScript noUnusedLocals. Run eslint-plugin-unused-imports. Remove dead code to reduce bundle size.',
+      severity: deadFunctions > 10 ? 'medium' : 'low',
+      title: `${deadFunctions} Exported Symbols Not Referenced Anywhere`,
+      description: `Exports that no other file imports:\n${detail}`,
+      fixSuggestion:
+        'Either remove the export, narrow it to `@internal` / non-exported, or use it from another module. ' +
+        'For dual-purpose exports (used by external consumers via the package surface), add them to the package\'s main entry index file so they\'re reachable.',
       category: 'Dead Code',
     });
   }
 
-  const score = Math.max(0, 100 - unusedDeps.length * 10 - Math.floor(deadFunctions / 3) * 5);
-  return { score: Math.min(100, score), unusedDeps, deadFunctions, findings };
+  const score = Math.max(0, 100 - report.unusedDeps.length * 8 - Math.min(deadFunctions, 20) * 2);
+  return {
+    score: Math.min(100, score),
+    unusedDeps: report.unusedDeps,
+    deadFunctions,
+    findings,
+  };
 }
 
 // License Compliance Check

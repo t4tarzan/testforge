@@ -17,6 +17,8 @@ import { runSecurityAnalysis } from '../src/analyzers/security-analyzer.js';
 import {
   runMutationAnalysis,
   runPredictiveAnalysis,
+  runNPlusOneDetection,
+  runDeadCodeAnalysis,
 } from '../src/analyzers/advanced-analyzer.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -25,6 +27,8 @@ const CLEAN = resolve(__dirname, 'fixtures/clean-app');
 const TRUE_POS = resolve(__dirname, 'fixtures/true-positives');
 const FALSE_POS = resolve(__dirname, 'fixtures/false-positives');
 const USER_RULES = resolve(__dirname, 'fixtures/user-rules');
+const N_PLUS_ONE = resolve(__dirname, 'fixtures/n-plus-one');
+const DEAD_CODE = resolve(__dirname, 'fixtures/dead-code');
 
 describe('code-scanner', () => {
   let vulnInfo: CodebaseInfo;
@@ -697,6 +701,92 @@ describe('security-analyzer — Phase 4c: user-authored rules', () => {
     for (const t of titles) {
       expect(findings.find((f) => f.title.includes(t))).toBeFalsy();
     }
+  });
+});
+
+describe('advanced-analyzer — Phase 5: AST-aware N+1 detection', () => {
+  it('flags db.query inside for-of loop', async () => {
+    const info = await scanCodebase(N_PLUS_ONE);
+    const report = runNPlusOneDetection(info.fileContents);
+    const inForOf = report.findings.find((f) => /for-of/.test(f.title) && /db\.query/.test(f.description));
+    expect(inForOf).toBeTruthy();
+    expect(inForOf?.severity).toBe('high');
+  });
+
+  it('flags awaited db call inside arr.forEach', async () => {
+    const info = await scanCodebase(N_PLUS_ONE);
+    const report = runNPlusOneDetection(info.fileContents);
+    const inForEach = report.findings.find((f) => /array\.forEach/.test(f.title));
+    expect(inForEach).toBeTruthy();
+  });
+
+  it('flags prisma.user.findUnique in classic for-loop', async () => {
+    const info = await scanCodebase(N_PLUS_ONE);
+    const report = runNPlusOneDetection(info.fileContents);
+    const inFor = report.findings.find((f) => /\bfor\b/.test(f.title) && /findUnique/.test(f.description));
+    expect(inFor).toBeTruthy();
+  });
+
+  it('does NOT flag db calls wrapped in Promise.all([...].map(...))', async () => {
+    const info = await scanCodebase(N_PLUS_ONE);
+    const report = runNPlusOneDetection(info.fileContents);
+    // The /users-fast route uses Promise.all around the map — must not
+    // trigger an N+1 finding on the same file/line.
+    const promiseAll = report.findings.find((f) => /users-fast|Promise\.all/i.test(f.description ?? ''));
+    expect(promiseAll).toBeUndefined();
+  });
+
+  it('does NOT flag db calls outside any loop', async () => {
+    const info = await scanCodebase(N_PLUS_ONE);
+    const report = runNPlusOneDetection(info.fileContents);
+    // /all-users is a single, unrooted db.query — no loop. Should not fire.
+    const standalone = report.findings.find((f) => f.lineNumber && /all-users/.test(f.description ?? ''));
+    expect(standalone).toBeUndefined();
+  });
+
+  it('score decreases as N+1 count rises', async () => {
+    const info = await scanCodebase(N_PLUS_ONE);
+    const report = runNPlusOneDetection(info.fileContents);
+    expect(report.potentialNPlusOne).toBeGreaterThanOrEqual(3);
+    expect(report.score).toBeLessThan(100);
+  });
+});
+
+describe('advanced-analyzer — Phase 5: AST-aware dead-code detection', () => {
+  it('flags exports that no other file references', async () => {
+    const info = await scanCodebase(DEAD_CODE);
+    const report = runDeadCodeAnalysis(info.fileContents, info.dependencies);
+    expect(report.deadFunctions).toBeGreaterThanOrEqual(2); // internalDead + FORGOTTEN_CONSTANT
+    const symFinding = report.findings.find((f) => /Exported Symbols Not Referenced/.test(f.title));
+    expect(symFinding).toBeTruthy();
+    expect(symFinding!.description).toMatch(/internalDead/);
+    expect(symFinding!.description).toMatch(/FORGOTTEN_CONSTANT/);
+  });
+
+  it('does NOT mark a symbol dead if its own declaration line contains the name', async () => {
+    const info = await scanCodebase(DEAD_CODE);
+    const report = runDeadCodeAnalysis(info.fileContents, info.dependencies);
+    // publicUsed and withLodash ARE referenced in other-file.js — must
+    // not appear in the dead list.
+    const titles = report.findings.map((f) => f.title + ' ' + f.description).join(' ');
+    expect(titles).not.toMatch(/\bpublicUsed\b/);
+    expect(titles).not.toMatch(/\bwithLodash\b/);
+  });
+
+  it('flags genuinely unused dependencies', async () => {
+    const info = await scanCodebase(DEAD_CODE);
+    const report = runDeadCodeAnalysis(info.fileContents, info.dependencies);
+    expect(report.unusedDeps).toContain('unused-package');
+    // express IS used (imported in other-file.js) — must not be dead.
+    expect(report.unusedDeps).not.toContain('express');
+  });
+
+  it('treats subpath imports as a usage of the dep root', async () => {
+    const info = await scanCodebase(DEAD_CODE);
+    const report = runDeadCodeAnalysis(info.fileContents, info.dependencies);
+    // used.js does `import { get } from 'lodash/get'` — that should
+    // count `lodash` as used.
+    expect(report.unusedDeps).not.toContain('lodash');
   });
 });
 
