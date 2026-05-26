@@ -48,6 +48,7 @@ const SUPPLY_CLEAN = resolve(__dirname, 'fixtures/supply-chain-clean');
 const LICENSE_MIXED = resolve(__dirname, 'fixtures/license-mixed');
 const CHAOS_RESILIENT = resolve(__dirname, 'fixtures/chaos-resilient');
 const CHAOS_FRAGILE = resolve(__dirname, 'fixtures/chaos-fragile');
+const MUTATION_QUALITY = resolve(__dirname, 'fixtures/mutation-quality');
 
 describe('code-scanner', () => {
   let vulnInfo: CodebaseInfo;
@@ -1496,6 +1497,88 @@ describe('advanced-analyzer — Phase 5 pass 10: chaos / resilience patterns', (
     const report = await runChaosAnalysis(cliCode, [], ['Node']);
     expect(report.findings.find((f) => /graceful shutdown/i.test(f.title))).toBeUndefined();
     expect(report.findings.find((f) => /global error handler/i.test(f.title))).toBeUndefined();
+  });
+});
+
+describe('advanced-analyzer — Phase 5 pass 11: mutation testing (assertion quality)', () => {
+  it('classifies strong vs weak vs snapshot assertions per file', async () => {
+    const info = await scanCodebase(MUTATION_QUALITY);
+    const report = await runMutationAnalysis(
+      info.fileContents, info.devDependencies, info.totalFiles, info.totalLines,
+    );
+    expect(report.assertionStats.length).toBe(3);
+
+    const strong = report.assertionStats.find((s) => /strong\.test\.js$/.test(s.filePath));
+    const weak = report.assertionStats.find((s) => /weak\.test\.js$/.test(s.filePath));
+    const snap = report.assertionStats.find((s) => /snapshot\.test\.js$/.test(s.filePath));
+
+    expect(strong!.strong).toBeGreaterThan(strong!.weak);
+    expect(weak!.weak).toBeGreaterThan(weak!.strong);
+    expect(snap!.snapshot).toBeGreaterThan(snap!.strong);
+  });
+
+  it('flags weak-assertion-dominated test files', async () => {
+    const info = await scanCodebase(MUTATION_QUALITY);
+    const report = await runMutationAnalysis(
+      info.fileContents, info.devDependencies, info.totalFiles, info.totalLines,
+    );
+    const finding = report.findings.find((f) => /weak assertions/i.test(f.title));
+    expect(finding).toBeTruthy();
+    expect(finding!.description).toMatch(/weak\.test\.js/);
+  });
+
+  it('flags snapshot-dominated test files', async () => {
+    const info = await scanCodebase(MUTATION_QUALITY);
+    const report = await runMutationAnalysis(
+      info.fileContents, info.devDependencies, info.totalFiles, info.totalLines,
+    );
+    const finding = report.findings.find((f) => /snapshot assertions/i.test(f.title));
+    expect(finding).toBeTruthy();
+    expect(finding!.description).toMatch(/snapshot\.test\.js/);
+  });
+
+  it('tracks matcher variety in the project rollup', async () => {
+    const info = await scanCodebase(MUTATION_QUALITY);
+    const report = await runMutationAnalysis(
+      info.fileContents, info.devDependencies, info.totalFiles, info.totalLines,
+    );
+    // strong.test.js uses toBe, toEqual, toThrow, toBeInstanceOf — ≥ 4 distinct strong matchers
+    expect(report.assertionTotals.overallVariety).toBeGreaterThanOrEqual(4);
+  });
+
+  it('exposes per-class totals + ratios', async () => {
+    const info = await scanCodebase(MUTATION_QUALITY);
+    const report = await runMutationAnalysis(
+      info.fileContents, info.devDependencies, info.totalFiles, info.totalLines,
+    );
+    expect(report.assertionTotals.total).toBeGreaterThan(0);
+    expect(report.assertionTotals.weak).toBeGreaterThan(0);
+    expect(report.assertionTotals.snapshot).toBeGreaterThan(0);
+    expect(report.assertionTotals.weakRatio).toBeGreaterThan(0);
+    expect(report.assertionTotals.snapshotRatio).toBeGreaterThan(0);
+  });
+
+  it('mutation score reflects assertion quality, not just file ratio', async () => {
+    const info = await scanCodebase(MUTATION_QUALITY);
+    const report = await runMutationAnalysis(
+      info.fileContents, info.devDependencies, info.totalFiles, info.totalLines,
+    );
+    // Fixture has 3 test files / 1 source file → ratio 3.0 → base 75 (capped).
+    // Weak ratio is high (lots of weak assertions) → −10. Snapshot ratio high → −5.
+    // So estimatedMutationScore should be visibly LOWER than 75.
+    expect(report.estimatedMutationScore).toBeLessThan(75);
+  });
+
+  it('mutation score is deterministic on identical input', async () => {
+    const info = await scanCodebase(MUTATION_QUALITY);
+    const a = await runMutationAnalysis(
+      info.fileContents, info.devDependencies, info.totalFiles, info.totalLines,
+    );
+    const b = await runMutationAnalysis(
+      info.fileContents, info.devDependencies, info.totalFiles, info.totalLines,
+    );
+    expect(a.estimatedMutationScore).toBe(b.estimatedMutationScore);
+    expect(a.assertionTotals.overallVariety).toBe(b.assertionTotals.overallVariety);
   });
 });
 
