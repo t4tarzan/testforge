@@ -24,6 +24,7 @@ const VULNERABLE = resolve(__dirname, 'fixtures/vulnerable-app');
 const CLEAN = resolve(__dirname, 'fixtures/clean-app');
 const TRUE_POS = resolve(__dirname, 'fixtures/true-positives');
 const FALSE_POS = resolve(__dirname, 'fixtures/false-positives');
+const USER_RULES = resolve(__dirname, 'fixtures/user-rules');
 
 describe('code-scanner', () => {
   let vulnInfo: CodebaseInfo;
@@ -604,6 +605,98 @@ describe('security-analyzer — Phase 4b: cross-FILE taint', () => {
       (f) => /helpers\//.test(f.filePath) && /helper/i.test(f.title)
     );
     expect(inHelpers).toEqual([]);
+  });
+});
+
+describe('security-analyzer — Phase 4c: user-authored rules', () => {
+  it('fires the callee-only rule (no-internal-unsafe-query)', async () => {
+    const info = await scanCodebase(USER_RULES);
+    const findings = await runSecurityAnalysis({
+      projectPath: USER_RULES,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const hit = findings.find((f) => /Internal unsafe query/i.test(f.title));
+    expect(hit).toBeTruthy();
+    expect(hit?.severity).toBe('critical');
+    expect(hit?.category).toBe('SQL Injection');
+    expect(hit?.confidence).toBe('medium'); // shape-only rule, no taint check
+  });
+
+  it('fires the taint-gated rule (no-tainted-debug-log) ONLY when arg is tainted', async () => {
+    const info = await scanCodebase(USER_RULES);
+    const findings = await runSecurityAnalysis({
+      projectPath: USER_RULES,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const debugLog = findings.filter((f) => /debug logger/i.test(f.title));
+    // Only the `debugLog(req.body.email)` call should fire; the literal
+    // `debugLog('startup complete')` call must NOT.
+    expect(debugLog.length).toBe(1);
+    expect(debugLog[0].confidence).toBe('high'); // taintedArg → high confidence
+    expect(debugLog[0].severity).toBe('medium');
+    expect(debugLog[0].flow).toMatch(/request|tainted/i);
+  });
+
+  it('fires the argRegex rule (no-secret-keys-in-storage) only when key matches', async () => {
+    const info = await scanCodebase(USER_RULES);
+    const findings = await runSecurityAnalysis({
+      projectPath: USER_RULES,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const tokenHits = findings.filter((f) => /Token-shaped value/i.test(f.title));
+    // localStorage.setItem('auth_token', ...) → fires
+    // localStorage.setItem('theme', ...) → must NOT fire
+    expect(tokenHits.length).toBe(1);
+    expect(tokenHits[0].severity).toBe('high');
+    expect(tokenHits[0].category).toBe('Hardcoded Secrets');
+  });
+
+  it('passes userRules programmatically (overrides on-disk file)', async () => {
+    const info = await scanCodebase(USER_RULES);
+    const findings = await runSecurityAnalysis({
+      projectPath: USER_RULES,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+      userRules: [
+        {
+          id: 'prog-rule',
+          title: 'Programmatic rule fired',
+          severity: 'info',
+          category: 'Custom',
+          match: { callee: 'app.listen' },
+        },
+      ],
+    });
+    // The on-disk rules are bypassed; only the programmatic one fires.
+    const prog = findings.filter((f) => /Programmatic rule fired/.test(f.title));
+    expect(prog.length).toBeGreaterThan(0);
+    // The disk rule for internalApi.unsafeQuery should NOT fire when
+    // userRules is supplied programmatically.
+    const disk = findings.filter((f) => /Internal unsafe query/i.test(f.title));
+    expect(disk).toEqual([]);
+  });
+
+  it('emits zero user-rule findings on the false-positive corpus', async () => {
+    const info = await scanCodebase(FALSE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: FALSE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    // No .testforge/rules.yaml in this fixture → no custom findings titled
+    // like the user rules.
+    const titles = ['Internal unsafe query', 'User input in debug logger', 'Token-shaped value'];
+    for (const t of titles) {
+      expect(findings.find((f) => f.title.includes(t))).toBeFalsy();
+    }
   });
 });
 

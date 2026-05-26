@@ -1,0 +1,31 @@
+version: 1
+rules:
+  - id: no-internal-unsafe-query
+    title: "Internal unsafe query helper"
+    description: "Project policy: app code must not call internalApi.unsafeQuery directly."
+    severity: critical
+    category: "SQL Injection"
+    match:
+      callee: internalApi.unsafeQuery
+    fixSuggestion: "Use internalApi.query() which parameterizes inputs."
+
+  - id: no-tainted-debug-log
+    title: "User input in debug logger"
+    severity: medium
+    category: "Sensitive Data Exposure"
+    match:
+      callee: debugLog
+      taintedArg: 0
+    fixSuggestion: "Strip PII before logging."
+
+  - id: no-secret-keys-in-storage
+    title: "Token-shaped value in localStorage"
+    severity: high
+    category: "Hardcoded Secrets"
+    match:
+      callee: localStorage.setItem
+      argRegex:
+        index: 0
+        pattern: "token|secret|password|api[_-]?key"
+        flags: "i"
+    fixSuggestion: "Persist sensitive values in httpOnly cookies, not localStorage."
