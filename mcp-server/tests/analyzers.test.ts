@@ -419,6 +419,91 @@ describe('security-analyzer — Phase 3: structured fix suggestions', () => {
   });
 });
 
+describe('security-analyzer — Phase 4a: cross-function taint', () => {
+  it('flags SQL injection via a helper function (caller site)', async () => {
+    const info = await scanCodebase(TRUE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: TRUE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const crossFile = findings.filter((f) => f.filePath.endsWith('cross-function.js'));
+    const sql = crossFile.filter((f) => f.category === 'SQL Injection');
+    // Two helpers (`runQuery`, `lookupUser`) → two callers should be flagged.
+    expect(sql.length).toBeGreaterThanOrEqual(2);
+    expect(sql.every((f) => /helper/i.test(f.title) || /runQuery|lookupUser/.test(f.title))).toBe(true);
+  });
+
+  it('flags open redirect via helper (arrow function form)', async () => {
+    const info = await scanCodebase(TRUE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: TRUE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const redirect = findings.find(
+      (f) =>
+        f.category === 'Open Redirect' &&
+        f.filePath.endsWith('cross-function.js') &&
+        /safelyRedirect|helper/i.test(f.title)
+    );
+    expect(redirect).toBeTruthy();
+  });
+
+  it('flags path traversal via helper', async () => {
+    const info = await scanCodebase(TRUE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: TRUE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const path = findings.find(
+      (f) =>
+        f.category === 'Path Traversal' &&
+        f.filePath.endsWith('cross-function.js') &&
+        /readUserFile|helper/i.test(f.title)
+    );
+    expect(path).toBeTruthy();
+  });
+
+  it('flags XSS via helper', async () => {
+    const info = await scanCodebase(TRUE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: TRUE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const xss = findings.find(
+      (f) =>
+        f.category === 'XSS' &&
+        f.filePath.endsWith('cross-function.js') &&
+        /send404|helper/i.test(f.title)
+    );
+    expect(xss).toBeTruthy();
+  });
+
+  it('cross-function findings are emitted at the CALL site, not the sink', async () => {
+    const info = await scanCodebase(TRUE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: TRUE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const crossFile = findings.filter((f) => f.filePath.endsWith('cross-function.js'));
+    // Sample one helper-routed finding and verify the line number falls in
+    // the "callers" region of the file (line > 30 in our fixture; helpers
+    // are declared above that line).
+    const helperFinding = crossFile.find((f) => /helper/i.test(f.title));
+    expect(helperFinding).toBeTruthy();
+    expect(helperFinding!.lineNumber).toBeGreaterThan(30);
+  });
+});
+
 describe('advanced-analyzer — determinism (S1)', () => {
   it('mutation analysis returns the same score on identical input', async () => {
     const info = await scanCodebase(CLEAN);
