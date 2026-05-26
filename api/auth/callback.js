@@ -1,10 +1,75 @@
 // GitHub OAuth callback.
-// Two-step: (1) redirect user to GitHub authorize, (2) exchange code for
-// token, upsert the user, mint a session JWT, set cookie, redirect to app.
+//
+// Two-step:
+//   (1) GET without `code` → mint a CSRF-safe state token, store it in an
+//       httpOnly cookie (10 min TTL), redirect to GitHub authorize.
+//   (2) GET with `code` → verify the cookie state matches the `state` query
+//       param GitHub bounced back. If yes, exchange code → token, upsert
+//       user, mint session JWT, set tf_session cookie, redirect to /#/account.
+//
+// Why the cookie roundtrip: without it, any link of the form
+//   /api/auth/callback?code=<attacker_code>&state=<anything>
+// would silently sign the victim in as the attacker (CSRF login fixation).
+// The cookie is the only thing tying the callback to the user that started
+// the flow.
+import crypto from 'crypto';
 import { signSession, setSessionCookie } from '../_session.js';
 
+const STATE_COOKIE = 'tf_oauth_state';
+const STATE_MAX_AGE_SECONDS = 600; // 10 minutes
+
+function isProd() {
+  return process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
+}
+
+function stateCookieAttrs(maxAge) {
+  const parts = [`Path=/api/auth`, `Max-Age=${maxAge}`, 'HttpOnly', 'SameSite=Lax'];
+  if (isProd()) parts.push('Secure');
+  return parts;
+}
+
+// Append to Set-Cookie rather than overwrite — the session cookie may also
+// need to ride along on the same response (Step 2 success).
+function appendSetCookie(res, value) {
+  const existing = res.getHeader('Set-Cookie');
+  if (!existing) {
+    res.setHeader('Set-Cookie', value);
+  } else {
+    res.setHeader('Set-Cookie', Array.isArray(existing) ? [...existing, value] : [existing, value]);
+  }
+}
+
+function setStateCookie(res, value) {
+  appendSetCookie(res, `${STATE_COOKIE}=${value}; ${stateCookieAttrs(STATE_MAX_AGE_SECONDS).join('; ')}`);
+}
+
+function clearStateCookie(res) {
+  appendSetCookie(res, `${STATE_COOKIE}=; ${stateCookieAttrs(0).join('; ')}`);
+}
+
+function readStateCookie(req) {
+  const header = req.headers.cookie || '';
+  for (const part of header.split(';')) {
+    const eq = part.indexOf('=');
+    if (eq < 0) continue;
+    const k = part.slice(0, eq).trim();
+    if (k === STATE_COOKIE) return part.slice(eq + 1).trim();
+  }
+  return null;
+}
+
+// Constant-time compare guards against timing leaks. timingSafeEqual needs
+// equal-length buffers, so check that first.
+function safeEqual(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ab.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ab, bb);
+}
+
 export default async function handler(req, res) {
-  const { code } = req.query || {};
+  const { code, state: returnedState } = req.query || {};
 
   // ── Step 1: kick off OAuth ──────────────────────────────────────────
   if (!code) {
@@ -12,19 +77,33 @@ export default async function handler(req, res) {
     if (!clientId) {
       return res.status(500).json({ error: 'GITHUB_CLIENT_ID not configured' });
     }
-    const stateStr = Math.random().toString(36).substring(2);
+    // 32 bytes = 256 bits of entropy. Hex is URL-safe; survives GitHub's
+    // bounce-back verbatim.
+    const stateValue = crypto.randomBytes(32).toString('hex');
+    setStateCookie(res, stateValue);
+
     const redirectUri = encodeURIComponent('https://testforge.run/api/auth/callback');
     const url =
       `https://github.com/login/oauth/authorize` +
       `?client_id=${clientId}` +
       `&redirect_uri=${redirectUri}` +
       `&scope=read:user%20user:email` +
-      `&state=${stateStr}`;
+      `&state=${stateValue}`;
     res.writeHead(302, { Location: url });
     return res.end();
   }
 
-  // ── Step 2: exchange code, upsert user, mint session ────────────────
+  // ── Step 2: validate state, then exchange code ──────────────────────
+  const cookieState = readStateCookie(req);
+  if (!cookieState || !safeEqual(cookieState, String(returnedState || ''))) {
+    // Same error for "no cookie" and "mismatch" — don't leak which arm
+    // failed to an attacker probing the endpoint.
+    clearStateCookie(res);
+    return res.status(400).json({
+      error: 'OAuth state mismatch — restart the sign-in flow from the app.',
+    });
+  }
+
   try {
     const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
@@ -37,6 +116,7 @@ export default async function handler(req, res) {
     });
     const tokenData = await tokenRes.json();
     if (tokenData.error) {
+      clearStateCookie(res);
       return res.status(400).json({ error: tokenData.error_description || tokenData.error });
     }
 
@@ -62,8 +142,6 @@ export default async function handler(req, res) {
       return res.status(502).json({ error: 'GitHub did not return a user id' });
     }
 
-    // Upsert and read back the row so we have the canonical users.id UUID
-    // to encode in the JWT (downstream queries scope by users.id, not login).
     const { neon } = await import('@neondatabase/serverless');
     const db = neon(process.env.DATABASE_URL);
     const rows = await db`
@@ -93,13 +171,13 @@ export default async function handler(req, res) {
       plan: user.plan,
       email: user.email,
     });
-    setSessionCookie(res, jwt);
+    setSessionCookie(res, jwt); // sets tf_session
+    clearStateCookie(res);       // also appends tf_oauth_state=; Max-Age=0
 
-    // Redirect to the account page. No user data in the URL — the frontend
-    // calls /api/auth/me to read who's signed in.
     res.writeHead(302, { Location: '/#/account' });
     return res.end();
   } catch (e) {
+    clearStateCookie(res);
     return res.status(500).json({ error: e.message });
   }
 }
