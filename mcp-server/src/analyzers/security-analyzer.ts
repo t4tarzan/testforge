@@ -1,17 +1,20 @@
-// Security analyzer — AST-based static analysis for JS/TS/JSX/TSX projects.
+// Security analyzer — AST-based static analysis with intra-procedural taint
+// tracking. Phase 2 of strengthen-the-spine (Phase 1 introduced the AST
+// engine; Phase 2 generalizes taint beyond SQL injection).
 //
-// Replaces the previous regex-per-line approach. Each check is now an AST
-// visitor that examines structured nodes (CallExpression, MemberExpression,
-// JSXAttribute, etc.) rather than substrings, which means:
+// How the engine works, in one sentence:
 //
-//   • Fewer false positives. `db.query('SELECT 1')` is a string literal call,
-//     not a concat — we know from the node shape.
-//   • Precise locations: line AND column.
-//   • Honors inline suppressions (`// testforge-disable-next-line ...`).
-//   • Per-finding confidence (`high` / `medium` / `low`).
+//   For each file: parse → collect a per-file taint table mapping local
+//   variables to their (source, sanitizers) — then on each sink call, ask
+//   "is this argument tainted? what's wrapping it?" and emit findings
+//   with confidence derived from the answer.
+//
+// `confidence: 'high'`   — source → sink, NO sanitizer
+// `confidence: 'medium'` — source → sink WITH a known sanitizer (review)
+// `confidence: 'low'`    — pattern matched but taint engine saw nothing
 //
 // Project-level checks (rate-limit dep, vulnerable deps, missing helmet)
-// stay as they were — they're config-shape, not code-shape.
+// stay as dep-list / regex shape — they're config-shape, not code-shape.
 
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -20,22 +23,24 @@ import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
 import { parseFile, isParseable } from './lib/parse.js';
+import { collectSuppressions, isSuppressed } from './lib/suppressions.js';
 import {
-  collectSuppressions,
-  isSuppressed,
-  type SuppressionTable,
-} from './lib/suppressions.js';
-import {
-  containsReqAccess,
   getCalleeName,
-  hasPropertyNamed,
   hasUnsafeInterpolation,
   isDbQueryCall,
-  isReqAccess,
   isStringConcatWithVar,
   nodeLoc,
   snippetForLine,
 } from './lib/visitors.js';
+import {
+  collectTaintTable,
+  confidenceFor,
+  describeFlow,
+  evaluateTaint,
+  identifySanitizer,
+  type TaintInfo,
+  type TaintTable,
+} from './lib/taint.js';
 
 // @babel/traverse ships an interop default — in ESM it's `traverseModule.default`.
 const traverse = (traverseModule as unknown as { default?: typeof traverseModule }).default
@@ -51,17 +56,19 @@ export type Confidence = 'high' | 'medium' | 'low';
 export interface SecurityFinding {
   id?: string;
   severity: Severity;
-  /** New in 0.3.0 — per-finding confidence. Old consumers can ignore. */
+  /** Per-finding confidence — see file header for semantics. */
   confidence?: Confidence;
   title: string;
   description: string;
   filePath: string;
   lineNumber: number;
-  /** New in 0.3.0 — column number where the issue starts (0-based). */
+  /** 0-based column where the issue starts. */
   column?: number;
   codeSnippet: string;
   fixSuggestion: string;
   category: string;
+  /** Phase 2: for taint-flagged findings, the data-flow story. */
+  flow?: string;
 }
 
 interface SecurityConfig {
@@ -72,10 +79,10 @@ interface SecurityConfig {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Per-file timeout — wall-clock budget for parse + traverse                  */
+/* Constants                                                                  */
 /* -------------------------------------------------------------------------- */
 
-const PER_FILE_MS = 250;
+const PER_FILE_MS = 350; // small bump for the second traversal in Phase 2
 
 /* -------------------------------------------------------------------------- */
 /* Entry                                                                      */
@@ -94,11 +101,9 @@ export async function runSecurityAnalysis(
 
   for (const [filePath, content] of Object.entries(fileContents)) {
     if (!isParseable(filePath)) continue;
-    const fileFindings = analyzeFile(filePath, content);
-    findings.push(...fileFindings);
+    findings.push(...analyzeFile(filePath, content));
   }
 
-  // ── Project-level checks (regex / dep-list, unchanged shape) ────────
   checkMissingRateLimit(allDeps, findings, config.projectPath);
   checkInsecureDependencies(allDeps, findings);
   checkMissingSecurityHeaders(fileContents, findings);
@@ -126,7 +131,7 @@ function analyzeFile(filePath: string, content: string): SecurityFinding[] {
         severity: 'info',
         confidence: 'high',
         title: 'File too large to analyze',
-        description: `File exceeds the 500 KB analyzer cap. Likely generated / bundled output; security findings for this file are not produced.`,
+        description: 'File exceeds the 500 KB analyzer cap. Likely generated / bundled output.',
         filePath,
         lineNumber: 1,
         codeSnippet: '',
@@ -135,7 +140,6 @@ function analyzeFile(filePath: string, content: string): SecurityFinding[] {
       },
     ];
   }
-
   if (!parsed.ast) {
     return [
       {
@@ -144,63 +148,56 @@ function analyzeFile(filePath: string, content: string): SecurityFinding[] {
         title: 'File could not be parsed',
         description: parsed.error
           ? `Babel parser rejected this file: ${parsed.error.slice(0, 200)}`
-          : 'Babel parser rejected this file. Findings for it may be incomplete.',
+          : 'Babel parser rejected this file.',
         filePath,
         lineNumber: 1,
         codeSnippet: '',
-        fixSuggestion: 'Verify the file compiles cleanly. If it does, the analyzer plugin list may need extending.',
+        fixSuggestion: 'Verify the file compiles; if it does, the analyzer plugin list may need extending.',
         category: 'Coverage',
       },
     ];
   }
 
-  const suppressions = collectSuppressions(parsed.ast);
   const isTestFile = /\.(?:test|spec)\.[mc]?[jt]sx?$/.test(filePath) || filePath.endsWith('.d.ts');
-  const raw: SecurityFinding[] = [];
+  const suppressions = collectSuppressions(parsed.ast);
 
-  // First pass — collect local variables that are tainted by string-concat
-  // with request-borne input. Used by the SQL-injection check to flag
-  // `const q = 'select ...' + req.x; db.query(q);` even though the
-  // `db.query` argument is just an identifier.
-  const taintedLocals = collectTaintedLocals(parsed.ast);
+  // Phase 2: a per-file taint table populated in a single pass.
+  const taintTable = collectTaintTable(parsed.ast);
+
+  const raw: SecurityFinding[] = [];
 
   try {
     traverse(parsed.ast, {
       enter(path) {
         if (Date.now() - startedAt > PER_FILE_MS) {
-          path.stop(); // bail out gracefully — file gets partial coverage
+          path.stop();
           return;
         }
       },
       CallExpression(path) {
-        checkSqlInjection(path.node, filePath, content, raw, taintedLocals);
-        checkDangerousFunctions(path.node, filePath, content, raw);
-        checkPathTraversal(path.node, filePath, content, raw);
-        checkUnvalidatedRedirect(path.node, filePath, content, raw);
-        checkResSinks(path.node, filePath, content, raw);
+        checkSqlInjectionSink(path.node, filePath, content, raw, taintTable);
+        checkRceSinks(path.node, filePath, content, raw, taintTable);
+        checkPathTraversalSink(path.node, filePath, content, raw, taintTable);
+        checkOpenRedirectSink(path.node, filePath, content, raw, taintTable);
+        checkReflectedXssSink(path.node, filePath, content, raw, taintTable);
         checkAuthBypassRoute(path.node, filePath, content, raw, isTestFile);
         checkCorsCall(path.node, filePath, content, raw);
         checkSensitiveResponseJson(path.node, filePath, content, raw);
       },
       AssignmentExpression(path) {
-        checkInnerHtmlAssignment(path.node, filePath, content, raw);
+        checkInnerHtmlAssignmentSink(path.node, filePath, content, raw, taintTable);
       },
       JSXAttribute(path) {
-        checkDangerouslySetInnerHTML(path.node, filePath, content, raw);
+        checkDangerouslySetInnerHTMLSink(path.node, filePath, content, raw, taintTable);
       },
       VariableDeclarator(path) {
         checkHardcodedSecret(path.node, filePath, content, raw);
-        checkSensitiveReturn(path.node, filePath, content, raw);
-      },
-      ReturnStatement(path) {
-        checkSensitiveReturn(path.node, filePath, content, raw);
       },
       StringLiteral(path) {
         checkSecretStringLiteral(path.node, filePath, content, raw);
       },
     });
   } catch (e) {
-    // traverse blew up — keep what we collected so far, emit an info note
     raw.push({
       severity: 'info',
       confidence: 'low',
@@ -214,12 +211,11 @@ function analyzeFile(filePath: string, content: string): SecurityFinding[] {
     });
   }
 
-  // Apply suppressions
   return raw.filter((f) => !isSuppressed(suppressions, f.lineNumber, f.category));
 }
 
 /* -------------------------------------------------------------------------- */
-/* Check helpers                                                              */
+/* Emit helper                                                                */
 /* -------------------------------------------------------------------------- */
 
 function push(
@@ -240,212 +236,148 @@ function push(
 }
 
 /* -------------------------------------------------------------------------- */
-/* 1. SQL / NoSQL injection                                                   */
+/* Generic sink helper                                                        */
 /* -------------------------------------------------------------------------- */
-
-function checkSqlInjection(
-  call: t.CallExpression,
-  filePath: string,
-  content: string,
-  out: SecurityFinding[],
-  taintedLocals: Set<string>
-) {
-  const name = getCalleeName(call.callee);
-  if (!isDbQueryCall(name)) return;
-
-  const firstArg = call.arguments[0];
-  if (!firstArg) return;
-
-  // Three dangerous shapes:
-  //   1. db.query(`SELECT ... ${x}`)             — template-literal w/ interp
-  //   2. db.query('SELECT ' + x)                  — string concat w/ variable
-  //   3. const q = '...' + req.x; db.query(q);   — tainted local passed in
-  const inlineUnsafe =
-    hasUnsafeInterpolation(firstArg as t.Node) ||
-    isStringConcatWithVar(firstArg as t.Node);
-
-  let taintedVia: 'inline' | 'local' | null = null;
-  let fromReq = false;
-
-  if (inlineUnsafe) {
-    taintedVia = 'inline';
-    fromReq = containsReqAccess(firstArg as t.Node);
-  } else if (t.isIdentifier(firstArg) && taintedLocals.has(firstArg.name)) {
-    // Local-flow case: the variable was initialized from a concat that
-    // touched req.* somewhere up the file. We mark fromReq=true because
-    // the taint-collection step only ever sets that condition.
-    taintedVia = 'local';
-    fromReq = true;
-  }
-
-  if (!taintedVia) return;
-
-  push(out, filePath, content, call, {
-    severity: 'critical',
-    confidence: fromReq ? 'high' : 'medium',
-    title: 'Potential SQL/NoSQL Injection',
-    description:
-      taintedVia === 'inline'
-        ? `${name}() is called with a string built from variables. ` +
-          (fromReq
-            ? 'A descendant of the argument reads from req.* — tainted-input → query sink.'
-            : 'Variables interpolated into a query string become injection vectors when fed user input.')
-        : `${name}() is called with a local variable that was initialized from a request-tainted string concatenation. ` +
-          'The query reaches a database call without parameter binding.',
-    fixSuggestion:
-      'Use parameterized queries (placeholders like $1, $2) or an ORM. ' +
-      'Never concatenate or interpolate variables into a query string — let the driver bind them.',
-    category: 'SQL Injection',
-  });
-}
 
 /**
- * One-pass collection of local variables that were initialized from a
- * request-tainted concatenation/template — e.g. `const q = '...' + req.x`.
- * Identifier-by-name, with no scope precision: false positives are bounded
- * because the SQL sink will only fire when the SAME name appears as a
- * db.query arg. False negatives are bounded because shadowing the name in
- * a nested scope still flags (which is desirable for SAST).
+ * Inspect an argument for taint. If found, return a partial finding (the
+ * caller fills in title/severity/category). If the argument is also
+ * "intrinsically dangerous" (e.g. a template literal with interpolation in
+ * a db.query) we promote to medium confidence even without an explicit
+ * source — keeps coverage for project-internal helpers we can't fully model.
  */
-function collectTaintedLocals(ast: t.File): Set<string> {
-  const tainted = new Set<string>();
-  traverse(ast, {
-    VariableDeclarator(path) {
-      const id = path.node.id;
-      const init = path.node.init;
-      if (!t.isIdentifier(id) || !init) return;
-      const isConcatWithReq =
-        (isStringConcatWithVar(init) || hasUnsafeInterpolation(init)) &&
-        containsReqAccess(init);
-      const isDirectReq = isReqAccess(init) || containsReqAccess(init);
-      if (isConcatWithReq || isDirectReq) {
-        tainted.add(id.name);
-      }
-    },
-    AssignmentExpression(path) {
-      const n = path.node;
-      if (n.operator !== '=' || !t.isIdentifier(n.left)) return;
-      const isConcatWithReq =
-        (isStringConcatWithVar(n.right) || hasUnsafeInterpolation(n.right)) &&
-        containsReqAccess(n.right);
-      const isDirectReq = isReqAccess(n.right) || containsReqAccess(n.right);
-      if (isConcatWithReq || isDirectReq) {
-        tainted.add(n.left.name);
-      }
-    },
-  });
-  return tainted;
+interface SinkArgReport {
+  confidence: Confidence;
+  taint: TaintInfo | null;
+  /** True when the arg is a tainted-shape (template with vars, concat) even if no source could be pinned. */
+  shapeBased: boolean;
 }
 
-/* -------------------------------------------------------------------------- */
-/* 5b. res.json({password: ...}) — sensitive field in response payload         */
-/* -------------------------------------------------------------------------- */
-
-function checkSensitiveResponseJson(
-  call: t.CallExpression,
-  filePath: string,
-  content: string,
-  out: SecurityFinding[]
-) {
-  const callee = call.callee;
-  if (!t.isMemberExpression(callee) || callee.computed) return;
-  const propName = t.isIdentifier(callee.property) ? callee.property.name : '';
-  if (propName !== 'json') return;
-  const obj = callee.object;
-  if (!t.isIdentifier(obj) || !['res', 'response', 'reply', 'ctx'].includes(obj.name)) return;
-
-  const arg = call.arguments[0];
-  if (!arg || !t.isObjectExpression(arg)) return;
-  const sensitiveFields = ['password', 'passwordhash', 'pwd', 'secret', 'token', 'access_token', 'refresh_token'];
-  const matched = findPropertyName(arg, sensitiveFields);
-  if (!matched) return;
-
-  push(out, filePath, content, call, {
-    severity: 'high',
-    confidence: 'high',
-    title: `${matched} field in response body`,
-    description: `${obj.name}.json() is shipping an object with a \`${matched}\` property — sensitive data exposure.`,
-    fixSuggestion: 'Strip sensitive fields before responding. Use a projection (Drizzle column list / Prisma select) at the DB layer so the field never enters the response object.',
-    category: 'Sensitive Data Exposure',
-  });
-}
-
-/** Returns the first matching property name on an ObjectExpression, or null. */
-function findPropertyName(obj: t.ObjectExpression, names: string[]): string | null {
-  for (const p of obj.properties) {
-    if (!t.isObjectProperty(p)) continue;
-    const k = p.key;
-    const keyName = t.isIdentifier(k) ? k.name : t.isStringLiteral(k) ? k.value : null;
-    if (keyName && names.includes(keyName.toLowerCase())) return keyName;
+function analyzeSinkArg(arg: t.Node | null | undefined, table: TaintTable): SinkArgReport | null {
+  if (!arg) return null;
+  const taint = evaluateTaint(arg, table);
+  if (taint) {
+    return {
+      confidence: confidenceFor(taint) ?? 'low',
+      taint,
+      shapeBased: false,
+    };
+  }
+  // Fallback: shape-based detection. If the argument is a template literal
+  // with interpolations or a string-concat-with-variable, it's worth
+  // flagging at low confidence — variable-built strings reach sinks in
+  // patterns we can't statically prove are tainted.
+  if (hasUnsafeInterpolation(arg) || isStringConcatWithVar(arg)) {
+    return { confidence: 'low', taint: null, shapeBased: true };
   }
   return null;
 }
 
 /* -------------------------------------------------------------------------- */
-/* 2. eval / new Function / exec / setTimeout("...")                          */
+/* 1. SQL / NoSQL injection                                                   */
 /* -------------------------------------------------------------------------- */
 
-function checkDangerousFunctions(
+function checkSqlInjectionSink(
   call: t.CallExpression,
   filePath: string,
   content: string,
-  out: SecurityFinding[]
+  out: SecurityFinding[],
+  table: TaintTable
 ) {
   const name = getCalleeName(call.callee);
-  const firstArg = call.arguments[0] as t.Node | undefined;
+  if (!isDbQueryCall(name)) return;
 
-  // eval(...)
+  const arg = call.arguments[0];
+  if (!arg) return;
+  const report = analyzeSinkArg(arg as t.Node, table);
+  if (!report) return;
+
+  push(out, filePath, content, call, {
+    severity: 'critical',
+    confidence: report.confidence,
+    title: 'Potential SQL/NoSQL Injection',
+    description: report.taint
+      ? `${name}() argument ${describeFlow(report.taint)}.`
+      : `${name}() is called with a string built from variables. Verify the inputs are bound, not concatenated.`,
+    fixSuggestion:
+      'Use parameterized queries (placeholders like $1, $2) or an ORM. ' +
+      'If you must build dynamic SQL, allowlist the variable parts and pass user values via bound parameters.',
+    category: 'SQL Injection',
+    flow: report.taint ? describeFlow(report.taint) : undefined,
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* 2. RCE sinks: eval, Function ctor, child_process.exec, setTimeout("…")     */
+/* -------------------------------------------------------------------------- */
+
+function checkRceSinks(
+  call: t.CallExpression,
+  filePath: string,
+  content: string,
+  out: SecurityFinding[],
+  table: TaintTable
+) {
+  const name = getCalleeName(call.callee);
+  const arg = call.arguments[0] as t.Node | undefined;
+
+  // eval(…)
   if (name === 'eval') {
-    const fromReq = !!firstArg && containsReqAccess(firstArg);
+    const report = arg ? analyzeSinkArg(arg, table) : null;
     push(out, filePath, content, call, {
       severity: 'critical',
-      confidence: fromReq ? 'high' : 'medium',
+      confidence: report?.confidence ?? 'medium',
       title: 'eval() Usage',
-      description: fromReq
-        ? 'eval() called with an expression that reads req.* — direct RCE vulnerability.'
+      description: report?.taint
+        ? `eval() argument ${describeFlow(report.taint)} — direct RCE.`
         : 'eval() executes arbitrary code. Avoid in production code.',
       fixSuggestion:
-        'Replace eval with JSON.parse for JSON, with a real parser for DSLs, or with explicit dispatch tables for known commands.',
+        'Replace eval with JSON.parse for JSON, a real parser for DSLs, or an explicit dispatch table for known commands.',
       category: 'Dangerous Functions',
+      flow: report?.taint ? describeFlow(report.taint) : undefined,
     });
     return;
   }
 
-  // new Function("...")
-  if (
-    t.isNewExpression(call as unknown as t.Node) &&
-    t.isIdentifier((call as unknown as t.NewExpression).callee, { name: 'Function' })
-  ) {
+  // new Function("…") — handled by NewExpression detection? No, Function() is
+  // sometimes called without `new` and still produces a function. Either form
+  // is bad if it takes user input.
+  if (name === 'Function') {
+    const report = arg ? analyzeSinkArg(arg, table) : null;
     push(out, filePath, content, call, {
       severity: 'critical',
-      confidence: 'medium',
+      confidence: report?.confidence ?? 'medium',
       title: 'Function() Constructor',
-      description: 'new Function() creates a function from a string — equivalent to eval().',
+      description: report?.taint
+        ? `Function() argument ${describeFlow(report.taint)} — RCE.`
+        : 'Function() creates a function from a string — equivalent to eval().',
       fixSuggestion: 'Use a real function declaration or a safe dispatch table.',
       category: 'Dangerous Functions',
+      flow: report?.taint ? describeFlow(report.taint) : undefined,
     });
     return;
   }
 
-  // child_process.exec / execSync
+  // child_process.exec / execSync — taint of the command string is RCE
   if (/(?:^|\.)(exec|execSync)$/.test(name) && /child_process/.test(name)) {
-    const fromReq = !!firstArg && containsReqAccess(firstArg);
+    const report = arg ? analyzeSinkArg(arg, table) : null;
     push(out, filePath, content, call, {
       severity: 'critical',
-      confidence: fromReq ? 'high' : 'medium',
+      confidence: report?.confidence ?? 'medium',
       title: 'Shell Command Execution',
-      description: fromReq
-        ? 'exec() called with a string containing user input — command injection.'
-        : 'child_process.exec runs a shell. Prefer execFile/spawn with an array of args.',
+      description: report?.taint
+        ? `exec() command string ${describeFlow(report.taint)} — command injection.`
+        : 'child_process.exec runs a shell. Prefer execFile/spawn with arg arrays.',
       fixSuggestion:
-        'Switch to execFile() or spawn() with the command and args as separate arguments. Never pass user input through a shell.',
+        'Switch to execFile() or spawn() with the command and args as separate arguments. Never let user input reach the shell.',
       category: 'Dangerous Functions',
+      flow: report?.taint ? describeFlow(report.taint) : undefined,
     });
     return;
   }
 
-  // setTimeout/setInterval with a string body
-  if ((name === 'setTimeout' || name === 'setInterval') && firstArg && t.isStringLiteral(firstArg)) {
+  // setTimeout/setInterval with a string body → eval-equivalent
+  if ((name === 'setTimeout' || name === 'setInterval') && arg && t.isStringLiteral(arg)) {
     push(out, filePath, content, call, {
       severity: 'high',
       confidence: 'high',
@@ -458,104 +390,187 @@ function checkDangerousFunctions(
 }
 
 /* -------------------------------------------------------------------------- */
-/* 3. Path traversal                                                          */
+/* 3. Path traversal — fs reads & path builders                               */
 /* -------------------------------------------------------------------------- */
 
-const FS_READ_NAMES = ['readFile', 'readFileSync', 'createReadStream', 'sendFile', 'open', 'openSync'];
+const FS_NAMES = new Set([
+  'readFile', 'readFileSync', 'createReadStream', 'sendFile', 'open', 'openSync',
+  'writeFile', 'writeFileSync', 'appendFile', 'unlink', 'unlinkSync',
+]);
 
-function checkPathTraversal(
+function checkPathTraversalSink(
   call: t.CallExpression,
   filePath: string,
   content: string,
-  out: SecurityFinding[]
+  out: SecurityFinding[],
+  table: TaintTable
 ) {
   const name = getCalleeName(call.callee);
-  const isFsRead = FS_READ_NAMES.some((n) => name === n || name.endsWith(`.${n}`));
+  const tail = name.split('.').pop() || '';
+  const isFs = FS_NAMES.has(tail);
   const isPathBuild = name === 'path.join' || name === 'path.resolve';
-  if (!isFsRead && !isPathBuild) return;
+  if (!isFs && !isPathBuild) return;
 
-  const argHasReq = call.arguments.some((a) => containsReqAccess(a as t.Node));
-  const argHasConcat = call.arguments.some((a) => isStringConcatWithVar(a as t.Node) || hasUnsafeInterpolation(a as t.Node));
-  if (!argHasReq && !argHasConcat) return;
+  // First non-callback argument is the file path
+  const pathArg = call.arguments[0] as t.Node | undefined;
+  const report = analyzeSinkArg(pathArg, table);
+  if (!report) return;
 
   push(out, filePath, content, call, {
     severity: 'high',
-    confidence: argHasReq ? 'high' : 'low',
+    confidence: report.confidence,
     title: 'Path Traversal Risk',
-    description: argHasReq
-      ? `${name}() received a path built from req.* — open path traversal.`
-      : `${name}() received a path built by string concatenation. Verify the input is sanitized.`,
+    description: report.taint
+      ? `${name}() path ${describeFlow(report.taint)}.`
+      : `${name}() path was built from a variable. Verify it can't escape the intended directory.`,
     fixSuggestion:
-      'Normalize and validate the path against an allowlist (e.g. resolve, then ensure the result starts with the expected base directory). ' +
-      'Prefer file ids → server-resolved paths over user-supplied paths.',
+      'Resolve to an absolute path, then verify the result starts with the expected base directory. ' +
+      'Allowlist file ids → server-resolved paths, never echo user paths back.',
     category: 'Path Traversal',
+    flow: report.taint ? describeFlow(report.taint) : undefined,
   });
 }
 
 /* -------------------------------------------------------------------------- */
-/* 4. Unvalidated / open redirect                                             */
+/* 4. Open redirect                                                            */
 /* -------------------------------------------------------------------------- */
 
-function checkUnvalidatedRedirect(
+function checkOpenRedirectSink(
   call: t.CallExpression,
   filePath: string,
   content: string,
-  out: SecurityFinding[]
+  out: SecurityFinding[],
+  table: TaintTable
 ) {
   const name = getCalleeName(call.callee);
   if (!/(?:^|\.)redirect$/.test(name)) return;
   const arg = call.arguments[call.arguments.length - 1] as t.Node | undefined;
-  if (!arg || !containsReqAccess(arg)) return;
+  const report = analyzeSinkArg(arg, table);
+  if (!report) return;
 
   push(out, filePath, content, call, {
     severity: 'medium',
-    confidence: 'high',
+    confidence: report.confidence,
     title: 'Unvalidated Redirect',
-    description: `${name}() called with a URL derived from req.* — attacker-controlled redirect (phishing vector).`,
+    description: report.taint
+      ? `${name}() target ${describeFlow(report.taint)}. Open-redirect / phishing vector.`
+      : `${name}() target was built from a variable. Confirm it's checked against an allowlist.`,
     fixSuggestion:
-      'Validate the redirect target against an explicit allowlist of paths or domains. Prefer redirecting to internal route names.',
+      'Validate the redirect against an explicit allowlist of paths or domains. Prefer internal route names over URL parameters.',
     category: 'Open Redirect',
+    flow: report.taint ? describeFlow(report.taint) : undefined,
   });
 }
 
 /* -------------------------------------------------------------------------- */
-/* 5. res.send / res.json / res.write with req.* (reflected XSS)              */
+/* 5. Reflected XSS — res.send / res.write / res.render with tainted arg      */
 /* -------------------------------------------------------------------------- */
 
-function checkResSinks(
+function checkReflectedXssSink(
   call: t.CallExpression,
   filePath: string,
   content: string,
-  out: SecurityFinding[]
+  out: SecurityFinding[],
+  table: TaintTable
 ) {
   const callee = call.callee;
   if (!t.isMemberExpression(callee) || callee.computed) return;
   const propName = t.isIdentifier(callee.property) ? callee.property.name : '';
   if (!['send', 'write', 'render'].includes(propName)) return;
-
   const obj = callee.object;
   if (!t.isIdentifier(obj) || !['res', 'response', 'reply', 'ctx'].includes(obj.name)) return;
 
   const arg = call.arguments[0] as t.Node | undefined;
-  if (!arg || !containsReqAccess(arg)) return;
+  const report = analyzeSinkArg(arg, table);
+  if (!report) return;
 
-  // res.json reflecting req data is generally safer (proper content-type),
-  // but res.send / res.write / res.render render as HTML in many setups.
   push(out, filePath, content, call, {
     severity: 'high',
-    confidence: 'medium',
+    confidence: report.confidence,
     title: 'Unsanitized User Input in Response',
-    description:
-      `${obj.name}.${propName}() echoes a request value back to the client. If the value contains HTML, this is reflected XSS.`,
+    description: report.taint
+      ? `${obj.name}.${propName}() echoes data that ${describeFlow(report.taint)}.`
+      : `${obj.name}.${propName}() echoes a value built from variables.`,
     fixSuggestion:
-      'Escape with a templating engine, or use res.json() for data responses with a strict Content-Type. ' +
-      'For HTML, use a sanitizer (DOMPurify, sanitize-html).',
+      'Escape with a templating engine, or use res.json() with a strict Content-Type. ' +
+      'For HTML, sanitize with DOMPurify or sanitize-html before responding.',
     category: 'XSS',
+    flow: report.taint ? describeFlow(report.taint) : undefined,
   });
 }
 
 /* -------------------------------------------------------------------------- */
-/* 6. Auth bypass (heuristic — only when test/d.ts excluded)                  */
+/* 6. innerHTML / outerHTML assignment with tainted RHS                        */
+/* -------------------------------------------------------------------------- */
+
+function checkInnerHtmlAssignmentSink(
+  node: t.AssignmentExpression,
+  filePath: string,
+  content: string,
+  out: SecurityFinding[],
+  table: TaintTable
+) {
+  if (node.operator !== '=') return;
+  const left = node.left;
+  if (!t.isMemberExpression(left) || left.computed) return;
+  const prop = (left.property as t.Identifier)?.name;
+  if (prop !== 'innerHTML' && prop !== 'outerHTML') return;
+
+  const report = analyzeSinkArg(node.right, table);
+  if (!report) return;
+
+  push(out, filePath, content, node, {
+    severity: 'high',
+    confidence: report.confidence,
+    title: `${prop} with user input`,
+    description: report.taint
+      ? `${prop} assigned a value that ${describeFlow(report.taint)}. DOM-based XSS.`
+      : `${prop} assigned a value built from variables. Verify it's escaped.`,
+    fixSuggestion:
+      'Use textContent for plain text. For HTML, sanitize with DOMPurify before assigning.',
+    category: 'XSS',
+    flow: report.taint ? describeFlow(report.taint) : undefined,
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* 7. dangerouslySetInnerHTML with tainted __html                              */
+/* -------------------------------------------------------------------------- */
+
+function checkDangerouslySetInnerHTMLSink(
+  attr: t.JSXAttribute,
+  filePath: string,
+  content: string,
+  out: SecurityFinding[],
+  table: TaintTable
+) {
+  if (!t.isJSXIdentifier(attr.name) || attr.name.name !== 'dangerouslySetInnerHTML') return;
+  const v = attr.value;
+  if (!t.isJSXExpressionContainer(v)) return;
+  if (!t.isObjectExpression(v.expression)) return;
+  const htmlProp = v.expression.properties.find(
+    (p): p is t.ObjectProperty =>
+      t.isObjectProperty(p) && t.isIdentifier(p.key, { name: '__html' })
+  );
+  if (!htmlProp) return;
+  const report = analyzeSinkArg(htmlProp.value as t.Node, table);
+  if (!report) return;
+
+  push(out, filePath, content, attr, {
+    severity: 'high',
+    confidence: report.confidence,
+    title: 'dangerouslySetInnerHTML with user input',
+    description: report.taint
+      ? `__html ${describeFlow(report.taint)} — XSS.`
+      : '__html is built from a variable. Verify it\'s sanitized.',
+    fixSuggestion: 'Render the value as text (default React escaping) or run it through DOMPurify.sanitize() first.',
+    category: 'XSS',
+    flow: report.taint ? describeFlow(report.taint) : undefined,
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* 8. Auth bypass (heuristic — non-taint-based)                                */
 /* -------------------------------------------------------------------------- */
 
 const ROUTE_METHODS = new Set(['get', 'post', 'put', 'delete', 'patch']);
@@ -568,8 +583,6 @@ function checkAuthBypassRoute(
   isTestFile: boolean
 ) {
   if (isTestFile) return;
-
-  // Match `router.get('/x', handler)` or `app.post('/x', mw, handler)`.
   const callee = call.callee;
   if (!t.isMemberExpression(callee) || callee.computed) return;
   const propName = t.isIdentifier(callee.property) ? callee.property.name : '';
@@ -577,33 +590,25 @@ function checkAuthBypassRoute(
   const obj = callee.object;
   if (!t.isIdentifier(obj) || !['router', 'app', 'fastify'].includes(obj.name)) return;
 
-  // Heuristic: a route with only the path + a single handler (no middleware)
-  // is the canonical "no auth attached" shape. If the user wraps every route
-  // in a global middleware, this fires false-positive — confidence: low.
-  // We DON'T fire when the handler is a function expression literal that
-  // itself contains `req.user` or `passport` references — that suggests
-  // auth is being handled inline.
+  if (call.arguments.length > 2) return; // probably has middleware
   const handler = call.arguments[call.arguments.length - 1] as t.Node | undefined;
-  if (!handler) return;
-  if (call.arguments.length > 2) return; // probably has middleware already
-  if (containsTokenLike(handler)) return;
+  if (!handler || containsAuthTokenLike(handler)) return;
 
   push(out, filePath, content, call, {
     severity: 'high',
     confidence: 'low',
     title: 'Route Without Inline Auth',
-    description: `${obj.name}.${propName}() declares a route with no visible auth middleware. If your app uses a global auth middleware, mark this finding suppressed.`,
+    description: `${obj.name}.${propName}() declares a route with no visible auth middleware. ` +
+      `If your app uses a global auth middleware, suppress this with a comment.`,
     fixSuggestion:
-      'Either declare a route-scoped auth middleware (e.g. `app.get(path, requireAuth, handler)`) or document a global middleware in the entry file. ' +
-      'Add `// testforge-disable-next-line authentication-bypass` to suppress if your global middleware is intentional.',
+      'Either pass an auth middleware function in the args list, or annotate the file with ' +
+      '`// testforge-disable-file authentication-bypass` if a global middleware is intentional.',
     category: 'Authentication Bypass',
   });
 }
 
-function containsTokenLike(node: t.Node): boolean {
+function containsAuthTokenLike(node: t.Node): boolean {
   let found = false;
-  // Use the lightweight walker imported from visitors? We need it for
-  // arbitrary node shapes. Inline a tiny one for clarity here.
   const visit = (n: t.Node) => {
     if (found) return;
     if (
@@ -627,9 +632,7 @@ function containsTokenLike(node: t.Node): boolean {
       const c = (n as unknown as Record<string, unknown>)[key];
       if (!c) continue;
       if (Array.isArray(c)) {
-        for (const x of c) {
-          if (x && typeof x === 'object' && (x as Partial<t.Node>).type) visit(x as t.Node);
-        }
+        for (const x of c) if (x && typeof x === 'object' && (x as Partial<t.Node>).type) visit(x as t.Node);
       } else if (typeof c === 'object' && (c as Partial<t.Node>).type) {
         visit(c as t.Node);
       }
@@ -640,7 +643,7 @@ function containsTokenLike(node: t.Node): boolean {
 }
 
 /* -------------------------------------------------------------------------- */
-/* 7. CORS misconfig (call shape rather than substring)                       */
+/* 9. CORS misconfig — call shape, not taint                                  */
 /* -------------------------------------------------------------------------- */
 
 function checkCorsCall(
@@ -654,7 +657,6 @@ function checkCorsCall(
 
   const opts = call.arguments[0] as t.Node | undefined;
   if (!opts) {
-    // bare cors() — default in many versions is *
     push(out, filePath, content, call, {
       severity: 'medium',
       confidence: 'medium',
@@ -667,7 +669,6 @@ function checkCorsCall(
   }
   if (!t.isObjectExpression(opts)) return;
 
-  // origin: "*" or origin: true
   const originProp = opts.properties.find(
     (p): p is t.ObjectProperty =>
       t.isObjectProperty(p) && t.isIdentifier(p.key, { name: 'origin' })
@@ -691,77 +692,60 @@ function checkCorsCall(
         ? 'CORS Wildcard Origin With Credentials'
         : 'CORS Allowing All Origins',
       description: credsTrue
-        ? '`origin: "*" || true` with `credentials: true` is invalid (browser refuses) AND dangerous if it ever works.'
+        ? '`origin: "*"|true` with `credentials: true` is invalid (browser refuses) AND dangerous.'
         : 'CORS allows requests from any origin.',
-      fixSuggestion:
-        'Define an allowlist (`origin: [...]`) or a function that returns true only for known hosts.',
+      fixSuggestion: 'Define an allowlist (`origin: [...]`) or a function that returns true only for known hosts.',
       category: 'CORS Misconfiguration',
     });
   }
 }
 
 /* -------------------------------------------------------------------------- */
-/* 8. innerHTML = <expr that reads req.*>                                     */
+/* 10. res.json({password: …}) — shape-based, not taint                       */
 /* -------------------------------------------------------------------------- */
 
-function checkInnerHtmlAssignment(
-  node: t.AssignmentExpression,
+function checkSensitiveResponseJson(
+  call: t.CallExpression,
   filePath: string,
   content: string,
   out: SecurityFinding[]
 ) {
-  if (node.operator !== '=') return;
-  const left = node.left;
-  if (!t.isMemberExpression(left) || left.computed) return;
-  const prop = (left.property as t.Identifier)?.name;
-  if (prop !== 'innerHTML' && prop !== 'outerHTML') return;
-  if (!containsReqAccess(node.right)) return;
+  const callee = call.callee;
+  if (!t.isMemberExpression(callee) || callee.computed) return;
+  const propName = t.isIdentifier(callee.property) ? callee.property.name : '';
+  if (propName !== 'json') return;
+  const obj = callee.object;
+  if (!t.isIdentifier(obj) || !['res', 'response', 'reply', 'ctx'].includes(obj.name)) return;
 
-  push(out, filePath, content, node, {
+  const arg = call.arguments[0];
+  if (!arg || !t.isObjectExpression(arg)) return;
+  const sensitive = ['password', 'passwordhash', 'pwd', 'secret', 'token', 'access_token', 'refresh_token'];
+  const matched = findPropertyName(arg, sensitive);
+  if (!matched) return;
+
+  push(out, filePath, content, call, {
     severity: 'high',
     confidence: 'high',
-    title: 'innerHTML with user input',
-    description: `${prop} is being assigned a value that reads from req.*. DOM-based XSS.`,
+    title: `${matched} field in response body`,
+    description: `${obj.name}.json() is shipping an object with a \`${matched}\` property.`,
     fixSuggestion:
-      'Use textContent (escapes), or sanitize with DOMPurify before assigning to innerHTML.',
-    category: 'XSS',
+      'Strip sensitive fields before responding. Use a projection (Drizzle column list / Prisma select) at the DB layer so the field never enters the response object.',
+    category: 'Sensitive Data Exposure',
   });
 }
 
-/* -------------------------------------------------------------------------- */
-/* 9. <element dangerouslySetInnerHTML={{__html: req.*}}>                     */
-/* -------------------------------------------------------------------------- */
-
-function checkDangerouslySetInnerHTML(
-  attr: t.JSXAttribute,
-  filePath: string,
-  content: string,
-  out: SecurityFinding[]
-) {
-  if (!t.isJSXIdentifier(attr.name) || attr.name.name !== 'dangerouslySetInnerHTML') return;
-  const v = attr.value;
-  if (!t.isJSXExpressionContainer(v)) return;
-  if (!t.isObjectExpression(v.expression)) return;
-  const htmlProp = v.expression.properties.find(
-    (p): p is t.ObjectProperty =>
-      t.isObjectProperty(p) && t.isIdentifier(p.key, { name: '__html' })
-  );
-  if (!htmlProp) return;
-  if (!containsReqAccess(htmlProp.value)) return;
-
-  push(out, filePath, content, attr, {
-    severity: 'high',
-    confidence: 'high',
-    title: 'dangerouslySetInnerHTML with user input',
-    description: 'React dangerouslySetInnerHTML is being assigned an expression that reads from req.* — XSS.',
-    fixSuggestion:
-      'Render the value as text (default React escaping) or pass through DOMPurify.sanitize() first.',
-    category: 'XSS',
-  });
+function findPropertyName(obj: t.ObjectExpression, names: string[]): string | null {
+  for (const p of obj.properties) {
+    if (!t.isObjectProperty(p)) continue;
+    const k = p.key;
+    const keyName = t.isIdentifier(k) ? k.name : t.isStringLiteral(k) ? k.value : null;
+    if (keyName && names.includes(keyName.toLowerCase())) return keyName;
+  }
+  return null;
 }
 
 /* -------------------------------------------------------------------------- */
-/* 10. Hardcoded secrets in var declarations + literals                       */
+/* 11. Hardcoded named secrets in var declarators                              */
 /* -------------------------------------------------------------------------- */
 
 const SECRET_NAME_RE = /^(?:api_?key|secret|password|passwd|pwd|token|private_?key|aws_?secret|client_?secret)$/i;
@@ -776,8 +760,8 @@ function checkHardcodedSecret(
   if (!SECRET_NAME_RE.test(node.id.name)) return;
   const init = node.init;
   if (!init || !t.isStringLiteral(init)) return;
-  if (init.value.length < 8) return; // probably a placeholder
-  if (/^\$\{/.test(init.value) || init.value.includes('process.env')) return;
+  if (init.value.length < 8) return;
+  if (init.value.includes('process.env')) return;
 
   push(out, filePath, content, node, {
     severity: 'critical',
@@ -789,13 +773,17 @@ function checkHardcodedSecret(
   });
 }
 
+/* -------------------------------------------------------------------------- */
+/* 12. Known-secret string literals (AWS, GitHub, Stripe …)                   */
+/* -------------------------------------------------------------------------- */
+
 const SECRET_LITERAL_RE = [
-  /^(?:AKIA|ASIA)[A-Z0-9]{16}$/,                       // AWS access key
-  /^ghp_[A-Za-z0-9]{36}$/,                              // GitHub PAT
-  /^gho_[A-Za-z0-9]{36}$/,                              // GitHub OAuth
-  /^xox[bporsa]-[A-Za-z0-9-]+$/,                        // Slack
-  /^sk-[A-Za-z0-9]{20,}$/,                              // OpenAI / Stripe
-  /^sk_live_[A-Za-z0-9]{24,}$/,                         // Stripe live
+  /^(?:AKIA|ASIA)[A-Z0-9]{16}$/,
+  /^ghp_[A-Za-z0-9]{36}$/,
+  /^gho_[A-Za-z0-9]{36}$/,
+  /^xox[bporsa]-[A-Za-z0-9-]+$/,
+  /^sk-[A-Za-z0-9]{20,}$/,
+  /^sk_live_[A-Za-z0-9]{24,}$/,
 ];
 
 function checkSecretStringLiteral(
@@ -807,43 +795,18 @@ function checkSecretStringLiteral(
   const v = node.value;
   if (v.length < 16) return;
   if (!SECRET_LITERAL_RE.some((re) => re.test(v))) return;
-
   push(out, filePath, content, node, {
     severity: 'critical',
     confidence: 'high',
     title: 'Hardcoded secret literal',
-    description: `Literal matches a known secret prefix (AWS / GitHub / Slack / Stripe / OpenAI).`,
+    description: 'Literal matches a known secret prefix (AWS / GitHub / Slack / Stripe / OpenAI).',
     fixSuggestion: 'Rotate this secret immediately, then read from process.env.',
     category: 'Hardcoded Secrets',
   });
 }
 
 /* -------------------------------------------------------------------------- */
-/* 11. Sensitive returns — `return { password, ... }` or `res.json({pw...})`  */
-/* -------------------------------------------------------------------------- */
-
-function checkSensitiveReturn(
-  node: t.VariableDeclarator | t.ReturnStatement,
-  filePath: string,
-  content: string,
-  out: SecurityFinding[]
-) {
-  const expr = t.isReturnStatement(node) ? node.argument : node.init;
-  if (!expr || !t.isObjectExpression(expr)) return;
-  if (!hasPropertyNamed(expr, ['password', 'passwordhash', 'pwd', 'secret', 'token', 'access_token'])) return;
-
-  push(out, filePath, content, node, {
-    severity: 'high',
-    confidence: 'medium',
-    title: 'Sensitive Field in Returned Object',
-    description: 'An object returned from this location contains a property named password/secret/token. Verify it isn\'t shipped to clients.',
-    fixSuggestion: 'Strip sensitive fields before returning. Use a projection (Prisma select / Drizzle column list) at the DB layer.',
-    category: 'Sensitive Data Exposure',
-  });
-}
-
-/* -------------------------------------------------------------------------- */
-/* Project-level checks (unchanged behavior)                                  */
+/* Project-level checks                                                       */
 /* -------------------------------------------------------------------------- */
 
 function checkMissingRateLimit(
@@ -851,21 +814,17 @@ function checkMissingRateLimit(
   findings: SecurityFinding[],
   projectPath: string
 ) {
-  const hasRateLimit = allDeps.some(
-    (d) => d.includes('rate-limit') || d.includes('ratelimit')
-  );
+  const hasRateLimit = allDeps.some((d) => d.includes('rate-limit') || d.includes('ratelimit'));
   if (!hasRateLimit) {
     findings.push({
       severity: 'medium',
       confidence: 'medium',
       title: 'Missing Rate Limiting',
-      description:
-        'No rate-limit package detected. Auth endpoints in particular should be rate-limited against brute-force.',
+      description: 'No rate-limit package detected. Auth endpoints in particular should be rate-limited.',
       filePath: `${projectPath}/package.json`,
       lineNumber: 1,
       codeSnippet: '',
-      fixSuggestion:
-        'Install express-rate-limit, @fastify/rate-limit, or roll a Redis-backed limiter.',
+      fixSuggestion: 'Install express-rate-limit, @fastify/rate-limit, or roll a Redis-backed limiter.',
       category: 'Rate Limiting',
     });
   }
@@ -924,7 +883,7 @@ function checkMissingSecurityHeaders(
 }
 
 /* -------------------------------------------------------------------------- */
-/* File loader (used only when caller doesn't pre-populate fileContents)      */
+/* File loader                                                                */
 /* -------------------------------------------------------------------------- */
 
 async function loadFileContents(projectPath: string): Promise<Record<string, string>> {
