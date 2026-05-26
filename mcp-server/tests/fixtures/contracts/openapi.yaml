@@ -1,0 +1,22 @@
+openapi: 3.0.3
+info:
+  title: TestForge fixture API
+  version: 1.0.0
+paths:
+  /v1/users:
+    get:
+      operationId: listUsers
+      summary: List users
+      responses:
+        '200': { description: OK }
+  /v1/users/{id}:
+    get:
+      operationId: getUser
+      summary: Get one user
+      responses:
+        '200': { description: OK }
+  /v1/orphan-route:
+    delete:
+      summary: This is in the spec but no handler exists for it
+      responses:
+        '204': { description: No Content }

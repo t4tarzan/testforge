@@ -26,8 +26,16 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
     throw new Error(`Project path does not exist: ${projectPath}`);
   }
 
-  // 1. Find all source files
-  const patterns = ['**/*.{ts,js,tsx,jsx}', '!**/node_modules/**', '!**/.git/**', '!**/dist/**', '!**/build/**', '!**/.next/**', '!**/coverage/**'];
+  // 1. Find all source files. Spec/config files (yaml/yml/json) are
+  //    included so the contract analyzer can parse OpenAPI/Swagger.
+  //    We skip package-lock.json and similar large generated artifacts
+  //    via separate exclude patterns below.
+  const patterns = [
+    '**/*.{ts,js,tsx,jsx,mjs,cjs,mts,cts,yaml,yml,json}',
+    '!**/node_modules/**', '!**/.git/**', '!**/dist/**', '!**/build/**',
+    '!**/.next/**', '!**/coverage/**',
+    '!**/package-lock.json', '!**/yarn.lock', '!**/pnpm-lock.yaml',
+  ];
   const files = await glob(patterns, { cwd: projectPath, absolute: false });
 
   // 2. Read each file, count lines, extract function names

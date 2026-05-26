@@ -1,0 +1,8 @@
+{
+  "name": "fixture-contracts",
+  "version": "0.0.1",
+  "description": "Contract analyzer fixture — OpenAPI spec + Express routes, intentionally out of sync.",
+  "dependencies": {
+    "express": "^4.18.0"
+  }
+}

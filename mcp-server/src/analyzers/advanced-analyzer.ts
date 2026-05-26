@@ -4,6 +4,8 @@
 import { parseFile, isParseable } from './lib/parse.js';
 import { findNPlusOneHits } from './lib/n-plus-one.js';
 import { findDeadCode } from './lib/dead-code.js';
+import { extractOpenApi, canonicalPath } from './lib/openapi-parse.js';
+import { discoverEndpoints, endpointSet, type DiscoveredEndpoint } from './lib/endpoint-discovery.js';
 import type * as t from '@babel/types';
 
 export interface AdvancedReport {
@@ -44,69 +46,126 @@ export async function runContractAnalysis(
   endpoints: number
 ): Promise<ContractReport> {
   const findings: Finding[] = [];
-  const allContent = Object.values(fileContents).join('\n');
 
-  // Check for OpenAPI/Swagger specs
-  const hasOpenApi = Object.keys(fileContents).some(f =>
-    f.includes('openapi') || f.includes('swagger') || f.endsWith('.yaml') || f.endsWith('.yml')
-  );
+  // 1. Discover endpoints from source code (AST).
+  const discovered: DiscoveredEndpoint[] = [];
+  for (const [filePath, content] of Object.entries(fileContents)) {
+    if (filePath.includes('node_modules') || filePath.includes('test')) continue;
+    if (!isParseable(filePath)) continue;
+    const parsed = parseFile(filePath, content);
+    if (!parsed.ast) continue;
+    discovered.push(...discoverEndpoints(filePath, parsed.ast));
+  }
+
+  // 2. Extract documented endpoints from OpenAPI / Swagger spec files.
+  const openapi = extractOpenApi(fileContents);
+  const docSet = endpointSet(openapi.endpoints);
+  const discoveredSet = endpointSet(discovered);
+
   const hasGraphQL = dependenciesInclude(fileContents, 'graphql', 'apollo');
   const hasGrpc = dependenciesInclude(fileContents, 'grpc', 'protobuf');
 
-  if (!hasOpenApi && !hasGraphQL && !hasGrpc && endpoints > 5) {
+  // 3. Triage: undocumented (in code, not in spec) + orphan (in spec, not in code).
+  const undocumentedInCode = discovered.filter(
+    (e) => !docSet.has(`${e.method} ${canonicalPath(e.path)}`)
+  );
+  const orphansInSpec = openapi.endpoints.filter(
+    (e) => !discoveredSet.has(`${e.method} ${canonicalPath(e.path)}`)
+  );
+
+  // Fall-back endpoint count when AST discovery turns up nothing.
+  // (Some codebases use higher-order route registration we don't follow.)
+  const totalEndpoints = Math.max(discovered.length, endpoints);
+
+  // ── Finding 1: missing spec entirely
+  if (openapi.validFiles.length === 0 && !hasGraphQL && !hasGrpc && totalEndpoints > 5) {
     findings.push({
       severity: 'high',
-      title: 'No API Contract Specification',
-      description: `${endpoints} endpoints detected but no OpenAPI/Swagger/GraphQL schema found. Without contracts, breaking changes go undetected.`,
-      fixSuggestion: 'Add OpenAPI 3.0 spec (swagger.yaml) or GraphQL schema. Use tools like swagger-jsdoc or tsoa for auto-generation.',
+      title: 'No API contract specification',
+      description: `${totalEndpoints} endpoint(s) discovered in source but no OpenAPI/Swagger/GraphQL/gRPC schema was found. Breaking changes will land silently.`,
+      fixSuggestion:
+        'Add an OpenAPI 3.x spec at `openapi.yaml` / `swagger.json`. Generate from code with `swagger-jsdoc`, `tsoa`, `zod-to-openapi`, or write by hand for the top-N stable endpoints first.',
       category: 'API Contracts',
     });
   }
 
-  if (hasOpenApi) {
-    // Check for versioning
-    const hasVersioning = allContent.includes('/v1/') || allContent.includes('/v2/') ||
-      allContent.includes('apiVersion') || allContent.includes('version');
-    if (!hasVersioning && endpoints > 10) {
-      findings.push({
-        severity: 'medium',
-        title: 'API Without Versioning Strategy',
-        description: 'OpenAPI spec found but no API versioning detected. Breaking changes will affect all consumers simultaneously.',
-        fixSuggestion: 'Implement URL-based versioning (/v1/, /v2/) or header-based versioning. Deprecate old versions gradually.',
-        category: 'API Contracts',
-      });
-    }
-  }
-
-  // Check response consistency
-  let inconsistentResponses = 0;
-  for (const [filePath, content] of Object.entries(fileContents)) {
-    if (filePath.includes('node_modules')) continue;
-    const hasJsonRes = content.includes('res.json(') || content.includes('response.json(') || content.includes('.json(');
-    const hasSendRes = content.includes('res.send(') || content.includes('.send(');
-    if (hasJsonRes && hasSendRes) inconsistentResponses++;
-    // Check for undocumented endpoints (routes without comments)
-    const routes = content.match(/\.(get|post|put|delete|patch)\s*\(/g);
-    const comments = content.match(/\/\/|\/\*\*/g);
-    if (routes && (!comments || routes.length > comments.length * 2)) {
-      findings.push({
-        severity: 'low',
-        title: 'Undocumented API Endpoints',
-        description: `Route handlers without inline documentation in ${filePath}. Contract testing requires documented endpoints.`,
-        filePath,
-        fixSuggestion: 'Add JSDoc comments above each route handler describing input/output contracts.',
-        category: 'API Contracts',
-      });
-      break;
-    }
-  }
-
-  if (inconsistentResponses > 0) {
+  // ── Finding 2: invalid candidate file (looked like a spec but didn't parse / lacked openapi key)
+  const invalidCandidates = openapi.candidateFiles.filter((p) => !openapi.validFiles.includes(p));
+  for (const f of invalidCandidates.slice(0, 3)) {
     findings.push({
       severity: 'medium',
-      title: 'Inconsistent Response Patterns',
-      description: `${inconsistentResponses} files mix res.json() and res.send(). Consistent response format is key to API contracts.`,
-      fixSuggestion: 'Standardize on res.json() for API responses. Create a shared response helper.',
+      title: `Spec file present but not a valid OpenAPI/Swagger doc: ${f}`,
+      description: 'File name looks like an API spec, but the contents are missing the `openapi:` or `swagger:` root key, or the YAML/JSON failed to parse.',
+      filePath: f,
+      fixSuggestion: 'Add an `openapi: 3.0.x` root (or `swagger: "2.0"` for the older format). Run the spec through `swagger-cli validate` before committing.',
+      category: 'API Contracts',
+    });
+  }
+
+  // ── Finding 3: undocumented endpoints (in code, not in spec)
+  if (openapi.validFiles.length > 0 && undocumentedInCode.length > 0) {
+    const sample = undocumentedInCode.slice(0, 5)
+      .map((e) => `${e.method.toUpperCase()} ${e.path} (${e.filePath}:${e.line})`).join(', ');
+    findings.push({
+      severity: undocumentedInCode.length > totalEndpoints / 2 ? 'high' : 'medium',
+      title: `${undocumentedInCode.length} undocumented endpoint(s) — present in code, absent from spec`,
+      description: `Examples: ${sample}${undocumentedInCode.length > 5 ? ', …' : ''}.`,
+      fixSuggestion:
+        'Add each path under `paths:` in the spec. For express + JSDoc: `swagger-jsdoc` auto-generates entries from `@openapi` JSDoc comments above each route handler.',
+      category: 'API Contracts',
+    });
+  }
+
+  // ── Finding 4: orphan endpoints (in spec, no implementation in code)
+  if (orphansInSpec.length > 0 && discovered.length > 0) {
+    const sample = orphansInSpec.slice(0, 5)
+      .map((e) => `${e.method.toUpperCase()} ${e.path}`).join(', ');
+    findings.push({
+      severity: 'medium',
+      title: `${orphansInSpec.length} spec-only endpoint(s) — documented but no handler found in code`,
+      description: `Examples: ${sample}${orphansInSpec.length > 5 ? ', …' : ''}. Either the implementation is missing, the path moved, or the route is registered via a pattern we don't recognize.`,
+      fixSuggestion:
+        "Implement the missing handler, remove the orphan from the spec, or annotate it as `deprecated: true` if it's an intentional sunset path.",
+      category: 'API Contracts',
+    });
+  }
+
+  // ── Finding 5: no versioning strategy (only when there's a spec to anchor against)
+  if (openapi.validFiles.length > 0 && totalEndpoints > 10) {
+    const hasVersioning = openapi.endpoints.some((e) => /\/v\d+\b/.test(e.path)) ||
+      discovered.some((e) => /\/v\d+\b/.test(e.path));
+    if (!hasVersioning) {
+      findings.push({
+        severity: 'medium',
+        title: 'API has no visible versioning strategy',
+        description: 'No `/v1/` / `/v2/` path prefix detected in either the spec or the discovered routes. Breaking changes will affect all consumers simultaneously.',
+        fixSuggestion:
+          'Pick a versioning scheme — URL-based (`/v1/users`) is the most discoverable; header-based (`Accept-Version`) leaves the URL cleaner. Document the deprecation policy in the spec\'s `info.description`.',
+        category: 'API Contracts',
+      });
+    }
+  }
+
+  // ── Finding 6: inconsistent response shape across the same path (heuristic)
+  const responseShapeByPath = new Map<string, Set<string>>();
+  for (const [filePath, content] of Object.entries(fileContents)) {
+    if (filePath.includes('node_modules')) continue;
+    // crude — `res.json` vs `res.send` mixed in the same file flags it.
+    const usesJson = content.includes('res.json(') || content.includes('reply.send(');
+    const usesPlainSend = content.includes('res.send(') && !content.includes('res.json(');
+    if (usesJson && usesPlainSend) {
+      const set = responseShapeByPath.get(filePath) ?? new Set<string>();
+      set.add('mixed');
+      responseShapeByPath.set(filePath, set);
+    }
+  }
+  if (responseShapeByPath.size > 0) {
+    findings.push({
+      severity: 'low',
+      title: `Mixed response patterns in ${responseShapeByPath.size} file(s)`,
+      description: 'Some handlers use `res.json(...)` and others use `res.send(...)` in the same file. Consumers can\'t rely on a single content-type.',
+      fixSuggestion:
+        'Standardize on `res.json()` (or `reply.send()` in Fastify). Use a shared response helper to enforce the shape: `{ data, error, meta }` etc.',
       category: 'API Contracts',
     });
   }
@@ -114,13 +173,14 @@ export async function runContractAnalysis(
   const score = Math.max(0, 100 - findings.reduce((s, f) =>
     s + (f.severity === 'high' ? 25 : f.severity === 'medium' ? 15 : 8), 0
   ));
-  const documentedEndpoints = hasOpenApi ? endpoints : 0;
+
+  const documented = totalEndpoints - undocumentedInCode.length;
 
   return {
     score,
-    totalEndpoints: endpoints,
-    documentedEndpoints,
-    undocumentedEndpoints: endpoints - documentedEndpoints,
+    totalEndpoints,
+    documentedEndpoints: documented < 0 ? 0 : documented,
+    undocumentedEndpoints: undocumentedInCode.length,
     breakingChanges: findings.filter(f => f.severity === 'high').length,
     findings,
   };

@@ -1,0 +1,8 @@
+{
+  "name": "fixture-contracts-missing",
+  "version": "0.0.1",
+  "description": "Contract analyzer fixture — many endpoints, NO spec at all.",
+  "dependencies": {
+    "express": "^4.18.0"
+  }
+}
