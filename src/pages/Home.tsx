@@ -445,10 +445,16 @@ export default function Home() {
             {/* Right: Hero Media */}
             <div className="hero-media relative" style={{ opacity: 0 }}>
               <div className="relative rounded-xl border-2 border-[#E8E5FF] shadow-xl overflow-hidden bg-white p-1.5">
-                <img
-                  src="/hero-dashboard.jpg"
-                  alt="TestForge Dashboard"
-                  className="w-full h-auto rounded-lg"
+                <video
+                  src="/demos/production-gap.mp4"
+                  poster="/hero-dashboard.jpg"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  aria-label="The Production Gap — TestForge intro"
+                  className="w-full h-auto rounded-lg block"
                 />
               </div>
 

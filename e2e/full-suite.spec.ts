@@ -180,7 +180,10 @@ test('Docs: API Reference shows endpoints', async ({ page }) => {
 // FOOTER — All links present
 // ═══════════════════════════════════════════════════
 test('Footer: All links present', async ({ page }) => {
-  await page.goto(BASE, { waitUntil: 'networkidle' });
+  // The homepage hero autoplays a video; 'networkidle' never settles
+  // inside the test timeout because the video keeps streaming.
+  // 'load' fires once HTML + critical assets are in.
+  await page.goto(BASE, { waitUntil: 'load' });
   const footer = page.locator('footer');
   await footer.scrollIntoViewIfNeeded();
   const footerLinks = ['Managed', 'MCP', 'Pipeline', 'Dashboard', 'Pricing', 'Documentation', 'GitHub'];
@@ -194,7 +197,8 @@ test('Footer: All links present', async ({ page }) => {
 // ═══════════════════════════════════════════════════
 test('Mobile: Home page renders on phone', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
-  await page.goto(BASE, { waitUntil: 'networkidle' });
+  // Autoplay hero video keeps the network busy — use 'load' (HTML + critical assets).
+  await page.goto(BASE, { waitUntil: 'load' });
   await expect(page.locator('nav, header, [class*="navbar"]').first()).toBeVisible({ timeout: 5000 });
 });
 
@@ -209,8 +213,12 @@ test('Mobile: Managed page usable on phone', async ({ page }) => {
 // PERFORMANCE — Load time checks
 // ═══════════════════════════════════════════════════
 test('Performance: Home loads under 5s', async ({ page }) => {
+  // 'load' event = HTML + critical assets (CSS, scripts, images that
+  // block render). The hero video streams afterwards and doesn't
+  // block render; gating on 'networkidle' would conflate streaming
+  // bandwidth with first-paint perf.
   const start = Date.now();
-  await page.goto(BASE, { waitUntil: 'networkidle' });
+  await page.goto(BASE, { waitUntil: 'load' });
   const loadTime = Date.now() - start;
   expect(loadTime).toBeLessThan(10000);
 });
