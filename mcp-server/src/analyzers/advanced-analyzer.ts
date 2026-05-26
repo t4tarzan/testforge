@@ -18,6 +18,7 @@ import { auditLicenses, type LicenseCategory, type PackageLicense } from './lib/
 import { findChaosPatterns, type ChaosPatternHit } from './lib/chaos-patterns.js';
 import { analyzeAssertionQuality, type TestFileAssertionStats } from './lib/mutation-quality.js';
 import { extractDoraSignals, type DoraSignals } from './lib/dora-signals.js';
+import { findEdgeCases, type EdgeCaseHit } from './lib/edge-cases.js';
 import {
   aggregateFileRisk,
   bucketSecurityByFile,
@@ -281,84 +282,97 @@ export async function runVisualRegressionAnalysis(
 // 3. EDGE CASE GENERATOR — Boundary and edge case detection
 // ═══════════════════════════════════════════════════════════════════
 
+// Edge-Case detection (pass 14 — AST-aware).
+//
+// The prior version asked "does the project ANYWHERE contain `.length`?"
+// to decide if an array access was bounds-checked. False clean on every
+// real project. This version runs a real AST walk via lib/edge-cases.ts
+// and surfaces the specific footguns at their exact line numbers.
 export interface EdgeCaseReport {
   score: number;
   potentialCases: number;
+  /** AST-derived hits grouped per rule. */
+  byRule: Record<EdgeCaseHit['rule'], number>;
   findings: Finding[];
 }
+
+const RULE_SEVERITY: Record<EdgeCaseHit['rule'], 'critical' | 'high' | 'medium' | 'low'> = {
+  'JSON-parse-untrycaught': 'high',
+  'parseInt-no-radix': 'medium',
+  'Number-coercion-unchecked': 'medium',
+  'new-Date-on-string': 'medium',
+  'switch-no-default': 'low',
+  'loose-equality': 'low',
+};
+
+const RULE_FIX: Record<EdgeCaseHit['rule'], string> = {
+  'parseInt-no-radix':
+    'Pass an explicit radix: `parseInt(x, 10)`. MDN recommends always specifying it; old browsers parsed `08` as 0.',
+  'JSON-parse-untrycaught':
+    'Wrap in try/catch (or a `safeParse` helper that returns `{ ok, value, error }`). JSON.parse throws SyntaxError on bad input.',
+  'new-Date-on-string':
+    'Validate the string first (Zod / a regex) or use date-fns / Luxon parsers that surface errors cleanly. Otherwise `new Date("not a date")` returns "Invalid Date" silently.',
+  'loose-equality':
+    'Use `===` / `!==`. `== null` is the one accepted exception (and is allowed by this analyzer).',
+  'switch-no-default':
+    'Add a `default:` case — even if it just throws "unreachable" — so unexpected values surface loudly instead of silently falling through.',
+  'Number-coercion-unchecked':
+    'Wrap with `Number.isNaN(Number(x))` guard, or use Zod `.number()` / a typed parser. `Number("foo")` returns NaN, which then propagates through any arithmetic without erroring.',
+};
 
 export async function runEdgeCaseAnalysis(
   fileContents: Record<string, string>
 ): Promise<EdgeCaseReport> {
   const findings: Finding[] = [];
-  let potentialCases = 0;
+  const byRule: Record<EdgeCaseHit['rule'], number> = {
+    'parseInt-no-radix': 0,
+    'JSON-parse-untrycaught': 0,
+    'new-Date-on-string': 0,
+    'loose-equality': 0,
+    'switch-no-default': 0,
+    'Number-coercion-unchecked': 0,
+  };
 
   for (const [filePath, content] of Object.entries(fileContents)) {
-    if (filePath.includes('node_modules')) continue;
-    const lines = content.split('\n');
+    if (filePath.includes('node_modules') || filePath.includes('test')) continue;
+    if (!isParseable(filePath)) continue;
+    const parsed = parseFile(filePath, content);
+    if (!parsed.ast) continue;
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      // Array index access without bounds checking
-      if (line.match(/\[(\w+)\]/) && !content.includes(`if (${/\w+/.exec(line)?.[1]} >=`) && !content.includes(`.length`)) {
-        potentialCases++;
-      }
-
-      // Division without zero check
-      if (line.includes('/') && (line.includes('var') || line.includes('let') || line.includes('const')) && !content.includes('=== 0') && !content.includes('!== 0')) {
-        potentialCases++;
-      }
-
-      // String operations without null/empty check
-      if ((line.includes('.substring') || line.includes('.slice') || line.includes('.charAt')) &&
-        !content.includes('.length >') && !content.includes('if (') && !content.includes('&&')) {
-        potentialCases++;
-      }
-
-      // Type coercion risks
-      if (line.includes('==') && !line.includes('===') && !line.includes('!==')) {
-        if (potentialCases < 20) {
-          findings.push({
-            severity: 'medium',
-            title: 'Loose Equality (==) Usage',
-            description: `Loose equality at ${filePath}:${i + 1} can cause unexpected type coercion edge cases.`,
-            filePath,
-            lineNumber: i + 1,
-            fixSuggestion: 'Use === instead of == to avoid type coercion surprises. Run ESLint eqeqeq rule.',
-            category: 'Edge Cases',
-          });
-        }
-      }
-    }
-
-    // Missing default in switch
-    const switchMatches = content.match(/switch\s*\(/g);
-    const defaultMatches = content.match(/default:/g);
-    if (switchMatches && (!defaultMatches || switchMatches.length > defaultMatches.length)) {
+    const hits = findEdgeCases(filePath, parsed.ast);
+    for (const hit of hits) {
+      byRule[hit.rule]++;
+      if (findings.length >= 25) continue; // surface count, cap the visible findings list
       findings.push({
-        severity: 'medium',
-        title: 'Switch Statement Without Default Case',
-        description: 'Switch without a default case can miss unexpected input values.',
+        severity: RULE_SEVERITY[hit.rule],
+        title: `${hit.rule.replace(/-/g, ' ')} (${filePath}:${hit.line})`,
+        description: hit.description,
         filePath,
-        fixSuggestion: 'Always add a default case to switch statements to handle unexpected values.',
+        lineNumber: hit.line,
+        fixSuggestion: RULE_FIX[hit.rule],
         category: 'Edge Cases',
       });
     }
   }
 
-  if (potentialCases > 10) {
-    findings.push({
-      severity: 'high',
-      title: `${potentialCases}+ Potential Edge Cases Detected`,
-      description: 'Multiple array accesses, divisions, and string operations without bounds/null checks found.',
-      fixSuggestion: 'Add input validation. Use TypeScript strict mode. Write tests for boundary conditions (empty arrays, null, undefined, max values).',
-      category: 'Edge Cases',
-    });
-  }
+  const potentialCases = Object.values(byRule).reduce((s, n) => s + n, 0);
 
-  const score = Math.max(0, 100 - findings.length * 10 - Math.floor(potentialCases / 5));
-  return { score: Math.min(100, score), potentialCases, findings: findings.slice(0, 15) };
+  // Score: each rule's hits cost a bit; high-severity rules cost more.
+  const cost =
+    byRule['JSON-parse-untrycaught'] * 4 +
+    byRule['parseInt-no-radix'] * 2 +
+    byRule['Number-coercion-unchecked'] * 2 +
+    byRule['new-Date-on-string'] * 2 +
+    byRule['switch-no-default'] * 1 +
+    byRule['loose-equality'] * 1;
+  const score = Math.max(0, Math.min(100, 100 - cost));
+
+  return {
+    score,
+    potentialCases,
+    byRule,
+    findings,
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════
