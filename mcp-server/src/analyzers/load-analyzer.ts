@@ -1,6 +1,8 @@
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { glob } from 'glob';
+import { parseFile, isParseable } from './lib/parse.js';
+import { findLoadPatterns, type LoadPatternsHit } from './lib/load-patterns.js';
 
 export interface LoadTestReport {
   hasRateLimiting: boolean;
@@ -10,6 +12,17 @@ export interface LoadTestReport {
   hasLoadBalancing: boolean;
   hasCompression: boolean;
   estimatedMaxConcurrentUsers: number;
+  /** AST-verified pattern hits with file + line. */
+  patterns: {
+    rateLimit: LoadPatternsHit[];
+    compression: LoadPatternsHit[];
+    cache: LoadPatternsHit[];
+    pool: LoadPatternsHit[];
+    timeout: LoadPatternsHit[];
+    healthEndpoints: LoadPatternsHit[];
+    circuitBreaker: LoadPatternsHit[];
+    syncIoInHandlers: LoadPatternsHit[];
+  };
   findings: Array<{
     severity: 'critical' | 'high' | 'medium' | 'low';
     title: string;
@@ -51,31 +64,48 @@ export async function runLoadAnalysis(config: {
   const allContent = Object.values(contents).join('\n');
   const allDeps = dependencies;
 
-  // 1. Check for rate limiting
+  // ── AST pass: collect real call/middleware patterns per file.
+  const patterns = {
+    rateLimit: [] as LoadPatternsHit[],
+    compression: [] as LoadPatternsHit[],
+    cache: [] as LoadPatternsHit[],
+    pool: [] as LoadPatternsHit[],
+    timeout: [] as LoadPatternsHit[],
+    healthEndpoints: [] as LoadPatternsHit[],
+    circuitBreaker: [] as LoadPatternsHit[],
+    syncIoInHandlers: [] as LoadPatternsHit[],
+  };
+  for (const [filePath, content] of Object.entries(contents)) {
+    if (filePath.includes('node_modules') || filePath.includes('test')) continue;
+    if (!isParseable(filePath)) continue;
+    const parsed = parseFile(filePath, content);
+    if (!parsed.ast) continue;
+    const p = findLoadPatterns(filePath, parsed.ast);
+    patterns.rateLimit.push(...p.rateLimitRegistrations);
+    patterns.compression.push(...p.compressionRegistrations);
+    patterns.cache.push(...p.cacheCalls);
+    patterns.pool.push(...p.poolConstructions);
+    patterns.timeout.push(...p.timeoutSets);
+    patterns.healthEndpoints.push(...p.healthEndpoints);
+    patterns.circuitBreaker.push(...p.circuitBreakerHits);
+    patterns.syncIoInHandlers.push(...p.syncIoInHandlers);
+  }
+
+  // ── Signal aggregation: AST hit OR strong-evidence dep import.
+  // Boolean flags are now backed by REAL middleware/call registration,
+  // not just substring presence.
   const hasRateLimiting =
-    allDeps.some(d => d.includes('rate-limit') || d.includes('ratelimit')) ||
-    allContent.includes('rateLimit') ||
-    allContent.includes('rate_limit') ||
-    allContent.includes('throttle');
+    patterns.rateLimit.length > 0 ||
+    allDeps.some(d => d === 'express-rate-limit' || d === '@fastify/rate-limit' || d === 'koa-ratelimit');
 
-  // 2. Check for caching
   const hasCaching =
-    allDeps.some(d => d.includes('cache') || d.includes('redis') || d.includes('ioredis')) ||
-    allContent.includes('redis') ||
-    allContent.includes('cache') ||
-    allContent.includes('Cache-Control') ||
-    allContent.includes('ETag') ||
-    allContent.includes('memoize');
+    patterns.cache.length > 0 ||
+    allDeps.some(d => d === 'redis' || d === 'ioredis' || d === 'memcached' || d === 'node-cache' || d === '@upstash/redis');
 
-  // 3. Check for connection pooling
   const hasConnectionPooling =
-    allContent.includes('pool') ||
-    allContent.includes('Pool') ||
-    allContent.includes('maxConnections') ||
-    allContent.includes('connectionLimit') ||
-    allContent.includes('acquire') ||
-    allContent.includes('idleTimeout') ||
-    allDeps.some(d => d.includes('pg') || d.includes('mysql') || d.includes('prisma')); // Prisma has built-in pooling
+    patterns.pool.length > 0 ||
+    // Prisma + Drizzle ship with built-in pooling; Sequelize too.
+    allDeps.some(d => d === 'prisma' || d === '@prisma/client' || d === 'drizzle-orm' || d === 'sequelize' || d === 'pg-pool');
 
   // 4. Check for CDN / static file serving config
   const hasCDNConfig =
@@ -94,13 +124,10 @@ export async function runLoadAnalysis(config: {
     allContent.includes('cluster.fork') ||
     allContent.includes('pm2');
 
-  // 6. Check for response compression
+  // 6. Check for response compression (AST-confirmed middleware registration)
   const hasCompression =
-    allDeps.some(d => d.includes('compression')) ||
-    allContent.includes('compression()') ||
-    allContent.includes('gzip') ||
-    allContent.includes('deflate') ||
-    allContent.includes('brotli');
+    patterns.compression.length > 0 ||
+    allDeps.some(d => d === 'compression' || d === '@fastify/compress' || d === 'koa-compress');
 
   // Estimate max concurrent users based on architecture
   let estimatedMaxConcurrentUsers = 100; // baseline
@@ -165,39 +192,56 @@ export async function runLoadAnalysis(config: {
     });
   }
 
-  // Check for missing health check endpoint
-  const hasHealthCheck = allContent.includes('/health') || allContent.includes('/ready') || allContent.includes('/live');
+  // Check for missing health check endpoint (AST: actual route registration)
+  const hasHealthCheck = patterns.healthEndpoints.length > 0;
   if (!hasHealthCheck) {
     findings.push({
       severity: 'medium',
-      title: 'Missing Health Check Endpoint',
-      description: 'No health check endpoint (/health, /ready) detected. Load balancers and orchestrators need this to route traffic.',
+      title: 'Missing health check endpoint',
+      description: 'No `/health` / `/ready` / `/live` route handler was registered. Load balancers and orchestrators need this to route traffic.',
       filePath: projectPath,
-      suggestion: 'Add a /health endpoint that checks DB connectivity and key dependencies. Return 200 only when healthy, 503 when degraded.',
+      suggestion: 'Add a `/health` endpoint that checks DB connectivity and key dependencies. Return 200 only when healthy, 503 when degraded.',
     });
   }
 
-  // Check for missing timeout configuration
-  const hasTimeouts = allContent.includes('timeout') || allContent.includes('Timeout') || allContent.includes('server.timeout');
+  // Check for missing timeout configuration (AST: server.timeout = N, axios.create({timeout}), fetch+signal)
+  const hasTimeouts = patterns.timeout.length > 0;
   if (!hasTimeouts) {
     findings.push({
       severity: 'medium',
-      title: 'No Request Timeout Configuration',
-      description: 'No request timeout handling detected. Slow requests can exhaust connections.',
+      title: 'No request timeout configuration',
+      description: 'No `server.timeout`, `axios.create({ timeout })`, or `fetch(url, { signal })` was found. Slow requests can exhaust connections.',
       filePath: projectPath,
-      suggestion: 'Set server timeout (e.g., server.timeout = 30000 for 30s). Add timeouts for external API calls using AbortController or axios timeout.',
+      suggestion: 'Set `server.timeout = 30_000`. Configure `axios.create({ timeout: 10_000 })`. Pass `signal: AbortSignal.timeout(N)` to fetch.',
     });
   }
 
-  // Check for circuit breaker pattern
-  const hasCircuitBreaker = allContent.includes('circuit') || allDeps.some(d => d.includes('opossum') || d.includes('circuit'));
-  if (!hasCircuitBreaker && allContent.includes('fetch') || allContent.includes('axios')) {
+  // Check for circuit breaker pattern. Fixed precedence:
+  // condition is "we make external calls AND we don't break circuits."
+  const makesExternalCalls = /\bfetch\(|\baxios\b|\bgot\(|\bsuperagent\(/.test(allContent);
+  const hasCircuitBreaker =
+    patterns.circuitBreaker.length > 0 ||
+    allDeps.some(d => d === 'opossum' || d === 'brakes' || d === 'cockatiel');
+  if (makesExternalCalls && !hasCircuitBreaker) {
     findings.push({
       severity: 'low',
-      title: 'No Circuit Breaker Pattern',
-      description: 'External API calls detected but no circuit breaker pattern found.',
+      title: 'No circuit breaker for external API calls',
+      description: 'External API calls (`fetch`/`axios`/`got`) detected but no circuit-breaker library (opossum / brakes / cockatiel) is in use.',
       filePath: projectPath,
-      suggestion: 'Implement circuit breaker pattern for external API calls. Use opossum or implement a simple state machine.',
+      suggestion: 'Wrap external calls with `opossum` or `cockatiel` so a downstream outage doesn\'t take you down too. Set thresholds: 50% error rate over 30s → open for 30s.',
+    });
+  }
+
+  // NEW (pass 6): sync I/O inside route handlers — real performance bug.
+  if (patterns.syncIoInHandlers.length > 0) {
+    const sample = patterns.syncIoInHandlers.slice(0, 3)
+      .map(h => `${h.pattern} at ${h.filePath}:${h.line}`).join('; ');
+    findings.push({
+      severity: 'high',
+      title: `Sync I/O inside ${patterns.syncIoInHandlers.length} route handler(s)`,
+      description: `Synchronous filesystem / shell calls inside async route handlers block the event loop for the entire process. Examples: ${sample}.`,
+      filePath: patterns.syncIoInHandlers[0].filePath,
+      suggestion: 'Replace `readFileSync` with `await fs.promises.readFile(...)` (or `fs.readFile` with await/promises). Same for write/append/exec/spawn — always use the async variant in request paths.',
     });
   }
 
@@ -222,6 +266,7 @@ export async function runLoadAnalysis(config: {
     hasLoadBalancing,
     hasCompression,
     estimatedMaxConcurrentUsers,
+    patterns,
     findings,
     recommendations: generateRecommendations(hasRateLimiting, hasCaching, hasConnectionPooling, hasCompression, hasLoadBalancing),
   };

@@ -1,0 +1,13 @@
+{
+  "name": "fixture-load-resilient",
+  "version": "0.0.1",
+  "description": "Load fixture — all the resilience patterns wired correctly.",
+  "dependencies": {
+    "express": "^4.18.0",
+    "express-rate-limit": "^7.0.0",
+    "compression": "^1.7.4",
+    "ioredis": "^5.3.0",
+    "pg": "^8.11.0",
+    "opossum": "^8.0.0"
+  }
+}

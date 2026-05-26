@@ -23,6 +23,7 @@ import {
 } from '../src/analyzers/advanced-analyzer.js';
 import { runUnitAnalysis } from '../src/analyzers/unit-analyzer.js';
 import { runAccessibilityAnalysis } from '../src/analyzers/accessibility-analyzer.js';
+import { runLoadAnalysis } from '../src/analyzers/load-analyzer.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const VULNERABLE = resolve(__dirname, 'fixtures/vulnerable-app');
@@ -36,6 +37,8 @@ const TEST_QUALITY = resolve(__dirname, 'fixtures/test-quality');
 const CONTRACTS = resolve(__dirname, 'fixtures/contracts');
 const CONTRACTS_MISSING = resolve(__dirname, 'fixtures/contracts-missing');
 const A11Y_JSX = resolve(__dirname, 'fixtures/a11y-jsx');
+const LOAD_RESILIENT = resolve(__dirname, 'fixtures/load-resilient');
+const LOAD_FRAGILE = resolve(__dirname, 'fixtures/load-fragile');
 
 describe('code-scanner', () => {
   let vulnInfo: CodebaseInfo;
@@ -1072,6 +1075,97 @@ describe('accessibility-analyzer — Phase 5 pass 5: AST-based JSX a11y checks',
     const report = await runAccessibilityAnalysis({ projectPath: A11Y_JSX });
     const empty = report.findings.find((f) => /aria-label.*empty string/i.test(f.title));
     expect(empty).toBeTruthy();
+  });
+});
+
+describe('load-analyzer — Phase 5 pass 6: AST middleware/pattern detection', () => {
+  it('detects rate-limiting via actual middleware registration', async () => {
+    const info = await scanCodebase(LOAD_RESILIENT);
+    const report = await runLoadAnalysis({
+      projectPath: LOAD_RESILIENT, fileContents: info.fileContents, dependencies: info.dependencies,
+    });
+    expect(report.hasRateLimiting).toBe(true);
+    expect(report.patterns.rateLimit.length).toBeGreaterThan(0);
+    // No false-positive rate-limit finding on the resilient fixture
+    const rlFinding = report.findings.find((f) => /Rate Limiting/i.test(f.title));
+    expect(rlFinding).toBeUndefined();
+  });
+
+  it('detects compression / cache / pool / health / timeouts / breaker', async () => {
+    const info = await scanCodebase(LOAD_RESILIENT);
+    const report = await runLoadAnalysis({
+      projectPath: LOAD_RESILIENT, fileContents: info.fileContents, dependencies: info.dependencies,
+    });
+    expect(report.hasCompression).toBe(true);
+    expect(report.hasCaching).toBe(true);
+    expect(report.hasConnectionPooling).toBe(true);
+    expect(report.patterns.compression.length).toBeGreaterThan(0);
+    expect(report.patterns.cache.length).toBeGreaterThan(0);
+    expect(report.patterns.pool.length).toBeGreaterThan(0);
+    expect(report.patterns.healthEndpoints.length).toBeGreaterThan(0);
+    expect(report.patterns.timeout.length).toBeGreaterThan(0);
+    expect(report.patterns.circuitBreaker.length).toBeGreaterThan(0);
+  });
+
+  it('flags fragile project: missing rate limit / cache / pool', async () => {
+    const info = await scanCodebase(LOAD_FRAGILE);
+    const report = await runLoadAnalysis({
+      projectPath: LOAD_FRAGILE, fileContents: info.fileContents, dependencies: info.dependencies,
+    });
+    expect(report.hasRateLimiting).toBe(false);
+    expect(report.hasCaching).toBe(false);
+    expect(report.hasCompression).toBe(false);
+    const rl = report.findings.find((f) => /Rate Limiting/i.test(f.title));
+    expect(rl).toBeTruthy();
+  });
+
+  it('flags sync I/O inside route handlers (HIGH severity)', async () => {
+    const info = await scanCodebase(LOAD_FRAGILE);
+    const report = await runLoadAnalysis({
+      projectPath: LOAD_FRAGILE, fileContents: info.fileContents, dependencies: info.dependencies,
+    });
+    expect(report.patterns.syncIoInHandlers.length).toBeGreaterThanOrEqual(2);
+    const sync = report.findings.find((f) => /Sync I\/O/i.test(f.title));
+    expect(sync).toBeTruthy();
+    expect(sync!.severity).toBe('high');
+  });
+
+  it('flags external API calls without circuit breaker (fragile only)', async () => {
+    const info = await scanCodebase(LOAD_FRAGILE);
+    const report = await runLoadAnalysis({
+      projectPath: LOAD_FRAGILE, fileContents: info.fileContents, dependencies: info.dependencies,
+    });
+    const breaker = report.findings.find((f) => /circuit breaker/i.test(f.title));
+    expect(breaker).toBeTruthy();
+  });
+
+  it('does NOT fire false positives from substring comments', async () => {
+    // The fragile fixture has comments mentioning "rateLimit", "cache",
+    // "compression", "Pool" — the prior substring matcher would have
+    // claimed all of those existed. AST analysis must not be fooled.
+    const info = await scanCodebase(LOAD_FRAGILE);
+    const report = await runLoadAnalysis({
+      projectPath: LOAD_FRAGILE, fileContents: info.fileContents, dependencies: info.dependencies,
+    });
+    expect(report.patterns.rateLimit.length).toBe(0);
+    expect(report.patterns.cache.length).toBe(0);
+    expect(report.patterns.compression.length).toBe(0);
+    expect(report.patterns.pool.length).toBe(0);
+  });
+
+  it('does NOT fire the circuit-breaker rule when there are no external API calls', async () => {
+    // Synthesize a project with no axios/fetch — circuit-breaker advice
+    // should be silent (previously the precedence bug fired anyway).
+    const tiny: Record<string, string> = {
+      'package.json': '{"name":"tiny"}',
+      'src/index.js': "const express = require('express'); const app = express(); app.get('/', (req, res) => res.json({})); app.listen(0);",
+    };
+    const report = await runLoadAnalysis({
+      projectPath: LOAD_FRAGILE, // projectPath needs to exist; we override fileContents
+      fileContents: tiny, dependencies: [],
+    });
+    const breaker = report.findings.find((f) => /circuit breaker/i.test(f.title));
+    expect(breaker).toBeUndefined();
   });
 });
 
