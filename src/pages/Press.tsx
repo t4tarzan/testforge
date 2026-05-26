@@ -42,6 +42,37 @@ export default function Press() {
           </ul>
         </section>
 
+        {/* Demo video — local/offline flow */}
+        <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
+          <h2 className="font-semibold text-[#12101A] mb-2">Demo Video — Local / Offline MCP</h2>
+          <p className="text-[#6B6B6B] text-sm leading-relaxed mb-4">
+            Shows the <strong>offline / local-machine flow</strong>: one <code className="font-mono text-[12px] bg-[#E8E5FF] text-[#574a7d] px-1 rounded">npx</code> command installs the
+            <code className="font-mono text-[12px] bg-[#E8E5FF] text-[#574a7d] px-1 rounded">@whitenoisenpm/testforge-mcp</code> package along with the bundled
+            SQLite engine, paste a project path or GitHub URL, click Run, see a 12-dimension report.
+            No cloud, no sign-up, no telemetry — analysis results persist to
+            <code className="font-mono text-[12px] bg-[#E8E5FF] text-[#574a7d] px-1 rounded">~/.testforge/history.db</code> on the developer's machine.
+            22 seconds, MP4, 1280×800. Use as-is or remix.
+          </p>
+          <div className="rounded-lg overflow-hidden border border-[#ECEBF5] bg-black">
+            <video
+              src="/demos/testforge-mcp-demo.mp4"
+              poster="/demos/local-mcp-poster.jpg"
+              controls
+              preload="metadata"
+              className="block w-full"
+            >
+              <a href="/demos/testforge-mcp-demo.mp4" className="text-[#574a7d] underline">Download MP4 (~1 MB)</a>
+            </video>
+          </div>
+          <div className="flex flex-wrap gap-3 mt-3 text-sm">
+            <a href="/demos/testforge-mcp-demo.mp4" download className="text-[#574a7d] hover:underline">⬇ MP4 (~1 MB)</a>
+            <span className="text-[#D9D9D3]">·</span>
+            <a href="/demos/local-mcp-poster.jpg" download className="text-[#574a7d] hover:underline">⬇ Poster JPG (99 KB)</a>
+            <span className="text-[#D9D9D3]">·</span>
+            <button onClick={() => copy('https://testforge.run/demos/testforge-mcp-demo.mp4')} className="text-[#574a7d] hover:underline">Copy MP4 link</button>
+          </div>
+        </section>
+
         {/* Links */}
         <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
           <h2 className="font-semibold text-[#12101A] mb-2">Links</h2>
