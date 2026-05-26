@@ -1,0 +1,8 @@
+{
+  "name": "fixture-a11y-jsx",
+  "version": "0.0.1",
+  "description": "AST-based accessibility checks: positive and negative JSX patterns.",
+  "dependencies": {
+    "react": "^18.2.0"
+  }
+}

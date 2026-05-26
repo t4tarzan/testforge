@@ -1,6 +1,8 @@
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { glob } from 'glob';
+import { parseFile, isParseable } from './lib/parse.js';
+import { checkJsxAccessibility } from './lib/a11y-jsx.js';
 
 export interface A11yFinding {
   severity: 'critical' | 'high' | 'medium' | 'low';
@@ -64,6 +66,42 @@ export async function runAccessibilityAnalysis(config: {
     if (filePath.includes('node_modules')) continue;
     const lines = content.split('\n');
 
+    // AST-based JSX/TSX checks (pass 5). Replaces several line-level
+    // regex checks below for the JSX case. HTML/Vue/Svelte still go
+    // through the regex helpers since Babel doesn't parse them.
+    if ((filePath.endsWith('.tsx') || filePath.endsWith('.jsx')) && isParseable(filePath)) {
+      const parsed = parseFile(filePath, content);
+      if (parsed.ast) {
+        const jsxHits = checkJsxAccessibility(filePath, parsed.ast);
+        for (const hit of jsxHits) {
+          const snippet = (lines[hit.line - 1] || '').trim().slice(0, 140);
+          findings.push({
+            severity: hit.severity,
+            title: hit.title,
+            description: `${hit.element} at ${filePath}:${hit.line}. Rule: ${hit.rule}.`,
+            filePath,
+            lineNumber: hit.line,
+            codeSnippet: snippet,
+            fixSuggestion: hit.fix,
+            wcagCriterion: hit.wcagCriterion,
+          });
+          if (hit.rule === 'img-no-alt') imagesWithoutAlt++;
+          if (hit.rule === 'input-no-label') formsWithoutLabels++;
+          if (hit.rule === 'aria-empty' || hit.rule === 'clickable-non-interactive') missingAriaCount++;
+        }
+        // For JSX files we trust the AST results — skip the
+        // duplicate regex checks below to avoid double-counting.
+        // Still run a few project-shape checks (heading hierarchy,
+        // contrast, semantic) since those look at content patterns
+        // the AST doesn't reify cleanly.
+        checkHeadingHierarchy(lines, filePath, findings);
+        checkColorContrast(lines, filePath, findings);
+        checkSemanticHtml(lines, filePath, findings);
+        continue;
+      }
+    }
+
+    // ── Non-JSX path (HTML, Vue, Svelte, parse-failed JSX) ──
     // 1. Images without alt text
     checkImagesWithoutAlt(lines, filePath, findings, () => { imagesWithoutAlt++; });
 
