@@ -7,6 +7,7 @@ import { findDeadCode } from './lib/dead-code.js';
 import { extractOpenApi, canonicalPath } from './lib/openapi-parse.js';
 import { discoverEndpoints, endpointSet, type DiscoveredEndpoint } from './lib/endpoint-discovery.js';
 import { computeFileComplexity } from './lib/complexity.js';
+import { OWASP_2021, owaspCodesForCategory, type OwaspCode } from './lib/owasp-map.js';
 import {
   aggregateFileRisk,
   bucketSecurityByFile,
@@ -1052,55 +1053,126 @@ export function runDoraEstimation(fileContents: Record<string, string>, devDepen
   return { score, deploymentFreq, leadTime, mttr, changeFailRate, findings };
 }
 
-// OWASP Top 10 Coverage
-export interface OwaspReport { score: number; coverage: number; coveredCategories: string[]; missingCategories: string[]; findings: Finding[]; }
+// OWASP Top 10 (2021) Coverage — pass 7.
+//
+// The report distinguishes three signals so dashboards can render them
+// as separate concepts:
+//
+//   analyzerCoverage: which categories the ANALYZER has rules for
+//                     (independent of any specific project)
+//   projectFindings:  for each category, how many findings THIS project
+//                     has, with severity breakdown
+//   gaps:             categories the analyzer ships no rules for
+//                     (A08 Software-Integrity, A10 SSRF as of v0.15.0)
+//
+// Score: analyzer-coverage as a percentage. Project-findings count is
+// surfaced separately in `byCategory` so the user can see, e.g.,
+// "the analyzer covers 8/10 categories; this project has 7 findings
+// concentrated in A03 (Injection) and A02 (Cryptographic Failures)."
+export interface OwaspCategoryReport {
+  code: OwaspCode;
+  title: string;
+  /** Analyzer ships ≥1 rule for this category. */
+  analyzerCovers: boolean;
+  /** Finding count in this project, by severity. */
+  findings: {
+    total: number;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+  };
+  /** Specific security-analyzer category names that mapped here. */
+  detectorCategories: string[];
+}
+
+export interface OwaspReport {
+  /** % of OWASP 2021 categories the analyzer has rules for. */
+  score: number;
+  /** Alias of score, kept for backward compatibility. */
+  coverage: number;
+  /** OWASP titles the analyzer covers, e.g. "A03:2021 — Injection". */
+  coveredCategories: string[];
+  /** OWASP titles the analyzer does NOT yet cover. */
+  missingCategories: string[];
+  /** Full per-category breakdown. */
+  byCategory: OwaspCategoryReport[];
+  findings: Finding[];
+}
 
 export function runOwaspCoverage(securityFindings: Finding[]): OwaspReport {
-  const owaspMap: Record<string, string> = {
-    'SQL Injection': 'A03:2021 - Injection',
-    'NoSQL Injection': 'A03:2021 - Injection',
-    'XSS': 'A03:2021 - Injection',
-    'Hardcoded Secret': 'A07:2021 - Identification Failures',
-    'Authentication': 'A07:2021 - Identification Failures',
-    'CORS': 'A01:2021 - Broken Access Control',
-    'Path Traversal': 'A01:2021 - Broken Access Control',
-    'eval()': 'A03:2021 - Injection',
-    'Rate Limiting': 'A04:2021 - Insecure Design',
-    'Vulnerable Dep': 'A06:2021 - Vulnerable Components',
-    'Encryption': 'A02:2021 - Cryptographic Failures',
-    'Logging': 'A09:2021 - Security Logging Failures',
-  };
+  // Initialize per-category counters.
+  const byCategory: OwaspCategoryReport[] = OWASP_2021.map((meta) => ({
+    code: meta.code,
+    title: meta.title,
+    analyzerCovers: meta.analyzerCovers,
+    findings: { total: 0, critical: 0, high: 0, medium: 0, low: 0 },
+    detectorCategories: meta.detectorCategories,
+  }));
+  const codeIndex = new Map(byCategory.map((c) => [c.code, c]));
 
-  const allCategories = [
-    'A01:2021 - Broken Access Control', 'A02:2021 - Cryptographic Failures',
-    'A03:2021 - Injection', 'A04:2021 - Insecure Design', 'A05:2021 - Security Misconfiguration',
-    'A06:2021 - Vulnerable Components', 'A07:2021 - Identification Failures',
-    'A08:2021 - Software Integrity Failures', 'A09:2021 - Security Logging Failures',
-    'A10:2021 - SSRF'
-  ];
-
-  const covered = new Set<string>();
+  // Bucket project findings.
   for (const f of securityFindings) {
-    for (const [keyword, owasp] of Object.entries(owaspMap)) {
-      if (f.title?.includes(keyword) || f.category?.includes(keyword)) {
-        covered.add(owasp);
-      }
+    const codes = owaspCodesForCategory(f.category);
+    for (const code of codes) {
+      const bucket = codeIndex.get(code);
+      if (!bucket) continue;
+      bucket.findings.total++;
+      if (f.severity === 'critical') bucket.findings.critical++;
+      else if (f.severity === 'high') bucket.findings.high++;
+      else if (f.severity === 'medium') bucket.findings.medium++;
+      else if (f.severity === 'low') bucket.findings.low++;
     }
   }
 
-  const missingCategories = allCategories.filter(c => !covered.has(c));
-  const coverage = Math.round((covered.size / allCategories.length) * 100);
+  const analyzerCoveredCount = byCategory.filter((c) => c.analyzerCovers).length;
+  const coverage = Math.round((analyzerCoveredCount / byCategory.length) * 100);
+  const coveredCategories = byCategory.filter((c) => c.analyzerCovers).map((c) => c.title);
+  const missingCategories = byCategory.filter((c) => !c.analyzerCovers).map((c) => c.title);
 
+  // Emit findings:
+  // 1) Analyzer-gap finding (covers <10 categories). Tells the USER OF
+  //    the analyzer that we don't catch everything yet — honest framing.
   const findings: Finding[] = [];
-  if (missingCategories.length > 5) {
+  if (missingCategories.length > 0) {
     findings.push({
-      severity: 'medium',
-      title: `OWASP Coverage: ${coverage}% (${covered.size}/${allCategories.length})`,
-      description: `Missing: ${missingCategories.slice(0, 3).join(', ')}`,
-      fixSuggestion: 'Add security rules covering remaining OWASP categories. Use OWASP ZAP for DAST scanning.',
+      severity: 'low',
+      title: `OWASP Top 10 analyzer coverage: ${coverage}% (${analyzerCoveredCount}/${byCategory.length})`,
+      description:
+        `TestForge ships rules for ${analyzerCoveredCount} of the 10 OWASP 2021 categories. ` +
+        `Categories without dedicated rules yet: ${missingCategories.join(', ')}. ` +
+        'These are gaps in the analyzer itself — your project may still have issues in these areas that this report won\'t surface.',
+      fixSuggestion:
+        'For the un-covered categories, complement TestForge with: dependency-track for A08 (software integrity), an SSRF-focused fuzzer or proxy-based runtime scan for A10. Track the gap in your threat model.',
       category: 'OWASP Coverage',
     });
   }
 
-  return { score: coverage, coverage, coveredCategories: Array.from(covered), missingCategories, findings };
+  // 2) Per-category "concentrated risk" findings: any category with
+  //    ≥1 critical or ≥3 high findings is worth surfacing as a single
+  //    rollup so the user sees the OWASP framing.
+  for (const c of byCategory) {
+    if (c.findings.critical > 0 || c.findings.high >= 3) {
+      const sev: 'critical' | 'high' = c.findings.critical > 0 ? 'critical' : 'high';
+      findings.push({
+        severity: sev,
+        title: `${c.title}: ${c.findings.total} finding(s)`,
+        description:
+          `Severity breakdown: ${c.findings.critical} critical, ${c.findings.high} high, ${c.findings.medium} medium, ${c.findings.low} low. ` +
+          `Detector categories that contributed: ${c.detectorCategories.join(', ') || '—'}.`,
+        fixSuggestion:
+          'Triage the underlying findings in the Security section. OWASP framing is a roll-up; act on the per-file findings.',
+        category: 'OWASP Coverage',
+      });
+    }
+  }
+
+  return {
+    score: coverage,
+    coverage,
+    coveredCategories,
+    missingCategories,
+    byCategory,
+    findings,
+  };
 }
