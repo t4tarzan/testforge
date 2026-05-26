@@ -13,12 +13,22 @@
 
 **Web (managed):** https://testforge.run — drop any public GitHub repo URL, get a 21-dimension report.
 
-**Local (MCP):**
+**Local (MCP) — one command, no cloud, no sign-up:**
 ```bash
 npx @whitenoisenpm/testforge-mcp@latest serve
 open http://localhost:33221
 ```
-Dashboard accepts a local project path **or** a GitHub URL. Code never leaves your machine; results persist to `~/.testforge/history.db`.
+Dashboard accepts a local project path **or** a GitHub URL. The npm package ships `better-sqlite3` prebuilt for macOS/Linux/Windows, so the SQLite engine that backs `~/.testforge/history.db` installs with zero native-build steps. Your source code never leaves the machine.
+
+### 🎬 30-second walkthrough — fully offline
+
+<p align="center">
+  <a href="https://github.com/t4tarzan/testforge/raw/main/public/demos/testforge-mcp-demo.mp4">
+    <img src="https://raw.githubusercontent.com/t4tarzan/testforge/main/public/demos/local-mcp-poster.jpg" alt="Local MCP demo — paste a path, click Run, see a 12-dimension report" width="720" />
+  </a>
+  <br />
+  <em>One <code>npx</code> command installs the package + bundled SQLite engine. Paste a local path or GitHub URL, click <strong>Run Full Analysis</strong>, get a 12-dimension report. Every byte stays on your machine — results persist to <code>~/.testforge/history.db</code>.</em>
+</p>
 
 ---
 
