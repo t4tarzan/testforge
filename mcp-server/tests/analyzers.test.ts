@@ -908,6 +908,100 @@ describe('advanced-analyzer — Phase 5 pass 3: contract analysis (OpenAPI + AST
   });
 });
 
+describe('advanced-analyzer — Phase 5 pass 4: predictive (cross-signal)', () => {
+  it('surfaces per-file risk hotspots when security signals are fed in', async () => {
+    const info = await scanCodebase(VULNERABLE);
+    const report = await runPredictiveAnalysis(
+      info.fileContents, info.dependencies, info.devDependencies,
+      {
+        securityFindings: [
+          { filePath: 'src/server.js', severity: 'critical' },
+          { filePath: 'src/server.js', severity: 'high' },
+        ],
+      }
+    );
+    expect(report.topRiskyFiles).toBeDefined();
+    expect(report.topRiskyFiles.length).toBeGreaterThan(0);
+    expect(report.topRiskyFiles[0].score).toBeGreaterThan(0);
+    expect(report.topRiskyFiles[0].reasons.length).toBeGreaterThan(0);
+  });
+
+  it('weights security findings by severity when cross-signals are provided', async () => {
+    const info = await scanCodebase(VULNERABLE);
+    // Without security signal
+    const without = await runPredictiveAnalysis(
+      info.fileContents, info.dependencies, info.devDependencies
+    );
+    // With a synthetic critical finding on a known file
+    const withCritical = await runPredictiveAnalysis(
+      info.fileContents, info.dependencies, info.devDependencies,
+      {
+        securityFindings: [
+          { filePath: 'src/server.js', severity: 'critical' },
+          { filePath: 'src/server.js', severity: 'critical' },
+        ],
+      }
+    );
+    const serverWithout = without.topRiskyFiles.find((f) => f.filePath === 'src/server.js');
+    const serverWith = withCritical.topRiskyFiles.find((f) => f.filePath === 'src/server.js');
+    expect(serverWith).toBeTruthy();
+    if (serverWithout) {
+      expect(serverWith!.score).toBeGreaterThan(serverWithout.score);
+    }
+    expect(serverWith!.reasons.join(' ')).toMatch(/critical/);
+  });
+
+  it('top risk file shows aggregated reasons, not just one signal', async () => {
+    const info = await scanCodebase(VULNERABLE);
+    const report = await runPredictiveAnalysis(
+      info.fileContents, info.dependencies, info.devDependencies,
+      {
+        securityFindings: [
+          { filePath: 'src/server.js', severity: 'critical' },
+          { filePath: 'src/server.js', severity: 'high' },
+        ],
+        nPlusOneFindings: [{ filePath: 'src/server.js' }],
+        deadExports: [{ filePath: 'src/server.js', name: 'unusedHelper' }],
+      }
+    );
+    const top = report.topRiskyFiles[0];
+    expect(top.filePath).toBe('src/server.js');
+    expect(top.reasons.some((r) => /security/i.test(r))).toBe(true);
+    expect(top.reasons.some((r) => /N\+1/i.test(r))).toBe(true);
+  });
+
+  it('emits a finding per top hotspot with category Predictive', async () => {
+    const info = await scanCodebase(VULNERABLE);
+    const report = await runPredictiveAnalysis(
+      info.fileContents, info.dependencies, info.devDependencies,
+      {
+        securityFindings: [
+          { filePath: 'src/server.js', severity: 'critical' },
+          { filePath: 'src/server.js', severity: 'critical' },
+        ],
+      }
+    );
+    const hotspot = report.findings.find((f) => /Risk hotspot/.test(f.title));
+    expect(hotspot).toBeTruthy();
+    expect(hotspot!.category).toBe('Predictive');
+    expect(hotspot!.severity).toMatch(/high|medium|low/);
+  });
+
+  it('riskLevel is Low when no file has any risk signal', async () => {
+    // Tiny clean project: one entry point that uses its own helper.
+    // No unused exports, no security, no n+1, no TODOs.
+    const clean: Record<string, string> = {
+      'package.json': '{"name":"clean","dependencies":{}}',
+      'src/math.js': "export function add(a, b) { return a + b; }",
+      'src/index.js': "import { add } from './math.js'; console.log(add(1, 2));",
+    };
+    const report = await runPredictiveAnalysis(clean, [], []);
+    expect(report.topRiskyFiles.length).toBe(0);
+    expect(report.riskLevel).toMatch(/Low/i);
+    expect(report.score).toBeGreaterThanOrEqual(95);
+  });
+});
+
 describe('advanced-analyzer — determinism (S1)', () => {
   it('mutation analysis returns the same score on identical input', async () => {
     const info = await scanCodebase(CLEAN);

@@ -6,6 +6,13 @@ import { findNPlusOneHits } from './lib/n-plus-one.js';
 import { findDeadCode } from './lib/dead-code.js';
 import { extractOpenApi, canonicalPath } from './lib/openapi-parse.js';
 import { discoverEndpoints, endpointSet, type DiscoveredEndpoint } from './lib/endpoint-discovery.js';
+import { computeFileComplexity } from './lib/complexity.js';
+import {
+  aggregateFileRisk,
+  bucketSecurityByFile,
+  type FileRisk,
+  type Severity as PredictiveSeverity,
+} from './lib/predictive.js';
 import type * as t from '@babel/types';
 
 export interface AdvancedReport {
@@ -620,117 +627,164 @@ export interface PredictiveReport {
   score: number;
   riskLevel: string;
   predictedFailures: number;
+  /** Per-file risk breakdown, sorted highest score first. Empty when no file has any risk signal. */
+  topRiskyFiles: FileRisk[];
   findings: Finding[];
 }
 
+/**
+ * Cross-signal predictive risk aggregator (pass 4).
+ *
+ * Optional `crossSignals` argument: if the caller has already run
+ * security / n+1 / dead-code analyzers, pass their findings in and
+ * predictive will incorporate them into per-file scores. Otherwise
+ * predictive does its own light-weight versions internally so it
+ * still produces meaningful output when invoked standalone.
+ *
+ * Determinism: same inputs → same scores. Weights are fixed in
+ * `lib/predictive.ts`.
+ */
 export async function runPredictiveAnalysis(
   fileContents: Record<string, string>,
   dependencies: string[],
-  devDependencies: string[]
+  devDependencies: string[],
+  crossSignals?: {
+    securityFindings?: Array<{ filePath: string; severity: string }>;
+    nPlusOneFindings?: Array<{ filePath: string }>;
+    deadExports?: Array<{ filePath: string; name: string }>;
+  }
 ): Promise<PredictiveReport> {
   const findings: Finding[] = [];
-  const allContent = Object.values(fileContents).join('\n');
-  let riskScore = 0;
 
-  // Risk factor 1: Large files (more lines = more bugs statistically)
-  let largeFiles = 0;
-  for (const [fp, content] of Object.entries(fileContents)) {
-    if (fp.includes('node_modules') || fp.includes('test')) continue;
-    const lines = content.split('\n').length;
-    if (lines > 300) largeFiles++;
-  }
-  if (largeFiles > 3) {
-    riskScore += 15;
-    findings.push({
-      severity: 'medium',
-      title: `${largeFiles} Large Files (>300 lines)`,
-      description: 'Files with 300+ lines have 40% higher defect density. Consider splitting into smaller modules.',
-      fixSuggestion: 'Refactor large files. Single Responsibility Principle: one file, one purpose. Target <200 lines per file.',
-      category: 'Predictive',
+  /* ── Per-file signals ────────────────────────────────────────────── */
+  const files: Array<{ path: string; loc: number }> = [];
+  const complexityByFile = new Map<string, { maxCc: number; totalCc: number; hottest?: string }>();
+  const nPlusOneByFile = new Map<string, number>();
+  const deadByFile = new Map<string, number>();
+  const todoByFile = new Map<string, number>();
+  const parseable: Array<{ filePath: string; ast: t.File }> = [];
+
+  for (const [filePath, content] of Object.entries(fileContents)) {
+    if (filePath.includes('node_modules')) continue;
+    if (filePath.includes('test')) continue;
+    if (!isParseable(filePath)) continue;
+    const loc = content.split('\n').length;
+    files.push({ path: filePath, loc });
+
+    const parsed = parseFile(filePath, content);
+    if (!parsed.ast) continue;
+    parseable.push({ filePath, ast: parsed.ast });
+
+    // Complexity per file
+    const cc = computeFileComplexity(filePath, parsed.ast);
+    complexityByFile.set(filePath, {
+      maxCc: cc.maxCc,
+      totalCc: cc.totalCc,
+      hottest: cc.hottest[0]?.name,
     });
+
+    // Self-derived N+1 if caller didn't provide
+    if (!crossSignals?.nPlusOneFindings) {
+      const hits = findNPlusOneHits(parsed.ast);
+      if (hits.length > 0) nPlusOneByFile.set(filePath, hits.length);
+    }
+
+    // TODO/FIXME density per file
+    const todos = (content.match(/\bTODO\b|\bFIXME\b|\bHACK\b|\bXXX\b|\bWORKAROUND\b/g) || []).length;
+    if (todos > 0) todoByFile.set(filePath, todos);
   }
 
-  // Risk factor 2: Code churn indicators (TODO/FIXME/HACK)
-  const todos = (allContent.match(/TODO|FIXME|HACK|XXX|WORKAROUND/gi) || []).length;
-  if (todos > 5) {
-    riskScore += 10;
-    findings.push({
-      severity: 'medium',
-      title: `${todos} TODO/FIXME/HACK Comments`,
-      description: 'Unresolved TODOs and workarounds are strong predictors of future bugs. Each one is deferred technical debt.',
-      fixSuggestion: 'Create GitHub issues for each TODO. Schedule debt reduction sprints. Use eslint-plugin-todo for CI enforcement.',
-      category: 'Predictive',
-    });
-  }
+  // Cross-signal: security findings supplied by caller (preferred).
+  const securityByFile = crossSignals?.securityFindings
+    ? bucketSecurityByFile(crossSignals.securityFindings)
+    : new Map<string, Record<PredictiveSeverity, number>>();
 
-  // Risk factor 3: Deep nesting (predicts complexity bugs)
-  let maxNesting = 0;
-  for (const content of Object.values(fileContents)) {
-    const lines = content.split('\n');
-    let depth = 0;
-    for (const line of lines) {
-      if (line.includes('{')) depth++;
-      if (line.includes('}')) depth--;
-      maxNesting = Math.max(maxNesting, depth);
+  // Cross-signal: n+1 findings supplied by caller (override self-derived above).
+  if (crossSignals?.nPlusOneFindings) {
+    for (const f of crossSignals.nPlusOneFindings) {
+      if (!f.filePath) continue;
+      nPlusOneByFile.set(f.filePath, (nPlusOneByFile.get(f.filePath) ?? 0) + 1);
     }
   }
-  if (maxNesting > 5) {
-    riskScore += 12;
+
+  // Cross-signal: dead exports supplied by caller (otherwise derive).
+  if (crossSignals?.deadExports) {
+    for (const d of crossSignals.deadExports) {
+      deadByFile.set(d.filePath, (deadByFile.get(d.filePath) ?? 0) + 1);
+    }
+  } else if (parseable.length > 0) {
+    const asts = new Map(parseable.map(({ filePath, ast }) => [filePath, ast]));
+    const report = findDeadCode(asts, dependencies);
+    for (const d of report.unusedExports) {
+      deadByFile.set(d.filePath, (deadByFile.get(d.filePath) ?? 0) + 1);
+    }
+  }
+
+  /* ── Aggregate ───────────────────────────────────────────────────── */
+  const risks = aggregateFileRisk({
+    files,
+    complexityByFile,
+    securityByFile,
+    nPlusOneByFile,
+    deadExportsByFile: deadByFile,
+    todoCountByFile: todoByFile,
+  });
+
+  /* ── Findings: top-N risky files surfaced ────────────────────────── */
+  const topN = Math.min(risks.length, 5);
+  for (let i = 0; i < topN; i++) {
+    const r = risks[i];
+    const sev: 'high' | 'medium' | 'low' = r.score >= 30 ? 'high' : r.score >= 12 ? 'medium' : 'low';
     findings.push({
-      severity: 'medium',
-      title: `Deep Nesting Detected (max depth: ${maxNesting})`,
-      description: 'Deeply nested code (5+ levels) is exponentially harder to test and 3x more likely to contain bugs.',
-      fixSuggestion: 'Use early returns (guard clauses). Extract nested logic into functions. Apply the "happy path left" pattern.',
+      severity: sev,
+      title: `Risk hotspot: ${r.filePath} (score ${r.score})`,
+      description: `Aggregated signals: ${r.reasons.join(' · ')}.`,
+      filePath: r.filePath,
+      fixSuggestion:
+        'Triage the contributing signals in order: critical-security first, then N+1 hits, then refactor the hottest function (extract guard clauses, split into smaller fns). Add tests around the hottest function before refactoring.',
       category: 'Predictive',
     });
   }
 
-  // Risk factor 4: Outdated dependencies
-  if (dependencies.length > 10 && !devDependencies.some(d => d.includes('renovate') || d.includes('dependabot'))) {
-    riskScore += 8;
+  /* ── Project-level dep-hygiene finding (preserved from prior version) ── */
+  if (dependencies.length > 10 && !devDependencies.some((d) => d.includes('renovate') || d.includes('dependabot'))) {
     findings.push({
       severity: 'low',
-      title: 'No Automated Dependency Updates',
-      description: 'Without Renovate/Dependabot, dependencies drift and accumulate security vulnerabilities over time.',
-      fixSuggestion: 'Enable Dependabot or Renovate for automated dependency updates. Schedule weekly dependency reviews.',
+      title: 'No automated dependency updates',
+      description:
+        'No Renovate / Dependabot detected. Dependencies will drift, accumulating CVEs.',
+      fixSuggestion:
+        'Enable Dependabot via `.github/dependabot.yml`, or Renovate via the GitHub App. Schedule a weekly security sprint to land the PRs.',
       category: 'Predictive',
     });
   }
 
-  // Risk factor 5: Console.log in production code
-  let consoleLogs = 0;
-  for (const [fp, content] of Object.entries(fileContents)) {
-    if (fp.includes('test') || fp.includes('node_modules')) continue;
-    consoleLogs += (content.match(/console\.(log|warn|error)/g) || []).length;
-  }
-  if (consoleLogs > 20) {
-    riskScore += 8;
-    findings.push({
-      severity: 'low',
-      title: `${consoleLogs} console.log Statements`,
-      description: 'Console statements in production code leak data, slow execution, and indicate immature logging.',
-      fixSuggestion: 'Replace console.log with structured logging (Pino/Winston). Set up log levels. Use linting to block console in CI.',
-      category: 'Predictive',
-    });
-  }
+  /* ── Score & risk level ──────────────────────────────────────────── */
+  // Project-level score: 100 minus a curve over (sum of risk scores).
+  // We use the SUM not the max so concentrated risk in one file and
+  // spread risk across many both register.
+  const projectRiskRaw = risks.reduce((s, r) => s + r.score, 0);
+  // Curve: each 5 risk points knocks off 1 score point, capped at 90 off.
+  const score = Math.max(10, Math.round(100 - Math.min(projectRiskRaw / 5, 90)));
 
-  const score = Math.max(0, 100 - riskScore);
-
-  // predictedFailures is now a deterministic function of riskScore: roughly
-  // one expected incident per quarter for every 5 risk points. Same input →
-  // same number, so two runs on identical code produce identical reports.
-  // This is a heuristic, not a forecast — communicate it as such.
-  const predictedFailures = Math.floor(riskScore / 5);
   let riskLevel: string;
-  if (riskScore < 15) {
-    riskLevel = 'Low — Codebase shows good engineering practices.';
-  } else if (riskScore < 30) {
-    riskLevel = 'Medium — Some risk factors present. Address TODOs and large files.';
+  if (projectRiskRaw < 10) {
+    riskLevel = 'Low — no concentrated risk in any single file.';
+  } else if (projectRiskRaw < 40) {
+    riskLevel = `Medium — ${risks.length} file(s) carry measurable risk; ${risks[0]?.filePath ?? ''} is the hottest.`;
   } else {
-    riskLevel = 'High — Multiple risk factors. High probability of production incidents.';
+    riskLevel = `High — ${risks.length} file(s) flagged; address ${risks.slice(0, 3).map((r) => r.filePath).join(', ')} first.`;
   }
 
-  return { score, riskLevel, predictedFailures, findings };
+  const predictedFailures = Math.floor(projectRiskRaw / 5);
+
+  return {
+    score,
+    riskLevel,
+    predictedFailures,
+    topRiskyFiles: risks.slice(0, 10),
+    findings,
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════
