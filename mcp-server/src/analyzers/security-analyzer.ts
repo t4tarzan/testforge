@@ -42,6 +42,10 @@ import {
   type TaintTable,
 } from './lib/taint.js';
 import {
+  collectFunctionSummariesWithAliases,
+  type FunctionSummaryTable,
+} from './lib/function-summaries.js';
+import {
   buildCorsWildcardFix,
   buildDangerouslySetInnerHtmlFix,
   buildEvalAdvice,
@@ -179,6 +183,11 @@ function analyzeFile(filePath: string, content: string): SecurityFinding[] {
   // Phase 2: a per-file taint table populated in a single pass.
   const taintTable = collectTaintTable(parsed.ast);
 
+  // Phase 4a: cross-function summaries. Lets us detect:
+  //   function helper(q) { db.query(q); }   ← helper has a sink at param 0
+  //   helper('SELECT ... ' + req.body.x);   ← flag the CALLER, not helper.
+  const fnSummaries = collectFunctionSummariesWithAliases(parsed.ast);
+
   const raw: SecurityFinding[] = [];
 
   try {
@@ -198,6 +207,7 @@ function analyzeFile(filePath: string, content: string): SecurityFinding[] {
         checkAuthBypassRoute(path.node, filePath, content, raw, isTestFile);
         checkCorsCall(path.node, filePath, content, raw);
         checkSensitiveResponseJson(path.node, filePath, content, raw);
+        checkCrossFunctionSinkCall(path.node, filePath, content, raw, taintTable, fnSummaries);
       },
       AssignmentExpression(path) {
         checkInnerHtmlAssignmentSink(path.node, filePath, content, raw, taintTable);
@@ -774,6 +784,81 @@ function findPropertyName(obj: t.ObjectExpression, names: string[]): string | nu
     if (keyName && names.includes(keyName.toLowerCase())) return keyName;
   }
   return null;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Phase 4a: Calls to summarized helpers with tainted args                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * If `helper(req.body.x)` and `helper`'s body is `db.query(q)` (a known
+ * sink), emit a finding at the call site with `category` set to whatever
+ * the helper's sink category is. Confidence high if no sanitizer is on
+ * the path; medium if any sanitizer appears either inline or in the
+ * helper's body.
+ *
+ * Single-file (intra-procedural). Cross-file taint is a later phase.
+ */
+function checkCrossFunctionSinkCall(
+  call: t.CallExpression,
+  filePath: string,
+  content: string,
+  out: SecurityFinding[],
+  table: TaintTable,
+  summaries: FunctionSummaryTable
+) {
+  // Only handle direct calls to identifiers — we don't follow
+  // higher-order references like `[].map(helper)` here.
+  if (!t.isIdentifier(call.callee)) return;
+  const summary = summaries.byName.get(call.callee.name);
+  if (!summary || summary.sinks.length === 0) return;
+
+  for (const sink of summary.sinks) {
+    const argIndex = sink.paramIndex;
+    const arg = call.arguments[argIndex] as t.Node | undefined;
+    if (!arg) continue;
+    const argReport = analyzeSinkArg(arg, table);
+    if (!argReport) continue;
+
+    // Bucket sanitizers: argument side + helper-internal side.
+    const allSanitizers = [
+      ...(argReport.taint?.sanitizers ?? []),
+      ...sink.sanitizers,
+    ];
+    const confidence: Confidence =
+      allSanitizers.length > 0 ? 'medium' : argReport.confidence;
+
+    const description =
+      `\`${call.callee.name}(...)\` passes its argument into a ${sink.category.toLowerCase()} sink ` +
+      `inside the helper. The argument here ${argReport.taint ? describeFlow(argReport.taint) : 'is built from variables'}.`;
+
+    push(out, filePath, content, call, {
+      severity: severityFor(sink.category),
+      confidence,
+      title: `${sink.category} via \`${call.callee.name}()\` helper`,
+      description,
+      fixSuggestion:
+        `Either sanitize the argument before passing it to \`${call.callee.name}\`, ` +
+        `or rewrite \`${call.callee.name}\` to use the safe alternative (parameterized queries, escape, etc.) internally.`,
+      category: sink.category,
+      flow: argReport.taint ? describeFlow(argReport.taint) : undefined,
+    });
+  }
+}
+
+function severityFor(cat: string): Severity {
+  switch (cat) {
+    case 'SQL Injection':
+    case 'Dangerous Functions':
+      return 'critical';
+    case 'XSS':
+    case 'Path Traversal':
+      return 'high';
+    case 'Open Redirect':
+      return 'medium';
+    default:
+      return 'medium';
+  }
 }
 
 /* -------------------------------------------------------------------------- */
