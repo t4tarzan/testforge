@@ -19,6 +19,7 @@ import {
   runPredictiveAnalysis,
   runNPlusOneDetection,
   runDeadCodeAnalysis,
+  runContractAnalysis,
 } from '../src/analyzers/advanced-analyzer.js';
 import { runUnitAnalysis } from '../src/analyzers/unit-analyzer.js';
 
@@ -31,6 +32,8 @@ const USER_RULES = resolve(__dirname, 'fixtures/user-rules');
 const N_PLUS_ONE = resolve(__dirname, 'fixtures/n-plus-one');
 const DEAD_CODE = resolve(__dirname, 'fixtures/dead-code');
 const TEST_QUALITY = resolve(__dirname, 'fixtures/test-quality');
+const CONTRACTS = resolve(__dirname, 'fixtures/contracts');
+const CONTRACTS_MISSING = resolve(__dirname, 'fixtures/contracts-missing');
 
 describe('code-scanner', () => {
   let vulnInfo: CodebaseInfo;
@@ -846,6 +849,62 @@ describe('unit-analyzer — Phase 5 pass 2: AST-aware test quality', () => {
     // finding description.
     const assertless = report.findings.find((f) => /without assertions/i.test(f.title));
     if (assertless) expect(assertless.description).not.toMatch(/adds two numbers/);
+  });
+});
+
+describe('advanced-analyzer — Phase 5 pass 3: contract analysis (OpenAPI + AST)', () => {
+  it('parses the OpenAPI spec and discovers endpoints from code', async () => {
+    const info = await scanCodebase(CONTRACTS);
+    const report = await runContractAnalysis(info.fileContents, info.endpoints);
+    expect(report.totalEndpoints).toBeGreaterThanOrEqual(4); // 4 in server.js
+  });
+
+  it('flags endpoints in code that are absent from the spec', async () => {
+    const info = await scanCodebase(CONTRACTS);
+    const report = await runContractAnalysis(info.fileContents, info.endpoints);
+    const undoc = report.findings.find((f) => /undocumented endpoint/i.test(f.title));
+    expect(undoc).toBeTruthy();
+    expect(undoc!.description).toMatch(/POST \/v1\/users/);
+    expect(undoc!.description).toMatch(/GET \/v1\/admin\/audit-log/);
+  });
+
+  it('flags endpoints in the spec with no implementation in code', async () => {
+    const info = await scanCodebase(CONTRACTS);
+    const report = await runContractAnalysis(info.fileContents, info.endpoints);
+    const orphan = report.findings.find((f) => /spec-only endpoint/i.test(f.title));
+    expect(orphan).toBeTruthy();
+    expect(orphan!.description).toMatch(/DELETE \/v1\/orphan-route/);
+  });
+
+  it('matches /v1/users/{id} (spec) with /v1/users/:id (express) via canonicalPath', async () => {
+    const info = await scanCodebase(CONTRACTS);
+    const report = await runContractAnalysis(info.fileContents, info.endpoints);
+    // The matched routes (GET /v1/users + GET /v1/users/:id) should NOT
+    // appear in the undocumented finding.
+    const undoc = report.findings.find((f) => /undocumented endpoint/i.test(f.title));
+    if (undoc) {
+      expect(undoc.description).not.toMatch(/GET \/v1\/users[^/]/); // no exact GET /v1/users
+      expect(undoc.description).not.toMatch(/GET \/v1\/users\/:id/);
+    }
+  });
+
+  it('flags missing spec entirely when many endpoints exist', async () => {
+    const info = await scanCodebase(CONTRACTS_MISSING);
+    const report = await runContractAnalysis(info.fileContents, info.endpoints);
+    const noSpec = report.findings.find((f) => /No API contract specification/i.test(f.title));
+    expect(noSpec).toBeTruthy();
+    expect(noSpec!.severity).toBe('high');
+  });
+
+  it('does NOT flag missing spec when there are few endpoints', async () => {
+    // Synthesize a tiny project — under the threshold of 5 endpoints.
+    const tiny: Record<string, string> = {
+      'package.json': '{"name":"tiny","dependencies":{}}',
+      'src/index.js': "const express = require('express'); const app = express(); app.get('/', (req, res) => res.json({})); app.listen(0);",
+    };
+    const report = await runContractAnalysis(tiny, 1);
+    const noSpec = report.findings.find((f) => /No API contract specification/i.test(f.title));
+    expect(noSpec).toBeUndefined();
   });
 });
 
