@@ -25,6 +25,7 @@ import {
   runLicenseCheck,
   runChaosAnalysis,
   runDoraEstimation,
+  runEdgeCaseAnalysis,
 } from '../src/analyzers/advanced-analyzer.js';
 import { runUnitAnalysis } from '../src/analyzers/unit-analyzer.js';
 import { runAccessibilityAnalysis } from '../src/analyzers/accessibility-analyzer.js';
@@ -55,6 +56,7 @@ const DORA_MATURE = resolve(__dirname, 'fixtures/dora-mature');
 const DORA_IMMATURE = resolve(__dirname, 'fixtures/dora-immature');
 const STRATEGIC_STRONG = resolve(__dirname, 'fixtures/strategic-strong');
 const STRATEGIC_WEAK = resolve(__dirname, 'fixtures/strategic-weak');
+const EDGE_CASES = resolve(__dirname, 'fixtures/edge-cases');
 
 describe('code-scanner', () => {
   let vulnInfo: CodebaseInfo;
@@ -1728,6 +1730,71 @@ describe('strategic-analyzer — Phase 5 pass 13: vision + scope (word-boundary,
     const report = await runScopeAnalysis(fc, []);
     // Documented features should be zero — "author" must not count as a feature mention.
     expect(report.documentedFeatures).toBe(0);
+  });
+});
+
+describe('advanced-analyzer — Phase 5 pass 14: AST edge-case detection', () => {
+  it('flags parseInt(x) without explicit radix', async () => {
+    const info = await scanCodebase(EDGE_CASES);
+    const report = await runEdgeCaseAnalysis(info.fileContents);
+    expect(report.byRule['parseInt-no-radix']).toBeGreaterThanOrEqual(1);
+  });
+
+  it('flags JSON.parse outside a try/catch', async () => {
+    const info = await scanCodebase(EDGE_CASES);
+    const report = await runEdgeCaseAnalysis(info.fileContents);
+    expect(report.byRule['JSON-parse-untrycaught']).toBeGreaterThanOrEqual(1);
+  });
+
+  it('flags new Date(nonLiteralString)', async () => {
+    const info = await scanCodebase(EDGE_CASES);
+    const report = await runEdgeCaseAnalysis(info.fileContents);
+    expect(report.byRule['new-Date-on-string']).toBeGreaterThanOrEqual(1);
+  });
+
+  it('flags loose equality (== / !=)', async () => {
+    const info = await scanCodebase(EDGE_CASES);
+    const report = await runEdgeCaseAnalysis(info.fileContents);
+    expect(report.byRule['loose-equality']).toBeGreaterThanOrEqual(1);
+  });
+
+  it('flags Number(x) coercion without isNaN check', async () => {
+    const info = await scanCodebase(EDGE_CASES);
+    const report = await runEdgeCaseAnalysis(info.fileContents);
+    expect(report.byRule['Number-coercion-unchecked']).toBeGreaterThanOrEqual(1);
+  });
+
+  it('flags switch without default', async () => {
+    const info = await scanCodebase(EDGE_CASES);
+    const report = await runEdgeCaseAnalysis(info.fileContents);
+    expect(report.byRule['switch-no-default']).toBeGreaterThanOrEqual(1);
+  });
+
+  it('does NOT flag the well-guarded versions in good.js', async () => {
+    // The fixture has good.js with the safe variants. Findings from
+    // good.js should not appear.
+    const info = await scanCodebase(EDGE_CASES);
+    const report = await runEdgeCaseAnalysis(info.fileContents);
+    const fromGood = report.findings.filter((f) => f.filePath?.endsWith('good.js'));
+    expect(fromGood).toEqual([]);
+  });
+
+  it('does NOT flag `x == null` (canonical nullish check)', async () => {
+    // good.js has `x == null` — must not be in loose-equality results.
+    const info = await scanCodebase(EDGE_CASES);
+    const report = await runEdgeCaseAnalysis(info.fileContents);
+    const loose = report.findings.filter((f) =>
+      f.filePath?.endsWith('good.js') && /loose.equality/i.test(f.title)
+    );
+    expect(loose).toEqual([]);
+  });
+
+  it('produces a deterministic score and rule breakdown', async () => {
+    const info = await scanCodebase(EDGE_CASES);
+    const a = await runEdgeCaseAnalysis(info.fileContents);
+    const b = await runEdgeCaseAnalysis(info.fileContents);
+    expect(a.score).toBe(b.score);
+    expect(a.byRule).toEqual(b.byRule);
   });
 });
 
