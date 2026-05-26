@@ -1,0 +1,8 @@
+{
+  "name": "fixture-user-rules",
+  "version": "0.0.1",
+  "description": "Phase 4c — user-authored rules DSL fixture.",
+  "dependencies": {
+    "express": "^4.18.0"
+  }
+}

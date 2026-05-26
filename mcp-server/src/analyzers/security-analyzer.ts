@@ -54,6 +54,12 @@ import {
   type FileImportMap,
 } from './lib/cross-file-summaries.js';
 import {
+  loadUserRules,
+  compileUserRules,
+  matchUserRules,
+  type UserRule,
+} from './lib/user-rules.js';
+import {
   buildCorsWildcardFix,
   buildDangerouslySetInnerHtmlFix,
   buildEvalAdvice,
@@ -103,6 +109,8 @@ interface SecurityConfig {
   fileContents: Record<string, string>;
   dependencies: string[];
   devDependencies: string[];
+  /** Optional. If absent, rules are loaded from `${projectPath}/.testforge/rules.yaml`. */
+  userRules?: UserRule[];
 }
 
 /* -------------------------------------------------------------------------- */
@@ -142,6 +150,11 @@ export async function runSecurityAnalysis(
   const crossFileTable = collectCrossFileSummaries(astsByFile);
   const candidatePaths = new Set(astsByFile.keys());
 
+  // Phase 4c: user rules. Either passed in via config (programmatic
+  // callers) or loaded from `${projectPath}/.testforge/rules.yaml`.
+  const userRules = config.userRules ?? loadUserRules(config.projectPath);
+  const compiledUserRules = compileUserRules(userRules);
+
   for (const [filePath, content] of Object.entries(fileContents)) {
     if (!isParseable(filePath)) continue;
     const parsed = parsedByFile.get(filePath)!;
@@ -149,7 +162,7 @@ export async function runSecurityAnalysis(
       ? collectFileImports(filePath, parsed.ast, candidatePaths)
       : new Map<string, string>();
     findings.push(
-      ...analyzeFile(filePath, content, parsed, crossFileTable, imports)
+      ...analyzeFile(filePath, content, parsed, crossFileTable, imports, compiledUserRules)
     );
   }
 
@@ -175,7 +188,8 @@ function analyzeFile(
   content: string,
   parsed: ParseResult,
   crossFileTable: CrossFileSummaryTable,
-  imports: FileImportMap
+  imports: FileImportMap,
+  userRules: ReturnType<typeof compileUserRules>
 ): SecurityFinding[] {
   const startedAt = Date.now();
 
@@ -246,6 +260,7 @@ function analyzeFile(
           path.node, filePath, content, raw, taintTable,
           fnSummaries, crossFileTable, imports
         );
+        checkUserRules(path.node, filePath, content, raw, taintTable, userRules);
       },
       AssignmentExpression(path) {
         checkInnerHtmlAssignmentSink(path.node, filePath, content, raw, taintTable);
@@ -913,6 +928,36 @@ function emitForSummary(
         `or rewrite \`${calleeName}\` to use the safe alternative (parameterized queries, escape, etc.) internally.`,
       category: sink.category,
       flow: argReport.taint ? describeFlow(argReport.taint) : undefined,
+    });
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Phase 4c: User-authored rules                                              */
+/* -------------------------------------------------------------------------- */
+
+function checkUserRules(
+  call: t.CallExpression,
+  filePath: string,
+  content: string,
+  out: SecurityFinding[],
+  table: TaintTable,
+  rules: ReturnType<typeof compileUserRules>
+) {
+  if (rules.length === 0) return;
+  const hits = matchUserRules(call, table, rules);
+  for (const { rule, flow } of hits) {
+    // taintedArg rules get HIGH confidence (real flow proved); shape
+    // rules get MEDIUM (regex/literal match, no flow analysis).
+    const confidence: Confidence = rule.match.taintedArg !== undefined ? 'high' : 'medium';
+    push(out, filePath, content, call, {
+      severity: rule.severity,
+      confidence,
+      title: rule.title,
+      description: rule.description ?? `Custom rule \`${rule.id}\` matched.`,
+      fixSuggestion: rule.fixSuggestion ?? 'See your project rules for guidance.',
+      category: rule.category,
+      flow,
     });
   }
 }
