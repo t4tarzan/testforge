@@ -20,6 +20,8 @@ import {
   Download,
   GitBranch,
   ShieldCheck,
+  Volume2,
+  VolumeX,
 } from 'lucide-react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -259,6 +261,19 @@ function Step03Visual() {
 export default function Home() {
   const heroRef = useRef<HTMLDivElement>(null)
   const headlineRef = useRef<HTMLHeadingElement>(null)
+  const heroVideoRef = useRef<HTMLVideoElement>(null)
+  const [heroMuted, setHeroMuted] = useState(true)
+
+  const toggleHeroMute = () => {
+    const v = heroVideoRef.current
+    if (!v) return
+    const next = !v.muted
+    v.muted = next
+    setHeroMuted(next)
+    // Autoplay policies pause the video if it un-mutes without a user gesture
+    // — but this handler IS a user gesture, so just kick play() again.
+    v.play().catch(() => {})
+  }
 
   /* ── GSAP Hero Animation ── */
   useGSAP(() => {
@@ -446,20 +461,34 @@ export default function Home() {
             <div className="hero-media relative" style={{ opacity: 0 }}>
               <div className="relative rounded-xl border-2 border-[#E8E5FF] shadow-xl overflow-hidden bg-white p-1.5">
                 <video
+                  ref={heroVideoRef}
                   src="/demos/production-gap.mp4"
                   poster="/hero-dashboard.jpg"
                   autoPlay
-                  muted
+                  muted={heroMuted}
                   loop
                   playsInline
                   preload="metadata"
                   aria-label="The Production Gap — TestForge intro"
                   className="w-full h-auto rounded-lg block"
                 />
+
+                {/* Mute / Unmute toggle. Sits on the video, top-right.
+                    Critical because the soundtrack carries the message. */}
+                <button
+                  type="button"
+                  onClick={toggleHeroMute}
+                  aria-label={heroMuted ? 'Unmute video' : 'Mute video'}
+                  aria-pressed={!heroMuted}
+                  className="absolute top-4 right-4 z-10 flex items-center gap-2 rounded-full bg-black/60 hover:bg-black/80 text-white font-mono text-[12px] px-3 py-1.5 backdrop-blur-sm transition-colors duration-200 shadow-md"
+                >
+                  {heroMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                  {heroMuted ? 'Unmute' : 'Mute'}
+                </button>
               </div>
 
               {/* Floating badges */}
-              <FloatingBadge className="-top-4 -right-4" delay={0}>
+              <FloatingBadge className="-bottom-4 -right-4" delay={0}>
                 <div className="bg-[#574a7d] text-white text-xs font-mono px-3 py-2 rounded-lg shadow-lg flex items-center gap-2">
                   <Check size={14} />
                   All Tests Passing
