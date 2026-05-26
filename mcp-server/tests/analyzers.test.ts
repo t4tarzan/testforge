@@ -20,6 +20,7 @@ import {
   runNPlusOneDetection,
   runDeadCodeAnalysis,
 } from '../src/analyzers/advanced-analyzer.js';
+import { runUnitAnalysis } from '../src/analyzers/unit-analyzer.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const VULNERABLE = resolve(__dirname, 'fixtures/vulnerable-app');
@@ -29,6 +30,7 @@ const FALSE_POS = resolve(__dirname, 'fixtures/false-positives');
 const USER_RULES = resolve(__dirname, 'fixtures/user-rules');
 const N_PLUS_ONE = resolve(__dirname, 'fixtures/n-plus-one');
 const DEAD_CODE = resolve(__dirname, 'fixtures/dead-code');
+const TEST_QUALITY = resolve(__dirname, 'fixtures/test-quality');
 
 describe('code-scanner', () => {
   let vulnInfo: CodebaseInfo;
@@ -787,6 +789,63 @@ describe('advanced-analyzer — Phase 5: AST-aware dead-code detection', () => {
     // used.js does `import { get } from 'lodash/get'` — that should
     // count `lodash` as used.
     expect(report.unusedDeps).not.toContain('lodash');
+  });
+});
+
+describe('unit-analyzer — Phase 5 pass 2: AST-aware test quality', () => {
+  it('counts test cases via AST (not just regex)', async () => {
+    const report = await runUnitAnalysis({ projectPath: TEST_QUALITY });
+    // 6 in math.test.js + 1 isolated.test.js = 7 total
+    expect(report.quality.totalCases).toBeGreaterThanOrEqual(6);
+    expect(report.frameworks).toContain('Vitest');
+  });
+
+  it('detects skipped tests', async () => {
+    const report = await runUnitAnalysis({ projectPath: TEST_QUALITY });
+    expect(report.quality.skippedCases).toBeGreaterThanOrEqual(2);
+    const finding = report.findings.find((f) => /skipped tests/i.test(f.title));
+    expect(finding).toBeTruthy();
+    expect(finding!.severity).toBe('medium');
+  });
+
+  it('detects focused tests (.only)', async () => {
+    const report = await runUnitAnalysis({ projectPath: TEST_QUALITY });
+    expect(report.quality.focusedCases).toBeGreaterThanOrEqual(1);
+    const finding = report.findings.find((f) => /\.only/.test(f.title));
+    expect(finding).toBeTruthy();
+  });
+
+  it('detects assertion-less test bodies', async () => {
+    const report = await runUnitAnalysis({ projectPath: TEST_QUALITY });
+    // "runs add without crashing" — calls add() but no expect.
+    expect(report.quality.assertionlessCases).toBeGreaterThanOrEqual(1);
+    const finding = report.findings.find((f) => /without assertions/i.test(f.title));
+    expect(finding).toBeTruthy();
+    expect(finding!.severity).toBe('high');
+  });
+
+  it('detects empty test bodies', async () => {
+    const report = await runUnitAnalysis({ projectPath: TEST_QUALITY });
+    // "TODO: handle negative numbers" + "handles infinity" → 2 empty.
+    expect(report.quality.emptyCases).toBeGreaterThanOrEqual(2);
+    const finding = report.findings.find((f) => /empty test bodies/i.test(f.title));
+    expect(finding).toBeTruthy();
+  });
+
+  it('detects test files that import no source files', async () => {
+    const report = await runUnitAnalysis({ projectPath: TEST_QUALITY });
+    expect(report.quality.isolatedTestFiles).toBeGreaterThanOrEqual(1);
+    const finding = report.findings.find((f) => /imports no source files/i.test(f.title));
+    expect(finding).toBeTruthy();
+    expect(finding!.filePath).toMatch(/isolated\.test\.js$/);
+  });
+
+  it('does NOT flag a test that has a real expect() assertion', async () => {
+    const report = await runUnitAnalysis({ projectPath: TEST_QUALITY });
+    // The healthy `adds two numbers` test should not be in any assertionless
+    // finding description.
+    const assertless = report.findings.find((f) => /without assertions/i.test(f.title));
+    if (assertless) expect(assertless.description).not.toMatch(/adds two numbers/);
   });
 });
 
