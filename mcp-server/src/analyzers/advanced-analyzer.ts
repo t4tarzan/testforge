@@ -17,6 +17,7 @@ import {
 import { auditLicenses, type LicenseCategory, type PackageLicense } from './lib/license-audit.js';
 import { findChaosPatterns, type ChaosPatternHit } from './lib/chaos-patterns.js';
 import { analyzeAssertionQuality, type TestFileAssertionStats } from './lib/mutation-quality.js';
+import { extractDoraSignals, type DoraSignals } from './lib/dora-signals.js';
 import {
   aggregateFileRisk,
   bucketSecurityByFile,
@@ -1418,51 +1419,187 @@ export function runLicenseCheck(dependencies: string[], projectPath?: string): L
   };
 }
 
-// DORA Metrics Estimation
-export interface DoraReport { score: number; deploymentFreq: string; leadTime: string; mttr: string; changeFailRate: string; findings: Finding[]; }
+// DORA Metrics — pass 12 (signal-aware, honest about the limitation).
+//
+// Real DORA metrics need git/deploy HISTORY. A static analyzer can't
+// see how often the team actually deploys. What we surface instead are
+// the static SIGNALS that map to each axis — proxies for capability,
+// not measurement of behaviour. Output frames each axis as
+// "Capability: <Good|Partial|Weak>" rather than fabricating a
+// deployment frequency.
+export interface DoraReport {
+  score: number;
+  /** Same string format as before, kept for back-compat. */
+  deploymentFreq: string;
+  leadTime: string;
+  mttr: string;
+  changeFailRate: string;
+  /** AST/structure-based signal breakdown. */
+  signals: DoraSignals;
+  findings: Finding[];
+}
 
-export function runDoraEstimation(fileContents: Record<string, string>, devDependencies: string[]): DoraReport {
+export function runDoraEstimation(
+  fileContents: Record<string, string>,
+  devDependencies: string[]
+): DoraReport {
   const findings: Finding[] = [];
-  const allContent = Object.values(fileContents).join('\n');
-  
-  // Check CI/CD indicators
-  const hasCI = Object.keys(fileContents).some(f => f.includes('.github/workflows') || f.includes('.gitlab-ci')) ||
-    allContent.includes('github-actions') || allContent.includes('circleci');
-  const hasDocker = Object.keys(fileContents).some(f => f.includes('Dockerfile'));
-  const hasTests = devDependencies.some(d => d.includes('jest') || d.includes('vitest'));
-  const hasMonitoring = devDependencies.some(d => d.includes('sentry') || d.includes('datadog'));
 
-  let deploymentFreq = 'Unknown';
-  let leadTime = 'Unknown';
-  let mttr = 'Unknown';
-  let changeFailRate = 'Unknown';
-
-  if (hasCI && hasDocker) {
-    deploymentFreq = 'Daily (estimated)';
-    leadTime = '< 1 day (estimated)';
-  } else if (hasCI) {
-    deploymentFreq = 'Weekly (estimated)';
-    leadTime = '1-3 days (estimated)';
-  } else {
-    deploymentFreq = 'Manual';
-    leadTime = '> 1 week (estimated)';
+  // Best-effort: caller doesn't pass `dependencies`, so derive direct
+  // deps from the package.json content if present.
+  let direct: string[] = [];
+  const pkg = fileContents['package.json'];
+  if (pkg) {
+    try {
+      const parsed = JSON.parse(pkg);
+      direct = Object.keys((parsed.dependencies ?? {}) as Record<string, string>);
+    } catch { /* ignore */ }
   }
 
-  mttr = hasMonitoring ? '< 1 hour (estimated)' : '> 4 hours (estimated)';
-  changeFailRate = hasTests ? '< 15% (estimated)' : '> 30% (estimated)';
+  const signals = extractDoraSignals(fileContents, direct, devDependencies);
 
+  const hasCI = signals.ciWorkflows.length > 0;
+  const hasDeployAutomation = signals.deployPlatformConfigs.length > 0 || signals.hasDeployJob;
+  const hasObservability = signals.observabilityDeps.length > 0;
+  const hasFlags = signals.featureFlagDeps.length > 0;
+
+  // ── Capability strings (mapped to original field names for back-compat).
+  let deploymentFreq: string;
+  if (hasCI && hasDeployAutomation) {
+    deploymentFreq = 'Capability: Good — CI + automated deploy';
+  } else if (hasCI) {
+    deploymentFreq = 'Capability: Partial — CI present, no automated deploy step';
+  } else {
+    deploymentFreq = 'Capability: Weak — no CI workflows detected';
+  }
+
+  let leadTime: string;
+  const ciDepth = signals.ciJobCount;
+  if (hasCI && signals.hasTestFramework && signals.hasTypeCheckStep) {
+    leadTime = `Capability: Good — CI with ${ciDepth} job(s), tests + type-check on every PR`;
+  } else if (hasCI && signals.hasTestFramework) {
+    leadTime = `Capability: Partial — CI with ${ciDepth} job(s), tests but no type-check step`;
+  } else if (hasCI) {
+    leadTime = 'Capability: Partial — CI exists but no test framework detected';
+  } else {
+    leadTime = 'Capability: Weak — no CI, manual review/test before merge';
+  }
+
+  let mttr: string;
+  if (hasObservability && signals.structuredLoggingDeps.length > 0) {
+    mttr = `Capability: Good — observability (${signals.observabilityDeps.length}) + structured logging`;
+  } else if (hasObservability) {
+    mttr = 'Capability: Partial — observability deps detected, no structured logger (pino/winston)';
+  } else if (signals.structuredLoggingDeps.length > 0) {
+    mttr = 'Capability: Partial — structured logging detected, no observability dep (Sentry / DD / OTel)';
+  } else {
+    mttr = 'Capability: Weak — no observability or structured logging detected';
+  }
+
+  let changeFailRate: string;
+  if (signals.hasTestFramework && hasFlags) {
+    changeFailRate = 'Capability: Good — tests + feature flags (safe staged rollout)';
+  } else if (signals.hasTestFramework) {
+    changeFailRate = 'Capability: Partial — tests present, no feature-flag platform';
+  } else {
+    changeFailRate = 'Capability: Weak — no test framework detected';
+  }
+
+  // ── Findings: one per axis where capability is weak.
   if (!hasCI) {
     findings.push({
       severity: 'high',
-      title: 'No CI/CD Pipeline Detected',
-      description: 'Deployment frequency and lead time cannot be optimized without CI/CD.',
-      fixSuggestion: 'Set up GitHub Actions CI. Add automated testing. Use Docker for consistent deployments.',
+      title: 'No CI/CD workflow detected',
+      description:
+        'No `.github/workflows/*.yml`, `.gitlab-ci.yml`, `.circleci/config.yml`, or similar found. Without automated CI, every change is gated by human attention only.',
+      fixSuggestion:
+        'Create `.github/workflows/ci.yml` running tests on push and PR. Add lint and type-check jobs. Block merge until all jobs pass.',
       category: 'DORA Metrics',
     });
   }
 
-  const score = hasCI ? (hasDocker ? 85 : 65) : 30;
-  return { score, deploymentFreq, leadTime, mttr, changeFailRate, findings };
+  if (hasCI && !signals.hasDeployJob && signals.deployPlatformConfigs.length === 0) {
+    findings.push({
+      severity: 'medium',
+      title: 'CI exists but no deployment automation detected',
+      description:
+        'No `deploy` job in CI, and no platform config (Dockerfile, vercel.json, render.yaml, fly.toml, …). Deploys are likely manual — slow feedback loop and human-error risk.',
+      fixSuggestion:
+        'Add a deploy job to your CI workflow. Use the platform\'s declarative config (Vercel: vercel.json; Fly: fly.toml; Render: render.yaml). Auto-deploy main on green CI.',
+      category: 'DORA Metrics',
+    });
+  }
+
+  if (hasCI && !signals.hasTypeCheckStep) {
+    findings.push({
+      severity: 'low',
+      title: 'CI runs without a type-check step',
+      description:
+        `Found ${signals.ciJobCount} CI job(s) but none of them runs \`tsc --noEmit\` / \`type-check\`. Type errors only surface at build time or in production.`,
+      fixSuggestion:
+        'Add a `type-check` step to CI: `run: tsc --noEmit`. Make it a required check on the protected branch.',
+      category: 'DORA Metrics',
+    });
+  }
+
+  if (!hasObservability) {
+    findings.push({
+      severity: 'medium',
+      title: 'No observability dependency detected',
+      description:
+        'No Sentry / Datadog / NewRelic / OpenTelemetry / Honeycomb / Rollbar / Bugsnag dep. MTTR depends on knowing something broke before customers report it.',
+      fixSuggestion:
+        'Add error-tracking (Sentry is the easiest) and ideally a tracing stack (OpenTelemetry → Honeycomb / Datadog / Jaeger). Wire up alerts to a notification channel that humans actually read.',
+      category: 'DORA Metrics',
+    });
+  }
+
+  if (signals.hasTestFramework && !hasFlags) {
+    findings.push({
+      severity: 'low',
+      title: 'No feature-flag platform detected',
+      description:
+        'A test framework is in place, but no LaunchDarkly / Statsig / Unleash / Flagsmith / Growthbook / Posthog SDK was found. Feature flags decouple deploy from release, enabling kill-switches and staged rollouts — proven CFR reducer.',
+      fixSuggestion:
+        'For early-stage projects: Posthog has a free tier and is JS-SDK-only. For larger teams: LaunchDarkly / Statsig. Even a homegrown flags table beats no kill-switch.',
+      category: 'DORA Metrics',
+    });
+  }
+
+  if (!signals.hasCodeowners) {
+    findings.push({
+      severity: 'low',
+      title: 'No CODEOWNERS file detected',
+      description:
+        'No `.github/CODEOWNERS` (or `CODEOWNERS` / `docs/CODEOWNERS`). Code reviews route by chance; sensitive areas (auth, billing, infra) lack named approvers.',
+      fixSuggestion:
+        'Create `.github/CODEOWNERS` with at minimum: `*.tsx @ui-team`, `src/auth/ @security`, `infra/ @platform`. Make CODEOWNERS-required a branch protection rule.',
+      category: 'DORA Metrics',
+    });
+  }
+
+  // ── Score: weighted sum across the 4 capability axes.
+  let score = 0;
+  if (hasCI && hasDeployAutomation) score += 25;
+  else if (hasCI) score += 15;
+  if (signals.hasTestFramework && signals.hasTypeCheckStep && hasCI) score += 25;
+  else if (signals.hasTestFramework) score += 15;
+  if (hasObservability && signals.structuredLoggingDeps.length > 0) score += 25;
+  else if (hasObservability || signals.structuredLoggingDeps.length > 0) score += 15;
+  if (signals.hasTestFramework && hasFlags) score += 25;
+  else if (signals.hasTestFramework) score += 15;
+  // Cap and floor
+  score = Math.max(10, Math.min(100, score));
+
+  return {
+    score,
+    deploymentFreq,
+    leadTime,
+    mttr,
+    changeFailRate,
+    signals,
+    findings,
+  };
 }
 
 // OWASP Top 10 (2021) Coverage — pass 7.

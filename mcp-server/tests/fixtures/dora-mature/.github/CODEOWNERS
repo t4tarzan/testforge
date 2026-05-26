@@ -1,0 +1,4 @@
+# Default reviewers
+* @platform-team
+src/auth/ @security-team
+infra/ @platform-team

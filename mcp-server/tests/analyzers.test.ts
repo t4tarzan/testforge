@@ -24,6 +24,7 @@ import {
   runSupplyChainAudit,
   runLicenseCheck,
   runChaosAnalysis,
+  runDoraEstimation,
 } from '../src/analyzers/advanced-analyzer.js';
 import { runUnitAnalysis } from '../src/analyzers/unit-analyzer.js';
 import { runAccessibilityAnalysis } from '../src/analyzers/accessibility-analyzer.js';
@@ -49,6 +50,8 @@ const LICENSE_MIXED = resolve(__dirname, 'fixtures/license-mixed');
 const CHAOS_RESILIENT = resolve(__dirname, 'fixtures/chaos-resilient');
 const CHAOS_FRAGILE = resolve(__dirname, 'fixtures/chaos-fragile');
 const MUTATION_QUALITY = resolve(__dirname, 'fixtures/mutation-quality');
+const DORA_MATURE = resolve(__dirname, 'fixtures/dora-mature');
+const DORA_IMMATURE = resolve(__dirname, 'fixtures/dora-immature');
 
 describe('code-scanner', () => {
   let vulnInfo: CodebaseInfo;
@@ -1579,6 +1582,75 @@ describe('advanced-analyzer — Phase 5 pass 11: mutation testing (assertion qua
     );
     expect(a.estimatedMutationScore).toBe(b.estimatedMutationScore);
     expect(a.assertionTotals.overallVariety).toBe(b.assertionTotals.overallVariety);
+  });
+});
+
+describe('advanced-analyzer — Phase 5 pass 12: DORA signals (capability framing)', () => {
+  it('detects CI workflows and parses their job count', async () => {
+    const info = await scanCodebase(DORA_MATURE);
+    const report = runDoraEstimation(info.fileContents, info.devDependencies);
+    expect(report.signals.ciWorkflows.length).toBeGreaterThan(0);
+    expect(report.signals.ciJobCount).toBe(4); // test + type-check + lint + deploy
+    expect(report.signals.hasDeployJob).toBe(true);
+    expect(report.signals.hasTypeCheckStep).toBe(true);
+  });
+
+  it('detects deployment platform configs (Dockerfile)', async () => {
+    const info = await scanCodebase(DORA_MATURE);
+    const report = runDoraEstimation(info.fileContents, info.devDependencies);
+    expect(report.signals.deployPlatformConfigs).toContain('Dockerfile');
+  });
+
+  it('detects observability + structured logging deps', async () => {
+    const info = await scanCodebase(DORA_MATURE);
+    const report = runDoraEstimation(info.fileContents, info.devDependencies);
+    expect(report.signals.observabilityDeps).toContain('@sentry/node');
+    expect(report.signals.structuredLoggingDeps).toContain('pino');
+  });
+
+  it('detects feature-flag platform deps', async () => {
+    const info = await scanCodebase(DORA_MATURE);
+    const report = runDoraEstimation(info.fileContents, info.devDependencies);
+    expect(report.signals.featureFlagDeps).toContain('posthog-node');
+  });
+
+  it('detects CODEOWNERS', async () => {
+    const info = await scanCodebase(DORA_MATURE);
+    const report = runDoraEstimation(info.fileContents, info.devDependencies);
+    expect(report.signals.hasCodeowners).toBe(true);
+  });
+
+  it('mature project: all 4 capability strings show Good', async () => {
+    const info = await scanCodebase(DORA_MATURE);
+    const report = runDoraEstimation(info.fileContents, info.devDependencies);
+    expect(report.deploymentFreq).toMatch(/Good/);
+    expect(report.leadTime).toMatch(/Good/);
+    expect(report.mttr).toMatch(/Good/);
+    expect(report.changeFailRate).toMatch(/Good/);
+    expect(report.score).toBeGreaterThanOrEqual(95);
+  });
+
+  it('immature project: all 4 capability strings show Weak, all findings fire', async () => {
+    const info = await scanCodebase(DORA_IMMATURE);
+    const report = runDoraEstimation(info.fileContents, info.devDependencies);
+    expect(report.deploymentFreq).toMatch(/Weak/);
+    expect(report.leadTime).toMatch(/Weak/);
+    expect(report.mttr).toMatch(/Weak/);
+    expect(report.changeFailRate).toMatch(/Weak/);
+    expect(report.score).toBeLessThan(40);
+    expect(report.findings.find((f) => /No CI\/CD/i.test(f.title))).toBeTruthy();
+    expect(report.findings.find((f) => /No observability/i.test(f.title))).toBeTruthy();
+    expect(report.findings.find((f) => /No CODEOWNERS/i.test(f.title))).toBeTruthy();
+  });
+
+  it('mature project: does NOT emit findings whose capability is satisfied', async () => {
+    const info = await scanCodebase(DORA_MATURE);
+    const report = runDoraEstimation(info.fileContents, info.devDependencies);
+    expect(report.findings.find((f) => /No CI\/CD/i.test(f.title))).toBeUndefined();
+    expect(report.findings.find((f) => /No observability/i.test(f.title))).toBeUndefined();
+    expect(report.findings.find((f) => /No CODEOWNERS/i.test(f.title))).toBeUndefined();
+    expect(report.findings.find((f) => /type-check step/i.test(f.title))).toBeUndefined();
+    expect(report.findings.find((f) => /feature-flag platform/i.test(f.title))).toBeUndefined();
   });
 });
 

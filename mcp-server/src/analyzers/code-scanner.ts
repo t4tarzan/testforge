@@ -28,15 +28,20 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
 
   // 1. Find all source files. Spec/config files (yaml/yml/json) are
   //    included so the contract analyzer can parse OpenAPI/Swagger.
+  //    Extensionless config files (Dockerfile, CODEOWNERS, Procfile) are
+  //    matched explicitly. `.github/` is hidden but its contents are
+  //    needed for the DORA dimension — glob's `dot:true` lets us see it.
   //    We skip package-lock.json and similar large generated artifacts
   //    via separate exclude patterns below.
   const patterns = [
     '**/*.{ts,js,tsx,jsx,mjs,cjs,mts,cts,yaml,yml,json}',
+    '**/{Dockerfile,Procfile,CODEOWNERS}',
+    '**/.github/**/*',
     '!**/node_modules/**', '!**/.git/**', '!**/dist/**', '!**/build/**',
     '!**/.next/**', '!**/coverage/**',
     '!**/package-lock.json', '!**/yarn.lock', '!**/pnpm-lock.yaml',
   ];
-  const files = await glob(patterns, { cwd: projectPath, absolute: false });
+  const files = await glob(patterns, { cwd: projectPath, absolute: false, dot: true });
 
   // 2. Read each file, count lines, extract function names
   const fileInfos: Array<{ path: string; lines: number }> = [];
