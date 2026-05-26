@@ -657,6 +657,36 @@ function BillingTab() {
   const planLimits: Record<string, number> = { free: 5, pro: 100, enterprise: 999 };
   const limit = planLimits[plan] || 5;
   const used = user?.testsRun || 0;
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  // Opens the Stripe Customer Portal — payment method, downgrade, cancel,
+  // and invoice history all live there. If the user has never upgraded
+  // (no stripe_customer_id yet) the endpoint returns 409 and we redirect
+  // them to pricing instead of erroring.
+  const openCustomerPortal = async () => {
+    setPortalLoading(true);
+    try {
+      const r = await fetch('/api/stripe-portal', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (r.status === 409) {
+        window.location.href = '/#/pricing';
+        return;
+      }
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        alert(err.error || 'Could not open billing portal');
+        return;
+      }
+      const { url } = await r.json();
+      window.location.href = url;
+    } catch (e) {
+      alert('Could not reach billing portal — try again in a moment.');
+    } finally {
+      setPortalLoading(false);
+    }
+  };
 
   const usageMeters = [
     { label: 'Test Runs', used, total: limit, color: 'bg-[#574a7d]', pct: Math.min(100, Math.round((used / limit) * 100)) },
@@ -701,16 +731,28 @@ function BillingTab() {
           <div className="flex flex-col items-start md:items-center gap-3">
             <p className="text-[14px] text-[#9A9A9A] font-body">{plan === 'free' ? 'Free forever' : 'Active subscription'}</p>
             {plan === 'free' ? (
-              <button onClick={() => window.location.href = '/#/pricing'} className="px-6 py-2.5 rounded-lg bg-[#7a6fad] text-white font-body font-medium text-[14px] hover:bg-[#574a7d] transition-colors">
+              <button
+                onClick={() => window.location.href = '/#/pricing'}
+                className="px-6 py-2.5 rounded-lg bg-[#7a6fad] text-white font-body font-medium text-[14px] hover:bg-[#574a7d] transition-colors"
+              >
                 Upgrade Plan
               </button>
             ) : (
-              <button className="px-6 py-2.5 rounded-lg border border-white/20 text-white font-body font-medium text-[14px] hover:bg-white/5 transition-colors">
-                Manage Plan
+              <button
+                onClick={openCustomerPortal}
+                disabled={portalLoading}
+                className="px-6 py-2.5 rounded-lg border border-white/20 text-white font-body font-medium text-[14px] hover:bg-white/5 transition-colors disabled:opacity-50 disabled:cursor-wait"
+              >
+                {portalLoading ? 'Opening…' : 'Manage Subscription'}
               </button>
             )}
-            <button className="text-[13px] text-[#9A9A9A] font-body hover:text-[#D4524A] transition-colors">
-              Cancel Subscription
+            <button
+              onClick={openCustomerPortal}
+              disabled={portalLoading || plan === 'free'}
+              className="text-[13px] text-[#9A9A9A] font-body hover:text-[#D4524A] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              title={plan === 'free' ? 'You are on the free plan' : 'Manage / cancel via Stripe Customer Portal'}
+            >
+              {plan === 'free' ? 'No active subscription' : 'Cancel via Stripe Portal'}
             </button>
           </div>
         </div>
@@ -756,11 +798,26 @@ function BillingTab() {
             <span>Status</span>
             <span className="text-right">PDF</span>
           </div>
-          {/* No stored invoice history yet — Stripe Customer Portal owns
-              this view for now. Empty state keeps us honest. */}
-          <div className="px-6 py-10 text-center text-[14px] text-[#6B6B6B] font-body border-t border-[#D9D9D3]">
-            No invoices yet. After upgrading, your billing history lives in
-            the Stripe Customer Portal (linked from this page).
+          {/* Stripe Customer Portal owns invoice history for now —
+              this empty state directs users there instead of fabricating
+              a list. The button below opens a portal session. */}
+          <div className="px-6 py-10 text-center border-t border-[#D9D9D3] flex flex-col items-center gap-3">
+            <p className="text-[14px] text-[#6B6B6B] font-body">
+              {plan === 'free'
+                ? 'No invoices yet — upgrade to Pro or Enterprise to start a billing history.'
+                : 'Your invoices, receipts, and payment methods live in the Stripe Customer Portal.'}
+            </p>
+            <button
+              onClick={plan === 'free' ? (() => (window.location.href = '/#/pricing')) : openCustomerPortal}
+              disabled={portalLoading}
+              className="px-5 py-2 rounded-lg bg-[#574a7d] text-white font-body font-medium text-[13px] hover:bg-[#4a3d6b] transition-colors disabled:opacity-50"
+            >
+              {plan === 'free'
+                ? 'See pricing →'
+                : portalLoading
+                  ? 'Opening…'
+                  : 'Open Stripe billing portal →'}
+            </button>
           </div>
         </div>
       </div>

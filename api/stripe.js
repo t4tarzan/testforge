@@ -79,13 +79,19 @@ async function handler(req, res) {
     const Stripe = (await import('stripe')).default;
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
+    // Derive return URLs from the request so previews and self-hosted
+    // deploys don't all bounce users back to prod.
+    const origin =
+      req.headers.origin ||
+      (req.headers.host ? `https://${req.headers.host}` : 'https://testforge.run');
+
     const checkout = await stripe.checkout.sessions.create({
       // Use the authenticated user's email — never trust the request body.
       customer_email: session.email || undefined,
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: 'https://testforge.run/#/account?checkout=success',
-      cancel_url: 'https://testforge.run/#/pricing?checkout=canceled',
+      success_url: `${origin}/#/account?checkout=success`,
+      cancel_url: `${origin}/#/pricing?checkout=canceled`,
       // Metadata reaches the webhook verbatim. userId lets us identify
       // the account even if their email doesn't match Stripe's records.
       metadata: { plan, userId: session.userId, source: 'testforge-web' },
