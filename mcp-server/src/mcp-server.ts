@@ -556,7 +556,7 @@ export async function setupMCPServer(app: FastifyInstance) {
       const chaosReport = await runChaosAnalysis(codebase.fileContents, codebase.dependencies, codebase.techStack);
       const mutationReport = await runMutationAnalysis(codebase.fileContents, codebase.devDependencies, codebase.totalFiles, codebase.totalLines);
       const predictiveReport = await runPredictiveAnalysis(codebase.fileContents, codebase.dependencies, codebase.devDependencies);
-      const supplyReport = runSupplyChainAudit(codebase.dependencies, codebase.devDependencies);
+      const supplyReport = runSupplyChainAudit(codebase.dependencies, codebase.devDependencies, projectPath);
       const nPlusOneReport = runNPlusOneDetection(codebase.fileContents);
       const deadReport = runDeadCodeAnalysis(codebase.fileContents, codebase.dependencies);
       const licenseReport = runLicenseCheck(codebase.dependencies);

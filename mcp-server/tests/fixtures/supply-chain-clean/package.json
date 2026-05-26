@@ -1,0 +1,7 @@
+{
+  "name": "fixture-supply-chain-clean",
+  "version": "0.0.1",
+  "dependencies": {
+    "express": "^4.19.0"
+  }
+}

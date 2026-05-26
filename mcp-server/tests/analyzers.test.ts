@@ -21,6 +21,7 @@ import {
   runDeadCodeAnalysis,
   runContractAnalysis,
   runOwaspCoverage,
+  runSupplyChainAudit,
 } from '../src/analyzers/advanced-analyzer.js';
 import { runUnitAnalysis } from '../src/analyzers/unit-analyzer.js';
 import { runAccessibilityAnalysis } from '../src/analyzers/accessibility-analyzer.js';
@@ -40,6 +41,8 @@ const CONTRACTS_MISSING = resolve(__dirname, 'fixtures/contracts-missing');
 const A11Y_JSX = resolve(__dirname, 'fixtures/a11y-jsx');
 const LOAD_RESILIENT = resolve(__dirname, 'fixtures/load-resilient');
 const LOAD_FRAGILE = resolve(__dirname, 'fixtures/load-fragile');
+const SUPPLY_DIRTY = resolve(__dirname, 'fixtures/supply-chain-dirty');
+const SUPPLY_CLEAN = resolve(__dirname, 'fixtures/supply-chain-clean');
 
 describe('code-scanner', () => {
   let vulnInfo: CodebaseInfo;
@@ -1254,6 +1257,78 @@ describe('advanced-analyzer — Phase 5 pass 7: OWASP coverage (honest analyzer-
     // The vulnerable fixture has SQL injection — A03 must be non-empty.
     const a03 = report.byCategory.find((c) => c.code === 'A03');
     expect(a03!.findings.total).toBeGreaterThan(0);
+  });
+});
+
+describe('advanced-analyzer — Phase 5 pass 8: supply-chain lockfile audit', () => {
+  it('parses package-lock.json and counts transitive entries', async () => {
+    const info = await scanCodebase(SUPPLY_DIRTY);
+    const report = runSupplyChainAudit(info.dependencies, info.devDependencies, SUPPLY_DIRTY);
+    // dirty lock has 7 distinct entries (express, lodash, some-fork, local-helper, needs-integrity, minimist, dup-pkg x2)
+    expect(report.totalTransitive).toBeGreaterThanOrEqual(7);
+    expect(report.totalDeps).toBe(2); // direct: express + lodash
+  });
+
+  it('flags transitive CVE matches (minimist installed via lockfile but not in package.json)', async () => {
+    const info = await scanCodebase(SUPPLY_DIRTY);
+    const report = runSupplyChainAudit(info.dependencies, info.devDependencies, SUPPLY_DIRTY);
+    const minimist = report.findings.find((f) => /Transitive: minimist/i.test(f.title));
+    expect(minimist).toBeTruthy();
+    expect(minimist!.severity).toBe('high');
+  });
+
+  it('flags non-registry sources (git URLs, file:)', async () => {
+    const info = await scanCodebase(SUPPLY_DIRTY);
+    const report = runSupplyChainAudit(info.dependencies, info.devDependencies, SUPPLY_DIRTY);
+    expect(report.nonRegistrySources).toBeGreaterThanOrEqual(2); // some-fork (git+) + local-helper (file:)
+    const finding = report.findings.find((f) => /non-registry/i.test(f.title));
+    expect(finding).toBeTruthy();
+    expect(finding!.description).toMatch(/some-fork|local-helper/);
+  });
+
+  it('flags missing integrity hashes', async () => {
+    const info = await scanCodebase(SUPPLY_DIRTY);
+    const report = runSupplyChainAudit(info.dependencies, info.devDependencies, SUPPLY_DIRTY);
+    expect(report.missingIntegrity).toBeGreaterThanOrEqual(1); // needs-integrity entry
+    const finding = report.findings.find((f) => /integrity hashes/i.test(f.title));
+    expect(finding).toBeTruthy();
+  });
+
+  it('flags duplicate-version drift', async () => {
+    const info = await scanCodebase(SUPPLY_DIRTY);
+    const report = runSupplyChainAudit(info.dependencies, info.devDependencies, SUPPLY_DIRTY);
+    expect(report.duplicateVersions).toBeGreaterThanOrEqual(1); // dup-pkg @ {1.0.0, 2.0.0}
+    const finding = report.findings.find((f) => /multiple versions/i.test(f.title));
+    expect(finding).toBeTruthy();
+    expect(finding!.description).toMatch(/dup-pkg/);
+  });
+
+  it('does NOT false-flag the clean fixture', async () => {
+    const info = await scanCodebase(SUPPLY_CLEAN);
+    const report = runSupplyChainAudit(info.dependencies, info.devDependencies, SUPPLY_CLEAN);
+    expect(report.nonRegistrySources).toBe(0);
+    expect(report.missingIntegrity).toBe(0);
+    expect(report.duplicateVersions).toBe(0);
+    // No-lockfile finding must not fire — lockfile IS present.
+    const noLock = report.findings.find((f) => /No package-lock\.json/i.test(f.title));
+    expect(noLock).toBeUndefined();
+  });
+
+  it('emits "no lockfile" finding when projectPath has no package-lock.json', async () => {
+    // Use vulnerable-app fixture (no package-lock.json in it).
+    const info = await scanCodebase(VULNERABLE);
+    const report = runSupplyChainAudit(info.dependencies, info.devDependencies, VULNERABLE);
+    expect(report.totalTransitive).toBe(0);
+    const noLock = report.findings.find((f) => /No package-lock\.json/i.test(f.title));
+    expect(noLock).toBeTruthy();
+  });
+
+  it('still works with no projectPath (backward compat — direct-deps only)', async () => {
+    const report = runSupplyChainAudit(['lodash', 'express'], []);
+    expect(report.totalTransitive).toBe(0);
+    // Direct lodash CVE should still fire.
+    const lodash = report.findings.find((f) => /lodash/i.test(f.title));
+    expect(lodash).toBeTruthy();
   });
 });
 
