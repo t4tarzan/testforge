@@ -1,6 +1,8 @@
 import { glob } from 'glob';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { parseFile, isParseable } from './lib/parse.js';
+import { analyzeTestFile, type TestFileQuality } from './lib/test-quality.js';
 
 export interface UnitTestReport {
   testFiles: Array<{ path: string; testCount: number }>;
@@ -13,6 +15,21 @@ export interface UnitTestReport {
   untestedFunctions: string[];
   testCoverage: number; // percentage estimate
   frameworks: string[];
+  /** Phase 5 pass 2: AST-aware quality signals. */
+  quality: {
+    /** Total test cases across all files. */
+    totalCases: number;
+    /** Cases declared with `.skip` / `xit` / `it.todo`. */
+    skippedCases: number;
+    /** Cases declared with `.only` / `fit` — pollutes other-suite execution. */
+    focusedCases: number;
+    /** Test bodies with NO assertion calls (expect/assert/t/should/etc.). */
+    assertionlessCases: number;
+    /** Test bodies that are empty or contain only trivial statements. */
+    emptyCases: number;
+    /** Test files that import nothing from the project (testing only their framework). */
+    isolatedTestFiles: number;
+  };
   findings: Array<{
     severity: 'high' | 'medium' | 'low' | 'info';
     title: string;
@@ -44,30 +61,36 @@ export async function runUnitAnalysis(config: {
   const sourcePatterns = ['**/*.{ts,js,tsx,jsx}', '!**/node_modules/**', '!**/.git/**', '!**/dist/**', '!**/build/**', '!**/*.{test,spec}.{ts,js,tsx,jsx}'];
   const sourceFiles = await glob(sourcePatterns, { cwd: projectPath, absolute: false });
 
-  // 3. Parse test files to count tests and identify tested functions
+  // 3. Parse test files (AST) to count tests and gather quality signals.
   const parsedTestFiles: Array<{ path: string; testCount: number }> = [];
   const testedFunctions = new Set<string>();
   const testFrameworks = new Set<string>();
+  const fileQuality: TestFileQuality[] = [];
 
   for (const tf of testFiles) {
     const fullPath = join(projectPath, tf);
     try {
       const content = readFileSync(fullPath, 'utf-8');
-      const testCount = countTests(content);
+      let testCount = 0;
+
+      if (isParseable(tf)) {
+        const parsed = parseFile(tf, content);
+        if (parsed.ast) {
+          const q = analyzeTestFile(tf, parsed.ast);
+          fileQuality.push(q);
+          testCount = q.totalCases;
+          for (const fw of q.frameworks) testFrameworks.add(fw);
+        }
+      }
+
+      // Fall-back regex count if parse failed (oversize / syntax error).
+      if (testCount === 0) testCount = countTests(content);
       parsedTestFiles.push({ path: tf, testCount });
 
-      // Detect test framework
-      if (content.includes("from 'jest'") || content.includes('describe(')) testFrameworks.add('Jest');
-      if (content.includes("from 'vitest'") || content.includes('vitest')) testFrameworks.add('Vitest');
-      if (content.includes("from 'mocha'") || content.includes('mocha')) testFrameworks.add('Mocha');
-      if (content.includes('ava')) testFrameworks.add('AVA');
-      if (content.includes('tap') || content.includes('test(')) testFrameworks.add('Node Tap');
-
-      // Extract names of functions being tested (heuristic)
+      // Extract names of functions being tested (used for the legacy
+      // tested/untested heuristic — unchanged for backward compat).
       const tested = extractTestedFunctions(content);
-      for (const fn of tested) {
-        testedFunctions.add(fn.toLowerCase());
-      }
+      for (const fn of tested) testedFunctions.add(fn.toLowerCase());
     } catch {
       // skip unreadable
     }
@@ -164,45 +187,95 @@ export async function runUnitAnalysis(config: {
     }
   }
 
-  // Check for common test anti-patterns
-  for (const tf of parsedTestFiles) {
-    const fullPath = join(projectPath, tf.path);
-    try {
-      const content = readFileSync(fullPath, 'utf-8');
+  // AST-derived quality findings
+  let totalCases = 0;
+  let skippedCases = 0;
+  let focusedCases = 0;
+  let assertionlessCases = 0;
+  let emptyCases = 0;
+  let isolatedTestFiles = 0;
 
-      if (content.includes('.only(')) {
-        findings.push({
-          severity: 'medium',
-          title: 'Test Focus (only) Found',
-          description: `Test file ${tf.path} contains .only() which skips other tests.`,
-          filePath: tf.path,
-          suggestion: 'Remove .only() before committing. Consider using a lint rule to block it.',
-        });
-      }
-
-      if (content.includes('console.log') || content.includes('console.error')) {
-        findings.push({
-          severity: 'low',
-          title: 'Console Output in Tests',
-          description: `Test file ${tf.path} contains console statements.`,
-          filePath: tf.path,
-          suggestion: 'Remove console.log from tests. Use proper assertion messages instead.',
-        });
-      }
-
-      // Check for snapshot tests without updates
-      if (content.includes('toMatchSnapshot') && !content.includes('toMatchInlineSnapshot')) {
-        findings.push({
-          severity: 'low',
-          title: 'External Snapshots Used',
-          description: 'External snapshot files can become outdated. Inline snapshots are easier to review.',
-          filePath: tf.path,
-          suggestion: 'Consider using toMatchInlineSnapshot for better code review visibility.',
-        });
-      }
-    } catch {
-      // skip
+  for (const q of fileQuality) {
+    totalCases += q.totalCases;
+    if (!q.importsSourceFiles) isolatedTestFiles++;
+    for (const c of q.cases) {
+      if (c.kind === 'skipped') skippedCases++;
+      if (c.kind === 'focused') focusedCases++;
+      if (c.isEmpty) emptyCases++;
+      else if (!c.hasAssertion && c.kind !== 'skipped') assertionlessCases++;
     }
+
+    if (q.cases.some((c) => c.kind === 'focused')) {
+      const focused = q.cases.filter((c) => c.kind === 'focused');
+      findings.push({
+        severity: 'medium',
+        title: `Test focus (.only) in ${q.filePath}`,
+        description: `${focused.length} focused test(s) — siblings will be silently skipped in CI: ${focused.slice(0, 3).map((c) => `"${c.title}" (line ${c.line})`).join(', ')}.`,
+        filePath: q.filePath,
+        suggestion: 'Remove `.only` / `fit` before merging. Add an ESLint rule (no-focused-tests) to block.',
+      });
+    }
+
+    const skippedInFile = q.cases.filter((c) => c.kind === 'skipped');
+    if (skippedInFile.length >= 2) {
+      findings.push({
+        severity: 'medium',
+        title: `${skippedInFile.length} skipped tests in ${q.filePath}`,
+        description: `Skipped: ${skippedInFile.slice(0, 5).map((c) => `"${c.title}" (line ${c.line})`).join(', ')}. Skipped tests rot — they stop matching their intent.`,
+        filePath: q.filePath,
+        suggestion: 'Delete tests that are no longer relevant. Convert `.skip` placeholders to `.todo` so they\'re tracked, or fix and unskip them.',
+      });
+    }
+
+    const assertionlessInFile = q.cases.filter((c) => !c.isEmpty && !c.hasAssertion && c.kind !== 'skipped');
+    if (assertionlessInFile.length > 0) {
+      findings.push({
+        severity: 'high',
+        title: `${assertionlessInFile.length} test(s) without assertions in ${q.filePath}`,
+        description: `Tests pass trivially because nothing is checked: ${assertionlessInFile.slice(0, 3).map((c) => `"${c.title}" (line ${c.line})`).join(', ')}. These inflate test count without verifying behavior.`,
+        filePath: q.filePath,
+        suggestion: 'Add an `expect(...)` / `assert(...)` call. If the test only runs code to confirm it doesn\'t throw, assert that explicitly with `expect(() => fn()).not.toThrow()`.',
+      });
+    }
+
+    const emptyInFile = q.cases.filter((c) => c.isEmpty);
+    if (emptyInFile.length > 0) {
+      findings.push({
+        severity: 'medium',
+        title: `${emptyInFile.length} empty test bodies in ${q.filePath}`,
+        description: `Empty test cases: ${emptyInFile.slice(0, 3).map((c) => `"${c.title}" (line ${c.line})`).join(', ')}.`,
+        filePath: q.filePath,
+        suggestion: 'Either implement the test body or convert to `it.todo("...")` so the placeholder is tracked but doesn\'t falsely contribute to coverage.',
+      });
+    }
+
+    if (!q.importsSourceFiles) {
+      findings.push({
+        severity: 'medium',
+        title: `Test file imports no source files: ${q.filePath}`,
+        description: 'This test file only imports its framework — it can\'t be testing any project code.',
+        filePath: q.filePath,
+        suggestion: 'Add imports from the modules under test, or remove the file if it\'s a leftover scaffold.',
+      });
+    }
+  }
+
+  // Snapshot heuristic (kept from prior version, applied once across all files).
+  const anySnapshotFile = fileQuality.find((q) => {
+    const fp = join(projectPath, q.filePath);
+    try {
+      const c = readFileSync(fp, 'utf-8');
+      return c.includes('toMatchSnapshot') && !c.includes('toMatchInlineSnapshot');
+    } catch { return false; }
+  });
+  if (anySnapshotFile) {
+    findings.push({
+      severity: 'low',
+      title: 'External snapshots in use',
+      description: `${anySnapshotFile.filePath} (and possibly others) uses \`toMatchSnapshot\`. External snapshot files easily rot.`,
+      filePath: anySnapshotFile.filePath,
+      suggestion: 'Prefer `toMatchInlineSnapshot` so the expected value lives next to the test and surfaces in code review diffs.',
+    });
   }
 
   // Check for missing error handling tests
@@ -240,6 +313,14 @@ export async function runUnitAnalysis(config: {
     untestedFunctions: untestedList,
     testCoverage: coverageEstimate,
     frameworks: [...testFrameworks],
+    quality: {
+      totalCases,
+      skippedCases,
+      focusedCases,
+      assertionlessCases,
+      emptyCases,
+      isolatedTestFiles,
+    },
     findings,
   };
 }
