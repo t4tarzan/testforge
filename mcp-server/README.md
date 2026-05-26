@@ -121,6 +121,7 @@ Your source never leaves the machine — the dashboard is local, the analyzers a
 
 ## Changelog highlights
 
+- **0.3.0** — Spine pass. Security analyzer moved from line-level regex to a Babel AST traversal. New per-finding `confidence` field (`high` / `medium` / `low`). Inline suppression comments (`// testforge-disable-next-line <category>` and `// testforge-disable-file <category>`). Findings now carry a `column` number alongside the line. File-size cap (500 KB) and per-file 250 ms parse-and-traverse budget. Basic intra-procedural taint: SQL injection detection catches `const q = '…' + req.x; db.query(q);` shape, not just inline interpolation. False-positive corpus and true-positive corpus added under `tests/fixtures/` to lock in the new precision. `eval()` re-categorized from XSS to "Dangerous Functions" (more accurate — it's RCE, not script-injection). Old consumers unaffected: the public response shape is additive-only.
 - **0.2.19** — `/test` and `/quick-scan` now persist their summary to `~/.testforge/history.db` on completion (previously written to in-memory Maps only — runs evaporated on restart).
 - **0.2.18** — Default port changed from `3001` → `33221` to avoid local-dev collisions. `/api/reports/latest` returns 404 when the local DB is empty instead of fabricated seed data. `fast-json-stringify` listed as direct dep (defensive against npx cache quirks). `/health` now reports the actual package version.
 - **0.2.17** and earlier — see git history.
