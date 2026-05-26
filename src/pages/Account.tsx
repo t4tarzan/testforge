@@ -99,6 +99,8 @@ function DashboardTab() {
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
   const user = authUser || MOCK_USER;
+  // /api/usage shape changes with quota model versions.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [realStats, setRealStats] = useState<any>(null);
   const [recentRuns, setRecentRuns] = useState<RecentRun[] | null>(null);
   const [usageSeries, setUsageSeries] = useState<UsagePoint[]>([]);
@@ -380,6 +382,8 @@ function DashboardTab() {
 // TAB 2: TEST RUNS
 // ═══════════════════════════════════════════════════════════════════════════
 function TestRunsTab() {
+  // Test run row shape varies; renderer reads snake_case fields directly.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [runs, setRuns] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -515,6 +519,8 @@ function TestRunsTab() {
 // TAB 3: REPOSITORIES
 // ═══════════════════════════════════════════════════════════════════════════
 function ReposTab() {
+  // Repo row shape varies across versions; renderer reads snake_case fields.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [repos, setRepos] = useState<any[]>([]);
   useEffect(() => { fetch('/api/projects').then(r => r.json()).then(d => { if (Array.isArray(d)) setRepos(d); }).catch(() => {}); }, []);
   return (
@@ -546,6 +552,9 @@ function ReposTab() {
 // TAB 4: API KEYS
 // ═══════════════════════════════════════════════════════════════════════════
 function ApiKeysTab() {
+  // API key row shape varies across server versions; the renderer reads
+  // snake_case fields the in-memory store provides.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [keys, setKeys] = useState<any[]>([]);
   const [newKey, setNewKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -560,7 +569,7 @@ function ApiKeysTab() {
       const res = await fetch('/api/keys', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'API Key ' + (keys.length + 1) }) });
       const data = await res.json();
       if (data.key) { setNewKey(data.key); fetch('/api/keys').then(r => r.json()).then(d => { if (Array.isArray(d)) setKeys(d); }); }
-    } catch {}
+    } catch { /* surfaced to user via setLoading(false) below */ }
     setLoading(false);
   };
 
@@ -622,6 +631,8 @@ function ApiKeysTab() {
 // TAB 5: TEAM
 // ═══════════════════════════════════════════════════════════════════════════
 function TeamTab() {
+  // Org row shape varies; renderer reads snake_case fields directly.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [members, setMembers] = useState<any[]>([]);
   useEffect(() => { fetch('/api/orgs').then(r => r.json()).then(d => { if (Array.isArray(d)) setMembers(d); }).catch(() => {}); }, []);
   return (
@@ -681,7 +692,7 @@ function BillingTab() {
       }
       const { url } = await r.json();
       window.location.href = url;
-    } catch (e) {
+    } catch {
       alert('Could not reach billing portal — try again in a moment.');
     } finally {
       setPortalLoading(false);

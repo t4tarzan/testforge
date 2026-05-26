@@ -26,7 +26,9 @@ export default function ManagedTesting() {
   const [repoUrl, setRepoUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [results, setResults] = useState<any>(null);
+  // Dynamic analyzer response; see ReportStep AnalysisResults note.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [results, setResults] = useState<Record<string, any> | null>(null);
 
   const stages = ['Cloning repository', 'Scanning codebase', 'Security analysis', 'Unit test analysis', 'Load analysis', 'Accessibility check', 'Vision & goals', 'Strategic dimensions', 'Generating report'];
   const [stageIndex, setStageIndex] = useState(0);
@@ -57,9 +59,9 @@ export default function ManagedTesting() {
       setStageIndex(stages.length);
       if (!res.ok) throw new Error((await res.json().catch(() => ({ error: 'Failed' }))).error || 'Server error');
       setResults(await res.json());
-    } catch (e: any) {
+    } catch (e) {
       clearInterval(stageInterval);
-      setError(e.message);
+      setError((e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -228,7 +230,7 @@ export default function ManagedTesting() {
                   <span className="ml-auto text-sm text-[#EF4444] font-medium">{results.security.critical} critical</span>
                 </div>
                 <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                  {results.security.items.slice(0, 10).map((f: any, i: number) => (
+                  {results.security.items.slice(0, 10).map((f: { severity: string; title?: string; filePath?: string; lineNumber?: number; fixSuggestion?: string }, i: number) => (
                     <div key={i} className="flex items-start gap-3 p-3 border border-[#D9D9D3] rounded-lg">
                       <SeverityBadge severity={f.severity} />
                       <div className="flex-1 min-w-0">

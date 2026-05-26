@@ -80,7 +80,7 @@ export interface AnalysisResults {
 export function saveAnalysisResults(results: AnalysisResults) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(results));
-  } catch {}
+  } catch { /* quota / SSR / disabled — non-fatal */ }
 }
 
 export function getAnalysisResults(): AnalysisResults | null {

@@ -58,7 +58,7 @@ export interface FeatureMatrixAnalysis {
 export async function runVisionAnalysis(
   fileContents: Record<string, string>,
   dependencies: string[],
-  devDependencies: string[]
+  _devDependencies: string[]
 ): Promise<VisionAnalysis> {
   const findings: VisionFinding[] = [];
   const allContent = Object.values(fileContents).join('\n');
@@ -165,7 +165,7 @@ export async function runVisionAnalysis(
  */
 export async function runScopeAnalysis(
   fileContents: Record<string, string>,
-  dependencies: string[]
+  _dependencies: string[]
 ): Promise<ScopeAnalysis> {
   const findings: VisionFinding[] = [];
   const allContent = Object.values(fileContents).join('\n').toLowerCase();
@@ -327,10 +327,6 @@ export async function runStackAnalysis(
       fixSuggestion: 'Add Redis for caching frequent queries, sessions, and rate limiting.',
     });
   }
-
-  // Check for containerization
-  const hasDocker = 'Dockerfile' in fileContents || 'docker-compose.yml' in fileContents ||
-    'docker-compose.yaml' in fileContents;
 
   // Check for monorepo tooling
   const isMonorepo = dependencies.some(d => d.includes('turbo') || d.includes('nx') || d.includes('lerna')) ||

@@ -120,14 +120,6 @@ function checkImagesWithoutAlt(
   findings: A11yFinding[],
   incrementCounter: () => void
 ) {
-  // Match <img> tags and JSX <img without alt=
-  const patterns = [
-    /<img\s+[^>]*\s*(?!.*alt=)[^>]*>/i, // HTML <img> without alt
-    /<img\s+[^>]*\s*src\s*=\s*[^>]*\s*(?!.*alt=)[^>]*>/i,
-    /Image\s+[^>]*\s*src\s*=\s*[^>]*\s*(?!.*alt=)[^>]*\/>/i, // Next.js Image
-    /<img\s+[^>]*alt\s*=\s*["']\s*["'][^>]*>/i, // Empty alt
-  ];
-
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     // Check JSX img without alt
@@ -182,9 +174,6 @@ function checkFormsWithoutLabels(
   findings: A11yFinding[],
   incrementCounter: () => void
 ) {
-  const inputRegex = /<(?:input|textarea|select)\s+[^>]*\s*(?!.*\bid=\b)(?!.*aria-label)(?!.*aria-labelledby)(?!.*placeholder)[^>]*>/i;
-  const inputRegexNoLabel = /<(?:input|textarea|select)\s+[^>]*\s*(?!.*\bid=\b)(?!.*aria-label)(?!.*aria-labelledby)[^>]*>/i;
-
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 

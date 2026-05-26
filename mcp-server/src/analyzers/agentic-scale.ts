@@ -38,7 +38,7 @@ export function runAgenticScalePrediction(
   dependencies: string[],
   techStack: string[],
   endpoints: number,
-  totalLines: number
+  _totalLines: number
 ): AgenticScaleReport {
   const findings: Finding[] = [];
   const failurePatterns: string[] = [];
@@ -120,8 +120,6 @@ export function runAgenticScalePrediction(
   // ═══════════════════════════════════════════════════════════
   const hasRetry = allContent.includes('retry') || allContent.includes('Retry-After') ||
     allContent.includes('backoff') || allContent.includes('429');
-  const hasErrorHandler = allContent.includes('errorHandler') || allContent.includes('error handler') ||
-    allContent.includes('(err, req, res') || allContent.includes('catch');
 
   if (!hasRetry && endpoints > 5) {
     findings.push({

@@ -139,12 +139,24 @@ function SectionLabel({ text, light = false }: { text: string; light?: boolean }
   )
 }
 
-function ChartTooltip({ active, payload, label }: any) {
+type RechartsTooltipPayload = {
+  color?: string;
+  stroke?: string;
+  fill?: string;
+  name?: string;
+  value?: number | string;
+};
+
+function ChartTooltip({ active, payload, label }: {
+  active?: boolean;
+  payload?: RechartsTooltipPayload[];
+  label?: string;
+}) {
   if (!active || !payload?.length) return null
   return (
     <div className="bg-white border border-[#D9D9D3] rounded-lg px-3 py-2 shadow-lg">
       <p className="text-xs font-mono text-[#6B6B6B] mb-1">{label}</p>
-      {payload.map((p: any, i: number) => (
+      {payload.map((p, i) => (
         <p key={i} className="text-xs font-medium" style={{ color: p.color || p.stroke || p.fill }}>
           {p.name}: {typeof p.value === 'number' ? p.value.toFixed(1) : p.value}
         </p>
@@ -779,7 +791,7 @@ function CTASection() {
 
 export default function Dashboard() {
   const [analysisData, setAnalysisData] = useState<AnalysisResults | null>(null);
-  const [testHistory, setTestHistory] = useState<any[]>([]);
+  const [testHistory, setTestHistory] = useState<Array<Record<string, unknown>>>([]);
 
   useEffect(() => {
     setAnalysisData(getAnalysisResults());
@@ -854,24 +866,24 @@ export default function Dashboard() {
           <div className="max-w-[1280px] mx-auto">
             <p className="font-mono text-xs text-[#574a7d] uppercase tracking-wider mb-4">// TEST HISTORY</p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {testHistory.slice(0, 6).map((run: any) => (
-                <div key={run.id} className="bg-white border border-[#D9D9D3] rounded-xl p-5 hover:border-[#a99bff] transition-all">
+              {testHistory.slice(0, 6).map((run) => (
+                <div key={String(run.id ?? '')} className="bg-white border border-[#D9D9D3] rounded-xl p-5 hover:border-[#a99bff] transition-all">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="font-mono text-xs text-[#9A9A9A]">{run.project_name || 'Unknown'}</span>
+                    <span className="font-mono text-xs text-[#9A9A9A]">{String(run.project_name ?? 'Unknown')}</span>
                     <span className={`text-xs font-mono px-2 py-0.5 rounded ${run.status === 'completed' ? 'bg-[#E8E5FF] text-[#574a7d]' : 'bg-[#FFF0F0] text-[#EF4444]'}`}>
-                      {run.status}
+                      {String(run.status ?? '')}
                     </span>
                   </div>
                   <div className="flex items-end justify-between">
-                    <div className="text-2xl font-bold text-[#12101A]">{run.overall_score || '—'}</div>
-                    <div className="text-xs text-[#6B6B6B]">{run.total_findings || 0} findings</div>
+                    <div className="text-2xl font-bold text-[#12101A]">{Number(run.overall_score) || '—'}</div>
+                    <div className="text-xs text-[#6B6B6B]">{Number(run.total_findings) || 0} findings</div>
                   </div>
                   <div className="mt-3 flex gap-4 text-[11px] text-[#9A9A9A]">
-                    <span className="text-[#EF4444]">{run.critical_count || 0} critical</span>
-                    <span className="text-[#EAB308]">{run.high_count || 0} high</span>
-                    <span>{run.medium_count || 0} med</span>
+                    <span className="text-[#EF4444]">{Number(run.critical_count) || 0} critical</span>
+                    <span className="text-[#EAB308]">{Number(run.high_count) || 0} high</span>
+                    <span>{Number(run.medium_count) || 0} med</span>
                   </div>
-                  {run.completed_at && (
+                  {typeof run.completed_at === 'string' && (
                     <div className="mt-3 text-[10px] text-[#9A9A9A] font-mono">
                       {new Date(run.completed_at).toLocaleDateString()}
                     </div>

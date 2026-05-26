@@ -1,9 +1,9 @@
 import chalk from 'chalk';
 import { scanCodebase, type CodebaseInfo } from './analyzers/code-scanner.js';
-import { runSecurityAnalysis, type SecurityFinding } from './analyzers/security-analyzer.js';
-import { runUnitAnalysis, type UnitTestReport } from './analyzers/unit-analyzer.js';
-import { runLoadAnalysis, type LoadTestReport } from './analyzers/load-analyzer.js';
-import { runAccessibilityAnalysis, type A11yReport } from './analyzers/accessibility-analyzer.js';
+import { runSecurityAnalysis } from './analyzers/security-analyzer.js';
+import { runUnitAnalysis } from './analyzers/unit-analyzer.js';
+import { runLoadAnalysis } from './analyzers/load-analyzer.js';
+import { runAccessibilityAnalysis } from './analyzers/accessibility-analyzer.js';
 
 /* -------------------------------------------------------------------------- */
 /*                                 Types                                      */
@@ -485,16 +485,11 @@ async function runPredictiveDimension(
   const allContent = Object.entries(codebase.fileContents);
 
   // Check for promise handling patterns
-  let asyncWithoutAwait = 0;
-  let missingCatchBlocks = 0;
   let unhandledPromises = 0;
 
-  for (const [filePath, content] of allContent) {
+  for (const [, content] of allContent) {
     const lines = content.split('\n');
     for (const line of lines) {
-      if (line.includes('async') && !line.includes('await') && !line.includes('function') && !line.includes('=>')) {
-        asyncWithoutAwait++;
-      }
       if (line.includes('Promise') && line.includes('.then(') && !line.includes('.catch(') && !line.includes('try')) {
         unhandledPromises++;
       }

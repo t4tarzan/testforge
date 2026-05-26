@@ -2,10 +2,6 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { randomUUID } from 'crypto';
 import chalk from 'chalk';
 import { scanCodebase } from './analyzers/code-scanner.js';
-import { runSecurityAnalysis } from './analyzers/security-analyzer.js';
-import { runUnitAnalysis } from './analyzers/unit-analyzer.js';
-import { runLoadAnalysis } from './analyzers/load-analyzer.js';
-import { runAccessibilityAnalysis } from './analyzers/accessibility-analyzer.js';
 import { runTestSuite, type ProgressUpdate } from './test-runner.js';
 import { generateReport } from './report-generator.js';
 import { saveReport } from './local-db.js';
@@ -69,7 +65,7 @@ const db = {
 let realDb: typeof db | null = null;
 try {
   const { createClient } = await import('@testforge/db');
-  realDb = createClient();
+  realDb = createClient() as typeof db;
 } catch {
   // fallback to in-memory
 }
@@ -247,8 +243,8 @@ async function handleTest(params: Record<string, unknown>): Promise<unknown> {
 // coverage, accessibility, dora) are omitted; saveReport supplies sensible
 // defaults so the row is still useful for /reports.
 async function persistTestRunToSqlite(testRunId: string, projectPath: string): Promise<void> {
-  const run: Record<string, unknown> | null = (await _db.getTestRun(testRunId)) as any;
-  const findings: Array<Record<string, unknown>> = (await _db.getFindings(testRunId)) as any;
+  const run = (await _db.getTestRun(testRunId)) as Record<string, unknown> | null;
+  const findings = (await _db.getFindings(testRunId)) as Array<Record<string, unknown>>;
 
   const summary = (run?.summary as Record<string, unknown>) || {};
   const bySev: Record<string, number> = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
@@ -329,7 +325,10 @@ async function handleReport(params: Record<string, unknown>): Promise<unknown> {
 
   console.log(chalk.blue('[testforge_report]'), 'Generating report for', testRunId, 'format:', format);
 
-  const report = await generateReport(testRunId, _db as any);
+  // _db is either the in-memory shim or a dynamically-imported @testforge/db
+  // client. Both implement the subset of methods generateReport needs, but
+  // TS can't prove the structural match across the dynamic import.
+  const report = await generateReport(testRunId, _db as unknown as Parameters<typeof generateReport>[1]);
 
   if (format === 'markdown') {
     return { report: reportToMarkdown(report as ReportData) };
@@ -536,12 +535,20 @@ export async function setupMCPServer(app: FastifyInstance) {
 
       const codebase = await scanCodebase(projectPath);
       const securityFindings = await runSecurityAnalysis({ projectPath, fileContents: codebase.fileContents, dependencies: codebase.dependencies, devDependencies: codebase.devDependencies }).catch(() => []);
-      const unitReport = await runUnitAnalysis({ projectPath, fileContents: codebase.fileContents }).catch(() => ({ testCoverage: 0, totalTestFiles: 0, totalTests: 0, frameworks: [], findings: [] } as any));
-      const loadReport = await runLoadAnalysis({ projectPath, fileContents: codebase.fileContents, dependencies: codebase.dependencies }).catch(() => ({ testCoverage: 0, totalTestFiles: 0, totalTests: 0, frameworks: [], findings: [] } as any));
-      const a11yReport = await runAccessibilityAnalysis({ projectPath, fileContents: codebase.fileContents }).catch(() => ({ testCoverage: 0, totalTestFiles: 0, totalTests: 0, frameworks: [], findings: [] } as any));
-      const visionReport: any = runVisionAnalysis(codebase.fileContents, codebase.dependencies, codebase.devDependencies);
-      const scopeReport: any = runScopeAnalysis(codebase.fileContents, codebase.dependencies);
-      const stackReport: any = runStackAnalysis(codebase.fileContents, codebase.dependencies, codebase.devDependencies, codebase.techStack);
+      // Best-effort empty fallbacks. Downstream uses optional access (`r.x || 0`)
+      // so it's safe to degrade quietly when the analyzer throws.
+      type UnitR = Awaited<ReturnType<typeof runUnitAnalysis>>;
+      type LoadR = Awaited<ReturnType<typeof runLoadAnalysis>>;
+      type A11yR = Awaited<ReturnType<typeof runAccessibilityAnalysis>>;
+      const unitReport = await runUnitAnalysis({ projectPath, fileContents: codebase.fileContents })
+        .catch(() => ({ testCoverage: 0, totalTestFiles: 0, totalTests: 0, frameworks: [], findings: [] } as unknown as UnitR));
+      const loadReport = await runLoadAnalysis({ projectPath, fileContents: codebase.fileContents, dependencies: codebase.dependencies })
+        .catch(() => ({ estimatedMaxConcurrentUsers: 0, hasRateLimiting: false, hasCaching: false, recommendations: [], findings: [] } as unknown as LoadR));
+      const a11yReport = await runAccessibilityAnalysis({ projectPath, fileContents: codebase.fileContents })
+        .catch(() => ({ score: 0, totalChecks: 0, issuesFound: 0, complianceLevel: 'Unknown', findings: [] } as unknown as A11yR));
+      const visionReport = await runVisionAnalysis(codebase.fileContents, codebase.dependencies, codebase.devDependencies);
+      const scopeReport = await runScopeAnalysis(codebase.fileContents, codebase.dependencies);
+      const stackReport = await runStackAnalysis(codebase.fileContents, codebase.dependencies, codebase.devDependencies, codebase.techStack);
       const contractReport = await runContractAnalysis(codebase.fileContents, codebase.endpoints);
       const visualReport = await runVisualRegressionAnalysis(codebase.fileContents);
       const edgeReport = await runEdgeCaseAnalysis(codebase.fileContents);
@@ -549,18 +556,21 @@ export async function setupMCPServer(app: FastifyInstance) {
       const chaosReport = await runChaosAnalysis(codebase.fileContents, codebase.dependencies, codebase.techStack);
       const mutationReport = await runMutationAnalysis(codebase.fileContents, codebase.devDependencies, codebase.totalFiles, codebase.totalLines);
       const predictiveReport = await runPredictiveAnalysis(codebase.fileContents, codebase.dependencies, codebase.devDependencies);
-      const supplyReport: any = runSupplyChainAudit(codebase.dependencies, codebase.devDependencies);
+      const supplyReport = runSupplyChainAudit(codebase.dependencies, codebase.devDependencies);
       const nPlusOneReport = runNPlusOneDetection(codebase.fileContents);
       const deadReport = runDeadCodeAnalysis(codebase.fileContents, codebase.dependencies);
-      const licenseReport: any = runLicenseCheck(codebase.dependencies);
+      const licenseReport = runLicenseCheck(codebase.dependencies);
       const doraReport = runDoraEstimation(codebase.fileContents, codebase.devDependencies);
-      const owaspReport = runOwaspCoverage(securityFindings as any);
+      // SecurityFinding includes 'info' severity; runOwaspCoverage only
+      // counts real findings. Filter then cast — the call sites use
+      // Finding<'critical'|'high'|'medium'|'low'>.
+      const owaspReport = runOwaspCoverage(securityFindings.filter(f => f.severity !== 'info') as Parameters<typeof runOwaspCoverage>[0]);
       const agenticReport = runAgenticScalePrediction(codebase.fileContents, codebase.dependencies, codebase.techStack, codebase.endpoints, codebase.totalLines);
 
       return reply.send({
         repo: projectPath, branch: 'local', analyzedAt: new Date().toISOString(),
         codebase: { totalFiles: codebase.totalFiles, totalLines: codebase.totalLines, endpoints: codebase.endpoints, techStack: codebase.techStack, dependencies: codebase.dependencies.length },
-        security: { findings: securityFindings.length, critical: securityFindings.filter((f:any)=>f.severity==='critical').length, high: securityFindings.filter((f:any)=>f.severity==='high').length, medium: securityFindings.filter((f:any)=>f.severity==='medium').length, low: securityFindings.filter((f:any)=>f.severity==='low').length, items: securityFindings.slice(0,10) },
+        security: { findings: securityFindings.length, critical: securityFindings.filter((f)=>f.severity==='critical').length, high: securityFindings.filter((f)=>f.severity==='high').length, medium: securityFindings.filter((f)=>f.severity==='medium').length, low: securityFindings.filter((f)=>f.severity==='low').length, items: securityFindings.slice(0,10) },
         unit: { coverage: unitReport.testCoverage||0, testFiles: unitReport.totalTestFiles||0, totalTests: unitReport.totalTests||0, frameworks: unitReport.frameworks||[], findings: unitReport.findings?.length||0 },
         load: { maxUsers: loadReport.estimatedMaxConcurrentUsers||0, rateLimiting: loadReport.hasRateLimiting||false, caching: loadReport.hasCaching||false, recommendations: loadReport.recommendations||[] },
         accessibility: { score: a11yReport.score||0, issues: a11yReport.findings?.length||0 },
@@ -582,8 +592,8 @@ export async function setupMCPServer(app: FastifyInstance) {
         owasp: { coverage: owaspReport.coverage, missingCategories: owaspReport.missingCategories },
         agentic: { score: agenticReport.score, resilienceLevel: agenticReport.resilienceLevel, maxPredictedAgents: agenticReport.maxPredictedAgents, predictedBottleneck: agenticReport.predictedBottleneck, failurePatterns: agenticReport.failurePatterns, findings: agenticReport.findings },
       });
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
+    } catch (err) {
+      return reply.status(500).send({ error: (err as Error).message });
     }
   });
 

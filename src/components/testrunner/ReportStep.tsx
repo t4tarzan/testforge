@@ -6,8 +6,31 @@ import {
 } from 'lucide-react';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from 'recharts';
 
+/** Shape of a finding rendered in the report. Optional fields because
+ *  not every analyzer dimension fills every slot. */
+type FindingShape = {
+  severity: string;
+  title: string;
+  description?: string;
+  filePath?: string;
+  lineNumber?: number;
+  fixSuggestion?: string;
+  category?: string;
+};
+
+// The analysis result is a dynamic blob — the analyzer's full output
+// shape isn't pinned down with a schema yet, and individual dimensions
+// evolve independently across versions. Pinning it precisely would
+// require a coordinated schema rollout. Until then, keep it as a
+// `Record<string, any>` so existing optional-chaining call sites work
+// — and explicitly disable the rule here, not site-by-site.
+// TODO(testforge): replace with a proper AnalysisResults type when
+// the analyzer output is locked.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnalysisResults = Record<string, any>;
+
 interface ReportStepProps {
-  results: any;
+  results: AnalysisResults;
   onRestart: () => void;
 }
 
@@ -89,7 +112,7 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
   const handleExport = (format: string) => {
     setExportFormat(format);
     let content = '';
-    let filename = `testforge-report.${format === 'json' ? 'json' : format === 'pdf' ? 'html' : 'md'}`;
+    const filename = `testforge-report.${format === 'json' ? 'json' : format === 'pdf' ? 'html' : 'md'}`;
     let mimeType = 'text/plain';
 
     if (format === 'json') {
@@ -97,7 +120,7 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
       mimeType = 'application/json';
     } else if (format === 'pdf') {
       // Generate printable HTML report
-      const secItems = (security.items || []).map((f: any) =>
+      const secItems = (security.items || []).map((f: FindingShape) =>
         `<div style="margin:8px 0;padding:10px;border-left:3px solid ${f.severity==='critical'?'#D4524A':f.severity==='high'?'#E87D3A':'#E8A838'}">
           <strong>[${f.severity.toUpperCase()}]</strong> ${f.title}<br/>
           <code>${f.filePath || ''}${f.lineNumber?':'+f.lineNumber:''}</code><br/>
@@ -140,7 +163,7 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
       content += `**Analyzed:** ${results.analyzedAt || new Date().toISOString()}\n\n`;
       content += `## Codebase\n- **Files:** ${codebase.totalFiles}\n- **Lines:** ${codebase.totalLines}\n- **Endpoints:** ${codebase.endpoints}\n- **Tech Stack:** ${(codebase.techStack || []).join(', ')}\n\n`;
       content += `## Security (${security.findings} findings)\n`;
-      (security.items || []).forEach((f: any) => {
+      (security.items || []).forEach((f: FindingShape) => {
         content += `- **[${f.severity.toUpperCase()}]** ${f.title} — \`${f.filePath}:${f.lineNumber}\`\n`;
         if (f.fixSuggestion) content += `  - Fix: ${f.fixSuggestion}\n`;
       });
@@ -199,7 +222,7 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
           {allFindings.length > 0 && (
             <div>
               <p className="text-xs font-mono text-[#EF4444] uppercase mb-2">Top Risks</p>
-              {allFindings.map((f: any, i: number) => (
+              {allFindings.map((f: FindingShape, i: number) => (
                 <div key={i} className="flex items-start gap-2 py-1.5 border-b border-[#ECEBF5] last:border-0">
                   <span className="text-xs text-[#9A9A9A] font-mono w-5">{i+1}.</span>
                   <div className="flex-1 min-w-0">
@@ -288,7 +311,7 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
             <h3 className="font-semibold text-[#12101A]">Security Findings ({security.items.length})</h3>
           </div>
           <div className="space-y-2 max-h-[400px] overflow-y-auto">
-            {security.items.slice(0, 15).map((finding: any, i: number) => (
+            {security.items.slice(0, 15).map((finding: FindingShape, i: number) => (
               <div key={i} className="border border-[#D9D9D3] rounded-lg overflow-hidden">
                 <button
                   onClick={() => setExpandedFinding(expandedFinding === i ? null : i)}
@@ -323,7 +346,7 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
             <span className={`ml-auto font-mono text-sm font-bold ${vision.score >= 70 ? 'text-[#574a7d]' : vision.score >= 40 ? 'text-[#E8A838]' : 'text-[#D4524A]'}`}>{vision.score}/100</span>
           </div>
           <p className="text-sm text-[#6B6B6B] mb-3">{vision.summary}</p>
-          {vision.findings?.map((f: any, i: number) => (
+          {vision.findings?.map((f: FindingShape, i: number) => (
             <div key={i} className="flex items-start gap-2 text-sm py-1.5">
               <SeverityBadge severity={f.severity} />
               <span className="text-[#333333]">{f.title}</span>

@@ -852,7 +852,7 @@ function DockerPage() {
         Docker Compose
       </h2>
       <DocCodeBlock
-        code={`version: '3.8'\nservices:\n  testforge:\n    image: testforge/cli:latest\n    environment:\n      - TESTFORGE_API_KEY=$\{TESTFORGE_API_KEY\}\n    volumes:\n      - ./reports:/app/reports\n    command: run https://github.com/your-org/your-repo`}
+        code={`version: '3.8'\nservices:\n  testforge:\n    image: testforge/cli:latest\n    environment:\n      - TESTFORGE_API_KEY=$\{TESTFORGE_API_KEY}\n    volumes:\n      - ./reports:/app/reports\n    command: run https://github.com/your-org/your-repo`}
         language="yaml"
       />
     </div>
@@ -987,7 +987,7 @@ function CicdIntegrationPage() {
         Create <Code>.github/workflows/testforge.yml</Code>:
       </p>
       <DocCodeBlock
-        code={`name: TestForge\non: [push, pull_request]\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Run TestForge\n        uses: testforge/action@v2\n        with:\n          api-key: \{\{ secrets.TESTFORGE_API_KEY \}\}\n          depth: deep\n          fail-on-critical: true`}
+        code={`name: TestForge\non: [push, pull_request]\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Run TestForge\n        uses: testforge/action@v2\n        with:\n          api-key: {{ secrets.TESTFORGE_API_KEY }}\n          depth: deep\n          fail-on-critical: true`}
         language="yaml"
       />
 

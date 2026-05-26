@@ -1,6 +1,6 @@
 import { glob } from 'glob';
 import { readFileSync, existsSync } from 'fs';
-import { join, basename } from 'path';
+import { join } from 'path';
 
 export interface CodebaseInfo {
   files: Array<{ path: string; lines: number }>;
@@ -79,7 +79,7 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
   // 4. Parse package.json
   let dependencies: string[] = [];
   let devDependencies: string[] = [];
-  let techStack: string[] = [];
+  const techStack: string[] = [];
   try {
     const pkgPath = join(projectPath, 'package.json');
     const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));

@@ -28,7 +28,7 @@
 
 import * as t from '@babel/types';
 import { walk } from './visitors.js';
-import { evaluateTaint, identifySanitizer, type TaintTable } from './taint.js';
+import { evaluateTaint, type TaintTable } from './taint.js';
 
 /* -------------------------------------------------------------------------- */
 /* Sink registry — must match the categories the analyzer can emit            */
@@ -305,26 +305,6 @@ function analyzeFunctionBody(
   };
 }
 
-/**
- * Heuristic: given an argument expression, return which parameter index
- * it most likely corresponds to. We walk it looking for any Identifier
- * whose name is in `paramNames`. If found, return that index. -1 if not.
- */
-function findParamForExpression(node: t.Node, paramNames: string[]): number {
-  let result = -1;
-  walk(node, (n) => {
-    if (result >= 0) return false;
-    if (t.isIdentifier(n)) {
-      const idx = paramNames.indexOf(n.name);
-      if (idx >= 0) {
-        result = idx;
-        return false;
-      }
-    }
-    return true;
-  });
-  return result;
-}
 
 /**
  * Like findParamForExpression but follows the `taintedBy` chain for any
