@@ -1,0 +1,9 @@
+{
+  "name": "fixture-property-quality",
+  "version": "0.0.1",
+  "devDependencies": {
+    "vitest": "^1.0.0",
+    "fast-check": "^3.0.0",
+    "@fast-check/vitest": "^0.1.0"
+  }
+}

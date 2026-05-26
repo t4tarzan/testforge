@@ -19,6 +19,8 @@ import { findChaosPatterns, type ChaosPatternHit } from './lib/chaos-patterns.js
 import { analyzeAssertionQuality, type TestFileAssertionStats } from './lib/mutation-quality.js';
 import { extractDoraSignals, type DoraSignals } from './lib/dora-signals.js';
 import { findEdgeCases, type EdgeCaseHit } from './lib/edge-cases.js';
+import { findVisualSignals, type VisualSignalHit } from './lib/visual-regression.js';
+import { findPropertyBasedSignals } from './lib/property-based.js';
 import {
   aggregateFileRisk,
   bucketSecurityByFile,
@@ -216,6 +218,13 @@ export interface VisualReport {
   findings: Finding[];
 }
 
+// Visual regression (pass 15 — AST-aware JSX style attribute walk).
+//
+// Replaces substring checks (`includes('style={')`, `match(/\d{2,4}px/g)`)
+// that fired on any line containing those substrings — including
+// comments, error-message strings, etc. — with proper JSXAttribute
+// inspection. Counts REAL inline style props and inspects their object
+// values for hardcoded px / hex-color literals.
 export async function runVisualRegressionAnalysis(
   fileContents: Record<string, string>
 ): Promise<VisualReport> {
@@ -230,7 +239,7 @@ export async function runVisualRegressionAnalysis(
   if (htmlFiles === 0 && cssFiles === 0) {
     findings.push({
       severity: 'low',
-      title: 'No UI Files for Visual Regression',
+      title: 'No UI files for visual regression',
       description: 'No HTML/JSX/TSX or CSS files detected. Visual regression testing requires UI components.',
       fixSuggestion: 'Visual regression tests are applicable to frontend applications with UI components.',
       category: 'Visual Regression',
@@ -238,35 +247,61 @@ export async function runVisualRegressionAnalysis(
     return { score: 100, htmlFiles: 0, cssFiles: 0, findings };
   }
 
-  // Check for CSS-in-JS or style inconsistencies
-  let inlineStyles = 0;
-  let cssModules = 0;
-  const allContent = Object.values(fileContents).join('\n');
+  // AST pass: count REAL inline style attributes per file.
+  const inlineStyleHits: VisualSignalHit[] = [];
+  const hardcodedPxHits: VisualSignalHit[] = [];
+  const colorLiteralHits: VisualSignalHit[] = [];
+  let cssModuleFiles = 0;
+  const inlineStyleFiles = new Set<string>();
 
   for (const [fp, content] of Object.entries(fileContents)) {
     if (fp.includes('node_modules')) continue;
-    if (content.includes('style={') || content.includes('style={{')) inlineStyles++;
-    if (content.includes('.module.css') || content.includes('.module.scss')) cssModules++;
+    if (fp.includes('.module.css') || fp.includes('.module.scss') || fp.includes('.module.sass')) {
+      cssModuleFiles++;
+      continue;
+    }
+    if (!fp.endsWith('.jsx') && !fp.endsWith('.tsx')) continue;
+    if (!isParseable(fp)) continue;
+    const parsed = parseFile(fp, content);
+    if (!parsed.ast) continue;
+    const sig = findVisualSignals(fp, parsed.ast);
+    inlineStyleHits.push(...sig.inlineStyleAttrs);
+    hardcodedPxHits.push(...sig.hardcodedPxInStyles);
+    colorLiteralHits.push(...sig.inlineColorLiterals);
+    if (sig.inlineStyleAttrs.length > 0) inlineStyleFiles.add(fp);
   }
 
-  if (inlineStyles > 5 && cssModules === 0) {
+  // Findings — based on AST counts, not substring matches.
+  if (inlineStyleFiles.size >= 3 && cssModuleFiles === 0) {
+    const sampleFile = inlineStyleHits[0]?.filePath ?? '';
     findings.push({
       severity: 'medium',
-      title: 'Heavy Inline Styles Without CSS Modules',
-      description: `${inlineStyles} files use inline styles. This makes visual regression testing difficult and can cause layout inconsistencies.`,
-      fixSuggestion: 'Adopt CSS Modules, Tailwind, or styled-components for consistent, testable styling.',
+      title: `Heavy inline styles in ${inlineStyleFiles.size} file(s) without CSS Modules`,
+      description: `${inlineStyleHits.length} inline \`style={{…}}\` JSX props across ${inlineStyleFiles.size} files; no CSS Modules detected. Example file: ${sampleFile}.`,
+      filePath: sampleFile,
+      fixSuggestion: 'Adopt CSS Modules / Tailwind / styled-components / vanilla-extract. Inline styles defeat selector caching and make visual-diff testing unstable.',
       category: 'Visual Regression',
     });
   }
 
-  // Check for hardcoded dimensions
-  const hardcodedPx = allContent.match(/\d{2,4}px/g);
-  if (hardcodedPx && hardcodedPx.length > 20) {
+  if (hardcodedPxHits.length >= 10) {
     findings.push({
       severity: 'low',
-      title: `${hardcodedPx.length}+ Hardcoded Pixel Values`,
-      description: 'Many hardcoded pixel values detected. These break across screen sizes and make visual regression testing unreliable.',
-      fixSuggestion: 'Use relative units (rem, em, %) or design tokens. Define breakpoints in a shared theme.',
+      title: `${hardcodedPxHits.length} hardcoded pixel value(s) in inline styles`,
+      description: 'Pixel values inside JSX `style={{…}}` props. These don\'t scale to user font-size preferences and break visual-regression snapshots across viewports.',
+      filePath: hardcodedPxHits[0].filePath,
+      fixSuggestion: 'Use rem/em or design tokens. Pull from a shared theme so the snapshot baseline can move atomically.',
+      category: 'Visual Regression',
+    });
+  }
+
+  if (colorLiteralHits.length >= 5) {
+    findings.push({
+      severity: 'low',
+      title: `${colorLiteralHits.length} inline color literal(s) in JSX styles`,
+      description: 'Hex colors (#abc / #abcdef) embedded directly in `style={{…}}` props. Visual themes can\'t roll out (dark mode, brand changes) without grepping every file.',
+      filePath: colorLiteralHits[0].filePath,
+      fixSuggestion: 'Pull colors from a theme object (`theme.colors.primary`) or CSS variables.',
       category: 'Visual Regression',
     });
   }
@@ -385,59 +420,90 @@ export interface PropertyReport {
   findings: Finding[];
 }
 
+// Property-based testing (pass 15 — AST-aware signal detection).
+//
+// The previous version had two known noisy heuristics:
+//   1. "function body has this.* > 1 → impure" — fires on EVERY
+//      class method even legitimate ones. Removed.
+//   2. Substring checks `content.includes('typeof') && content.includes('===')`
+//      — true on any file with type-guard pattern anywhere. Replaced
+//      with precise AST detection.
+//
+// Now we surface signals that genuinely correlate with mature
+// property-based testing:
+//   - fast-check / jsverify / @hapi/joi imports (the actual frameworks)
+//   - fc.property() / fc.assert() / fc.check() call sites
+//   - typeof x === 'string' / Array.isArray(x) / x instanceof Class
+//   - assert(...) / invariant(...) calls
 export async function runPropertyBasedAnalysis(
   fileContents: Record<string, string>
 ): Promise<PropertyReport> {
   const findings: Finding[] = [];
-  let invariantsDetected = 0;
+  const totals = {
+    frameworkImports: [] as string[],
+    propertyCalls: 0,
+    invariantCalls: 0,
+    typeGuards: 0,
+  };
 
   for (const [filePath, content] of Object.entries(fileContents)) {
-    if (filePath.includes('node_modules') || filePath.includes('test')) continue;
-
-    // Detect common invariants
-    if (content.includes('assert(') || content.includes('invariant(')) invariantsDetected++;
-    if (content.includes('Array.isArray') && content.includes('.length')) invariantsDetected++;
-    if (content.includes('typeof') && content.includes('===')) invariantsDetected++;
-    if (content.includes('.hasOwnProperty') || content.includes('Object.keys')) invariantsDetected++;
-
-    // Check for functions that should be pure but might not be
-    const funcMatches = content.match(/function\s+\w+\s*\([^)]*\)\s*{/g);
-    if (funcMatches) {
-      for (let i = 0; i < Math.min(funcMatches.length, 3); i++) {
-        const funcStart = content.indexOf(funcMatches[i]);
-        const funcEnd = content.indexOf('}', funcStart);
-        const funcBody = content.substring(funcStart, funcEnd);
-
-        // Function modifies external state (not pure)
-        if ((funcBody.match(/this\./g) || []).length > 1 ||
-          funcBody.includes('global.') || funcBody.includes('window.') ||
-          funcBody.includes('process.env')) {
-          findings.push({
-            severity: 'low',
-            title: 'Impure Function Detected',
-            description: `Function in ${filePath} modifies external state. Property-based testing requires pure functions.`,
-            filePath,
-            fixSuggestion: 'Refactor to pure functions — same inputs always produce same outputs without side effects.',
-            category: 'Property-Based Testing',
-          });
-          break;
-        }
-      }
-    }
+    if (filePath.includes('node_modules')) continue;
+    if (!isParseable(filePath)) continue;
+    const parsed = parseFile(filePath, content);
+    if (!parsed.ast) continue;
+    const sig = findPropertyBasedSignals(parsed.ast);
+    totals.frameworkImports.push(...sig.frameworkImports);
+    totals.propertyCalls += sig.propertyCalls;
+    totals.invariantCalls += sig.invariantCalls;
+    totals.typeGuards += sig.typeGuards;
   }
 
-  if (invariantsDetected === 0) {
+  const invariantsDetected = totals.invariantCalls + totals.typeGuards;
+  const hasFramework = totals.frameworkImports.length > 0;
+  const hasRealPropertyTests = totals.propertyCalls > 0;
+
+  // Findings
+  if (!hasFramework) {
     findings.push({
-      severity: 'high',
-      title: 'No Invariants or Assertions Detected',
-      description: 'Property-based testing relies on invariants. No assertions or type guards found in codebase.',
-      fixSuggestion: 'Add runtime assertions (assert, invariant) and TypeScript type guards. Document function contracts with JSDoc @param and @returns.',
+      severity: 'medium',
+      title: 'No property-based testing framework detected',
+      description: 'No `fast-check` / `jsverify` / `@fast-check/vitest` import found. Property-based testing generates inputs over a domain and asserts invariants — strong fit for parsers, encoders, math, and stateful reducers.',
+      fixSuggestion: 'Install `fast-check` and write a few `fc.assert(fc.property(fc.integer(), n => sortRoundTrip([n]) === [n]))`-style tests against your most invariant-heavy code.',
       category: 'Property-Based Testing',
     });
   }
 
-  const score = Math.max(0, 40 + invariantsDetected * 5 - findings.filter(f => f.severity === 'high').length * 20);
-  return { score: Math.min(100, score), invariantsDetected, findings };
+  if (hasFramework && !hasRealPropertyTests) {
+    findings.push({
+      severity: 'low',
+      title: 'Property-test framework installed but no `fc.property` / `fc.assert` calls found',
+      description:
+        `Imported framework(s): ${[...new Set(totals.frameworkImports)].join(', ')}. ` +
+        'Property-based tests need a generator + a property assertion to actually run.',
+      fixSuggestion: 'Add `fc.assert(fc.property(<arbitrary>, <predicate>))` calls. Without them, the dependency is dead weight.',
+      category: 'Property-Based Testing',
+    });
+  }
+
+  if (invariantsDetected === 0) {
+    findings.push({
+      severity: 'medium',
+      title: 'No runtime invariants or type guards detected',
+      description: 'No `assert()`, `invariant()`, `typeof x === \'…\'`, `Array.isArray(x)`, or `x instanceof Y` patterns found in the source. Without invariants, the code has no contract-enforcement and can\'t be property-tested meaningfully.',
+      fixSuggestion: 'Add runtime invariants at function boundaries: `if (!Array.isArray(input)) throw new Error(…)`. Document the invariants with `@param` JSDoc. They become the properties you can test.',
+      category: 'Property-Based Testing',
+    });
+  }
+
+  // Score: bonus for framework + property calls + invariants
+  let score = 40;
+  if (hasFramework) score += 15;
+  if (hasRealPropertyTests) score += 15;
+  score += Math.min(20, totals.invariantCalls * 2);
+  score += Math.min(10, totals.typeGuards * 0.5);
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  return { score, invariantsDetected, findings };
 }
 
 // ═══════════════════════════════════════════════════════════════════
