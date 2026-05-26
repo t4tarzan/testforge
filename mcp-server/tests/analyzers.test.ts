@@ -23,6 +23,7 @@ import {
   runOwaspCoverage,
   runSupplyChainAudit,
   runLicenseCheck,
+  runChaosAnalysis,
 } from '../src/analyzers/advanced-analyzer.js';
 import { runUnitAnalysis } from '../src/analyzers/unit-analyzer.js';
 import { runAccessibilityAnalysis } from '../src/analyzers/accessibility-analyzer.js';
@@ -45,6 +46,8 @@ const LOAD_FRAGILE = resolve(__dirname, 'fixtures/load-fragile');
 const SUPPLY_DIRTY = resolve(__dirname, 'fixtures/supply-chain-dirty');
 const SUPPLY_CLEAN = resolve(__dirname, 'fixtures/supply-chain-clean');
 const LICENSE_MIXED = resolve(__dirname, 'fixtures/license-mixed');
+const CHAOS_RESILIENT = resolve(__dirname, 'fixtures/chaos-resilient');
+const CHAOS_FRAGILE = resolve(__dirname, 'fixtures/chaos-fragile');
 
 describe('code-scanner', () => {
   let vulnInfo: CodebaseInfo;
@@ -1416,6 +1419,83 @@ describe('advanced-analyzer — Phase 5 pass 9: license audit (SPDX categorizati
     expect(categorizeLicense('SEE LICENSE IN ./LICENSE')).toBe('proprietary');
     expect(categorizeLicense(null)).toBe('unknown');
     expect(categorizeLicense('')).toBe('unknown');
+  });
+});
+
+describe('advanced-analyzer — Phase 5 pass 10: chaos / resilience patterns', () => {
+  it('detects graceful shutdown via AST (process.on SIGTERM/SIGINT)', async () => {
+    const info = await scanCodebase(CHAOS_RESILIENT);
+    const report = await runChaosAnalysis(info.fileContents, info.dependencies, ['Express']);
+    expect(report.patterns.gracefulShutdown.length).toBeGreaterThanOrEqual(2);
+    // No graceful-shutdown finding on resilient fixture
+    const gs = report.findings.find((f) => /graceful shutdown handler/i.test(f.title));
+    expect(gs).toBeUndefined();
+  });
+
+  it('detects process-level safety (unhandledRejection / uncaughtException)', async () => {
+    const info = await scanCodebase(CHAOS_RESILIENT);
+    const report = await runChaosAnalysis(info.fileContents, info.dependencies, ['Express']);
+    expect(report.patterns.processGuards.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('detects retry library imports and call sites', async () => {
+    const info = await scanCodebase(CHAOS_RESILIENT);
+    const report = await runChaosAnalysis(info.fileContents, info.dependencies, ['Express']);
+    expect(report.patterns.retryHits.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('detects Express global error handler (4-arg middleware)', async () => {
+    const info = await scanCodebase(CHAOS_RESILIENT);
+    const report = await runChaosAnalysis(info.fileContents, info.dependencies, ['Express']);
+    expect(report.patterns.errorHandlers.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('detects Idempotency-Key header reads for payment code', async () => {
+    const info = await scanCodebase(CHAOS_RESILIENT);
+    const report = await runChaosAnalysis(info.fileContents, info.dependencies, ['Express']);
+    expect(report.patterns.idempotencyKey.length).toBeGreaterThanOrEqual(1);
+    // Resilient fixture HAS stripe + DOES read the header → no finding
+    const idem = report.findings.find((f) => /idempotency-key/i.test(f.title));
+    expect(idem).toBeUndefined();
+  });
+
+  it('detects new AbortController() instantiation', async () => {
+    const info = await scanCodebase(CHAOS_RESILIENT);
+    const report = await runChaosAnalysis(info.fileContents, info.dependencies, ['Express']);
+    expect(report.patterns.abortControllers.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('flags fragile project: missing graceful shutdown, error handler, retry', async () => {
+    const info = await scanCodebase(CHAOS_FRAGILE);
+    const report = await runChaosAnalysis(info.fileContents, info.dependencies, ['Express']);
+    expect(report.patterns.gracefulShutdown.length).toBe(0);
+    expect(report.patterns.errorHandlers.length).toBe(0);
+    expect(report.patterns.retryHits.length).toBe(0);
+
+    expect(report.findings.find((f) => /graceful shutdown/i.test(f.title))).toBeTruthy();
+    expect(report.findings.find((f) => /global error handler/i.test(f.title))).toBeTruthy();
+    expect(report.findings.find((f) => /retry/i.test(f.title))).toBeTruthy();
+    expect(report.findings.find((f) => /unhandledRejection/i.test(f.title))).toBeTruthy();
+  });
+
+  it('does NOT fire false positives from substring comments', async () => {
+    // The fragile fixture has comments mentioning "SIGTERM", "SIGINT",
+    // "graceful shutdown", "AbortController". AST must not be fooled.
+    const info = await scanCodebase(CHAOS_FRAGILE);
+    const report = await runChaosAnalysis(info.fileContents, info.dependencies, ['Express']);
+    expect(report.patterns.gracefulShutdown.length).toBe(0);
+    expect(report.patterns.abortControllers.length).toBe(0);
+  });
+
+  it('does NOT fire shutdown/handler findings on a non-server app', async () => {
+    // Tiny CLI-style code, no techStack server framework.
+    const cliCode: Record<string, string> = {
+      'package.json': '{"name":"cli","dependencies":{}}',
+      'src/index.js': "function main() { try { console.log('hi'); } catch (e) { console.error(e); } } main();",
+    };
+    const report = await runChaosAnalysis(cliCode, [], ['Node']);
+    expect(report.findings.find((f) => /graceful shutdown/i.test(f.title))).toBeUndefined();
+    expect(report.findings.find((f) => /global error handler/i.test(f.title))).toBeUndefined();
   });
 });
 

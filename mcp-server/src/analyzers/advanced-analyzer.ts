@@ -15,6 +15,7 @@ import {
   type LockfileEntry,
 } from './lib/supply-chain.js';
 import { auditLicenses, type LicenseCategory, type PackageLicense } from './lib/license-audit.js';
+import { findChaosPatterns, type ChaosPatternHit } from './lib/chaos-patterns.js';
 import {
   aggregateFileRisk,
   bucketSecurityByFile,
@@ -427,9 +428,37 @@ export async function runPropertyBasedAnalysis(
 // 5. CHAOS ENGINEERING — Fault tolerance analysis
 // ═══════════════════════════════════════════════════════════════════
 
+// Chaos / resilience analysis (pass 10 — AST-aware).
+//
+// The previous version substring-matched the WORD "SIGTERM"/"timeout"
+// across all file content combined. Any comment containing the word
+// flipped the flag. This version walks each parseable AST and looks
+// for actual patterns:
+//
+//   - process.on('SIGTERM'|'SIGINT', …) listeners (graceful shutdown)
+//   - process.on('unhandledRejection'|'uncaughtException', …) guards
+//   - p-retry / async-retry / axios-retry imports + their call sites
+//   - manual retry loops (for/while + try/catch + setTimeout)
+//   - Express global error middleware (4-param handler)
+//   - Fastify setErrorHandler
+//   - new AbortController()
+//   - Idempotency-Key header reads
+//
+// Pass 6 (load) covers circuit breakers and outbound-call timeouts;
+// not duplicated here.
 export interface ChaosReport {
   score: number;
   resilienceLevel: string;
+  /** AST-verified pattern hits. */
+  patterns: {
+    gracefulShutdown: ChaosPatternHit[];
+    processGuards: ChaosPatternHit[];
+    retryHits: ChaosPatternHit[];
+    manualRetryLoops: ChaosPatternHit[];
+    errorHandlers: ChaosPatternHit[];
+    abortControllers: ChaosPatternHit[];
+    idempotencyKey: ChaosPatternHit[];
+  };
   findings: Finding[];
 }
 
@@ -439,89 +468,139 @@ export async function runChaosAnalysis(
   techStack: string[]
 ): Promise<ChaosReport> {
   const findings: Finding[] = [];
-  const allContent = Object.values(fileContents).join('\n');
 
-  // Check error handling
-  const hasTryCatch = (allContent.match(/try\s*{/g) || []).length;
-  const hasCircuitBreaker = dependencies.some(d =>
-    d.includes('opossum') || d.includes('circuit-breaker') || d.includes('resilience')
-  );
-  const hasRetry = dependencies.some(d =>
-    d.includes('retry') || d.includes('exponential-backoff') || d.includes('p-retry')
+  // Aggregate AST hits across all parseable files.
+  const patterns = {
+    gracefulShutdown: [] as ChaosPatternHit[],
+    processGuards: [] as ChaosPatternHit[],
+    retryHits: [] as ChaosPatternHit[],
+    manualRetryLoops: [] as ChaosPatternHit[],
+    errorHandlers: [] as ChaosPatternHit[],
+    abortControllers: [] as ChaosPatternHit[],
+    idempotencyKey: [] as ChaosPatternHit[],
+  };
+  let hasAnyTryCatch = false;
+  for (const [filePath, content] of Object.entries(fileContents)) {
+    if (filePath.includes('node_modules') || filePath.includes('test')) continue;
+    if (!isParseable(filePath)) continue;
+    const parsed = parseFile(filePath, content);
+    if (!parsed.ast) continue;
+    const p = findChaosPatterns(filePath, parsed.ast);
+    patterns.gracefulShutdown.push(...p.gracefulShutdown);
+    patterns.processGuards.push(...p.processGuards);
+    patterns.retryHits.push(...p.retryHits);
+    patterns.manualRetryLoops.push(...p.manualRetryLoops);
+    patterns.errorHandlers.push(...p.errorHandlers);
+    patterns.abortControllers.push(...p.abortControllers);
+    patterns.idempotencyKey.push(...p.idempotencyKey);
+
+    // Light try/catch detection from content — used only for the "zero
+    // try/catch in entire project" finding. Substring match is fine here
+    // because the cost of a false negative (we miss a real try/catch)
+    // outweighs the false-positive cost of seeing "try { foo }" in a string.
+    if (!hasAnyTryCatch && /\btry\s*\{/.test(content)) hasAnyTryCatch = true;
+  }
+
+  const isServerApp = techStack.some((t) =>
+    ['Express', 'Fastify', 'Koa', 'NestJS', 'Hono'].includes(t)
   );
 
-  if (!hasTryCatch) {
+  // ── Critical: no try/catch anywhere
+  if (!hasAnyTryCatch && isServerApp) {
     findings.push({
       severity: 'critical',
-      title: 'No Error Handling (try/catch)',
-      description: 'Zero try/catch blocks found. Any unhandled exception will crash the application.',
-      fixSuggestion: 'Add try/catch around all async operations. Create a global error handler middleware.',
+      title: 'No try/catch blocks found anywhere in the codebase',
+      description: 'Zero try/catch blocks detected in non-test files. Any unhandled exception in an async path will crash the worker.',
+      fixSuggestion: 'Wrap all async I/O in try/catch. Register a global error handler middleware. For Fastify, `app.setErrorHandler(...)`.',
       category: 'Chaos Engineering',
     });
   }
 
-  if (!hasCircuitBreaker && techStack.some(t => ['Express', 'Fastify', 'Koa'].includes(t))) {
+  // ── High: no graceful shutdown registered
+  if (patterns.gracefulShutdown.length === 0 && isServerApp) {
     findings.push({
       severity: 'high',
-      title: 'No Circuit Breaker Pattern',
-      description: 'Without circuit breakers, cascading failures will bring down the entire system when one dependency fails.',
-      fixSuggestion: 'Implement circuit breaker (opossum library) for all external API calls and database connections.',
+      title: 'No graceful shutdown handler',
+      description: 'No `process.on(\'SIGTERM\', …)` or `process.on(\'SIGINT\', …)` listener found. Container orchestrators send SIGTERM before SIGKILL; without a handler, in-flight requests are dropped.',
+      fixSuggestion:
+        'Register a SIGTERM listener: `process.on(\'SIGTERM\', async () => { await server.close(); /* drain DB pool, redis, ... */ process.exit(0); });`. Kubernetes sends SIGTERM 30s before SIGKILL.',
       category: 'Chaos Engineering',
     });
   }
 
-  if (!hasRetry) {
-    findings.push({
-      severity: 'medium',
-      title: 'No Retry/Backoff Logic',
-      description: 'Transient failures will become permanent. Retry with exponential backoff handles temporary outages gracefully.',
-      fixSuggestion: 'Add retry logic with exponential backoff (p-retry, axios-retry). Max 3 retries with jitter.',
-      category: 'Chaos Engineering',
-    });
-  }
-
-  // Check graceful shutdown
-  const hasGracefulShutdown = allContent.includes('SIGTERM') || allContent.includes('SIGINT') ||
-    allContent.includes('graceful') || allContent.includes('shutdown');
-  if (!hasGracefulShutdown && techStack.length > 2) {
+  // ── High: no global error handler (Express/Fastify)
+  if (patterns.errorHandlers.length === 0 && isServerApp) {
     findings.push({
       severity: 'high',
-      title: 'No Graceful Shutdown',
-      description: 'Application will drop in-flight requests on SIGTERM. Container orchestrators send SIGTERM before killing.',
-      fixSuggestion: 'Listen for SIGTERM/SIGINT. Close server, drain connections, then exit. Kubernetes sends SIGTERM 30s before SIGKILL.',
+      title: 'No global error handler registered',
+      description:
+        'For Express, no `app.use((err, req, res, next) => …)` 4-arg middleware found. For Fastify, no `setErrorHandler`. Errors propagating to the framework will return generic 500s without structured logging.',
+      fixSuggestion:
+        'Express: `app.use((err, req, res, next) => { logger.error(err); res.status(500).json({ error: err.message }); });`. Fastify: `app.setErrorHandler(...)`. Log + return a stable error shape.',
       category: 'Chaos Engineering',
     });
   }
 
-  // Check timeouts
-  const hasTimeout = allContent.includes('setTimeout') || allContent.includes('timeout') ||
-    allContent.includes('AbortController') || allContent.includes('abort');
-  if (!hasTimeout && dependencies.length > 5) {
+  // ── Medium: no retry/backoff anywhere
+  const hasAnyRetry =
+    patterns.retryHits.length > 0 ||
+    patterns.manualRetryLoops.length > 0 ||
+    dependencies.some((d) =>
+      d === 'p-retry' || d === 'async-retry' || d === 'axios-retry' ||
+      d === 'retry' || d === 'exponential-backoff' || d === 'cockatiel'
+    );
+  if (!hasAnyRetry && isServerApp) {
     findings.push({
       severity: 'medium',
-      title: 'No Request Timeouts',
-      description: 'Hanging requests will exhaust connection pools. Always set timeouts on external calls.',
-      fixSuggestion: 'Add AbortController with timeouts to all fetch/axios calls. Set server timeout (e.g., 30s).',
+      title: 'No retry / backoff library or pattern detected',
+      description: 'No `p-retry` / `async-retry` / `axios-retry` import, no manual retry loop. Transient failures (network flake, rate limit) become permanent errors.',
+      fixSuggestion:
+        'Wrap external calls in `p-retry(fn, { retries: 3, factor: 2, minTimeout: 500 })`. Or use `cockatiel` for combined retry + circuit-breaker.',
+      category: 'Chaos Engineering',
+    });
+  }
+
+  // ── Medium: no process-level safety net
+  if (patterns.processGuards.length === 0 && isServerApp) {
+    findings.push({
+      severity: 'medium',
+      title: 'No `unhandledRejection` / `uncaughtException` guard',
+      description: 'Node\'s default behavior on unhandled promise rejection is to crash the process. Without a guard, you can\'t log the rejection or trigger a graceful drain.',
+      fixSuggestion:
+        '`process.on(\'unhandledRejection\', (reason) => { logger.fatal({ reason }, \'unhandled rejection\'); process.exit(1); });` — log it, then exit. Letting the process die after logging is fine; silently swallowing the rejection is not.',
+      category: 'Chaos Engineering',
+    });
+  }
+
+  // ── Info / low: idempotency-key handling
+  if (patterns.idempotencyKey.length === 0 && isServerApp && dependencies.some((d) => d === 'stripe' || d === '@stripe/stripe-js' || d.includes('payment'))) {
+    findings.push({
+      severity: 'medium',
+      title: 'Payment-related code without Idempotency-Key handling',
+      description: 'Payment / billing dependencies detected, but no read of the `Idempotency-Key` header. Network retries can double-charge customers.',
+      fixSuggestion: 'Require `Idempotency-Key` on mutating payment endpoints. Cache the result by key + endpoint for ≥24 hours. Stripe\'s API uses this convention.',
       category: 'Chaos Engineering',
     });
   }
 
   let resilienceLevel: string;
-  if (findings.filter(f => f.severity === 'critical' || f.severity === 'high').length === 0) {
-    resilienceLevel = 'High — Application has good fault tolerance patterns';
-  } else if (findings.filter(f => f.severity === 'critical').length === 0) {
-    resilienceLevel = 'Medium — Some resilience gaps. Add circuit breakers and graceful shutdown.';
+  const criticalCount = findings.filter((f) => f.severity === 'critical').length;
+  const highCount = findings.filter((f) => f.severity === 'high').length;
+  if (criticalCount === 0 && highCount === 0) {
+    resilienceLevel = 'High — application has graceful shutdown, error handler, and retry/timeout patterns.';
+  } else if (criticalCount === 0) {
+    resilienceLevel = `Medium — ${highCount} high-severity resilience gap(s). Address graceful shutdown and global error handling first.`;
   } else {
-    resilienceLevel = 'Low — Critical gaps in error handling and fault tolerance.';
+    resilienceLevel = 'Low — Critical gaps in error handling. Errors will crash the worker.';
   }
 
   const score = Math.max(0, 100 -
-    findings.filter(f => f.severity === 'critical').length * 30 -
-    findings.filter(f => f.severity === 'high').length * 15 -
-    findings.filter(f => f.severity === 'medium').length * 8
+    findings.filter((f) => f.severity === 'critical').length * 30 -
+    findings.filter((f) => f.severity === 'high').length * 15 -
+    findings.filter((f) => f.severity === 'medium').length * 8
   );
 
-  return { score, resilienceLevel, findings };
+  return { score, resilienceLevel, patterns, findings };
 }
 
 // ═══════════════════════════════════════════════════════════════════
