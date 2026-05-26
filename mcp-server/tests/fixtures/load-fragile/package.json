@@ -1,0 +1,9 @@
+{
+  "name": "fixture-load-fragile",
+  "version": "0.0.1",
+  "description": "Load fixture — nothing wired in correctly.",
+  "dependencies": {
+    "express": "^4.18.0",
+    "axios": "^1.5.0"
+  }
+}
