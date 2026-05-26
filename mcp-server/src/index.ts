@@ -148,7 +148,7 @@ async function main() {
       const supplyChainReport = runSupplyChainAudit(codebase.dependencies, codebase.devDependencies, projectPath);
       const nPlusOneReport = runNPlusOneDetection(codebase.fileContents);
       const deadCodeReport = runDeadCodeAnalysis(codebase.fileContents, codebase.dependencies);
-      const licenseReport = runLicenseCheck(codebase.dependencies);
+      const licenseReport = runLicenseCheck(codebase.dependencies, projectPath);
       const doraReport = runDoraEstimation(codebase.fileContents, codebase.devDependencies);
       const owaspReport = runOwaspCoverage(securityFindings.filter(f => f.severity !== 'info') as Parameters<typeof runOwaspCoverage>[0]);
 

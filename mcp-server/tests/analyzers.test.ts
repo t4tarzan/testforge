@@ -22,6 +22,7 @@ import {
   runContractAnalysis,
   runOwaspCoverage,
   runSupplyChainAudit,
+  runLicenseCheck,
 } from '../src/analyzers/advanced-analyzer.js';
 import { runUnitAnalysis } from '../src/analyzers/unit-analyzer.js';
 import { runAccessibilityAnalysis } from '../src/analyzers/accessibility-analyzer.js';
@@ -43,6 +44,7 @@ const LOAD_RESILIENT = resolve(__dirname, 'fixtures/load-resilient');
 const LOAD_FRAGILE = resolve(__dirname, 'fixtures/load-fragile');
 const SUPPLY_DIRTY = resolve(__dirname, 'fixtures/supply-chain-dirty');
 const SUPPLY_CLEAN = resolve(__dirname, 'fixtures/supply-chain-clean');
+const LICENSE_MIXED = resolve(__dirname, 'fixtures/license-mixed');
 
 describe('code-scanner', () => {
   let vulnInfo: CodebaseInfo;
@@ -1329,6 +1331,91 @@ describe('advanced-analyzer — Phase 5 pass 8: supply-chain lockfile audit', ()
     // Direct lodash CVE should still fire.
     const lodash = report.findings.find((f) => /lodash/i.test(f.title));
     expect(lodash).toBeTruthy();
+  });
+});
+
+describe('advanced-analyzer — Phase 5 pass 9: license audit (SPDX categorization)', () => {
+  it('categorizes a mixed node_modules tree correctly', async () => {
+    const info = await scanCodebase(LICENSE_MIXED);
+    const report = runLicenseCheck(info.dependencies, LICENSE_MIXED);
+    expect(report.inspected).toBe(true);
+    // mit-pkg + @scope/scoped-mit
+    expect(report.byCategory.permissive).toBeGreaterThanOrEqual(2);
+    // gpl-pkg
+    expect(report.byCategory.copyleftStrong).toBeGreaterThanOrEqual(1);
+    // lgpl-pkg
+    expect(report.byCategory.copyleftWeak).toBeGreaterThanOrEqual(1);
+    // unlicensed-pkg
+    expect(report.byCategory.proprietary).toBeGreaterThanOrEqual(1);
+    // no-license-pkg
+    expect(report.byCategory.unknown).toBeGreaterThanOrEqual(1);
+  });
+
+  it('flags strong copyleft (GPL/AGPL) at HIGH severity', async () => {
+    const info = await scanCodebase(LICENSE_MIXED);
+    const report = runLicenseCheck(info.dependencies, LICENSE_MIXED);
+    const gpl = report.findings.find((f) => /strong-copyleft/i.test(f.title));
+    expect(gpl).toBeTruthy();
+    expect(gpl!.severity).toBe('high');
+    expect(gpl!.description).toMatch(/gpl-pkg/);
+  });
+
+  it('flags weak copyleft (LGPL/MPL/EPL) at MEDIUM severity', async () => {
+    const info = await scanCodebase(LICENSE_MIXED);
+    const report = runLicenseCheck(info.dependencies, LICENSE_MIXED);
+    const lgpl = report.findings.find((f) => /weak-copyleft/i.test(f.title));
+    expect(lgpl).toBeTruthy();
+    expect(lgpl!.severity).toBe('medium');
+    expect(lgpl!.description).toMatch(/lgpl-pkg/);
+  });
+
+  it('flags UNLICENSED packages', async () => {
+    const info = await scanCodebase(LICENSE_MIXED);
+    const report = runLicenseCheck(info.dependencies, LICENSE_MIXED);
+    const unlicensed = report.findings.find((f) => /UNLICENSED/i.test(f.title));
+    expect(unlicensed).toBeTruthy();
+  });
+
+  it('flags packages without a license field', async () => {
+    const info = await scanCodebase(LICENSE_MIXED);
+    const report = runLicenseCheck(info.dependencies, LICENSE_MIXED);
+    const noLicense = report.findings.find((f) => /no resolvable license/i.test(f.title));
+    expect(noLicense).toBeTruthy();
+    expect(report.unknownLicense).toBeGreaterThanOrEqual(1);
+  });
+
+  it('handles scoped packages (@scope/name)', async () => {
+    const info = await scanCodebase(LICENSE_MIXED);
+    const report = runLicenseCheck(info.dependencies, LICENSE_MIXED);
+    const scoped = report.strongCopyleft.find((p) => p.name === '@scope/scoped-mit')
+      || report.weakCopyleft.find((p) => p.name === '@scope/scoped-mit');
+    // @scope/scoped-mit is MIT, so it's NOT in copyleft lists — it should be in permissive count.
+    expect(scoped).toBeUndefined();
+    expect(report.byCategory.permissive).toBeGreaterThanOrEqual(2);
+  });
+
+  it('emits honest "no node_modules" finding when not present', async () => {
+    // VULNERABLE fixture has no node_modules.
+    const info = await scanCodebase(VULNERABLE);
+    const report = runLicenseCheck(info.dependencies, VULNERABLE);
+    expect(report.inspected).toBe(false);
+    const limitation = report.findings.find((f) => /license audit could not run/i.test(f.title));
+    expect(limitation).toBeTruthy();
+  });
+
+  it('SPDX categorizer: handles edge cases', async () => {
+    const { categorizeLicense } = await import('../src/analyzers/lib/license-audit.js');
+    expect(categorizeLicense('MIT')).toBe('permissive');
+    expect(categorizeLicense('Apache-2.0')).toBe('permissive');
+    expect(categorizeLicense('BSD-3-Clause')).toBe('permissive');
+    expect(categorizeLicense('GPL-3.0')).toBe('copyleftStrong');
+    expect(categorizeLicense('AGPL-3.0-only')).toBe('copyleftStrong');
+    expect(categorizeLicense('LGPL-2.1')).toBe('copyleftWeak'); // NOT strong, even though contains "GPL"
+    expect(categorizeLicense('MPL-2.0')).toBe('copyleftWeak');
+    expect(categorizeLicense('UNLICENSED')).toBe('proprietary');
+    expect(categorizeLicense('SEE LICENSE IN ./LICENSE')).toBe('proprietary');
+    expect(categorizeLicense(null)).toBe('unknown');
+    expect(categorizeLicense('')).toBe('unknown');
   });
 });
 

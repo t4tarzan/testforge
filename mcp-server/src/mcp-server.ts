@@ -559,7 +559,7 @@ export async function setupMCPServer(app: FastifyInstance) {
       const supplyReport = runSupplyChainAudit(codebase.dependencies, codebase.devDependencies, projectPath);
       const nPlusOneReport = runNPlusOneDetection(codebase.fileContents);
       const deadReport = runDeadCodeAnalysis(codebase.fileContents, codebase.dependencies);
-      const licenseReport = runLicenseCheck(codebase.dependencies);
+      const licenseReport = runLicenseCheck(codebase.dependencies, projectPath);
       const doraReport = runDoraEstimation(codebase.fileContents, codebase.devDependencies);
       // SecurityFinding includes 'info' severity; runOwaspCoverage only
       // counts real findings. Filter then cast — the call sites use

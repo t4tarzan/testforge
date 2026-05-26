@@ -1,0 +1,9 @@
+{
+  "name": "fixture-license-mixed",
+  "version": "0.0.1",
+  "dependencies": {
+    "mit-pkg": "1.0.0",
+    "gpl-pkg": "1.0.0",
+    "lgpl-pkg": "1.0.0"
+  }
+}

@@ -14,6 +14,7 @@ import {
   type SupplyChainGraph,
   type LockfileEntry,
 } from './lib/supply-chain.js';
+import { auditLicenses, type LicenseCategory, type PackageLicense } from './lib/license-audit.js';
 import {
   aggregateFileRisk,
   bucketSecurityByFile,
@@ -1104,33 +1105,130 @@ export function runDeadCodeAnalysis(fileContents: Record<string, string>, depend
   };
 }
 
-// License Compliance Check
-export interface LicenseReport { score: number; copyleftDeps: string[]; unknownLicense: number; findings: Finding[]; }
+// License Compliance Check (pass 9 — SPDX-categorized from node_modules).
+//
+// Walks `node_modules/` (when present) and reads each package's
+// `license` field. Categorizes per SPDX into:
+//   - permissive   (MIT, ISC, Apache-2.0, BSD-*)
+//   - copyleftWeak (LGPL-*, MPL-*, EPL-*)
+//   - copyleftStrong (GPL-*, AGPL-*) ← incompatible with proprietary distribution
+//   - proprietary (UNLICENSED, "SEE LICENSE IN …")
+//   - unknown      (missing license field)
+//
+// When node_modules isn't present, emits a "license audit not run"
+// finding so the limitation is honest, not silently misreported.
+export interface LicenseReport {
+  score: number;
+  /** Whether we found a node_modules tree to inspect. */
+  inspected: boolean;
+  /** Counts by SPDX category. */
+  byCategory: Record<LicenseCategory, number>;
+  /** All packages whose license falls into copyleftStrong (acts on info downstream). */
+  copyleftDeps: string[];
+  /** Subset list — strong copyleft packages with their version + license. */
+  strongCopyleft: PackageLicense[];
+  /** Subset list — weak copyleft packages (LGPL/MPL/EPL) — usually OK with caveats. */
+  weakCopyleft: PackageLicense[];
+  /** Subset list — packages with no resolvable license field. */
+  unknownLicense: number;
+  findings: Finding[];
+}
 
-export function runLicenseCheck(dependencies: string[]): LicenseReport {
+export function runLicenseCheck(dependencies: string[], projectPath?: string): LicenseReport {
   const findings: Finding[] = [];
-  const copyleftDeps: string[] = [];
-  
-  // Simplified — in production, call npm registry API for license info
-  const knownGPL = ['react', 'vue', 'angular', 'moment', 'underscore']; // Example GPL-adjacent
-  
-  for (const dep of dependencies) {
-    const depName = dep.replace(/^[@]/, '').split('@')[0] || dep;
-    if (knownGPL.some(g => depName.toLowerCase().includes(g.toLowerCase())) && 
-        !findings.some(f => f.title.includes('License'))) {
+
+  // Pull from disk-installed node_modules if available.
+  const audit = projectPath
+    ? auditLicenses(projectPath)
+    : { inspected: false, nodeModulesPath: null, packages: [],
+        byCategory: { permissive: 0, copyleftWeak: 0, copyleftStrong: 0, proprietary: 0, unknown: 0 } as Record<LicenseCategory, number> };
+
+  const strongCopyleft = audit.packages.filter((p) => p.category === 'copyleftStrong');
+  const weakCopyleft = audit.packages.filter((p) => p.category === 'copyleftWeak');
+  const proprietary = audit.packages.filter((p) => p.category === 'proprietary');
+
+  if (!audit.inspected) {
+    findings.push({
+      severity: 'low',
+      title: 'License audit could not run — no node_modules/ found',
+      description:
+        'License compliance requires reading each installed package\'s `license` field, but no `node_modules/` directory was present.',
+      fixSuggestion:
+        `Run \`npm install\` (or your package manager's equivalent) before the analysis, or supply pre-installed dependencies. ` +
+        `Without this, ${dependencies.length} declared deps are unchecked for license compatibility.`,
+      category: 'License Compliance',
+    });
+  } else {
+    if (strongCopyleft.length > 0) {
+      const sample = strongCopyleft.slice(0, 5)
+        .map((p) => `${p.name}@${p.version} (${p.spdx})`).join('; ');
       findings.push({
-        severity: 'low',
-        title: 'Verify Dependency Licenses',
-        description: `${dependencies.length} dependencies — verify all licenses are compatible with your project. Check for GPL/copyleft risks.`,
-        fixSuggestion: 'Run: npx license-checker --summary. Add license-check to CI. Avoid GPL dependencies in proprietary code.',
+        severity: 'high',
+        title: `${strongCopyleft.length} strong-copyleft (GPL/AGPL) dependency / dependencies`,
+        description:
+          `Strong copyleft licenses can require you to release your source under the same terms when you redistribute. Examples: ${sample}.`,
+        fixSuggestion:
+          'If you ship proprietary code: replace these with permissively-licensed alternatives, or carve them into a separate process boundary so the AGPL/GPL boundary doesn\'t extend to your code. Get sign-off from legal regardless.',
         category: 'License Compliance',
       });
-      break;
+    }
+    if (weakCopyleft.length > 0) {
+      const sample = weakCopyleft.slice(0, 5)
+        .map((p) => `${p.name}@${p.version} (${p.spdx})`).join('; ');
+      findings.push({
+        severity: 'medium',
+        title: `${weakCopyleft.length} weak-copyleft (LGPL/MPL/EPL) dependency / dependencies`,
+        description:
+          `Weak copyleft is usually compatible with proprietary distribution, BUT the specific license terms (linking exceptions, distribution requirements) vary. Examples: ${sample}.`,
+        fixSuggestion:
+          'Document in your THIRD_PARTY_NOTICES file. For LGPL specifically: dynamic linking is fine, static linking triggers source-disclosure obligations.',
+        category: 'License Compliance',
+      });
+    }
+    if (proprietary.length > 0) {
+      findings.push({
+        severity: 'medium',
+        title: `${proprietary.length} package(s) with UNLICENSED / "SEE LICENSE IN …" markers`,
+        description: 'Packages with explicit "UNLICENSED" or custom-license markers can\'t be used without permission. Examples: ' +
+          proprietary.slice(0, 5).map((p) => `${p.name}@${p.version}`).join(', ') + '.',
+        fixSuggestion:
+          'Read the LICENSE file in each affected package and verify your team has written permission. If it\'s a leaked private package, replace it immediately.',
+        category: 'License Compliance',
+      });
+    }
+    const unknownCount = audit.byCategory.unknown;
+    if (unknownCount > 0) {
+      findings.push({
+        severity: 'low',
+        title: `${unknownCount} package(s) with no resolvable license field`,
+        description: 'These dependencies omit the `license` field in their package.json. Their LICENSE file (if any) may still provide one, but it can\'t be inspected automatically.',
+        fixSuggestion: 'Run `npx license-checker --summary` for a deeper crawl that reads LICENSE files. Open issues upstream asking maintainers to add SPDX identifiers.',
+        category: 'License Compliance',
+      });
     }
   }
 
-  const score = Math.max(0, 100 - copyleftDeps.length * 20);
-  return { score, copyleftDeps, unknownLicense: 0, findings };
+  // Score: 100 minus weighted deductions.
+  const score = Math.max(0,
+    100
+    - strongCopyleft.length * 15
+    - weakCopyleft.length * 5
+    - proprietary.length * 8
+    - (audit.inspected ? 0 : 10)  // honest penalty for not running
+  );
+
+  const copyleftDeps = strongCopyleft.map((p) => `${p.name}@${p.version}`);
+
+  return {
+    score,
+    inspected: audit.inspected,
+    byCategory: audit.byCategory,
+    copyleftDeps,
+    strongCopyleft,
+    weakCopyleft,
+    unknownLicense: audit.byCategory.unknown,
+    findings,
+  };
 }
 
 // DORA Metrics Estimation
