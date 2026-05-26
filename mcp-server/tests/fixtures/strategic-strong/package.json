@@ -1,0 +1,10 @@
+{
+  "name": "fixture-strategic-strong",
+  "version": "0.0.1",
+  "dependencies": {
+    "express": "^4.18.0",
+    "@sentry/node": "^7.0.0",
+    "posthog-node": "^4.0.0",
+    "@growthbook/growthbook": "^1.0.0"
+  }
+}

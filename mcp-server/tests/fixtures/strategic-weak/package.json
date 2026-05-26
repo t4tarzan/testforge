@@ -1,0 +1,9 @@
+{
+  "name": "fixture-strategic-weak",
+  "version": "0.0.1",
+  "dependencies": {
+    "express": "^4.18.0",
+    "cache-analytics": "^1.0.0",
+    "crypto-analytics-lib": "^1.0.0"
+  }
+}

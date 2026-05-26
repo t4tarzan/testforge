@@ -34,7 +34,7 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
   //    We skip package-lock.json and similar large generated artifacts
   //    via separate exclude patterns below.
   const patterns = [
-    '**/*.{ts,js,tsx,jsx,mjs,cjs,mts,cts,yaml,yml,json}',
+    '**/*.{ts,js,tsx,jsx,mjs,cjs,mts,cts,yaml,yml,json,md}',
     '**/{Dockerfile,Procfile,CODEOWNERS}',
     '**/.github/**/*',
     '!**/node_modules/**', '!**/.git/**', '!**/dist/**', '!**/build/**',
