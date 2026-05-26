@@ -41,6 +41,19 @@ import {
   type TaintInfo,
   type TaintTable,
 } from './lib/taint.js';
+import {
+  buildCorsWildcardFix,
+  buildDangerouslySetInnerHtmlFix,
+  buildEvalAdvice,
+  buildInnerHtmlFix,
+  buildOpenRedirectAdvice,
+  buildPathTraversalAdvice,
+  buildResSendEscapeFix,
+  buildResponseFieldFix,
+  buildSecretEnvFix,
+  buildSqlInjectionFix,
+  type SecurityFix,
+} from './lib/fixes.js';
 
 // @babel/traverse ships an interop default — in ESM it's `traverseModule.default`.
 const traverse = (traverseModule as unknown as { default?: typeof traverseModule }).default
@@ -69,6 +82,8 @@ export interface SecurityFinding {
   category: string;
   /** Phase 2: for taint-flagged findings, the data-flow story. */
   flow?: string;
+  /** Phase 3: structured before/after fix when the rewrite is mechanical. */
+  fix?: SecurityFix;
 }
 
 interface SecurityConfig {
@@ -292,6 +307,7 @@ function checkSqlInjectionSink(
   const report = analyzeSinkArg(arg as t.Node, table);
   if (!report) return;
 
+  const fix = report.confidence === 'high' ? buildSqlInjectionFix(call, content) : null;
   push(out, filePath, content, call, {
     severity: 'critical',
     confidence: report.confidence,
@@ -304,6 +320,7 @@ function checkSqlInjectionSink(
       'If you must build dynamic SQL, allowlist the variable parts and pass user values via bound parameters.',
     category: 'SQL Injection',
     flow: report.taint ? describeFlow(report.taint) : undefined,
+    fix: fix ?? undefined,
   });
 }
 
@@ -335,6 +352,7 @@ function checkRceSinks(
         'Replace eval with JSON.parse for JSON, a real parser for DSLs, or an explicit dispatch table for known commands.',
       category: 'Dangerous Functions',
       flow: report?.taint ? describeFlow(report.taint) : undefined,
+      fix: buildEvalAdvice(call, content) ?? undefined,
     });
     return;
   }
@@ -354,6 +372,7 @@ function checkRceSinks(
       fixSuggestion: 'Use a real function declaration or a safe dispatch table.',
       category: 'Dangerous Functions',
       flow: report?.taint ? describeFlow(report.taint) : undefined,
+      fix: buildEvalAdvice(call, content) ?? undefined,
     });
     return;
   }
@@ -428,6 +447,7 @@ function checkPathTraversalSink(
       'Allowlist file ids → server-resolved paths, never echo user paths back.',
     category: 'Path Traversal',
     flow: report.taint ? describeFlow(report.taint) : undefined,
+    fix: buildPathTraversalAdvice(call, content) ?? undefined,
   });
 }
 
@@ -459,6 +479,7 @@ function checkOpenRedirectSink(
       'Validate the redirect against an explicit allowlist of paths or domains. Prefer internal route names over URL parameters.',
     category: 'Open Redirect',
     flow: report.taint ? describeFlow(report.taint) : undefined,
+    fix: buildOpenRedirectAdvice(call, content) ?? undefined,
   });
 }
 
@@ -484,6 +505,7 @@ function checkReflectedXssSink(
   const report = analyzeSinkArg(arg, table);
   if (!report) return;
 
+  const fix = report.confidence === 'high' ? buildResSendEscapeFix(call, content) : null;
   push(out, filePath, content, call, {
     severity: 'high',
     confidence: report.confidence,
@@ -496,6 +518,7 @@ function checkReflectedXssSink(
       'For HTML, sanitize with DOMPurify or sanitize-html before responding.',
     category: 'XSS',
     flow: report.taint ? describeFlow(report.taint) : undefined,
+    fix: fix ?? undefined,
   });
 }
 
@@ -519,6 +542,7 @@ function checkInnerHtmlAssignmentSink(
   const report = analyzeSinkArg(node.right, table);
   if (!report) return;
 
+  const fix = report.confidence === 'high' ? buildInnerHtmlFix(node, content) : null;
   push(out, filePath, content, node, {
     severity: 'high',
     confidence: report.confidence,
@@ -530,6 +554,7 @@ function checkInnerHtmlAssignmentSink(
       'Use textContent for plain text. For HTML, sanitize with DOMPurify before assigning.',
     category: 'XSS',
     flow: report.taint ? describeFlow(report.taint) : undefined,
+    fix: fix ?? undefined,
   });
 }
 
@@ -556,6 +581,10 @@ function checkDangerouslySetInnerHTMLSink(
   const report = analyzeSinkArg(htmlProp.value as t.Node, table);
   if (!report) return;
 
+  const fix =
+    report.confidence === 'high'
+      ? buildDangerouslySetInnerHtmlFix(attr, htmlProp.value as t.Node, content)
+      : null;
   push(out, filePath, content, attr, {
     severity: 'high',
     confidence: report.confidence,
@@ -566,6 +595,7 @@ function checkDangerouslySetInnerHTMLSink(
     fixSuggestion: 'Render the value as text (default React escaping) or run it through DOMPurify.sanitize() first.',
     category: 'XSS',
     flow: report.taint ? describeFlow(report.taint) : undefined,
+    fix: fix ?? undefined,
   });
 }
 
@@ -696,6 +726,7 @@ function checkCorsCall(
         : 'CORS allows requests from any origin.',
       fixSuggestion: 'Define an allowlist (`origin: [...]`) or a function that returns true only for known hosts.',
       category: 'CORS Misconfiguration',
+      fix: buildCorsWildcardFix(opts, content) ?? undefined,
     });
   }
 }
@@ -731,6 +762,7 @@ function checkSensitiveResponseJson(
     fixSuggestion:
       'Strip sensitive fields before responding. Use a projection (Drizzle column list / Prisma select) at the DB layer so the field never enters the response object.',
     category: 'Sensitive Data Exposure',
+    fix: buildResponseFieldFix(call, matched, content) ?? undefined,
   });
 }
 
@@ -770,6 +802,7 @@ function checkHardcodedSecret(
     description: `\`${node.id.name}\` is initialized with a string literal in source.`,
     fixSuggestion: 'Read from process.env or a secret store. Never commit secrets to version control.',
     category: 'Hardcoded Secrets',
+    fix: buildSecretEnvFix(node, content) ?? undefined,
   });
 }
 

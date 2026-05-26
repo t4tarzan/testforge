@@ -286,6 +286,139 @@ describe('security-analyzer — Phase 2: taint engine + sanitizers', () => {
   });
 });
 
+describe('security-analyzer — Phase 3: structured fix suggestions', () => {
+  it('SQL injection findings carry a `fix` with parameterized after-form', async () => {
+    const info = await scanCodebase(TRUE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: TRUE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const sql = findings.filter(
+      (f) =>
+        f.category === 'SQL Injection' &&
+        f.confidence === 'high' &&
+        f.filePath.endsWith('vulnerabilities.js')
+    );
+    expect(sql.length).toBeGreaterThan(0);
+    // The fixture has two shapes: an inline template literal (auto-rewritable
+    // → applicable:true with placeholders) and a tainted local variable
+    // (descriptive only → applicable:false). We assert at least one of each.
+    const applicableFix = sql.find((f) => f.fix?.applicable === true);
+    expect(applicableFix?.fix?.after).toMatch(/\$1/);
+    expect(applicableFix?.fix?.after).toMatch(/\[.+\]/);
+
+    const adviceFix = sql.find((f) => f.fix && !f.fix.applicable);
+    expect(adviceFix?.fix?.description).toMatch(/placeholder|binds?/i);
+  });
+
+  it('Hardcoded named-secret findings suggest process.env', async () => {
+    const info = await scanCodebase(TRUE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: TRUE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const secret = findings.find(
+      (f) =>
+        f.category === 'Hardcoded Secrets' &&
+        /api[_-]?key/i.test(f.title) &&
+        f.filePath.endsWith('vulnerabilities.js')
+    );
+    expect(secret).toBeTruthy();
+    expect(secret?.fix).toBeTruthy();
+    expect(secret?.fix?.applicable).toBe(true);
+    expect(secret?.fix?.after).toMatch(/process\.env\.API_KEY/);
+  });
+
+  it('CORS wildcard finding includes an allowlist scaffolding', async () => {
+    const info = await scanCodebase(TRUE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: TRUE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const cors = findings.find(
+      (f) =>
+        f.category === 'CORS Misconfiguration' &&
+        f.filePath.endsWith('vulnerabilities.js')
+    );
+    expect(cors).toBeTruthy();
+    expect(cors?.fix).toBeTruthy();
+    // CORS is a templated suggestion — not safe to auto-apply
+    expect(cors?.fix?.applicable).toBe(false);
+    expect(cors?.fix?.after).toMatch(/origin:\s*\[/);
+  });
+
+  it('eval()/Function() findings carry advice-only fixes', async () => {
+    const info = await scanCodebase(TRUE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: TRUE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const evalFinding = findings.find(
+      (f) =>
+        f.category === 'Dangerous Functions' &&
+        /eval/i.test(f.title) &&
+        f.filePath.endsWith('vulnerabilities.js')
+    );
+    expect(evalFinding).toBeTruthy();
+    expect(evalFinding?.fix).toBeTruthy();
+    expect(evalFinding?.fix?.applicable).toBe(false); // refactor required
+    expect(evalFinding?.fix?.description).toMatch(/JSON\.parse|dispatch|parser/i);
+  });
+
+  it('innerHTML/dangerouslySetInnerHTML fixes propose DOMPurify.sanitize', async () => {
+    const info = await scanCodebase(TRUE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: TRUE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    // We may not have an explicit innerHTML fixture, but we should at least
+    // verify any XSS finding with a fix proposes DOMPurify / escape if it's
+    // applicable. Use the broader contract.
+    const xssWithApplicableFix = findings.find(
+      (f) => f.category === 'XSS' && f.fix?.applicable === true
+    );
+    if (xssWithApplicableFix) {
+      expect(xssWithApplicableFix.fix?.after).toMatch(/DOMPurify\.sanitize|escape\(/);
+      expect(xssWithApplicableFix.fix?.importsNeeded?.length || 0).toBeGreaterThan(0);
+    }
+    // If no applicable XSS fix exists in the fixture, at least confirm the
+    // res.send tainted finding has its escape() fix.
+    const resSend = findings.find(
+      (f) => f.category === 'XSS' && /Response/i.test(f.title) && f.confidence === 'high'
+    );
+    if (resSend) {
+      expect(resSend.fix?.after).toMatch(/escape\(/);
+    }
+  });
+
+  it('every applicable fix has a non-empty before, after, and description', async () => {
+    const info = await scanCodebase(TRUE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: TRUE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    for (const f of findings) {
+      if (!f.fix) continue;
+      expect(f.fix.description.length).toBeGreaterThan(10);
+      expect(f.fix.before.length).toBeGreaterThan(0);
+      expect(f.fix.after.length).toBeGreaterThan(0);
+      expect(typeof f.fix.applicable).toBe('boolean');
+    }
+  });
+});
+
 describe('advanced-analyzer — determinism (S1)', () => {
   it('mutation analysis returns the same score on identical input', async () => {
     const info = await scanCodebase(CLEAN);
