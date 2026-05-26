@@ -22,7 +22,7 @@ import { glob } from 'glob';
 import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
-import { parseFile, isParseable } from './lib/parse.js';
+import { parseFile, isParseable, type ParseResult } from './lib/parse.js';
 import { collectSuppressions, isSuppressed } from './lib/suppressions.js';
 import {
   getCalleeName,
@@ -43,8 +43,16 @@ import {
 } from './lib/taint.js';
 import {
   collectFunctionSummariesWithAliases,
+  type FunctionSummary,
   type FunctionSummaryTable,
 } from './lib/function-summaries.js';
+import {
+  collectCrossFileSummaries,
+  collectFileImports,
+  lookupCrossFileSummary,
+  type CrossFileSummaryTable,
+  type FileImportMap,
+} from './lib/cross-file-summaries.js';
 import {
   buildCorsWildcardFix,
   buildDangerouslySetInnerHtmlFix,
@@ -118,9 +126,31 @@ export async function runSecurityAnalysis(
     fileContents = await loadFileContents(config.projectPath);
   }
 
+  // Phase 4b: parse all parseable files ONCE so the cross-file
+  // summary pre-pass and the per-file analysis pass share the AST.
+  // Anything unparseable / oversize still gets a placeholder finding
+  // emitted by analyzeFile (it consults the cached ParseResult).
+  const parsedByFile = new Map<string, ParseResult>();
+  const astsByFile = new Map<string, t.File>();
   for (const [filePath, content] of Object.entries(fileContents)) {
     if (!isParseable(filePath)) continue;
-    findings.push(...analyzeFile(filePath, content));
+    const parsed = parseFile(filePath, content);
+    parsedByFile.set(filePath, parsed);
+    if (parsed.ast) astsByFile.set(filePath, parsed.ast);
+  }
+
+  const crossFileTable = collectCrossFileSummaries(astsByFile);
+  const candidatePaths = new Set(astsByFile.keys());
+
+  for (const [filePath, content] of Object.entries(fileContents)) {
+    if (!isParseable(filePath)) continue;
+    const parsed = parsedByFile.get(filePath)!;
+    const imports = parsed.ast
+      ? collectFileImports(filePath, parsed.ast, candidatePaths)
+      : new Map<string, string>();
+    findings.push(
+      ...analyzeFile(filePath, content, parsed, crossFileTable, imports)
+    );
   }
 
   checkMissingRateLimit(allDeps, findings, config.projectPath);
@@ -140,9 +170,14 @@ function dedupeFindings(findings: SecurityFinding[]): SecurityFinding[] {
   });
 }
 
-function analyzeFile(filePath: string, content: string): SecurityFinding[] {
+function analyzeFile(
+  filePath: string,
+  content: string,
+  parsed: ParseResult,
+  crossFileTable: CrossFileSummaryTable,
+  imports: FileImportMap
+): SecurityFinding[] {
   const startedAt = Date.now();
-  const parsed = parseFile(filePath, content);
 
   if (parsed.oversize) {
     return [
@@ -207,7 +242,10 @@ function analyzeFile(filePath: string, content: string): SecurityFinding[] {
         checkAuthBypassRoute(path.node, filePath, content, raw, isTestFile);
         checkCorsCall(path.node, filePath, content, raw);
         checkSensitiveResponseJson(path.node, filePath, content, raw);
-        checkCrossFunctionSinkCall(path.node, filePath, content, raw, taintTable, fnSummaries);
+        checkCrossFunctionSinkCall(
+          path.node, filePath, content, raw, taintTable,
+          fnSummaries, crossFileTable, imports
+        );
       },
       AssignmentExpression(path) {
         checkInnerHtmlAssignmentSink(path.node, filePath, content, raw, taintTable);
@@ -805,22 +843,55 @@ function checkCrossFunctionSinkCall(
   content: string,
   out: SecurityFinding[],
   table: TaintTable,
-  summaries: FunctionSummaryTable
+  summaries: FunctionSummaryTable,
+  crossFileTable: CrossFileSummaryTable,
+  imports: FileImportMap
 ) {
-  // Only handle direct calls to identifiers — we don't follow
-  // higher-order references like `[].map(helper)` here.
-  if (!t.isIdentifier(call.callee)) return;
-  const summary = summaries.byName.get(call.callee.name);
-  if (!summary || summary.sinks.length === 0) return;
+  // 1. Direct call: helper(arg) — same-file summary OR imported binding.
+  if (t.isIdentifier(call.callee)) {
+    const localName = call.callee.name;
+    const summary =
+      summaries.byName.get(localName) ??
+      lookupCrossFileSummary(crossFileTable, imports, localName);
+    if (summary && summary.sinks.length > 0) {
+      emitForSummary(call, summary, localName, filePath, content, out, table);
+    }
+    return;
+  }
 
+  // 2. Namespace call: ns.helper(arg) — `const ns = require('./helper')`
+  //    or `import * as ns from './helper'`. We resolve through the
+  //    namespace binding in `imports` (stored under `<file>::*`).
+  if (
+    t.isMemberExpression(call.callee) &&
+    !call.callee.computed &&
+    t.isIdentifier(call.callee.object) &&
+    t.isIdentifier(call.callee.property)
+  ) {
+    const nsName = call.callee.object.name;
+    const propName = call.callee.property.name;
+    const summary = lookupCrossFileSummary(crossFileTable, imports, nsName, propName);
+    if (summary && summary.sinks.length > 0) {
+      emitForSummary(call, summary, `${nsName}.${propName}`, filePath, content, out, table);
+    }
+  }
+}
+
+function emitForSummary(
+  call: t.CallExpression,
+  summary: FunctionSummary,
+  calleeName: string,
+  filePath: string,
+  content: string,
+  out: SecurityFinding[],
+  table: TaintTable
+) {
   for (const sink of summary.sinks) {
-    const argIndex = sink.paramIndex;
-    const arg = call.arguments[argIndex] as t.Node | undefined;
+    const arg = call.arguments[sink.paramIndex] as t.Node | undefined;
     if (!arg) continue;
     const argReport = analyzeSinkArg(arg, table);
     if (!argReport) continue;
 
-    // Bucket sanitizers: argument side + helper-internal side.
     const allSanitizers = [
       ...(argReport.taint?.sanitizers ?? []),
       ...sink.sanitizers,
@@ -829,17 +900,17 @@ function checkCrossFunctionSinkCall(
       allSanitizers.length > 0 ? 'medium' : argReport.confidence;
 
     const description =
-      `\`${call.callee.name}(...)\` passes its argument into a ${sink.category.toLowerCase()} sink ` +
+      `\`${calleeName}(...)\` passes its argument into a ${sink.category.toLowerCase()} sink ` +
       `inside the helper. The argument here ${argReport.taint ? describeFlow(argReport.taint) : 'is built from variables'}.`;
 
     push(out, filePath, content, call, {
       severity: severityFor(sink.category),
       confidence,
-      title: `${sink.category} via \`${call.callee.name}()\` helper`,
+      title: `${sink.category} via \`${calleeName}()\` helper`,
       description,
       fixSuggestion:
-        `Either sanitize the argument before passing it to \`${call.callee.name}\`, ` +
-        `or rewrite \`${call.callee.name}\` to use the safe alternative (parameterized queries, escape, etc.) internally.`,
+        `Either sanitize the argument before passing it to \`${calleeName}\`, ` +
+        `or rewrite \`${calleeName}\` to use the safe alternative (parameterized queries, escape, etc.) internally.`,
       category: sink.category,
       flow: argReport.taint ? describeFlow(argReport.taint) : undefined,
     });

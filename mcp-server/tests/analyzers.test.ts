@@ -504,6 +504,109 @@ describe('security-analyzer — Phase 4a: cross-function taint', () => {
   });
 });
 
+describe('security-analyzer — Phase 4b: cross-FILE taint', () => {
+  it('flags SQL injection via a CJS destructured-import helper at the call site', async () => {
+    const info = await scanCodebase(TRUE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: TRUE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const inCaller = findings.filter((f) => f.filePath.endsWith('cross-file-cjs.js'));
+    const sql = inCaller.filter(
+      (f) => f.category === 'SQL Injection' && /runQuery|helper/i.test(f.title)
+    );
+    expect(sql.length).toBeGreaterThan(0);
+    // High confidence — argument is `'...' + req.params.id`, no sanitizer
+    expect(sql.some((f) => f.confidence === 'high')).toBe(true);
+  });
+
+  it('flags SQL injection through a CJS namespace import (`ns.runQuery(...)`)', async () => {
+    const info = await scanCodebase(TRUE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: TRUE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const ns = findings.find(
+      (f) =>
+        f.filePath.endsWith('cross-file-cjs.js') &&
+        f.category === 'SQL Injection' &&
+        /dbHelpers\.runQuery/.test(f.title)
+    );
+    expect(ns).toBeTruthy();
+  });
+
+  it('flags cross-file helper that taints via an intermediate variable', async () => {
+    const info = await scanCodebase(TRUE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: TRUE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const finding = findings.find(
+      (f) =>
+        f.filePath.endsWith('cross-file-cjs.js') &&
+        f.category === 'SQL Injection' &&
+        /buildAndQuery/.test(f.title)
+    );
+    expect(finding).toBeTruthy();
+  });
+
+  it('flags open redirect through an ESM named-import helper', async () => {
+    const info = await scanCodebase(TRUE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: TRUE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const redirect = findings.find(
+      (f) =>
+        f.filePath.endsWith('cross-file-esm.js') &&
+        f.category === 'Open Redirect' &&
+        /safelyRedirect/.test(f.title)
+    );
+    expect(redirect).toBeTruthy();
+  });
+
+  it('flags XSS through an ESM helper using an arrow-function export', async () => {
+    const info = await scanCodebase(TRUE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: TRUE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const xss = findings.find(
+      (f) =>
+        f.filePath.endsWith('cross-file-esm.js') &&
+        f.category === 'XSS' &&
+        /echoBack/.test(f.title)
+    );
+    expect(xss).toBeTruthy();
+  });
+
+  it('cross-file findings emit at the caller, not the helper file', async () => {
+    const info = await scanCodebase(TRUE_POS);
+    const findings = await runSecurityAnalysis({
+      projectPath: TRUE_POS,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    // The helper files must not carry helper-titled cross-file findings —
+    // by definition cross-file findings fire in the file that calls in.
+    const inHelpers = findings.filter(
+      (f) => /helpers\//.test(f.filePath) && /helper/i.test(f.title)
+    );
+    expect(inHelpers).toEqual([]);
+  });
+});
+
 describe('advanced-analyzer — determinism (S1)', () => {
   it('mutation analysis returns the same score on identical input', async () => {
     const info = await scanCodebase(CLEAN);
