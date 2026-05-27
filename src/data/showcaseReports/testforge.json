@@ -1,0 +1,151 @@
+{
+  "slug": "testforge",
+  "repoUrl": "https://github.com/t4tarzan/testforge",
+  "repoName": "testforge",
+  "tagline": "TestForge auditing TestForge. The 25-release self-audit on the analyzer that ships these reports.",
+  "analyzedAt": "2026-05-27T23:15:25.176Z",
+  "analyzeMs": 2535,
+  "codebase": {
+    "totalFiles": 360,
+    "totalLines": 72747,
+    "endpoints": 202,
+    "dependencies": 62,
+    "techStack": [
+      "Express",
+      "React",
+      "TypeScript",
+      "Drizzle",
+      "Stripe",
+      "Zod",
+      "TailwindCSS",
+      "Playwright"
+    ],
+    "languageCoverage": {
+      "nativelyAnalyzedFiles": 266,
+      "unsupportedFiles": 0,
+      "coveragePercent": 100,
+      "unsupportedLanguages": []
+    }
+  },
+  "unit": {
+    "coverage": 72,
+    "testFiles": 17,
+    "totalTests": 255,
+    "frameworks": [
+      "Vitest",
+      "pytest"
+    ]
+  },
+  "security": {
+    "findings": 27,
+    "critical": 1,
+    "high": 24,
+    "medium": 2,
+    "low": 0,
+    "topItems": [
+      {
+        "severity": "medium",
+        "title": "CORS with Default Config",
+        "description": "cors() called with no options. Some versions default to \"Access-Control-Allow-Origin: *\".",
+        "filePath": "server.js",
+        "lineNumber": 6,
+        "fixSuggestion": "Pass an options object with an explicit origin allowlist."
+      },
+      {
+        "severity": "high",
+        "title": "Route Without Inline Auth",
+        "description": "app.get() declares a route with no visible auth middleware. If your app uses a global auth middleware, suppress this with a comment.",
+        "filePath": "server.js",
+        "lineNumber": 10,
+        "fixSuggestion": "Either pass an auth middleware function in the args list, or annotate the file with `// testforge-disable-file authentication-bypass` if a global middleware is intentional."
+      },
+      {
+        "severity": "high",
+        "title": "Route Without Inline Auth",
+        "description": "app.post() declares a route with no visible auth middleware. If your app uses a global auth middleware, suppress this with a comment.",
+        "filePath": "server.js",
+        "lineNumber": 21,
+        "fixSuggestion": "Either pass an auth middleware function in the args list, or annotate the file with `// testforge-disable-file authentication-bypass` if a global middleware is intentional."
+      },
+      {
+        "severity": "high",
+        "title": "token field in response body",
+        "description": "res.json() is shipping an object with a `token` property.",
+        "filePath": "server.js",
+        "lineNumber": 25,
+        "fixSuggestion": "Strip sensitive fields before responding. Use a projection (Drizzle column list / Prisma select) at the DB layer so the field never enters the response object."
+      },
+      {
+        "severity": "high",
+        "title": "Route Without Inline Auth",
+        "description": "app.get() declares a route with no visible auth middleware. If your app uses a global auth middleware, suppress this with a comment.",
+        "filePath": "server.js",
+        "lineNumber": 43,
+        "fixSuggestion": "Either pass an auth middleware function in the args list, or annotate the file with `// testforge-disable-file authentication-bypass` if a global middleware is intentional."
+      }
+    ]
+  },
+  "scores": [
+    {
+      "key": "security",
+      "label": "Security",
+      "score": 0
+    },
+    {
+      "key": "unit",
+      "label": "Unit Tests",
+      "score": 72
+    },
+    {
+      "key": "accessibility",
+      "label": "Accessibility",
+      "score": 10
+    },
+    {
+      "key": "vision",
+      "label": "Vision",
+      "score": 50
+    },
+    {
+      "key": "scope",
+      "label": "Scope",
+      "score": 100
+    },
+    {
+      "key": "stack",
+      "label": "Stack",
+      "score": 79
+    },
+    {
+      "key": "chaos",
+      "label": "Chaos / Resilience",
+      "score": 46
+    },
+    {
+      "key": "mutation",
+      "label": "Mutation",
+      "score": 0
+    },
+    {
+      "key": "predictive",
+      "label": "Predictive Risk",
+      "score": 10
+    },
+    {
+      "key": "supplyChain",
+      "label": "Supply Chain",
+      "score": 0
+    },
+    {
+      "key": "dora",
+      "label": "DORA",
+      "score": 25
+    },
+    {
+      "key": "agentic",
+      "label": "Agentic Scale",
+      "score": 85
+    }
+  ],
+  "overall": 40
+}
