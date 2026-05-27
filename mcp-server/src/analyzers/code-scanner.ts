@@ -512,7 +512,7 @@ function parseGoMod(content: string): string[] {
   const lines = content.split('\n');
   let inBlock = false;
   for (const raw of lines) {
-    let line = raw.trim();
+    const line = raw.trim();
     if (!line || line.startsWith('//')) continue;
     if (line.startsWith('module ') || line.startsWith('go ') || line.startsWith('toolchain ')) continue;
 
