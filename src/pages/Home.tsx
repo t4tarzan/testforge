@@ -411,12 +411,12 @@ export default function Home() {
     { icon: <Target size={48} />, title: 'Scope Testing', description: 'Requirements coverage & boundary validation', badge: '98% coverage' },
     { icon: <Eye size={48} />, title: 'Vision & Goal Testing', description: 'Business goal alignment & outcome prediction', badge: '94% alignment' },
     { icon: <Grid3x3 size={48} />, title: 'Feature Matrix Testing', description: 'Traceability matrices & impact analysis', badge: 'Auto-gen' },
-    { icon: <TrendingUp size={48} />, title: 'Load & Scale Testing', description: 'Distributed load & predictive performance', badge: '10K+ RPS' },
-    { icon: <Brain size={48} />, title: 'Predictive Testing', description: 'ML defect prediction & risk scoring', badge: '87% accuracy' },
-    { icon: <Shield size={48} />, title: 'Security Testing', description: 'SAST, DAST, AI fuzzing', badge: '4x coverage' },
+    { icon: <TrendingUp size={48} />, title: 'Load & Scale Patterns', description: 'Rate-limit, cache, queue & backpressure detection', badge: 'Pattern detection' },
+    { icon: <Brain size={48} />, title: 'Predictive Risk Scoring', description: 'Risk per file from complexity + churn signals', badge: 'Per-file score' },
+    { icon: <Shield size={48} />, title: 'Security (SAST + Taint)', description: 'Babel AST + taint flow across OWASP Top 10', badge: 'OWASP-mapped' },
     { icon: <Camera size={48} />, title: 'Visual Regression', description: 'AI computer vision comparison', badge: 'Pixel-perfect' },
     { icon: <Accessibility size={48} />, title: 'Accessibility Testing', description: 'WCAG compliance validation', badge: '57% auto' },
-    { icon: <Zap size={48} />, title: 'Chaos Engineering', description: 'RL-driven fault injection', badge: '+26.5% detection' },
+    { icon: <Zap size={48} />, title: 'Resilience Patterns', description: 'Retry, circuit-breaker, timeout, idempotency checks', badge: 'Pre-merge' },
   ]
 
   return (

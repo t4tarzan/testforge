@@ -1115,20 +1115,30 @@ function SecurityTestingPage() {
           <strong className="font-semibold text-[#12101A]">
             SAST (Static Application Security Testing)
           </strong>{' '}
-          — Analyzes source code for vulnerabilities without executing it
+          — Babel AST scan of every parseable file for vulnerability patterns
         </li>
         <li>
-          <strong className="font-semibold text-[#12101A]">
-            DAST (Dynamic Application Security Testing)
-          </strong>{' '}
-          — Tests the running application by sending malicious payloads
+          <strong className="font-semibold text-[#12101A]">Taint-flow analysis</strong> —
+          Traces tainted sources (req.params, req.body, req.query) through call
+          graphs to sensitive sinks (SQL, eval, exec, innerHTML)
         </li>
         <li>
-          <strong className="font-semibold text-[#12101A]">Fuzzing</strong> —
-          Sends random/invalid data to inputs to find crash or vulnerability
-          points
+          <strong className="font-semibold text-[#12101A]">OWASP Top 10 mapping</strong>{' '}
+          — Each finding is categorized against the OWASP Top 10 with a coverage
+          percentage per category
+        </li>
+        <li>
+          <strong className="font-semibold text-[#12101A]">Supply-chain audit</strong>{' '}
+          — package-lock.json walk against known CVE patterns; license SPDX
+          categorization
         </li>
       </ul>
+      <p className="font-body text-[14px] text-[#6B6B6B] leading-[1.6] mb-6 italic">
+        Note: TestForge is the static layer. For DAST (runtime probing of the
+        deployed application) and live fuzzing, pair this with tools like ZAP,
+        Burp, or AFL. TestForge surfaces what those tools can&apos;t see at
+        review time.
+      </p>
 
       <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Vulnerability Categories

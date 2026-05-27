@@ -332,10 +332,10 @@ export const SEED_TEST_RESULTS: TestResult[] = [
     medium: 2,
     low: 1,
     logs: [
-      { level: 'info', time: '12:01:53', message: 'Starting security vulnerability scan...' },
-      { level: 'info', time: '12:01:55', message: 'SAST: Scanning source code for injection vulnerabilities...' },
-      { level: 'info', time: '12:02:01', message: 'DAST: Testing running application endpoints...' },
-      { level: 'info', time: '12:02:08', message: 'Fuzzing: Testing 47 endpoints with edge case inputs...' },
+      { level: 'info', time: '12:01:53', message: 'Starting security analysis (Babel AST)...' },
+      { level: 'info', time: '12:01:55', message: 'SAST: parsing 287 files, indexing taint sources...' },
+      { level: 'info', time: '12:02:01', message: 'Tracing taint flow through call graph...' },
+      { level: 'info', time: '12:02:08', message: 'Mapping findings to OWASP Top 10 categories...' },
       { level: 'fail', time: '12:02:18', message: '6 vulnerabilities found — 1 CRITICAL, 2 HIGH' },
     ],
     findings: [
