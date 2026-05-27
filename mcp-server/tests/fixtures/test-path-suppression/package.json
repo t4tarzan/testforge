@@ -1,0 +1,7 @@
+{
+  "name": "test-path-suppression-fixture",
+  "private": true,
+  "dependencies": {
+    "express": "^4.19.0"
+  }
+}

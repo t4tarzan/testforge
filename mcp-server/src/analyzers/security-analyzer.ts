@@ -122,6 +122,30 @@ const PER_FILE_MS = 350; // small bump for the second traversal in Phase 2
 /* Entry                                                                      */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * True for any path that smells like test / fixture / mock code, where
+ * the same patterns that flag real vulnerabilities (string-built SQL,
+ * eval-ish constructs, hardcoded creds) are commonly INTENTIONAL — the
+ * test exists to exercise that pattern. Supabase's report showed why
+ * this matters: 125 "critical" findings, almost all in e2e/ test files
+ * building SQL strings on purpose. v0.27.0 skips per-file analysis on
+ * any path matching this; project-level checks (rate limit, vulnerable
+ * deps, missing security headers) still apply.
+ *
+ * Matches:
+ *   - tests/ test/ __tests__/ __mocks__/ __fixtures__/ e2e/ specs/ fixtures/  (dir segment anywhere)
+ *   - foo.test.{js,jsx,ts,tsx,mjs,cjs,mts,cts}
+ *   - foo.spec.{js,jsx,ts,tsx,mjs,cjs,mts,cts}
+ *   - test_foo.py  /  foo_test.py
+ *   - any .d.ts (declarations have no runtime; can't be exploitable)
+ *   - cypress/ playwright/ at any depth
+ */
+const TEST_PATH_RE = /(?:^|\/)(?:tests?|__tests__|__mocks__|__fixtures__|e2e|specs?|fixtures|cypress|playwright)\/|\.(?:test|spec)\.[mc]?[jt]sx?$|(?:^|\/)test_[^/]+\.py$|_test\.py$/;
+
+export function isTestPath(filePath: string): boolean {
+  return TEST_PATH_RE.test(filePath) || filePath.endsWith('.d.ts');
+}
+
 export async function runSecurityAnalysis(
   config: SecurityConfig
 ): Promise<SecurityFinding[]> {
@@ -137,6 +161,10 @@ export async function runSecurityAnalysis(
   // summary pre-pass and the per-file analysis pass share the AST.
   // Anything unparseable / oversize still gets a placeholder finding
   // emitted by analyzeFile (it consults the cached ParseResult).
+  //
+  // Test paths are still parsed (cross-file taint may legitimately
+  // *flow into* a test fixture and then onward) but their per-file
+  // findings are dropped at the analyzeFile step below.
   const parsedByFile = new Map<string, ParseResult>();
   const astsByFile = new Map<string, t.File>();
   for (const [filePath, content] of Object.entries(fileContents)) {
@@ -156,6 +184,11 @@ export async function runSecurityAnalysis(
 
   for (const [filePath, content] of Object.entries(fileContents)) {
     if (!isParseable(filePath)) continue;
+    // v0.27.0 — skip test paths entirely from per-file emission. The
+    // patterns we flag (SQL string concat, eval, hardcoded creds) are
+    // usually intentional inside tests. Project-level deps + header
+    // checks below still cover the real risk surface.
+    if (isTestPath(filePath)) continue;
     const parsed = parsedByFile.get(filePath)!;
     const imports = parsed.ast
       ? collectFileImports(filePath, parsed.ast, candidatePaths)

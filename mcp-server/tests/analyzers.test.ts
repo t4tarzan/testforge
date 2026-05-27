@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 import { scanCodebase, type CodebaseInfo } from '../src/analyzers/code-scanner.js';
-import { runSecurityAnalysis } from '../src/analyzers/security-analyzer.js';
+import { runSecurityAnalysis, isTestPath } from '../src/analyzers/security-analyzer.js';
 import {
   runMutationAnalysis,
   runPredictiveAnalysis,
@@ -66,6 +66,7 @@ const STACK_LEGACY = resolve(__dirname, 'fixtures/stack-legacy');
 const POLYGLOT_PYTHON = resolve(__dirname, 'fixtures/polyglot-python');
 const UV_WORKSPACE = resolve(__dirname, 'fixtures/uv-workspace');
 const LIBS_MONOREPO = resolve(__dirname, 'fixtures/libs-monorepo');
+const TEST_PATH_SUPPRESSION = resolve(__dirname, 'fixtures/test-path-suppression');
 
 describe('code-scanner', () => {
   let vulnInfo: CodebaseInfo;
@@ -2171,6 +2172,61 @@ describe('strategic-analyzer — Phase 5 pass 16: stack polish (strict dep sets 
     const report = await runStackAnalysis(fc, deps, [], ['Express']);
     const finding = report.findings.find((f) => /without runtime validation library/.test(f.title));
     expect(finding).toBeTruthy();
+  });
+});
+
+// Regression for the Supabase in-the-wild report (2026-05-28): 125
+// "critical" findings, almost all SQL-string-concat patterns in
+// e2e/studio/features/*.spec.ts where building the string is exactly
+// what the test is testing. 0.27.0 suppresses per-file security
+// findings in known test paths.
+describe('security-analyzer — test-path suppression (v0.27.0)', () => {
+  it('isTestPath() matches every common test-file convention', () => {
+    // dir-segment patterns
+    expect(isTestPath('tests/foo.js')).toBe(true);
+    expect(isTestPath('test/foo.js')).toBe(true);
+    expect(isTestPath('src/__tests__/foo.js')).toBe(true);
+    expect(isTestPath('src/__mocks__/foo.js')).toBe(true);
+    expect(isTestPath('e2e/login.spec.ts')).toBe(true);
+    expect(isTestPath('specs/foo.ts')).toBe(true);
+    expect(isTestPath('cypress/e2e/login.cy.ts')).toBe(true);
+    expect(isTestPath('playwright/auth.ts')).toBe(true);
+    // suffix patterns
+    expect(isTestPath('src/foo.test.ts')).toBe(true);
+    expect(isTestPath('src/foo.spec.tsx')).toBe(true);
+    expect(isTestPath('src/foo.test.mjs')).toBe(true);
+    // pytest conventions
+    expect(isTestPath('backend/test_users.py')).toBe(true);
+    expect(isTestPath('backend/users_test.py')).toBe(true);
+    // type declarations
+    expect(isTestPath('types/foo.d.ts')).toBe(true);
+    // honest negatives (production paths)
+    expect(isTestPath('src/users.js')).toBe(false);
+    expect(isTestPath('backend/app/main.py')).toBe(false);
+    expect(isTestPath('src/components/Form.tsx')).toBe(false);
+    // tricky: 'testing' as a noun isn't a test path
+    expect(isTestPath('src/testing-utils.ts')).toBe(false);
+  });
+
+  it('emits findings for production code, suppresses identical pattern in test paths', async () => {
+    const info = await scanCodebase(TEST_PATH_SUPPRESSION);
+    const findings = await runSecurityAnalysis({
+      projectPath: TEST_PATH_SUPPRESSION,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const fileToFindings = new Map<string, number>();
+    for (const f of findings) {
+      fileToFindings.set(f.filePath, (fileToFindings.get(f.filePath) || 0) + 1);
+    }
+    // Production file emits findings (SQL injection on req.params.id)
+    expect((fileToFindings.get('src/users.js') || 0)).toBeGreaterThan(0);
+    // None of the test paths should emit per-file findings
+    expect(fileToFindings.get('src/users.test.js')).toBeUndefined();
+    expect(fileToFindings.get('e2e/login.spec.ts')).toBeUndefined();
+    expect(fileToFindings.get('__tests__/auth.js')).toBeUndefined();
+    expect(fileToFindings.get('tests/integration/api.js')).toBeUndefined();
   });
 });
 
