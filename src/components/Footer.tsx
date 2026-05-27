@@ -28,6 +28,7 @@ const productLinks = [
 
 const resourceLinks = [
   { label: 'Documentation', path: '/docs' },
+  { label: 'Whitepaper', path: '/testforge-whitepaper.html', external: true },
   { label: 'Test Runner', path: '/run-test' },
   { label: 'PRD Generator', path: '/prd-generator' },
   { label: 'Testing Dimensions', path: '/testing-dimensions' },
@@ -105,12 +106,23 @@ export default function Footer() {
             <ul className="space-y-3">
               {resourceLinks.map((link) => (
                 <li key={link.label}>
-                  <Link
-                    to={link.path}
-                    className="text-[#9A9A9A] text-sm hover:text-[#7a6fad] transition-all duration-200 inline-block hover:translate-x-0.5"
-                  >
-                    {link.label}
-                  </Link>
+                  {link.external ? (
+                    <a
+                      href={link.path}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#9A9A9A] text-sm hover:text-[#7a6fad] transition-all duration-200 inline-block hover:translate-x-0.5"
+                    >
+                      {link.label}
+                    </a>
+                  ) : (
+                    <Link
+                      to={link.path}
+                      className="text-[#9A9A9A] text-sm hover:text-[#7a6fad] transition-all duration-200 inline-block hover:translate-x-0.5"
+                    >
+                      {link.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

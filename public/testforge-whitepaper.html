@@ -1,0 +1,1182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TestForge — Engineering Whitepaper · 21 dimensions of pre-merge analysis</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0E0E10;
+    --ink-soft: #1F1F23;
+    --muted: #6E6E76;
+    --subtle: #9A9AA1;
+    --paper: #FFFFFF;
+    --paper-warm: #F7F5FB;
+    --rule: #E7E4EE;
+    --accent: #6B53A3;
+    --accent-soft: #9985BF;
+    --accent-deep: #4A3A7A;
+    --purple-ink: #2E2159;
+    --purple-card: #ECE7F5;
+    --purple-hairline: #D9D1EC;
+    --green: #2F7A4B;
+    --green-soft: #E4F1EA;
+    --amber: #B7791F;
+    --danger: #B2342A;
+    --shadow: 0 1px 0 rgba(14,14,16,.06);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+  }
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(circle at 20% 30%, rgba(107,83,163,.05), transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(107,83,163,.04), transparent 40%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ---- Page frame ---- */
+  .page { max-width: 1040px; margin: 0 auto; padding: 0 2.5rem; position: relative; z-index: 1; }
+  @media (max-width: 720px) { .page { padding: 0 1.25rem; } }
+
+  /* ---- Masthead / cover ---- */
+  .masthead {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    align-items: center;
+    padding: 1.75rem 0 1rem;
+    border-bottom: 1px solid var(--ink);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .masthead > div:nth-child(2) { text-align: center; }
+  .masthead > div:nth-child(3) { text-align: right; }
+  .masthead .label-dot { color: var(--accent); margin: 0 0.4em; }
+  .masthead .mast-brand { display: inline-flex; align-items: center; gap: 0.55rem; }
+  .masthead .mast-brand svg { display: block; }
+  .masthead .mast-brand .mast-name {
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 800;
+    font-size: 0.95rem;
+    letter-spacing: -0.02em;
+    text-transform: none;
+    color: var(--ink);
+  }
+  .masthead .mast-brand .mast-name em { color: var(--accent); font-style: italic; font-weight: 600; }
+
+  .cover { padding: 4rem 0 3rem; }
+  .cover .eyebrow {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+  }
+  .cover h1.title {
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 800;
+    font-size: clamp(2.8rem, 6.2vw, 5.1rem);
+    line-height: 0.98;
+    letter-spacing: -0.035em;
+    color: var(--ink);
+    margin: 0 0 1.25rem;
+    max-width: 18ch;
+  }
+  .cover h1.title em {
+    font-style: italic;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .cover .sub {
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 500;
+    font-size: clamp(1.05rem, 1.5vw, 1.3rem);
+    line-height: 1.45;
+    color: var(--ink-soft);
+    max-width: 50ch;
+    margin: 0 0 2.75rem;
+    font-style: italic;
+  }
+
+  .meta-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    padding-top: 1.75rem;
+    border-top: 1px solid var(--rule);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: var(--ink);
+  }
+  .meta-strip .lbl {
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--muted);
+    font-size: 0.65rem;
+    margin-bottom: 0.35rem;
+  }
+  .meta-strip .val { font-weight: 600; color: var(--ink); }
+  @media (max-width: 640px) {
+    .meta-strip { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+  }
+
+  /* ---- Headline stats row (3 big numbers under the cover) ---- */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    margin: 3rem 0 0;
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+  }
+  .stats-row .stat {
+    padding: 1.5rem 1.25rem;
+    border-right: 1px solid var(--rule);
+  }
+  .stats-row .stat:last-child { border-right: none; }
+  .stats-row .num {
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 800;
+    font-size: 2.6rem;
+    letter-spacing: -0.03em;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 0.4rem;
+  }
+  .stats-row .cap {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  @media (max-width: 640px) {
+    .stats-row { grid-template-columns: 1fr; }
+    .stats-row .stat { border-right: none; border-bottom: 1px solid var(--rule); }
+    .stats-row .stat:last-child { border-bottom: none; }
+  }
+
+  /* ---- In this issue (TOC) ---- */
+  .toc {
+    margin: 3rem 0 3.5rem;
+    padding: 1.5rem 1.75rem;
+    background: var(--paper-warm);
+    border: 1px solid var(--purple-hairline);
+    border-left: 4px solid var(--accent);
+    border-radius: 4px;
+  }
+  .toc .toc-title {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+  .toc ol {
+    list-style: none;
+    counter-reset: toc;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem 2rem;
+  }
+  .toc li {
+    counter-increment: toc;
+    display: flex;
+    gap: 0.85rem;
+    align-items: baseline;
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    font-size: 0.98rem;
+    line-height: 1.35;
+  }
+  .toc li::before {
+    content: counter(toc, decimal-leading-zero);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    color: var(--accent);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+  }
+  .toc a { color: var(--ink); text-decoration: none; border-bottom: 1px solid transparent; }
+  .toc a:hover { border-bottom-color: var(--accent); color: var(--accent); }
+  @media (max-width: 640px) { .toc ol { grid-template-columns: 1fr; } }
+
+  /* ---- Part section ---- */
+  section.part { margin: 5rem 0; padding-top: 2rem; border-top: 2px solid var(--ink); }
+  .part-eyebrow {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 0.6rem;
+  }
+  h1.part-title {
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 800;
+    font-size: clamp(2rem, 3.6vw, 3rem);
+    line-height: 1.05;
+    letter-spacing: -0.028em;
+    color: var(--ink);
+    margin: 0 0 1.75rem;
+    max-width: 28ch;
+  }
+  h1.part-title em {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  h2 {
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 1.55rem;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    color: var(--ink);
+    margin: 2.5rem 0 1rem;
+  }
+  h2 .sec-mark {
+    color: var(--accent);
+    font-weight: 600;
+    font-style: italic;
+    margin-right: 0.4em;
+  }
+  h3 {
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 1.08rem;
+    color: var(--ink);
+    margin: 1.5rem 0 0.5rem;
+  }
+  h3 .h3-mark {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 0.85em;
+    margin-right: 0.5em;
+  }
+
+  p { margin: 0 0 1rem; }
+  p.lede {
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    font-size: 1.15rem;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    font-weight: 500;
+    margin: 0 0 1.5rem;
+    max-width: 62ch;
+  }
+  p.drop::first-letter {
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 800;
+    color: var(--accent);
+    font-size: 3.4rem;
+    line-height: 0.85;
+    float: left;
+    padding: 0.3rem 0.7rem 0 0;
+    letter-spacing: -0.03em;
+  }
+  a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--purple-hairline); }
+  a:hover { border-bottom-color: var(--accent); }
+
+  strong, b { font-weight: 700; color: var(--ink); }
+  em, i { font-style: italic; }
+  code, .mono {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.86em;
+    background: var(--paper-warm);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 0.05em 0.4em;
+    color: var(--purple-ink);
+  }
+  pre {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    background: #15102E;
+    color: #E4DFF1;
+    padding: 1.1rem 1.3rem;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 1.25rem 0;
+  }
+  pre .com { color: #9985BF; font-style: italic; }
+  pre .hash { color: #9985BF; font-weight: 600; }
+
+  /* ---- Tables ---- */
+  .table-wrap {
+    margin: 1.5rem 0 1rem;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    overflow-x: auto;
+    background: var(--paper);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+  table caption {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    text-align: left;
+    padding: 0.85rem 1.1rem;
+    background: var(--paper-warm);
+    border-bottom: 1px solid var(--rule);
+  }
+  thead th {
+    text-align: left;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+    padding: 0.75rem 1.1rem;
+    background: var(--paper);
+    border-bottom: 1px solid var(--ink);
+    vertical-align: bottom;
+  }
+  tbody td {
+    padding: 0.85rem 1.1rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody td.cap-name {
+    font-weight: 600;
+    color: var(--ink);
+  }
+  tbody td.num-cell {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.78rem;
+    color: var(--accent);
+    font-weight: 600;
+    width: 3.5rem;
+  }
+  tbody td.cat {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.74rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--purple-ink);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  tbody td.pairs {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+  }
+  .check { color: var(--green); font-weight: 700; }
+  .cross { color: var(--danger); font-weight: 700; }
+  .partial-mark { color: var(--amber); font-weight: 700; }
+
+  /* ---- Closed cards (numbered dimension blocks) ---- */
+  .gap-card {
+    margin: 1.5rem 0;
+    padding: 1.5rem 1.6rem;
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    background: var(--paper);
+  }
+  .gap-card .gc-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.85rem;
+    margin-bottom: 0.6rem;
+    flex-wrap: wrap;
+  }
+  .gap-card .gc-num {
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 800;
+    color: var(--accent);
+    font-size: 1.4rem;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .gap-card .gc-title {
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 700;
+    color: var(--ink);
+    font-size: 1.15rem;
+    flex: 1 1 auto;
+  }
+  .gap-card .gc-commit {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.72rem;
+    background: var(--purple-card);
+    color: var(--purple-ink);
+    padding: 0.18rem 0.55rem;
+    border-radius: 3px;
+    font-weight: 600;
+    border: 1px solid var(--purple-hairline);
+    white-space: nowrap;
+  }
+  .gap-card .gc-tagline {
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    font-style: italic;
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin: 0 0 0.85rem;
+  }
+  .gap-card p { margin: 0 0 0.85rem; }
+  .gap-card ul { margin: 0 0 0.85rem; padding-left: 1.2rem; }
+  .gap-card li { margin: 0.25rem 0; }
+
+  .verified {
+    margin-top: 0.85rem;
+    padding: 0.7rem 0.95rem;
+    background: var(--green-soft);
+    border-left: 3px solid var(--green);
+    border-radius: 3px;
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+  }
+  .verified strong {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--green);
+    font-weight: 700;
+    margin-right: 0.45rem;
+  }
+  .pairs-with {
+    margin-top: 0.85rem;
+    padding: 0.7rem 0.95rem;
+    background: var(--paper-warm);
+    border-left: 3px solid var(--accent-soft);
+    border-radius: 3px;
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+  }
+  .pairs-with strong {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin-right: 0.45rem;
+  }
+
+  /* ---- Compare panel ---- */
+  .compare {
+    margin: 1.25rem 0;
+    border: 1px solid var(--purple-hairline);
+    border-left: 4px solid var(--accent);
+    border-radius: 4px;
+    background: var(--paper-warm);
+    padding: 1rem 1.25rem 1.1rem;
+  }
+  .compare .compare-head {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 0.7rem;
+  }
+
+  /* ---- Pullquote ---- */
+  .pullquote {
+    margin: 2.25rem auto;
+    padding: 1.5rem 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    text-align: center;
+    max-width: 38em;
+  }
+  .pullquote::before {
+    content: "\201C";
+    display: block;
+    color: var(--accent);
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    font-size: 2rem;
+    line-height: 0.6;
+    margin-bottom: 0.8rem;
+  }
+  .pullquote .q {
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1.4rem;
+    line-height: 1.4;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+
+  /* ---- Closing strip ---- */
+  .closing {
+    margin: 5rem 0 0;
+    padding: 2.5rem 0 2rem;
+    border-top: 2px solid var(--ink);
+    border-bottom: 2px solid var(--ink);
+    text-align: center;
+  }
+  .closing .end-mark {
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--accent);
+    font-style: italic;
+    margin-bottom: 0.5rem;
+  }
+  .closing p {
+    max-width: 50ch;
+    margin: 0.5rem auto;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  /* ---- Footer ---- */
+  footer.colophon {
+    margin: 2.5rem 0 3rem;
+    padding: 1.5rem 0;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+  footer.colophon .brand {
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  footer.colophon .brand em { color: var(--accent); font-style: italic; font-weight: 600; }
+
+  @media print {
+    body { background: #fff; font-size: 11pt; }
+    body::before { display: none; }
+    .cover { page-break-after: always; }
+    section.part { page-break-before: always; }
+    .closing { page-break-before: avoid; }
+    .gap-card, .verified, .pairs-with, .compare, .pullquote, .table-wrap { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ===================== MASTHEAD ===================== -->
+  <header class="masthead">
+    <div>
+      <span class="mast-brand">
+        <svg width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="8" cy="8" r="3" stroke="#6B53A3" stroke-width="2" fill="none" />
+          <circle cx="24" cy="8" r="3" stroke="#6B53A3" stroke-width="2" fill="none" />
+          <circle cx="8" cy="24" r="3" stroke="#6B53A3" stroke-width="2" fill="none" />
+          <circle cx="24" cy="24" r="3" stroke="#6B53A3" stroke-width="2" fill="none" />
+          <line x1="11" y1="8" x2="21" y2="8" stroke="#6B53A3" stroke-width="1.5" />
+          <line x1="8" y1="11" x2="8" y2="21" stroke="#6B53A3" stroke-width="1.5" />
+          <line x1="11" y1="24" x2="21" y2="24" stroke="#6B53A3" stroke-width="1.5" />
+          <line x1="24" y1="11" x2="24" y2="21" stroke="#6B53A3" stroke-width="1.5" />
+          <line x1="10.1" y1="10.1" x2="21.9" y2="21.9" stroke="#6B53A3" stroke-width="1.5" />
+          <circle cx="16" cy="16" r="2" fill="#4A3A7A" />
+        </svg>
+        <span class="mast-name">Test<em>F</em>orge <span class="label-dot">·</span> Volume I</span>
+      </span>
+    </div>
+    <div>Engineering Whitepaper</div>
+    <div>May 2026</div>
+  </header>
+
+  <!-- ===================== COVER ===================== -->
+  <section class="cover">
+    <div class="eyebrow">Engineering Whitepaper — How TestForge Tests AI Code</div>
+    <h1 class="title">Twenty-one dimensions <em>before the merge.</em></h1>
+    <p class="sub">A pre-merge AI code analyzer that runs locally, completes in roughly thirty seconds, and pairs with — rather than replaces — the runtime tools your team already trusts.</p>
+
+    <div class="meta-strip">
+      <div><span class="lbl">Released</span><span class="val">2026-05-27</span></div>
+      <div><span class="lbl">Dimensions</span><span class="val">21 / 21 shipped ✓</span></div>
+      <div><span class="lbl">Typical run</span><span class="val">~30 seconds</span></div>
+      <div><span class="lbl">Stack</span><span class="val">Babel AST · Node · MCP</span></div>
+    </div>
+  </section>
+
+  <!-- ===================== HEADLINE STATS ===================== -->
+  <div class="stats-row">
+    <div class="stat"><div class="num">21</div><div class="cap">Dimensions across the SDLC</div></div>
+    <div class="stat"><div class="num">~30s</div><div class="cap">End-to-end on a typical repo</div></div>
+    <div class="stat"><div class="num">16</div><div class="cap">Deepening passes shipped</div></div>
+  </div>
+
+  <!-- ===================== IN THIS ISSUE ===================== -->
+  <nav class="toc" aria-label="In this issue">
+    <div class="toc-title">In this issue</div>
+    <ol>
+      <li><a href="#what-it-is">What TestForge actually is</a></li>
+      <li><a href="#matrix">The twenty-one dimensions matrix</a></li>
+      <li><a href="#architecture">Architecture — AST, taint, MCP</a></li>
+      <li><a href="#dimensions">Every dimension, opened</a></li>
+      <li><a href="#pairings">What TestForge pairs with</a></li>
+      <li><a href="#commits">The deepening passes that closed it</a></li>
+    </ol>
+  </nav>
+
+  <!-- ===================== PART I — WHAT IT IS ===================== -->
+  <section class="part" id="what-it-is">
+    <div class="part-eyebrow">Part One</div>
+    <h1 class="part-title">What TestForge <em>actually is</em>.</h1>
+
+    <p class="lede">A pre-merge analyzer for code your team didn't entirely write — the increasing share now produced by AI assistants, copilots, and agents — that surfaces the static issues a human reviewer or a downstream runtime tool would catch only after the diff landed.</p>
+
+    <p class="drop">TestForge is, mechanically, a <strong>Babel-based static analyzer with a taint-tracking engine and a twenty-one-dimension policy layer</strong>. Pointed at a repository or branch, it parses every JavaScript and TypeScript file into an AST, walks the trees for the patterns each dimension defines, and produces a ranked report with one-line fixes attached. The whole pass typically completes in under thirty seconds.</p>
+
+    <p>The product runs in three legible stages:</p>
+
+    <ol>
+      <li><strong>Parse</strong> &mdash; Babel reads every <code>.js / .jsx / .ts / .tsx</code>, building an AST per file. Untouched language regions parse without TypeScript checks, so the analyzer never blocks on type errors the reviewer hasn't fixed yet.</li>
+      <li><strong>Analyze</strong> &mdash; Each of the twenty-one dimensions walks the AST under its own rules. Cross-cutting dimensions (security, agentic) maintain a taint map: tainted sources (<code>req.params</code>, <code>req.body</code>, <code>req.query</code>) flow through function calls to sensitive sinks (SQL, <code>eval</code>, <code>exec</code>, <code>innerHTML</code>).</li>
+      <li><strong>Report</strong> &mdash; Findings are ranked by severity, mapped to OWASP / DORA / WCAG categories where applicable, and returned with line-precise locations and one-line fixes.</li>
+    </ol>
+
+    <div class="pullquote">
+      <div class="q">TestForge does not run your code. It reads it — once, in roughly thirty seconds — and tells you what your runtime tools will find an hour or a quarter from now.</div>
+    </div>
+
+    <p>The design choice that defines the rest of the product is what TestForge <em>doesn't</em> do. It does not load-test. It does not fuzz at runtime. It does not run Robot Framework. It pairs with k6, Locust, ZAP, Stryker, Pitest, Gremlin, Litmus, Chaos Mesh — handing them a much smaller surface to cover because the static layer has already been walked.</p>
+  </section>
+
+  <!-- ===================== PART II — DIMENSIONS MATRIX ===================== -->
+  <section class="part" id="matrix">
+    <div class="part-eyebrow">Part Two</div>
+    <h1 class="part-title">The twenty-one <em>dimensions</em> matrix.</h1>
+
+    <p class="lede">Every dimension TestForge ships, its category in the AI-driven SDLC, the kind of pattern it surfaces, and the runtime tool it naturally hands off to. Twenty-one rows, twelve categories, one coherent pass.</p>
+
+    <div class="table-wrap">
+      <table>
+        <caption>Dimension-by-dimension overview · TestForge v0.24</caption>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th style="width:22%">Dimension</th>
+            <th style="width:14%">Category</th>
+            <th>What it detects</th>
+            <th style="width:18%">Pairs with (runtime)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="num-cell">01</td><td class="cap-name">Scope</td><td class="cat">Functional</td><td>Requirement→test traceability, boundary input gaps</td><td class="pairs">PRD parsers · Jest</td></tr>
+          <tr><td class="num-cell">02</td><td class="cap-name">Vision &amp; Goal</td><td class="cat">Functional</td><td>Business-goal alignment, user-journey-to-feature mapping</td><td class="pairs">Analytics · Amplitude</td></tr>
+          <tr><td class="num-cell">03</td><td class="cap-name">Feature Matrix</td><td class="cat">Functional</td><td>Auto traceability matrix, change-impact analysis</td><td class="pairs">Linear · Jira</td></tr>
+          <tr><td class="num-cell">04</td><td class="cap-name">Load &amp; Scale Patterns</td><td class="cat">Performance</td><td>Rate-limit, cache, queue, pool, pagination presence</td><td class="pairs">k6 · Locust · wrk</td></tr>
+          <tr><td class="num-cell">05</td><td class="cap-name">Predictive Risk</td><td class="cat">Intelligent</td><td>Per-file risk: AST complexity + churn + dep density</td><td class="pairs">CodeClimate · SonarQube</td></tr>
+          <tr><td class="num-cell">06</td><td class="cap-name">Security (SAST + Taint)</td><td class="cat">Security</td><td>OWASP Top 10 via Babel AST + taint flow</td><td class="pairs">OWASP ZAP · Burp Suite</td></tr>
+          <tr><td class="num-cell">07</td><td class="cap-name">Visual Regression</td><td class="cat">Visual</td><td>Pixel-level screenshot diff across breakpoints</td><td class="pairs">Percy · Chromatic</td></tr>
+          <tr><td class="num-cell">08</td><td class="cap-name">Accessibility</td><td class="cat">Compliance</td><td>WCAG 2.1 AA — contrast, ARIA, focus, keyboard</td><td class="pairs">axe-core · Pa11y</td></tr>
+          <tr><td class="num-cell">09</td><td class="cap-name">Resilience Patterns</td><td class="cat">Resilience</td><td>Retry, circuit-breaker, timeout, idempotency, degrade</td><td class="pairs">Gremlin · Litmus · Chaos Mesh</td></tr>
+          <tr><td class="num-cell">10</td><td class="cap-name">Mutation-Score Estimate</td><td class="cat">Quality</td><td>Heuristic mutation score in seconds, not minutes</td><td class="pairs">Stryker · Pitest</td></tr>
+          <tr><td class="num-cell">11</td><td class="cap-name">Property-Based</td><td class="cat">Functional</td><td>Invariant definition, edge-case input generation</td><td class="pairs">fast-check · Hypothesis</td></tr>
+          <tr><td class="num-cell">12</td><td class="cap-name">Contract</td><td class="cat">Integration</td><td>Provider / consumer contract validation</td><td class="pairs">Pact · OpenAPI · GraphQL</td></tr>
+          <tr><td class="num-cell">13</td><td class="cap-name">Test Quality</td><td class="cat">Quality</td><td>Ghost tests: <code>.skip</code> / <code>.only</code> / no-assert / empty bodies</td><td class="pairs">Jest · Vitest · Mocha</td></tr>
+          <tr><td class="num-cell">14</td><td class="cap-name">Supply Chain</td><td class="cat">Security</td><td>CVE database lookup, fix-version recommendation</td><td class="pairs">Snyk · Dependabot · Trivy</td></tr>
+          <tr><td class="num-cell">15</td><td class="cap-name">N+1 Queries</td><td class="cat">Performance</td><td>Loops with DB calls, missing eager-loading</td><td class="pairs">pganalyze · Datadog APM</td></tr>
+          <tr><td class="num-cell">16</td><td class="cap-name">Dead Code</td><td class="cat">Cleanup</td><td>Unused imports, dead exports, bundle savings</td><td class="pairs">webpack-bundle-analyzer</td></tr>
+          <tr><td class="num-cell">17</td><td class="cap-name">License</td><td class="cat">Compliance</td><td>GPL / copyleft risk, policy compliance audit</td><td class="pairs">FOSSA · license-checker</td></tr>
+          <tr><td class="num-cell">18</td><td class="cap-name">DORA</td><td class="cat">DevOps</td><td>Deploy freq, lead time, MTTR, change-fail %</td><td class="pairs">Sleuth · LinearB · Faros</td></tr>
+          <tr><td class="num-cell">19</td><td class="cap-name">OWASP Coverage</td><td class="cat">Security</td><td>Top-10 coverage % + gap analysis</td><td class="pairs">OWASP ZAP · Snyk Code</td></tr>
+          <tr><td class="num-cell">20</td><td class="cap-name">Edge Case Generation</td><td class="cat">Functional</td><td>JS foot-guns: <code>parseInt</code>-no-radix, untried <code>JSON.parse</code>, etc.</td><td class="pairs">ESLint · Biome</td></tr>
+          <tr><td class="num-cell">21</td><td class="cap-name">Agentic Scale</td><td class="cat">Strategy</td><td>Endpoints that break under agentic concurrency patterns</td><td class="pairs">k6 · custom agent load runs</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="compare">
+      <div class="compare-head">Read this as</div>
+      <p style="margin:0;font-size:0.95rem;color:var(--ink-soft);">The matrix is the product. No single dimension is "world-first" in isolation — Stryker estimates mutation scores, SonarQube measures complexity, ZAP scans for OWASP findings. What's coherent here is the <em>aggregation</em>: twenty-one dimensions, one parse, one pre-merge gate, one report that maps to every downstream tool your team already runs.</p>
+    </div>
+  </section>
+
+  <!-- ===================== PART III — ARCHITECTURE ===================== -->
+  <section class="part" id="architecture">
+    <div class="part-eyebrow">Part Three</div>
+    <h1 class="part-title">Architecture &mdash; <em>AST, taint, MCP</em>.</h1>
+
+    <p class="lede">Three layers do all of the work: a Babel parser shared across every dimension, a taint engine for the security and agentic dimensions, and an MCP-compatible server for the editor and agent integrations that drive most of TestForge's traffic.</p>
+
+    <h2><span class="sec-mark">§</span> The parse layer</h2>
+    <p>One Babel pass per file builds the AST. TypeScript files parse with the <code>@babel/preset-typescript</code> plugin without invoking the TypeScript compiler — the analyzer never blocks on type errors the reviewer hasn't fixed yet. Each dimension receives the AST plus the raw source string; dimensions never re-parse.</p>
+
+    <h2><span class="sec-mark">§</span> The taint engine</h2>
+    <p>For the security and agentic dimensions, sources and sinks are configured per rule. Tainted values flow through:</p>
+    <ul>
+      <li>Variable assignment and destructuring</li>
+      <li>Function calls (taint propagates from arguments to return values for known sink-adjacent functions)</li>
+      <li>Object property access (per-property taint)</li>
+      <li>Template literals (any tainted interpolation taints the whole string)</li>
+    </ul>
+    <p>The trace is line-precise — every finding includes the source line and the sink line, so a reviewer can follow the flow without re-running the tool.</p>
+
+    <h2><span class="sec-mark">§</span> The MCP server</h2>
+    <p>TestForge ships an MCP-compatible server (<code>testforge-mcp.fly.dev</code>) that exposes the analyzer as tools any MCP client can call &mdash; Claude Desktop, Cursor, Aider, custom agents. The web app is one of the clients. Every other surface (the CLI, the editor integrations, the pipeline runners) goes through the same MCP contract.</p>
+
+    <h2><span class="sec-mark">§</span> The billing layer</h2>
+    <p>Free runs are bounded to a per-calendar-month quota via a single gate (<code>api/_gate.js</code>) read live from the user record; a successful Stripe webhook updates the plan in real time. The save path checks the gate server-side before persisting a run, so the quota is bypass-proof regardless of which client started the run.</p>
+
+    <div class="compare">
+      <div class="compare-head">Privacy posture</div>
+      <p style="margin:0;font-size:0.95rem;color:var(--ink-soft);">TestForge defaults to local-first. The MCP server hashes paths and strips identifier-bearing tokens before any cloud AI call is made. Teams that opt into cloud AI for the deepest dimensions (vision &amp; goal alignment, agentic concurrency) get a PII-anonymized request — repo paths become hashes, identifiers become opaque tokens, the model never sees a real customer name.</p>
+    </div>
+  </section>
+
+  <!-- ===================== PART IV — EVERY DIMENSION, OPENED ===================== -->
+  <section class="part" id="dimensions">
+    <div class="part-eyebrow">Part Four</div>
+    <h1 class="part-title">Every dimension, <em>opened</em>.</h1>
+
+    <p class="lede">Twenty-one numbered blocks. Each one names the dimension, the deepening pass that shipped its current depth, the patterns the analyzer actually walks for, and the runtime tool it hands off to.</p>
+
+    <!-- 01 -->
+    <div class="gap-card">
+      <div class="gc-head"><span class="gc-num">01</span><span class="gc-title">Scope</span><span class="gc-commit">v0.10 · pass 2</span></div>
+      <p class="gc-tagline">Requirement coverage &amp; boundary validation.</p>
+      <p>Parses PRDs, user stories, and acceptance criteria and maps each requirement against the codebase to identify gaps. Boundary validation walks each input parameter for edge conditions, null inputs, and limit values that human reviewers tend to skip.</p>
+      <ul>
+        <li>Automatic requirements extraction from PRDs and issue trackers</li>
+        <li>Coverage-gap identification with risk-weighted prioritization</li>
+        <li>Boundary value analysis on every input parameter</li>
+        <li>Requirement-to-test traceability matrix</li>
+      </ul>
+      <div class="pairs-with"><strong>Pairs with</strong> Jest / Vitest for the actual assertions; PRD parsers for ingestion.</div>
+    </div>
+
+    <!-- 02 -->
+    <div class="gap-card">
+      <div class="gc-head"><span class="gc-num">02</span><span class="gc-title">Vision &amp; Goal</span><span class="gc-commit">v0.11 · pass 3</span></div>
+      <p class="gc-tagline">Business-goal alignment &amp; outcome prediction.</p>
+      <p>Measures whether the implemented behavior actually achieves the business goal, not just whether it returns correct values. Extracts goals from product documentation, maps features to outcomes, and validates user journeys against intended paths.</p>
+      <ul>
+        <li>Business-goal extraction from product documentation</li>
+        <li>Feature-to-outcome mapping with scoring</li>
+        <li>User-journey validation against intended paths</li>
+        <li>ROI impact estimation per feature</li>
+      </ul>
+      <div class="pairs-with"><strong>Pairs with</strong> Amplitude / Mixpanel / your product analytics stack.</div>
+    </div>
+
+    <!-- 03 -->
+    <div class="gap-card">
+      <div class="gc-head"><span class="gc-num">03</span><span class="gc-title">Feature Matrix</span><span class="gc-commit">v0.12 · pass 4</span></div>
+      <p class="gc-tagline">Traceability matrices &amp; impact analysis.</p>
+      <p>Auto-generates and maintains a matrix linking requirements, tests, code, and deployments. On change, the analyzer walks the matrix to identify every affected component, shrinking regression scope.</p>
+      <ul>
+        <li>Automatic traceability-matrix generation</li>
+        <li>Change-impact analysis with affected-component list</li>
+        <li>Cross-reference validation between requirements and tests</li>
+        <li>Regression scope minimization</li>
+      </ul>
+      <div class="pairs-with"><strong>Pairs with</strong> Linear / Jira for the requirement source-of-truth.</div>
+    </div>
+
+    <!-- 04 -->
+    <div class="gap-card">
+      <div class="gc-head"><span class="gc-num">04</span><span class="gc-title">Load &amp; Scale Patterns</span><span class="gc-commit">v0.13 · pass 5</span></div>
+      <p class="gc-tagline">The code patterns your service needs to survive traffic.</p>
+      <p>Scans for the static patterns a service needs to survive load — rate-limit middleware on public endpoints, caching layers on hot paths, queue / backpressure handling, connection-pool sizing, and pagination on list reads. Pre-merge, not pre-incident.</p>
+      <ul>
+        <li>Rate-limit middleware detection (express-rate-limit, fastify/rate-limit, custom)</li>
+        <li>Cache-layer presence (Redis, in-memory, HTTP caching headers)</li>
+        <li>Queue / backpressure handling detection</li>
+        <li>Connection-pool configuration scan</li>
+        <li>Pagination presence on list endpoints</li>
+      </ul>
+      <div class="pairs-with"><strong>Pairs with</strong> k6 / Locust / wrk for the actual load run — TestForge handles the static gaps.</div>
+    </div>
+
+    <!-- 05 -->
+    <div class="gap-card">
+      <div class="gc-head"><span class="gc-num">05</span><span class="gc-title">Predictive Risk Scoring</span><span class="gc-commit">v0.14 · pass 6</span></div>
+      <p class="gc-tagline">Risk score per file from complexity + churn signals.</p>
+      <p>Each file is scored on AST-derived cyclomatic complexity (McCabe), function length, parameter counts, dependency density, and — when git history is available — change-frequency churn. The output is a ranked heatmap so reviewers spend deep-review time on the files that earn it.</p>
+      <ul>
+        <li>AST cyclomatic complexity per function (McCabe)</li>
+        <li>Function-length and parameter-count thresholds</li>
+        <li>Dependency density per module</li>
+        <li>Optional change-frequency signals from <code>git log</code></li>
+        <li>Ranked risk heatmap for review prioritization</li>
+      </ul>
+      <div class="pairs-with"><strong>Pairs with</strong> CodeClimate / SonarQube for trend data over time.</div>
+    </div>
+
+    <!-- 06 -->
+    <div class="gap-card">
+      <div class="gc-head"><span class="gc-num">06</span><span class="gc-title">Security &mdash; SAST + Taint Tracking</span><span class="gc-commit">v0.15 · pass 7</span></div>
+      <p class="gc-tagline">Babel AST + taint flow across the OWASP Top 10.</p>
+      <p>The taint engine traces tainted sources (<code>req.params</code>, <code>req.body</code>, <code>req.query</code>) through function calls to sensitive sinks (SQL drivers, <code>eval</code>, <code>exec</code>, <code>fs</code>, <code>child_process</code>, <code>innerHTML</code>). Findings map directly to OWASP Top 10 categories with line-precise sink locations.</p>
+      <ul>
+        <li>SQL / NoSQL injection via tainted-input flow</li>
+        <li><code>eval</code> / <code>Function()</code> / <code>vm.runIn*</code> sink detection</li>
+        <li>XSS sinks: <code>innerHTML</code>, <code>dangerouslySetInnerHTML</code>, <code>document.write</code></li>
+        <li>Hard-coded secret patterns (API keys, JWT, AWS keys)</li>
+        <li>CORS misconfig (wildcard origin + credentials true)</li>
+        <li>OWASP Top 10 coverage % per category</li>
+      </ul>
+      <div class="pairs-with"><strong>Pairs with</strong> OWASP ZAP / Burp Suite for the DAST layer at runtime.</div>
+    </div>
+
+    <!-- 07 -->
+    <div class="gap-card">
+      <div class="gc-head"><span class="gc-num">07</span><span class="gc-title">Visual Regression</span><span class="gc-commit">v0.16 · pass 8</span></div>
+      <p class="gc-tagline">Computer-vision diff across breakpoints, devices, browsers.</p>
+      <p>Screenshots are captured across breakpoints, devices, and browsers, then compared pixel-by-pixel. Even a one-pixel shift is caught. Baseline management runs through an approval workflow so intentional changes don't accumulate noise.</p>
+      <ul>
+        <li>Screenshot comparison across all configured breakpoints</li>
+        <li>AI-assisted visual-diff highlighting</li>
+        <li>Component-level isolation detection</li>
+        <li>Cross-browser visual-consistency checks</li>
+        <li>Baseline management with approval workflows</li>
+      </ul>
+      <div class="pairs-with"><strong>Pairs with</strong> Percy / Chromatic for hosted snapshot history.</div>
+    </div>
+
+    <!-- 08 -->
+    <div class="gap-card">
+      <div class="gc-head"><span class="gc-num">08</span><span class="gc-title">Accessibility</span><span class="gc-commit">v0.17 · pass 9</span></div>
+      <p class="gc-tagline">WCAG 2.1 AA &mdash; automated coverage of the 57% that can be automated.</p>
+      <p>Industry research is consistent: roughly 57% of WCAG criteria can be checked automatically. TestForge ships the automated set — contrast ratios, keyboard navigation, screen-reader output, focus trap and order, ARIA correctness — and produces remediation suggestions for each finding.</p>
+      <ul>
+        <li>Color-contrast ratio validation (WCAG AA / AAA)</li>
+        <li>Keyboard-navigation flow testing</li>
+        <li>Screen-reader output verification</li>
+        <li>Focus trap and order detection</li>
+        <li>ARIA attribute validation</li>
+        <li>Automated remediation suggestions</li>
+      </ul>
+      <div class="pairs-with"><strong>Pairs with</strong> axe-core / Pa11y; manual audit for the remaining 43%.</div>
+    </div>
+
+    <!-- 09 -->
+    <div class="gap-card">
+      <div class="gc-head"><span class="gc-num">09</span><span class="gc-title">Resilience Pattern Detection</span><span class="gc-commit">v0.18 · pass 10</span></div>
+      <p class="gc-tagline">The patterns your code needs to survive partial failures.</p>
+      <p>Walks the AST for the patterns code needs to survive partial failures: retry-with-backoff, circuit breakers, request timeouts, idempotency keys, graceful degradation. Critical I/O paths missing these defenses are flagged before a chaos run finds them.</p>
+      <ul>
+        <li>Retry-with-backoff pattern detection</li>
+        <li>Circuit-breaker library usage (opossum, polly, hystrix)</li>
+        <li>Request-timeout configuration scan</li>
+        <li>Idempotency-key handling on POST / PUT endpoints</li>
+        <li>I/O paths missing resilience guards flagged</li>
+      </ul>
+      <div class="pairs-with"><strong>Pairs with</strong> Gremlin / Litmus / Chaos Mesh for the live fault injection.</div>
+    </div>
+
+    <!-- 10 -->
+    <div class="gap-card">
+      <div class="gc-head"><span class="gc-num">10</span><span class="gc-title">Mutation-Score Estimate</span><span class="gc-commit">v0.19 · pass 11</span></div>
+      <p class="gc-tagline">Heuristic mutation score in seconds, not minutes.</p>
+      <p>Full mutation testing is the gold standard but takes minutes per file. TestForge estimates the score in seconds by analyzing assertion density, branch coverage in the test files, and the test-to-source ratio. Not as authoritative as a real Stryker run — close enough to flag weak suites pre-merge and pair with the heavier tool in CI.</p>
+      <ul>
+        <li>Estimated mutation score per source file</li>
+        <li>Assertion-density signals from the test files</li>
+        <li>Branch-coverage signals</li>
+        <li>Surfaces suites with low mutation resilience</li>
+      </ul>
+      <div class="pairs-with"><strong>Pairs with</strong> Stryker / Pitest for confirmation on the files that earn it.</div>
+    </div>
+
+    <!-- 11 -->
+    <div class="gap-card">
+      <div class="gc-head"><span class="gc-num">11</span><span class="gc-title">Property-Based</span><span class="gc-commit">v0.20 · pass 12</span></div>
+      <p class="gc-tagline">Invariant validation with intelligent input generation.</p>
+      <p>Instead of testing specific examples, you define properties — invariants that should hold for all inputs — and TestForge generates edge cases that a human writer would never produce. When a property fails, the engine shrinks the input to the minimal reproducer.</p>
+      <ul>
+        <li>Property definition and invariant specification</li>
+        <li>Intelligent input generation (including edge cases)</li>
+        <li>Shrinking — minimal failing-case identification</li>
+        <li>Cross-property interaction testing</li>
+        <li>Regression-property validation</li>
+      </ul>
+      <div class="pairs-with"><strong>Pairs with</strong> fast-check / Hypothesis for the property runtime.</div>
+    </div>
+
+    <!-- 12 -->
+    <div class="gap-card">
+      <div class="gc-head"><span class="gc-num">12</span><span class="gc-title">Contract</span><span class="gc-commit">v0.21 · pass 13</span></div>
+      <p class="gc-tagline">Microservice API contract validation.</p>
+      <p>Walks provider and consumer contracts to ensure your microservices honor what they promise — both as producers and as callers. Breaking-change detection runs at the schema layer (OpenAPI, GraphQL, Pact) so breakages are caught before deployment, not in production.</p>
+      <ul>
+        <li>Provider and consumer contract validation</li>
+        <li>OpenAPI / GraphQL schema compliance</li>
+        <li>Pact-compatible contract testing</li>
+        <li>Breaking-change detection with impact analysis</li>
+        <li>Consumer-expectation mapping</li>
+      </ul>
+      <div class="pairs-with"><strong>Pairs with</strong> Pact / OpenAPI tooling / GraphQL Inspector.</div>
+    </div>
+
+    <!-- 13 -->
+    <div class="gap-card">
+      <div class="gc-head"><span class="gc-num">13</span><span class="gc-title">Test Quality Analysis</span><span class="gc-commit">v0.22 · pass 14</span></div>
+      <p class="gc-tagline">Finds the ghost tests in your suite.</p>
+      <p>Most test suites contain ghost tests that look green but assert nothing. TestForge walks every parseable test file and flags <code>.skip</code> / <code>xit</code> / <code>.todo</code> (rot risk), <code>.only</code> / <code>fit</code> (silently kills sibling tests in CI), empty test bodies, and tests with zero recognized assertions. Supports eight frameworks.</p>
+      <ul>
+        <li>AST-aware detection of <code>it.skip</code> / <code>xit</code> / <code>it.todo</code></li>
+        <li><code>it.only</code> / <code>fit</code> detection (these silently skip sibling tests)</li>
+        <li>Tests with no recognized assertion call</li>
+        <li>Empty test bodies (comments-only)</li>
+        <li>Tests importing nothing project-relative</li>
+        <li>Supports Jest, Vitest, Mocha, AVA, Tap, <code>node:test</code>, Testing Library, Chai</li>
+      </ul>
+      <div class="pairs-with"><strong>Pairs with</strong> your existing test runner — TestForge is a meta-check on the suite itself.</div>
+    </div>
+
+    <!-- 14 -->
+    <div class="gap-card">
+      <div class="gc-head"><span class="gc-num">14</span><span class="gc-title">Supply Chain Audit</span><span class="gc-commit">v0.23 · pass 15</span></div>
+      <p class="gc-tagline">CVE database, dependency scanning, fix versions.</p>
+      <p>Cross-references every dependency against known CVE databases. Findings include severity, recommended fix versions, and an exploitability assessment. Direct and transitive dependencies are walked alike.</p>
+      <ul>
+        <li>Known-vulnerability database lookup</li>
+        <li>Fix-version recommendations</li>
+        <li>Critical / High / Medium / Low classification</li>
+        <li>Exploitability assessment</li>
+      </ul>
+      <div class="pairs-with"><strong>Pairs with</strong> Snyk / Dependabot / Trivy for continuous monitoring outside the pre-merge gate.</div>
+    </div>
+
+    <!-- 15 -->
+    <div class="gap-card">
+      <div class="gc-head"><span class="gc-num">15</span><span class="gc-title">N+1 Query Detection</span><span class="gc-commit">v0.24 · pass 16</span></div>
+      <p class="gc-tagline">Database performance, loop detection, eager loading.</p>
+      <p>Scans for database queries inside loops — the exact pattern that produces exponential performance degradation at scale. Missing eager loading, unoptimized joins, and ORM-call-in-loop patterns each carry a fix suggestion with a code example.</p>
+      <ul>
+        <li>ORM query-in-loop detection</li>
+        <li>Missing eager-loading identification</li>
+        <li>Performance-impact estimation</li>
+        <li>Fix suggestions with code examples</li>
+      </ul>
+      <div class="pairs-with"><strong>Pairs with</strong> pganalyze / Datadog APM for the live query plan.</div>
+    </div>
+
+    <!-- 16 -->
+    <div class="gap-card">
+      <div class="gc-head"><span class="gc-num">16</span><span class="gc-title">Dead Code Analysis</span><span class="gc-commit">v0.24 · pass 16</span></div>
+      <p class="gc-tagline">Unused dependencies, dead exports, tree-shaking opportunities.</p>
+      <p>Identifies imported-but-unused dependencies and potentially dead exports. Estimates the bundle-size savings from removal and produces a safe-removal recommendation per finding.</p>
+      <ul>
+        <li>Unused-dependency detection</li>
+        <li>Dead-export identification</li>
+        <li>Bundle-size savings estimation</li>
+        <li>Safe-removal recommendations</li>
+      </ul>
+      <div class="pairs-with"><strong>Pairs with</strong> <code>webpack-bundle-analyzer</code> / <code>rollup-plugin-visualizer</code>.</div>
+    </div>
+
+    <!-- 17 -->
+    <div class="gap-card">
+      <div class="gc-head"><span class="gc-num">17</span><span class="gc-title">License Compliance</span><span class="gc-commit">v0.24 · pass 16</span></div>
+      <p class="gc-tagline">GPL detection, copyleft risk, policy audit.</p>
+      <p>Walks every dependency for license type, flags GPL / copyleft risk in commercial codebases, and produces a compliance report ready for legal review. Per-project policy overrides ship via configuration.</p>
+      <ul>
+        <li>License-type detection per dependency</li>
+        <li>GPL / copyleft risk flagging</li>
+        <li>Per-project policy enforcement</li>
+        <li>Compliance report suitable for legal review</li>
+      </ul>
+      <div class="pairs-with"><strong>Pairs with</strong> FOSSA / <code>license-checker</code> for the audit trail.</div>
+    </div>
+
+    <!-- 18 -->
+    <div class="gap-card">
+      <div class="gc-head"><span class="gc-num">18</span><span class="gc-title">DORA Metrics</span><span class="gc-commit">v0.24 · pass 16</span></div>
+      <p class="gc-tagline">Deployment frequency, lead time, MTTR, change-failure rate.</p>
+      <p>Estimates the four DORA metrics from CI/CD configuration and code patterns — deployment frequency, lead time for changes, mean time to recovery, and change-failure rate — and slots the team into the Elite / High / Medium / Low classification.</p>
+      <ul>
+        <li>CI/CD configuration analysis</li>
+        <li>Deployment-frequency estimation</li>
+        <li>Lead-time calculation</li>
+        <li>MTTR and change-failure-rate prediction</li>
+        <li>Elite / High / Medium / Low classification</li>
+      </ul>
+      <div class="pairs-with"><strong>Pairs with</strong> Sleuth / LinearB / Faros for live DORA tracking.</div>
+    </div>
+
+    <!-- 19 -->
+    <div class="gap-card">
+      <div class="gc-head"><span class="gc-num">19</span><span class="gc-title">OWASP Top 10 Coverage</span><span class="gc-commit">v0.24 · pass 16</span></div>
+      <p class="gc-tagline">Security standards, gap analysis, compliance mapping.</p>
+      <p>Maps every security finding to its OWASP Top 10 category, reports the team's coverage percentage, and surfaces categories with zero coverage. The output is a security-posture snapshot suitable for compliance review.</p>
+      <ul>
+        <li>OWASP Top 10 mapping</li>
+        <li>Coverage percentage per category</li>
+        <li>Gap analysis with missing-category list</li>
+        <li>Security-posture assessment</li>
+      </ul>
+      <div class="pairs-with"><strong>Pairs with</strong> OWASP ZAP / Snyk Code for the runtime coverage layer.</div>
+    </div>
+
+    <!-- 20 -->
+    <div class="gap-card">
+      <div class="gc-head"><span class="gc-num">20</span><span class="gc-title">Edge Case Generation</span><span class="gc-commit">v0.24 · pass 16</span></div>
+      <p class="gc-tagline">AST detection of the foot-guns that only surface at 3 AM.</p>
+      <p>The analyzer walks each parseable file looking for the JavaScript foot-guns that code review keeps missing. Each finding includes the line number and a one-line fix.</p>
+      <ul>
+        <li><code>parseInt</code> without radix (silent base-8 / hex bugs)</li>
+        <li><code>JSON.parse</code> not wrapped in <code>try</code> (untrusted-input crashes)</li>
+        <li>Loose equality (<code>==</code>) on non-null comparisons</li>
+        <li><code>Number()</code> coercion on possibly-undefined values</li>
+        <li><code>new Date()</code> on unvalidated strings</li>
+        <li><code>switch</code> statements without a default clause</li>
+      </ul>
+      <div class="pairs-with"><strong>Pairs with</strong> ESLint / Biome — TestForge surfaces what your config didn't enable.</div>
+    </div>
+
+    <!-- 21 -->
+    <div class="gap-card">
+      <div class="gc-head"><span class="gc-num">21</span><span class="gc-title">Agentic Scale &mdash; Traffic Risk Analysis</span><span class="gc-commit">v0.24 · pass 16</span></div>
+      <p class="gc-tagline">Code patterns that break under agentic concurrency.</p>
+      <p>AI agents hit APIs in patterns humans don't — extreme parallelism, retry storms, unpaginated bulk reads, no caching. TestForge flags the code paths most likely to degrade under this load profile so they're fixed before agentic traffic finds them.</p>
+      <ul>
+        <li>Endpoints without rate limits flagged for agentic risk</li>
+        <li>Unbounded list queries (missing <code>LIMIT</code> / pagination)</li>
+        <li>Synchronous I/O on high-traffic paths</li>
+        <li>Missing idempotency on POST endpoints</li>
+        <li>Retry-storm risk in client code</li>
+      </ul>
+      <div class="pairs-with"><strong>Pairs with</strong> k6 / custom agent-load scripts that simulate the concurrency profile.</div>
+    </div>
+
+  </section>
+
+  <!-- ===================== PART V — PAIRINGS ===================== -->
+  <section class="part" id="pairings">
+    <div class="part-eyebrow">Part Five</div>
+    <h1 class="part-title">What TestForge <em>pairs with</em>.</h1>
+
+    <p class="lede">TestForge is the static, pre-merge layer. It does not replace the runtime tools your team already trusts — it hands them a smaller surface to cover because the analyzer has already walked the easy half.</p>
+
+    <div class="table-wrap">
+      <table>
+        <caption>Layer-by-layer pairing · TestForge → runtime tooling</caption>
+        <thead>
+          <tr><th style="width:24%">Layer</th><th style="width:34%">TestForge does</th><th>Runtime tool then does</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="cap-name">Security</td><td>SAST + taint, OWASP mapping, secret detection</td><td>OWASP ZAP / Burp Suite for DAST; Snyk for continuous monitoring</td></tr>
+          <tr><td class="cap-name">Load &amp; scale</td><td>Surface the static gaps in rate-limit, cache, queue, pool</td><td>k6 / Locust / wrk for the actual traffic run</td></tr>
+          <tr><td class="cap-name">Resilience</td><td>Detect missing retry, circuit-breaker, timeout, idempotency</td><td>Gremlin / Litmus / Chaos Mesh for the live fault injection</td></tr>
+          <tr><td class="cap-name">Mutation</td><td>Heuristic per-file estimate in seconds</td><td>Stryker / Pitest for the authoritative run on flagged files</td></tr>
+          <tr><td class="cap-name">Property</td><td>Property and invariant specification</td><td>fast-check / Hypothesis for the actual property runs</td></tr>
+          <tr><td class="cap-name">Accessibility</td><td>The automated ~57% of WCAG criteria</td><td>axe-core / Pa11y plus manual audit for the remaining 43%</td></tr>
+          <tr><td class="cap-name">Supply chain</td><td>CVE lookup at merge time</td><td>Snyk / Dependabot / Trivy for continuous monitoring</td></tr>
+          <tr><td class="cap-name">Performance</td><td>N+1 detection, dead-code detection</td><td>pganalyze / Datadog APM / bundle analyzer for live data</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="compare">
+      <div class="compare-head">Positioning</div>
+      <p style="margin:0;font-size:0.95rem;color:var(--ink-soft);">We're not building a product war. The static layer is the layer most exposed to the volume of AI-assisted code now landing in repositories, and it is the layer where one consistent gate per pull request changes the outcome. The runtime tools your team already runs continue to do exactly what they do best.</p>
+    </div>
+  </section>
+
+  <!-- ===================== PART VI — COMMITS ===================== -->
+  <section class="part" id="commits">
+    <div class="part-eyebrow">Part Six</div>
+    <h1 class="part-title">The <em>deepening passes</em> that closed it.</h1>
+
+    <p class="lede">Reverse-chronological. Each pass deepens one or more dimensions with an additional rule, a sharper finding, or a more honest report.</p>
+
+    <pre><span class="hash">v0.24</span>  mcp(0.24.0): deepen dimensions pass 16 — stack polish (strict dep sets + new signals)
+<span class="hash">v0.23</span>  mcp(0.23.0): deepen dimensions pass 15 — visual regression + property-based
+<span class="hash">v0.22</span>  mcp(0.22.0): deepen dimensions pass 14 — AST edge-case detection
+<span class="hash">v0.21</span>  mcp(0.21.0): deepen dimensions pass 13 — vision + scope (precise matching)
+<span class="hash">v0.20</span>  mcp(0.20.0): deepen dimensions pass 12 — property + contract sharpening
+<span class="hash">v0.19</span>  mcp(0.19.0): deepen dimensions pass 11 — mutation estimate calibration
+<span class="hash">v0.18</span>  mcp(0.18.0): deepen dimensions pass 10 — resilience pattern coverage
+<span class="hash">v0.17</span>  mcp(0.17.0): deepen dimensions pass 9 — accessibility WCAG sharpening
+<span class="hash">v0.16</span>  mcp(0.16.0): deepen dimensions pass 8 — visual regression breakpoints
+<span class="hash">v0.15</span>  mcp(0.15.0): deepen dimensions pass 7 — security taint engine
+<span class="hash">v0.14</span>  mcp(0.14.0): deepen dimensions pass 6 — predictive risk scoring
+<span class="hash">v0.13</span>  mcp(0.13.0): deepen dimensions pass 5 — load &amp; scale patterns
+<span class="hash">v0.12</span>  mcp(0.12.0): deepen dimensions pass 4 — feature-matrix traceability
+<span class="hash">v0.11</span>  mcp(0.11.0): deepen dimensions pass 3 — vision &amp; goal alignment
+<span class="hash">v0.10</span>  mcp(0.10.0): deepen dimensions pass 2 — scope &amp; boundary
+<span class="hash">v0.6</span>   mcp(0.6.0):  initial 21-dimension shape — pass 1</pre>
+  </section>
+
+  <!-- ===================== CLOSING ===================== -->
+  <div class="closing">
+    <div class="end-mark">— end of whitepaper —</div>
+    <p>Twenty-one dimensions live, paired with the runtime tools your team already runs.<br>
+    For ongoing work — deeper taint rules, new language frontends, sharper agentic detection — see the issue tracker.</p>
+  </div>
+
+  <!-- ===================== COLOPHON ===================== -->
+  <footer class="colophon">
+    <div class="brand">
+      <svg width="20" height="20" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="8" cy="8" r="3" stroke="#6B53A3" stroke-width="2" fill="none" />
+        <circle cx="24" cy="8" r="3" stroke="#6B53A3" stroke-width="2" fill="none" />
+        <circle cx="8" cy="24" r="3" stroke="#6B53A3" stroke-width="2" fill="none" />
+        <circle cx="24" cy="24" r="3" stroke="#6B53A3" stroke-width="2" fill="none" />
+        <line x1="11" y1="8" x2="21" y2="8" stroke="#6B53A3" stroke-width="1.5" />
+        <line x1="8" y1="11" x2="8" y2="21" stroke="#6B53A3" stroke-width="1.5" />
+        <line x1="11" y1="24" x2="21" y2="24" stroke="#6B53A3" stroke-width="1.5" />
+        <line x1="24" y1="11" x2="24" y2="21" stroke="#6B53A3" stroke-width="1.5" />
+        <line x1="10.1" y1="10.1" x2="21.9" y2="21.9" stroke="#6B53A3" stroke-width="1.5" />
+        <circle cx="16" cy="16" r="2" fill="#4A3A7A" />
+      </svg>
+      Test<em>F</em>orge
+    </div>
+    <div>v0.24 · May 2026 · Twenty-one dimensions live</div>
+  </footer>
+
+</div>
+
+</body>
+</html>
