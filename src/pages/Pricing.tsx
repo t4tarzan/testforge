@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, Fragment } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -514,8 +514,8 @@ function ComparisonTableSection() {
             </thead>
             <tbody>
               {categories.map((cat) => (
-                <>
-                  <tr key={cat.name} className="bg-[#F7F7FB]">
+                <Fragment key={cat.name}>
+                  <tr className="bg-[#F7F7FB]">
                     <td colSpan={6} className="px-5 py-2.5 font-semibold text-sm text-[#333333]">
                       {cat.name}
                     </td>
@@ -530,7 +530,7 @@ function ComparisonTableSection() {
                       <td className="text-center px-3 py-3.5">{renderCell(feat.enterprise)}</td>
                     </tr>
                   ))}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>
