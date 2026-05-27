@@ -10,7 +10,7 @@ import { runSecurityAnalysis } from './analyzers/security-analyzer.js';
 import { runUnitAnalysis } from './analyzers/unit-analyzer.js';
 import { runLoadAnalysis } from './analyzers/load-analyzer.js';
 import { runAccessibilityAnalysis } from './analyzers/accessibility-analyzer.js';
-import { getReports, getReport } from './local-db.js';
+import { getReports, getReport, saveGeneration, getGenerations, getGeneration } from './local-db.js';
 import {
   runVisionAnalysis,
   runScopeAnalysis,
@@ -124,8 +124,9 @@ async function main() {
       }
     }
 
-    return reply.send({
-      generationId: 'gen_' + Date.now().toString(36),
+    const generationId = 'gen_' + Date.now().toString(36);
+    const responsePayload = {
+      generationId,
       cluster,
       provider: { primary: PRIMARY_MODEL, fallback: FALLBACK_MODEL, base: 'openrouter' },
       generatedAt: new Date().toISOString(),
@@ -145,7 +146,46 @@ async function main() {
         attempts: r.attempts,
       })),
       run,
-    });
+    };
+
+    // Persist to ~/.testforge/history.db. Best-effort — a DB failure shouldn't
+    // fail the request (the caller already has the full result in-memory).
+    try {
+      saveGeneration({
+        id: generationId,
+        cluster,
+        providerPrimary: PRIMARY_MODEL,
+        providerFallback: FALLBACK_MODEL,
+        requestedFindings: findings.length,
+        processed: results.length,
+        generationMs,
+        runMs: run?.durationMs ?? 0,
+        success: run?.success ?? false,
+        numTotalTests: run?.numTotalTests ?? 0,
+        numPassedTests: run?.numPassedTests ?? 0,
+        numFailedTests: run?.numFailedTests ?? 0,
+        fullData: responsePayload,
+      });
+    } catch (err) {
+      app.log.warn({ err: (err as Error).message }, 'saveGeneration failed');
+    }
+
+    return reply.send(responsePayload);
+  });
+
+  // List Tier-2 generations (most-recent first).
+  app.get('/api/generations', async (request, reply) => {
+    const { limit } = request.query as { limit?: string };
+    const n = Math.min(Math.max(Number(limit) || 20, 1), 100);
+    return reply.send(getGenerations(n));
+  });
+
+  // Fetch one Tier-2 generation (with the full result payload).
+  app.get('/api/generations/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const row = getGeneration(id);
+    if (!row) return reply.status(404).send({ error: 'generation not found', id });
+    return reply.send(row);
   });
 
   app.get('/reports', async (request, reply) => {

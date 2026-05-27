@@ -57,8 +57,27 @@ export function getLocalDb(): DB {
       full_data TEXT NOT NULL,
       created_at TEXT DEFAULT (datetime('now'))
     );
-    
+
     CREATE INDEX IF NOT EXISTS idx_reports_created ON reports(created_at DESC);
+
+    -- Tier 2 generation runs (LLM produced tests + sandbox results).
+    CREATE TABLE IF NOT EXISTS generations (
+      id TEXT PRIMARY KEY,
+      cluster TEXT,
+      provider_primary TEXT,
+      provider_fallback TEXT,
+      requested_findings INTEGER DEFAULT 0,
+      processed INTEGER DEFAULT 0,
+      generation_ms INTEGER DEFAULT 0,
+      run_ms INTEGER DEFAULT 0,
+      success INTEGER DEFAULT 0,
+      num_total_tests INTEGER DEFAULT 0,
+      num_passed_tests INTEGER DEFAULT 0,
+      num_failed_tests INTEGER DEFAULT 0,
+      full_data TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_generations_created ON generations(created_at DESC);
   `);
   
   console.log(`📁 Local DB: ${DB_PATH}`);
@@ -102,6 +121,77 @@ export function getReports(limit = 20): ReportRow[] {
 export function getReport(id: string): ReportRow | null {
   const d = getLocalDb();
   const row = d.prepare('SELECT * FROM reports WHERE id = ?').get(id) as ReportRow | undefined;
+  if (row && typeof row.full_data === 'string') {
+    row.full_data = JSON.parse(row.full_data);
+  }
+  return row ?? null;
+}
+
+// ─── Tier 2 generations ────────────────────────────────────────────────
+export interface GenerationRow {
+  id: string;
+  cluster: string;
+  provider_primary: string;
+  provider_fallback: string;
+  requested_findings: number;
+  processed: number;
+  generation_ms: number;
+  run_ms: number;
+  success: number;
+  num_total_tests: number;
+  num_passed_tests: number;
+  num_failed_tests: number;
+  full_data: string | Record<string, unknown>;
+  created_at: string;
+}
+
+export interface SaveGenerationInput {
+  id: string;
+  cluster: string;
+  providerPrimary: string;
+  providerFallback: string;
+  requestedFindings: number;
+  processed: number;
+  generationMs: number;
+  runMs: number;
+  success: boolean;
+  numTotalTests: number;
+  numPassedTests: number;
+  numFailedTests: number;
+  fullData: unknown;
+}
+
+export function saveGeneration(input: SaveGenerationInput): void {
+  const d = getLocalDb();
+  d.prepare(
+    `INSERT INTO generations (
+      id, cluster, provider_primary, provider_fallback,
+      requested_findings, processed, generation_ms, run_ms,
+      success, num_total_tests, num_passed_tests, num_failed_tests, full_data
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    input.id, input.cluster, input.providerPrimary, input.providerFallback,
+    input.requestedFindings, input.processed, input.generationMs, input.runMs,
+    input.success ? 1 : 0,
+    input.numTotalTests, input.numPassedTests, input.numFailedTests,
+    JSON.stringify(input.fullData)
+  );
+}
+
+export function getGenerations(limit = 20): GenerationRow[] {
+  const d = getLocalDb();
+  return d.prepare(
+    `SELECT id, cluster, provider_primary, provider_fallback,
+            requested_findings, processed, generation_ms, run_ms,
+            success, num_total_tests, num_passed_tests, num_failed_tests,
+            created_at
+     FROM generations ORDER BY created_at DESC LIMIT ?`
+  ).all(limit) as unknown as GenerationRow[];
+}
+
+export function getGeneration(id: string): GenerationRow | null {
+  const d = getLocalDb();
+  const row = d.prepare('SELECT * FROM generations WHERE id = ?').get(id) as GenerationRow | undefined;
   if (row && typeof row.full_data === 'string') {
     row.full_data = JSON.parse(row.full_data);
   }

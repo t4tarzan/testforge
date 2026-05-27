@@ -10,8 +10,11 @@ import { createOpenAI } from '@ai-sdk/openai';
 // generation with non-trivial constraint-following. Fallback: DeepSeek V4 Flash
 // — cheap, fast, different lineage (good ensemble diversity if Qwen rejects
 // the schema). Both via OpenRouter under one OPENROUTER_API_KEY.
-export const PRIMARY_MODEL = 'qwen/qwen3.7-max';
-export const FALLBACK_MODEL = 'deepseek/deepseek-v4-flash';
+//
+// Env overrides let ops swap models without a rebuild — also makes the
+// fallback path testable by temporarily pointing PRIMARY at a bogus id.
+export const PRIMARY_MODEL = process.env.TESTFORGE_PRIMARY_MODEL || 'qwen/qwen3.7-max';
+export const FALLBACK_MODEL = process.env.TESTFORGE_FALLBACK_MODEL || 'deepseek/deepseek-v4-flash';
 
 const apiKey = process.env.OPENROUTER_API_KEY;
 

@@ -229,13 +229,102 @@ function renderReport(d, source, savedId) {
   h += '<div style="font-size:12px;color:#6B6B6B;margin-top:4px">Max agents before failure: '+a.maxPredictedAgents+' | Bottleneck: '+(a.predictedBottleneck||'unknown')+'</div></div>';
   
   // Actions
-  h += '<div class="actions"><button class="btn-outline" onclick="window.print()">🖨️ Print / Save PDF</button></div>';
+  h += '<div class="actions" style="display:flex;gap:12px;flex-wrap:wrap">';
+  h += '<button class="btn-secondary" onclick="runTier2()" id="tier2Btn" style="flex:1;min-width:200px">🤖 Generate Tests (Tier 2)</button>';
+  h += '<button class="btn-outline" onclick="window.print()">🖨️ Print / Save PDF</button>';
   h += '</div>';
-  
+  // Tier-2 result slot
+  h += '<div id="tier2Result" style="margin-top:16px;display:none"></div>';
+  h += '</div>';
+
   document.getElementById('report').innerHTML = h;
   document.getElementById('report').style.display = 'block';
   document.getElementById('inputCard').style.display = 'none';
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ─── Tier 2: generate Vitest files for the top findings + run in sandbox ───
+async function runTier2() {
+  if (!reportData) return;
+  var btn = document.getElementById('tier2Btn');
+  var slot = document.getElementById('tier2Result');
+  btn.disabled = true;
+  btn.textContent = '🤖 Generating + running sandbox...';
+  slot.style.display = 'block';
+  slot.innerHTML = '<div style="padding:16px;background:#12101A;border-radius:8px;color:#a99bff;font-size:13px">' +
+    '⏳ Sending top findings to the model (Qwen 3.7 Max → DeepSeek V4 Flash fallback) · then executing the generated tests in a sandboxed Docker container...</div>';
+
+  // Pull top severity findings across dimensions
+  var sevOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+  var all = [];
+  Object.keys(reportData).forEach(function(k) {
+    var v = reportData[k];
+    if (v && typeof v === 'object') {
+      var arr = v.findings || v.items || [];
+      if (Array.isArray(arr)) arr.forEach(function(f) {
+        if (f && typeof f === 'object' && f.severity) {
+          all.push(Object.assign({ dimension: k, rule: (f.title||'').split('(')[0].trim() }, f));
+        }
+      });
+    }
+  });
+  all.sort(function(a, b) { return (sevOrder[a.severity]||4) - (sevOrder[b.severity]||4); });
+  var top = all.slice(0, 3);
+
+  if (top.length === 0) {
+    slot.innerHTML = '<div style="padding:16px;background:#12101A;border-radius:8px;color:#EAB308;font-size:13px">No findings produced — nothing to generate against.</div>';
+    btn.disabled = false;
+    btn.textContent = '🤖 Generate Tests (Tier 2)';
+    return;
+  }
+
+  try {
+    var res = await fetch('/generate-and-run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ findings: top, maxFindings: 3, cluster: 'mixed-top-severity' })
+    });
+    var d = await res.json();
+    if (d.error) throw new Error(d.error);
+
+    var h = '<div style="padding:16px;background:#12101A;border-radius:8px">';
+    h += '<div style="font-size:15px;font-weight:600;color:#a99bff;margin-bottom:6px">🤖 Tier 2 — Generate &amp; Run</div>';
+    h += '<div style="font-size:12px;color:#6B6B6B;margin-bottom:12px">id <code>' + d.generationId + '</code> · ' +
+         d.provider.primary + ' → ' + d.provider.fallback + ' · generation ' + (d.generationMs/1000).toFixed(1) + 's · sandbox ' + (d.runMs) + 'ms</div>';
+
+    if (d.run) {
+      var bg = d.run.success ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)';
+      var fg = d.run.success ? '#22C55E' : '#EF4444';
+      h += '<div style="padding:10px 12px;background:'+bg+';border-radius:6px;margin-bottom:12px;color:'+fg+';font-weight:600">';
+      h += (d.run.success ? '✓' : '✗') + ' ' + d.run.numPassedTests + ' / ' + d.run.numTotalTests + ' tests passed';
+      if (d.run.numFailedTests > 0) h += ' · ' + d.run.numFailedTests + ' failed';
+      h += '</div>';
+    }
+
+    for (var i = 0; i < d.results.length; i++) {
+      var r = d.results[i];
+      var f = r.file;
+      var fr = (d.run && d.run.files) ? d.run.files[i] : null;
+      h += '<div class="finding" style="border-color:#a99bff;background:rgba(87,74,125,0.05);margin-bottom:10px">';
+      h += '<div class="finding-title">📝 ' + (f ? f.filename : '(no file produced)') + '</div>';
+      h += '<div class="finding-file">For: ' + r.finding.title + '</div>';
+      if (fr) {
+        var color = fr.status === 'passed' ? '#22C55E' : '#EF4444';
+        h += '<div style="margin-top:6px;font-size:12px;color:'+color+'">→ ' + fr.status.toUpperCase() + ' · ' + fr.numPassed + ' passed, ' + fr.numFailed + ' failed</div>';
+      }
+      if (f && f.reasoning) {
+        h += '<div style="margin-top:6px;font-size:12px;color:#6B6B6B;line-height:1.5">' + f.reasoning + '</div>';
+      }
+      h += '</div>';
+    }
+    h += '</div>';
+    slot.innerHTML = h;
+  } catch (e) {
+    slot.innerHTML = '<div style="padding:16px;background:rgba(239,68,68,0.1);border-radius:8px;color:#EF4444;font-size:13px">Tier 2 failed: ' + e.message + '</div>';
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🤖 Generate Tests (Tier 2)';
 }
 
 async function loadHistory() {
