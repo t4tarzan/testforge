@@ -1,0 +1,8 @@
+# Root pyproject.toml — no workspace declaration. Mirrors LangChain's
+# layout where each sub-package lives under libs/<name>/ and the root
+# doesn't reference them via PEP 621 or uv.
+
+[project]
+name = "libs-monorepo-fixture"
+version = "0.1.0"
+requires-python = ">=3.10"

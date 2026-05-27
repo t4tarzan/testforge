@@ -65,6 +65,7 @@ const STACK_MODERN = resolve(__dirname, 'fixtures/stack-modern');
 const STACK_LEGACY = resolve(__dirname, 'fixtures/stack-legacy');
 const POLYGLOT_PYTHON = resolve(__dirname, 'fixtures/polyglot-python');
 const UV_WORKSPACE = resolve(__dirname, 'fixtures/uv-workspace');
+const LIBS_MONOREPO = resolve(__dirname, 'fixtures/libs-monorepo');
 
 describe('code-scanner', () => {
   let vulnInfo: CodebaseInfo;
@@ -228,6 +229,52 @@ describe('code-scanner — workspace recursion (uv + npm/bun)', () => {
     expect(info.techStack).toContain('Playwright');
     // pytest is named in [dependency-groups] inside backend/pyproject.toml
     expect(info.techStack).toContain('pytest');
+  });
+});
+
+// Regression for the LangChain in-the-wild report (2026-05-28): root
+// pyproject.toml didn't declare any workspace, but real packages lived
+// under `libs/<name>/pyproject.toml`. 0.26.1 only followed declared
+// workspaces, so we reported deps:0 even though there were ~dozens.
+// 0.26.2 also follows libs/*, packages/*, apps/*, services/* by
+// convention.
+describe('code-scanner — conventional monorepo recursion (libs/*, packages/*, services/*)', () => {
+  let info: CodebaseInfo;
+  beforeAll(async () => {
+    info = await scanCodebase(LIBS_MONOREPO);
+  });
+
+  it('follows libs/<pkg>/pyproject.toml even without workspace declaration', () => {
+    // libs/core declares pydantic / httpx / tenacity
+    expect(info.dependencies).toContain('pydantic');
+    expect(info.dependencies).toContain('httpx');
+    expect(info.dependencies).toContain('tenacity');
+    // libs/openai declares openai / tiktoken
+    expect(info.dependencies).toContain('openai');
+    expect(info.dependencies).toContain('tiktoken');
+  });
+
+  it('follows libs/<pkg> dependency-groups for dev-deps', () => {
+    // libs/core [dependency-groups] dev = pytest / mypy
+    expect(info.devDependencies).toContain('pytest');
+    expect(info.devDependencies).toContain('mypy');
+  });
+
+  it('follows packages/<pkg>/package.json even without workspaces field', () => {
+    expect(info.dependencies).toContain('zod');
+    expect(info.dependencies).toContain('axios');
+    expect(info.devDependencies).toContain('vitest');
+  });
+
+  it('follows services/<svc>/requirements.txt at the convention path', () => {
+    expect(info.dependencies).toContain('celery');
+    expect(info.dependencies).toContain('redis');
+  });
+
+  it('tech-stack rolls up across all conventional members', () => {
+    expect(info.techStack).toContain('Pydantic');
+    expect(info.techStack).toContain('Celery');
+    expect(info.techStack).toContain('Zod');
   });
 });
 

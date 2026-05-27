@@ -1,0 +1,7 @@
+{
+  "name": "libs-monorepo-fixture",
+  "private": true,
+  "scripts": {
+    "build": "echo 'no-op'"
+  }
+}

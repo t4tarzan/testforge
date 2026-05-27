@@ -46,13 +46,14 @@ Tier-1 analyzers are deterministic — same input always produces the same outpu
 
 ### 🆕 Recent work (2026-05-28)
 
-Shipped **21 npm releases** (`0.6.0 → 0.26.1`) covering:
+Shipped **22 npm releases** (`0.6.0 → 0.26.2`) covering:
 
 - **Spine (phases 4a/4b/4c)** — intra-file → cross-file taint propagation + user-authored rules DSL (`.testforge/rules.yaml`)
 - **16 deepening passes** across all 21 dimensions: substring-matching → AST analysis. Substring traps fixed across the board (e.g. `dep.includes('vite')` no longer matches `vitest`)
 - **Tier 2** (`0.25.0 → 0.25.2`) — LLM-generated Vitest + sandboxed Docker execution, runner image auto-pulled from GHCR
 - **Python support** (`0.26.0`) — FastAPI/Flask/Django routes detected, `requirements.txt` + `pyproject.toml` parsed, pytest counted, `languageCoverage` honesty banner for everything else
 - **Monorepo recursion** (`0.26.1`) — uv workspaces + npm/yarn/bun/pnpm workspaces + PEP 735 `[dependency-groups]` + a string-aware TOML array parser that fixes silent truncation on entries like `"fastapi[standard]"`
+- **Conventional-monorepo recursion** (`0.26.2`) — also globs `libs/*`, `packages/*`, `apps/*`, `services/*` for `pyproject.toml` / `package.json` / `requirements.txt`. Caught by the In-the-Wild showcase: LangChain went from `deps: 0` to `27 + 66 dev-deps` once we followed `libs/<pkg>/pyproject.toml` even with no workspace declaration at root.
 - **127 → 0** ESLint errors with CI gate now blocking
 - **30 → 179** vitest tests (6×)
 

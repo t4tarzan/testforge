@@ -186,8 +186,25 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
 
   // Discover workspace members (paths relative to projectPath). Always
   // includes '' (the root itself) so we read root manifests too.
-  const pyMemberDirs = ['', ...(await discoverUvWorkspaceMembers(projectPath))];
-  const nodeMemberDirs = ['', ...(await discoverNodeWorkspaceMembers(projectPath))];
+  // Conventional-monorepo discovery covers projects that don't declare
+  // workspaces at root but still nest sub-packages under known directories
+  // (LangChain ships `libs/<each-package>/pyproject.toml`; many JS repos
+  // use `packages/<name>/package.json` without a workspaces field).
+  const pyMemberDirs = [
+    '',
+    ...(await discoverUvWorkspaceMembers(projectPath)),
+    ...(await discoverConventionalMembers(projectPath, 'pyproject.toml')),
+  ];
+  const nodeMemberDirs = [
+    '',
+    ...(await discoverNodeWorkspaceMembers(projectPath)),
+    ...(await discoverConventionalMembers(projectPath, 'package.json')),
+  ];
+  // Same convention applies to requirements.txt subdirs.
+  const reqSubdirs = [
+    'backend', 'server', 'api',
+    ...(await discoverConventionalMembers(projectPath, 'requirements.txt')),
+  ];
 
   // 4a. Node — package.json across root + every workspace member.
   for (const subdir of nodeMemberDirs) {
@@ -221,10 +238,10 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
       // file absent — fine
     }
   }
-  // Also check common backend/server/api subdirs for requirements.txt
-  // (dclaw-monitor pattern — backend at known path without uv workspace
-  // declaration).
-  for (const subdir of ['backend', 'server', 'api']) {
+  // Also check requirements.txt across known subdirs (backend / server /
+  // api covers the dclaw-monitor pattern; libs/* / packages/* / apps/* /
+  // services/* via discoverConventionalMembers above).
+  for (const subdir of reqSubdirs) {
     try {
       const content = readFileSync(join(projectPath, subdir, 'requirements.txt'), 'utf-8');
       dependencies.push(...parsePyRequirements(content));
@@ -589,6 +606,44 @@ async function discoverUvWorkspaceMembers(rootPath: string): Promise<string[]> {
       }
     } else {
       out.add(pattern);
+    }
+  }
+  return [...out];
+}
+
+// Common monorepo directories where each subdir often holds its own
+// pyproject.toml / package.json / requirements.txt WITHOUT a workspace
+// declaration at the project root. LangChain ships its packages under
+// `libs/`; many JS repos use `packages/` or `apps/`; microservice
+// templates use `services/`. Order doesn't matter — we dedupe in the
+// returned Set.
+const CONVENTIONAL_MONOREPO_DIRS = ['libs', 'packages', 'apps', 'services'];
+
+/**
+ * Look for `<dir>/*\/<manifest>` matches under the well-known monorepo
+ * directory names. Returns the relative parent dirs (e.g. `libs/langchain`)
+ * that actually contain the manifest. Skips one-level only — we don't
+ * recurse into nested monorepos.
+ */
+async function discoverConventionalMembers(rootPath: string, manifest: string): Promise<string[]> {
+  const out = new Set<string>();
+  for (const dir of CONVENTIONAL_MONOREPO_DIRS) {
+    try {
+      const matches = await glob(`${dir}/*/${manifest}`, {
+        cwd: rootPath,
+        absolute: false,
+        ignore: [
+          '**/node_modules/**', '**/.venv/**', '**/venv/**', '**/__pycache__/**',
+          '**/.git/**', '**/dist/**', '**/build/**',
+        ],
+      });
+      for (const m of matches) {
+        // m is like `libs/langchain/pyproject.toml` — strip the manifest
+        // suffix to get the member directory.
+        out.add(m.slice(0, -(manifest.length + 1)));
+      }
+    } catch {
+      // skip bad pattern
     }
   }
   return [...out];

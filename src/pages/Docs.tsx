@@ -705,7 +705,7 @@ function CliInstallationPage() {
         Verify installation:
       </p>
       <DocCodeBlock
-        code={"testforge-mcp --version\n# @whitenoisenpm/testforge-mcp/0.26.1 darwin-arm64 node-v22.0.0"}
+        code={"testforge-mcp --version\n# @whitenoisenpm/testforge-mcp/0.26.2 darwin-arm64 node-v22.0.0"}
         language="bash"
       />
 
@@ -1477,7 +1477,7 @@ function ApiReferencePage() {
       <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">🔬 Analysis</h2>
       <div className="space-y-6">
         {[
-          { method: 'GET', path: '/health', desc: 'Health check — pings Neon and reports version. No auth. No rate limit.', example: '{"status":"ok","version":"0.26.1","database":"connected"}' },
+          { method: 'GET', path: '/health', desc: 'Health check — pings Neon and reports version. No auth. No rate limit.', example: '{"status":"ok","version":"0.26.2","database":"connected"}' },
           { method: 'GET', path: '/status', desc: 'Public services rollup — Web, MCP server, DB, npm package. 30s cache. No auth.', example: '{"status":"all_systems_operational","services":[{"name":"Web Platform","status":"operational"},…]}' },
           { method: 'POST', path: '/analyze', desc: 'Proxies a clone-and-analyze request to the Fly.io MCP server. Returns the full 21-dimension report verbatim. 504 on upstream timeout, 502 on connection failure — never fabricated data. No auth required to analyze public repos.', body: '{"repoUrl":"https://github.com/owner/repo","branch":"main"}', example: '{"codebase":{"totalFiles":402,…},"security":{"findings":29,…},"mutation":{"score":47,…},…}' },
           { method: 'GET', path: '/analyze', desc: 'Returns the configured MCP server URL + endpoints (for clients that prefer to call it directly).', example: '{"mcpServer":"https://testforge-mcp.fly.dev","endpoints":{…}}' },
@@ -1703,13 +1703,36 @@ function ChangelogPage() {
         <div>
           <div className="flex items-center gap-3 mb-3">
             <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
-              mcp 0.26.1 — monorepo / workspace recursion
+              mcp 0.26.2 — conventional-monorepo recursion (libs/, packages/, apps/, services/)
             </h2>
             <span className="font-mono text-[12px] text-[#9A9A9A]">
               2026-05-28
             </span>
             <span className="font-mono font-medium text-[11px] uppercase px-2 py-0.5 rounded bg-[#E8E5FF] text-[#574a7d]">
               Latest
+            </span>
+          </div>
+          <p className="font-body text-[16px] text-[#333333] leading-[1.7] ml-2 mb-3">
+            The brand-new <a href="#/in-the-wild" className="text-[#574a7d] underline">In-the-Wild</a> showcase ran TestForge against <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">langchain-ai/langchain</code> and caught 0.26.1 returning <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">deps: 0</code>. Root cause: LangChain ships every package under <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">libs/&lt;name&gt;/pyproject.toml</code> without declaring <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">[tool.uv.workspace]</code> at root. 0.26.1 only followed declared workspaces. 0.26.2 also globs known monorepo conventions.
+          </p>
+          <ul className="list-disc list-inside space-y-2 font-body text-[15px] text-[#333333] leading-[1.7] ml-2 mb-2">
+            <li><strong>New helper:</strong> <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">discoverConventionalMembers(root, manifest)</code> globs <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">libs/*/&lt;manifest&gt;</code>, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">packages/*/&lt;manifest&gt;</code>, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">apps/*/&lt;manifest&gt;</code>, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">services/*/&lt;manifest&gt;</code>.</li>
+            <li>Applies to <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">pyproject.toml</code>, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">package.json</code>, AND <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">requirements.txt</code> — same convention, three manifest types.</li>
+            <li>Same input, very different output on real LangChain: <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">deps: 0, techStack: []</code> → <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">deps: 27 + 66 dev, techStack: 5</code> (Pydantic, SQLAlchemy, pytest, httpx/requests, Playwright) in 183 ms.</li>
+            <li>New fixture <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">tests/fixtures/libs-monorepo/</code> mirrors the LangChain shape: root pyproject.toml with no workspace declaration; <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">libs/core/</code> + <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">libs/openai/</code> + <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">packages/sdk/</code> + <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">services/worker/</code> each with real deps.</li>
+          </ul>
+          <p className="font-body text-[15px] text-[#333333] leading-[1.7] ml-2 mt-3">
+            Tests: <strong>184 → 189</strong>. The In-the-Wild showcase is now also an internal QA artifact — the LangChain report exposed this gap within hours of launch.
+          </p>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
+              mcp 0.26.1 — monorepo / workspace recursion
+            </h2>
+            <span className="font-mono text-[12px] text-[#9A9A9A]">
+              2026-05-28
             </span>
           </div>
           <p className="font-body text-[16px] text-[#333333] leading-[1.7] ml-2 mb-3">
@@ -2176,7 +2199,7 @@ function McpUsageGuidePage() {
       </div>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#12101A] mb-4">🖥️ Local Dashboard (v0.26.1)</h2>
+        <h2 className="text-heading-sm text-[#12101A] mb-4">🖥️ Local Dashboard (v0.26.2)</h2>
         <p className="text-body-md text-[#6B6B6B] mb-4">
           The MCP server ships with a local dashboard at <code className="bg-[#E8E5FF] px-1.5 py-0.5 rounded text-[#574a7d] font-mono text-sm">http://localhost:33221</code>. No cloud, no sign-in, no hosting needed.
         </p>
