@@ -4,11 +4,13 @@
 
 // Tier 2 ("Generate & Run" — LLM writes Vitest tests + sandbox executes them)
 // is gated by a SEPARATE monthly quota. Free / Pro get 0 iterations and the
-// /generate-and-run endpoint returns 402 with upgradeUrl. Forge is the
-// dedicated Tier-2 plan; Enterprise lifts the cap entirely.
+// /generate-and-run endpoint returns 402 with upgradeUrl. Premium gets a
+// "taste" allotment as an upsell trigger toward Forge; Forge is the headline
+// Tier-2 plan; Enterprise lifts the cap entirely.
 export const PLANS = {
   free:       { testsPerMonth: 5,        tier2IterationsPerMonth: 0,        repos: 1,        rateLimit: 10,  name: 'Free' },
   pro:        { testsPerMonth: 100,      tier2IterationsPerMonth: 0,        repos: 10,       rateLimit: 60,  name: 'Pro' },
+  premium:    { testsPerMonth: 250,      tier2IterationsPerMonth: 20,       repos: 25,       rateLimit: 90,  name: 'Premium' },
   forge:      { testsPerMonth: 500,      tier2IterationsPerMonth: 100,      repos: 50,       rateLimit: 120, name: 'Forge' },
   enterprise: { testsPerMonth: Infinity, tier2IterationsPerMonth: Infinity, repos: Infinity, rateLimit: 300, name: 'Enterprise' },
 };

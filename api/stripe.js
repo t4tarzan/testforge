@@ -8,9 +8,11 @@ import { requireSession } from './_session.js';
 // Price ids live in env vars so the same code works against test mode and
 // live mode without edits. Fallbacks here only fire if Vinayak forgot to
 // configure them — better than crashing, with a console warning.
+// Enterprise is contact-sales only (no self-serve checkout), so no
+// STRIPE_PRICE_ENTERPRISE lookup here.
 function getPriceId(plan) {
-  if (plan === 'enterprise') {
-    return process.env.STRIPE_PRICE_ENTERPRISE || null;
+  if (plan === 'premium') {
+    return process.env.STRIPE_PRICE_PREMIUM || null;
   }
   if (plan === 'forge') {
     return process.env.STRIPE_PRICE_FORGE || null;
@@ -34,6 +36,7 @@ async function handler(req, res) {
           price: 29,
           features: [
             '100 tests/month',
+            '10 repositories',
             'Private repos',
             'Full 21-dimension reports',
             'CI/CD webhook',
@@ -41,23 +44,41 @@ async function handler(req, res) {
           ],
         },
         {
-          id: 'forge',
-          name: 'Forge',
+          id: 'premium',
+          name: 'Premium',
           price: 99,
           features: [
-            '500 tests/month',
-            'Tier 2 — Generate & Run (LLM tests + sandbox)',
-            '100 Tier-2 iterations/month',
+            '250 tests/month',
+            '25 repositories',
+            'Tier 2 — Generate & Run (taste): 20 LLM iterations/month',
             'Qwen 3.7 Max + DeepSeek V4 Flash (keys managed)',
             'Generation history dashboard',
+            'Priority support',
+          ],
+        },
+        {
+          id: 'forge',
+          name: 'Forge',
+          price: 199,
+          features: [
+            '500 tests/month',
+            '50 repositories',
+            'Tier 2 — Generate & Run (full): 100 LLM iterations/month',
+            'Iterative test → fix → re-test loop',
+            'Qwen 3.7 Max + DeepSeek V4 Flash (keys managed)',
+            'Generation history dashboard',
+            'Higher rate limits',
           ],
         },
         {
           id: 'enterprise',
           name: 'Enterprise',
-          price: 199,
+          price: null,
+          contactSales: true,
           features: [
-            'Unlimited tests',
+            'Unlimited tests + Tier-2 iterations',
+            'Unlimited repositories',
+            'Custom AI model selection',
             'SSO/SAML',
             'Team management',
             'SLA guarantee',
@@ -81,8 +102,16 @@ async function handler(req, res) {
   }
 
   const { plan } = req.body || {};
-  if (plan !== 'pro' && plan !== 'forge' && plan !== 'enterprise') {
-    return res.status(400).json({ error: 'plan must be "pro", "forge", or "enterprise"' });
+  // Enterprise is contact-sales only; reject any self-serve attempt with a
+  // hint to mail sales rather than 400'ing silently.
+  if (plan === 'enterprise') {
+    return res.status(400).json({
+      error: 'Enterprise is contact-sales only',
+      contact: 'sales@testforge.run',
+    });
+  }
+  if (plan !== 'pro' && plan !== 'premium' && plan !== 'forge') {
+    return res.status(400).json({ error: 'plan must be "pro", "premium", or "forge"' });
   }
   const priceId = getPriceId(plan);
   if (!priceId) {
