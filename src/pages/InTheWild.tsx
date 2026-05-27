@@ -4,12 +4,6 @@ import { useEffect } from 'react';
 import { ArrowRight, FileText, GitBranch, AlertOctagon, BookOpen } from 'lucide-react';
 import { showcaseReports, type ShowcaseReport } from '@/data/showcaseReports';
 
-function scoreColor(score: number) {
-  if (score >= 80) return '#22C55E';
-  if (score >= 50) return '#EAB308';
-  return '#EF4444';
-}
-
 // Visual "hero" for each card. Per-tech-stack gradient picked from the
 // repo's primary detected framework so each card has its own identity
 // (LangChain → purple/violet, Supabase → emerald, FastAPI → teal).
@@ -27,7 +21,6 @@ const TECH_GRADIENTS: Record<string, string> = {
 const DEFAULT_GRADIENT = 'linear-gradient(135deg, #574a7d 0%, #a39fd4 100%)';
 
 function ReportCard({ report }: { report: ShowcaseReport }) {
-  const color = scoreColor(report.overall);
   const sev = report.security;
   // Pick the first recognized framework in the stack for the hero gradient.
   const primaryTech = report.codebase.techStack.find((t) => TECH_GRADIENTS[t]);
