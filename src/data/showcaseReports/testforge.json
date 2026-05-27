@@ -2,12 +2,12 @@
   "slug": "testforge",
   "repoUrl": "https://github.com/t4tarzan/testforge",
   "repoName": "testforge",
-  "tagline": "TestForge auditing TestForge. The 25-release self-audit on the analyzer that ships these reports.",
-  "analyzedAt": "2026-05-27T23:15:25.176Z",
-  "analyzeMs": 2535,
+  "tagline": "TestForge auditing TestForge. Self-audit shipping fixes for what it finds, in public.",
+  "analyzedAt": "2026-05-27T23:44:56.460Z",
+  "analyzeMs": 2517,
   "codebase": {
-    "totalFiles": 360,
-    "totalLines": 72747,
+    "totalFiles": 361,
+    "totalLines": 73013,
     "endpoints": 202,
     "dependencies": 62,
     "techStack": [
@@ -30,66 +30,25 @@
   "unit": {
     "coverage": 72,
     "testFiles": 17,
-    "totalTests": 255,
+    "totalTests": 258,
     "frameworks": [
       "Vitest",
       "pytest"
     ]
   },
   "security": {
-    "findings": 27,
-    "critical": 1,
-    "high": 24,
-    "medium": 2,
+    "findings": 0,
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
     "low": 0,
-    "topItems": [
-      {
-        "severity": "medium",
-        "title": "CORS with Default Config",
-        "description": "cors() called with no options. Some versions default to \"Access-Control-Allow-Origin: *\".",
-        "filePath": "server.js",
-        "lineNumber": 6,
-        "fixSuggestion": "Pass an options object with an explicit origin allowlist."
-      },
-      {
-        "severity": "high",
-        "title": "Route Without Inline Auth",
-        "description": "app.get() declares a route with no visible auth middleware. If your app uses a global auth middleware, suppress this with a comment.",
-        "filePath": "server.js",
-        "lineNumber": 10,
-        "fixSuggestion": "Either pass an auth middleware function in the args list, or annotate the file with `// testforge-disable-file authentication-bypass` if a global middleware is intentional."
-      },
-      {
-        "severity": "high",
-        "title": "Route Without Inline Auth",
-        "description": "app.post() declares a route with no visible auth middleware. If your app uses a global auth middleware, suppress this with a comment.",
-        "filePath": "server.js",
-        "lineNumber": 21,
-        "fixSuggestion": "Either pass an auth middleware function in the args list, or annotate the file with `// testforge-disable-file authentication-bypass` if a global middleware is intentional."
-      },
-      {
-        "severity": "high",
-        "title": "token field in response body",
-        "description": "res.json() is shipping an object with a `token` property.",
-        "filePath": "server.js",
-        "lineNumber": 25,
-        "fixSuggestion": "Strip sensitive fields before responding. Use a projection (Drizzle column list / Prisma select) at the DB layer so the field never enters the response object."
-      },
-      {
-        "severity": "high",
-        "title": "Route Without Inline Auth",
-        "description": "app.get() declares a route with no visible auth middleware. If your app uses a global auth middleware, suppress this with a comment.",
-        "filePath": "server.js",
-        "lineNumber": 43,
-        "fixSuggestion": "Either pass an auth middleware function in the args list, or annotate the file with `// testforge-disable-file authentication-bypass` if a global middleware is intentional."
-      }
-    ]
+    "topItems": []
   },
   "scores": [
     {
       "key": "security",
       "label": "Security",
-      "score": 0
+      "score": 100
     },
     {
       "key": "unit",
@@ -147,5 +106,5 @@
       "score": 85
     }
   ],
-  "overall": 40
+  "overall": 48
 }
