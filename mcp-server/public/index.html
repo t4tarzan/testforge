@@ -189,6 +189,23 @@ function renderReport(d, source, savedId) {
   h += '<div><div style="font-size:20px;font-weight:700">Overall Score</div>';
   h += '<div style="font-size:13px;color:#6B6B6B">'+(c.totalFiles||0)+' files · '+(c.totalLines||0).toLocaleString()+' lines · '+(c.endpoints||0)+' endpoints</div>';
   h += '<div style="margin-top:8px;font-size:13px;color:#a99bff">🔒 Analyzed entirely on your machine</div></div></div>';
+
+  // Language-coverage banner. The analyzer is JS/TS + Python. When a repo
+  // has source files in any other language (Go/Ruby/Rust/Java/...), we
+  // count them but don't parse them — so dimension scores like "0
+  // endpoints" / "no tests" may be JS-side-only and not the whole story.
+  var lc = c.languageCoverage;
+  if (lc && typeof lc.coveragePercent === 'number' && lc.coveragePercent < 100 && lc.unsupportedFiles > 0) {
+    var langList = (lc.unsupportedLanguages || []).map(function (u) {
+      return u.language + ' (' + u.files + ' file' + (u.files === 1 ? '' : 's') + ')';
+    }).join(', ');
+    h += '<div style="margin:0 0 16px;padding:12px 14px;background:rgba(232,168,56,0.12);border:1px solid #E8A838;border-radius:8px;font-size:13px;color:#7a5500">';
+    h += '<strong>⚠️ Partial coverage:</strong> TestForge analyzed ' + lc.coveragePercent + '% of this repo natively. ';
+    h += lc.unsupportedFiles + ' source file' + (lc.unsupportedFiles === 1 ? '' : 's') + ' in unsupported languages were skipped';
+    h += langList ? ' (' + langList + ').' : '.';
+    h += ' Endpoint, test, and dependency counts reflect JS/TS + Python only — non-JS backends may have more.';
+    h += '</div>';
+  }
   
   // Severity summary
   h += '<div style="margin-bottom:16px;font-size:14px">';

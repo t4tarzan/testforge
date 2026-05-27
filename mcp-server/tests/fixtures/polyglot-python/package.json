@@ -1,0 +1,14 @@
+{
+  "name": "polyglot-python-fixture",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vitest": "^2.0.0"
+  }
+}

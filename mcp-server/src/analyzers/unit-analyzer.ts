@@ -53,12 +53,29 @@ export async function runUnitAnalysis(config: {
     throw new Error(`Project path does not exist: ${projectPath}`);
   }
 
-  // 1. Find test files
-  const testPatterns = ['**/*.{test,spec}.{ts,js,tsx,jsx}', '!**/node_modules/**', '!**/dist/**'];
+  // 1. Find test files — JS/TS .{test,spec} convention PLUS pytest
+  //    conventions (test_*.py, *_test.py, anything under tests/). Python
+  //    test counts come from a regex (def test_…) since our AST is JS-only.
+  const testPatterns = [
+    '**/*.{test,spec}.{ts,js,tsx,jsx}',
+    '**/test_*.py',
+    '**/*_test.py',
+    '**/tests/**/*.py',
+    '!**/node_modules/**', '!**/dist/**', '!**/__pycache__/**',
+    '!**/.venv/**', '!**/venv/**', '!**/.tox/**', '!**/.pytest_cache/**',
+  ];
   const testFiles = await glob(testPatterns, { cwd: projectPath, absolute: false });
 
-  // 2. Find source files (non-test)
-  const sourcePatterns = ['**/*.{ts,js,tsx,jsx}', '!**/node_modules/**', '!**/.git/**', '!**/dist/**', '!**/build/**', '!**/*.{test,spec}.{ts,js,tsx,jsx}'];
+  // 2. Find source files (non-test). Mirrors the test glob so Python source
+  //    is counted as source. Excludes any path matched as a test above so
+  //    pytest files don't double-count.
+  const sourcePatterns = [
+    '**/*.{ts,js,tsx,jsx,py}',
+    '!**/node_modules/**', '!**/.git/**', '!**/dist/**', '!**/build/**',
+    '!**/__pycache__/**', '!**/.venv/**', '!**/venv/**',
+    '!**/*.{test,spec}.{ts,js,tsx,jsx}',
+    '!**/test_*.py', '!**/*_test.py', '!**/tests/**/*.py',
+  ];
   const sourceFiles = await glob(sourcePatterns, { cwd: projectPath, absolute: false });
 
   // 3. Parse test files (AST) to count tests and gather quality signals.
@@ -72,8 +89,17 @@ export async function runUnitAnalysis(config: {
     try {
       const content = readFileSync(fullPath, 'utf-8');
       let testCount = 0;
+      const isPy = tf.endsWith('.py');
 
-      if (isParseable(tf)) {
+      if (isPy) {
+        // pytest: each `def test_…` at any indent is one test case. Class-
+        // scoped tests (`class TestX: def test_y…`) are counted via the
+        // same regex since indentation isn't significant for the match.
+        const pyTestRe = /^\s*(?:async\s+)?def\s+(test_\w+)\s*\(/gm;
+        const matches = content.match(pyTestRe);
+        testCount = matches ? matches.length : 0;
+        testFrameworks.add('pytest');
+      } else if (isParseable(tf)) {
         const parsed = parseFile(tf, content);
         if (parsed.ast) {
           const q = analyzeTestFile(tf, parsed.ast);
@@ -83,7 +109,8 @@ export async function runUnitAnalysis(config: {
         }
       }
 
-      // Fall-back regex count if parse failed (oversize / syntax error).
+      // Fall-back regex count if parse failed (oversize / syntax error)
+      // or if neither JS parse nor pytest regex produced anything.
       if (testCount === 0) testCount = countTests(content);
       parsedTestFiles.push({ path: tf, testCount });
 
@@ -347,9 +374,15 @@ function countTests(content: string): number {
 function extractFunctionNames(content: string): string[] {
   const names: string[] = [];
 
+  // Python: def foo(...) / async def foo(...) at any indent
+  const pyRegex = /^\s*(?:async\s+)?def\s+(\w+)\s*\(/gm;
+  let match: RegExpExecArray | null;
+  while ((match = pyRegex.exec(content)) !== null) {
+    names.push(match[1]);
+  }
+
   // function foo(...)
   const fnRegex = /(?:export\s+)?(?:async\s+)?function\s+(\w+)/g;
-  let match: RegExpExecArray | null;
   while ((match = fnRegex.exec(content)) !== null) {
     names.push(match[1]);
   }

@@ -63,6 +63,7 @@ const VISUAL_QUALITY = resolve(__dirname, 'fixtures/visual-quality');
 const PROPERTY_QUALITY = resolve(__dirname, 'fixtures/property-quality');
 const STACK_MODERN = resolve(__dirname, 'fixtures/stack-modern');
 const STACK_LEGACY = resolve(__dirname, 'fixtures/stack-legacy');
+const POLYGLOT_PYTHON = resolve(__dirname, 'fixtures/polyglot-python');
 
 describe('code-scanner', () => {
   let vulnInfo: CodebaseInfo;
@@ -92,6 +93,109 @@ describe('code-scanner', () => {
     const second = await scanCodebase(VULNERABLE);
     expect(second.totalLines).toBe(vulnInfo.totalLines);
     expect(second.totalFiles).toBe(vulnInfo.totalFiles);
+  });
+
+  it('reports 100% language coverage for an all-JS repo', () => {
+    expect(vulnInfo.languageCoverage.coveragePercent).toBe(100);
+    expect(vulnInfo.languageCoverage.unsupportedFiles).toBe(0);
+    expect(vulnInfo.languageCoverage.unsupportedLanguages).toEqual([]);
+  });
+});
+
+// Regression for the dclaw-monitor real-world test (2026-05-27): TestForge
+// analyzed a Next.js + FastAPI repo and reported `techStack: []`,
+// `endpoints: 0`, `0 test files` because the scanner was JS-only. Every
+// assertion here proves that case can no longer happen.
+describe('code-scanner — Python (FastAPI + requirements + pyproject)', () => {
+  let info: CodebaseInfo;
+  beforeAll(async () => {
+    info = await scanCodebase(POLYGLOT_PYTHON);
+  });
+
+  it('counts .py files in totalFiles', () => {
+    const pyFiles = info.files.filter((f) => f.path.endsWith('.py'));
+    expect(pyFiles.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it('detects FastAPI route decorators as endpoints', () => {
+    // main.py: 2 (health, metrics), users.py: 5 (list/create/get/patch/delete),
+    // items.py: 3. Total 10 — main.py also has 2 include_router calls but
+    // those aren't routes, so they shouldn't be counted.
+    expect(info.endpoints).toBeGreaterThanOrEqual(10);
+  });
+
+  it('parses dependencies from requirements.txt', () => {
+    expect(info.dependencies).toContain('fastapi');
+    expect(info.dependencies).toContain('sqlalchemy');
+    expect(info.dependencies).toContain('pydantic');
+    expect(info.dependencies).toContain('asyncpg');
+    expect(info.dependencies).toContain('celery');
+    expect(info.dependencies).toContain('alembic');
+    expect(info.dependencies).toContain('uvicorn');
+  });
+
+  it('strips version specifiers, extras, env markers, and comments', () => {
+    // sqlalchemy[asyncio]==2.0.30 should land as 'sqlalchemy', not the full string.
+    expect(info.dependencies).not.toContain('sqlalchemy[asyncio]');
+    expect(info.dependencies).not.toContain('sqlalchemy==2.0.30');
+    // httpx>=0.27 ; python_version >= "3.10" → 'httpx'
+    expect(info.dependencies).toContain('httpx');
+  });
+
+  it('parses dependencies from pyproject.toml PEP 621 [project]', () => {
+    expect(info.dependencies).toContain('redis');
+  });
+
+  it('parses dev dependencies from pyproject.toml optional-dependencies', () => {
+    expect(info.devDependencies).toContain('pytest');
+    expect(info.devDependencies).toContain('pytest-asyncio');
+  });
+
+  it('detects FastAPI / SQLAlchemy / Pydantic / PostgreSQL in techStack', () => {
+    expect(info.techStack).toContain('FastAPI');
+    expect(info.techStack).toContain('SQLAlchemy');
+    expect(info.techStack).toContain('Pydantic');
+    expect(info.techStack).toContain('PostgreSQL');
+    expect(info.techStack).toContain('Celery');
+    expect(info.techStack).toContain('OpenTelemetry');
+    // Frontend stack also detected from package.json
+    expect(info.techStack).toContain('Next.js');
+    expect(info.techStack).toContain('React');
+  });
+
+  it('extracts Python function names', () => {
+    const usersFns = info.functions['backend/app/api/v1/users.py'] || [];
+    expect(usersFns).toContain('list_users');
+    expect(usersFns).toContain('create_user');
+    expect(usersFns).toContain('delete_user');
+  });
+
+  it('reports 100% language coverage (all source files are JS/TS or Python)', () => {
+    expect(info.languageCoverage.coveragePercent).toBe(100);
+    expect(info.languageCoverage.unsupportedFiles).toBe(0);
+    expect(info.languageCoverage.nativelyAnalyzedFiles).toBeGreaterThanOrEqual(7);
+  });
+});
+
+describe('unit-analyzer — pytest detection', () => {
+  it('counts pytest test files alongside JS/TS tests', async () => {
+    const report = await runUnitAnalysis({ projectPath: POLYGLOT_PYTHON });
+    const pyTests = report.testFiles.filter((t) => t.path.endsWith('.py'));
+    expect(pyTests.length).toBe(2); // test_users.py, test_items.py
+    // test_users.py has 3 `def test_…` (one async); test_items.py has 2. Total 5.
+    const pyTestCount = pyTests.reduce((sum, t) => sum + t.testCount, 0);
+    expect(pyTestCount).toBe(5);
+  });
+
+  it('reports pytest in the frameworks list', async () => {
+    const report = await runUnitAnalysis({ projectPath: POLYGLOT_PYTHON });
+    expect(report.frameworks).toContain('pytest');
+  });
+
+  it('does NOT produce a "No Test Files Found" finding for a pytest-only project', async () => {
+    const report = await runUnitAnalysis({ projectPath: POLYGLOT_PYTHON });
+    const noTestsFinding = report.findings.find((f) => f.title === 'No Test Files Found');
+    expect(noTestsFinding).toBeUndefined();
   });
 });
 

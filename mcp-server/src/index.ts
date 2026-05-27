@@ -318,6 +318,7 @@ async function main() {
           endpoints: codebase.endpoints,
           techStack: codebase.techStack,
           dependencies: codebase.dependencies.length,
+          languageCoverage: codebase.languageCoverage,
         },
         security: {
           findings: securityFindings.length,

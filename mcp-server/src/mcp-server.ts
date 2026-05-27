@@ -176,6 +176,7 @@ async function handleAnalyze(params: Record<string, unknown>): Promise<unknown> 
     techStack: info.techStack,
     totalFiles: info.totalFiles,
     totalLines: info.totalLines,
+    languageCoverage: info.languageCoverage,
   };
 }
 
@@ -569,7 +570,7 @@ export async function setupMCPServer(app: FastifyInstance) {
 
       return reply.send({
         repo: projectPath, branch: 'local', analyzedAt: new Date().toISOString(),
-        codebase: { totalFiles: codebase.totalFiles, totalLines: codebase.totalLines, endpoints: codebase.endpoints, techStack: codebase.techStack, dependencies: codebase.dependencies.length },
+        codebase: { totalFiles: codebase.totalFiles, totalLines: codebase.totalLines, endpoints: codebase.endpoints, techStack: codebase.techStack, dependencies: codebase.dependencies.length, languageCoverage: codebase.languageCoverage },
         security: { findings: securityFindings.length, critical: securityFindings.filter((f)=>f.severity==='critical').length, high: securityFindings.filter((f)=>f.severity==='high').length, medium: securityFindings.filter((f)=>f.severity==='medium').length, low: securityFindings.filter((f)=>f.severity==='low').length, items: securityFindings.slice(0,10) },
         unit: { coverage: unitReport.testCoverage||0, testFiles: unitReport.totalTestFiles||0, totalTests: unitReport.totalTests||0, frameworks: unitReport.frameworks||[], findings: unitReport.findings?.length||0 },
         load: { maxUsers: loadReport.estimatedMaxConcurrentUsers||0, rateLimiting: loadReport.hasRateLimiting||false, caching: loadReport.hasCaching||false, recommendations: loadReport.recommendations||[] },
