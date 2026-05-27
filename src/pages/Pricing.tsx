@@ -404,69 +404,80 @@ function ComparisonTableSection() {
     {
       name: 'Testing Pipeline',
       features: [
-        { name: 'Test runs/month', free: '5', pro: '100', enterprise: 'Unlimited' },
-        { name: 'Testing dimensions', free: true, pro: true, enterprise: true },
-        { name: 'Repositories', free: '1', pro: '10', enterprise: 'Unlimited' },
-        { name: 'Private repos', free: false, pro: true, enterprise: true },
+        { name: 'Test runs/month', free: '5', pro: '100', premium: '250', forge: '500', enterprise: 'Unlimited' },
+        { name: 'Testing dimensions', free: true, pro: true, premium: true, forge: true, enterprise: true },
+        { name: 'Repositories', free: '1', pro: '10', premium: '25', forge: '50', enterprise: 'Unlimited' },
+        { name: 'Private repos', free: false, pro: true, premium: true, forge: true, enterprise: true },
+      ],
+    },
+    {
+      name: 'Tier 2 — AI Tests (Generate & Run)',
+      features: [
+        { name: 'LLM-generated Vitest files', free: false, pro: false, premium: true, forge: true, enterprise: true },
+        { name: 'Iterations / month', free: '—', pro: '—', premium: '20', forge: '100', enterprise: 'Unlimited' },
+        { name: 'Sandboxed execution (Docker)', free: false, pro: false, premium: true, forge: true, enterprise: true },
+        { name: 'Iterative test → fix → re-test', free: false, pro: false, premium: false, forge: true, enterprise: true },
+        { name: 'Generation history dashboard', free: false, pro: false, premium: true, forge: true, enterprise: true },
+        { name: 'Custom AI model selection', free: false, pro: false, premium: false, forge: false, enterprise: true },
       ],
     },
     {
       name: 'The Integrator',
       features: [
-        { name: 'Basic recommendations', free: false, pro: true, enterprise: true },
-        { name: 'Full intelligence', free: false, pro: true, enterprise: true },
-        { name: 'Custom rules', free: false, pro: false, enterprise: true },
+        { name: 'Basic recommendations', free: false, pro: true, premium: true, forge: true, enterprise: true },
+        { name: 'Full intelligence', free: false, pro: true, premium: true, forge: true, enterprise: true },
+        { name: 'Custom rules', free: false, pro: false, premium: false, forge: true, enterprise: true },
       ],
     },
     {
       name: 'PRD Generator',
       features: [
-        { name: 'PRDs/month', free: '5', pro: 'Unlimited', enterprise: 'Unlimited' },
-        { name: 'Severity classification', free: 'Basic', pro: 'Full', enterprise: 'Full' },
-        { name: 'Migration paths', free: false, pro: true, enterprise: true },
+        { name: 'PRDs/month', free: '5', pro: 'Unlimited', premium: 'Unlimited', forge: 'Unlimited', enterprise: 'Unlimited' },
+        { name: 'Severity classification', free: 'Basic', pro: 'Full', premium: 'Full', forge: 'Full', enterprise: 'Full' },
+        { name: 'Migration paths', free: false, pro: true, premium: true, forge: true, enterprise: true },
       ],
     },
     {
       name: 'Analytics',
       features: [
-        { name: 'Dashboard', free: false, pro: true, enterprise: true },
-        { name: 'Predictive models', free: false, pro: true, enterprise: true },
-        { name: 'Historical data', free: '7 days', pro: '90 days', enterprise: 'Unlimited' },
+        { name: 'Dashboard', free: false, pro: true, premium: true, forge: true, enterprise: true },
+        { name: 'Predictive models', free: false, pro: true, premium: true, forge: true, enterprise: true },
+        { name: 'Historical data', free: '7 days', pro: '90 days', premium: '90 days', forge: '1 year', enterprise: 'Unlimited' },
       ],
     },
     {
       name: 'Security',
       features: [
-        { name: 'SAST (Babel AST)', free: true, pro: true, enterprise: true },
-        { name: 'Taint-flow analysis', free: false, pro: true, enterprise: true },
-        { name: 'OWASP Top 10 coverage map', free: true, pro: true, enterprise: true },
-        { name: 'Secret / credential detection', free: true, pro: true, enterprise: true },
-        { name: 'Supply-chain (CVE-aware)', free: false, pro: true, enterprise: true },
+        { name: 'SAST (Babel AST)', free: true, pro: true, premium: true, forge: true, enterprise: true },
+        { name: 'Taint-flow analysis', free: false, pro: true, premium: true, forge: true, enterprise: true },
+        { name: 'OWASP Top 10 coverage map', free: true, pro: true, premium: true, forge: true, enterprise: true },
+        { name: 'Secret / credential detection', free: true, pro: true, premium: true, forge: true, enterprise: true },
+        { name: 'Supply-chain (CVE-aware)', free: false, pro: true, premium: true, forge: true, enterprise: true },
       ],
     },
     {
       name: 'Visual & A11y',
       features: [
-        { name: 'Visual regression', free: false, pro: true, enterprise: true },
-        { name: 'Accessibility testing', free: false, pro: true, enterprise: true },
+        { name: 'Visual regression', free: false, pro: true, premium: true, forge: true, enterprise: true },
+        { name: 'Accessibility testing', free: false, pro: true, premium: true, forge: true, enterprise: true },
       ],
     },
     {
       name: 'Platform',
       features: [
-        { name: 'Data retention', free: '7 days', pro: '90 days', enterprise: 'Unlimited' },
-        { name: 'Team members', free: '1', pro: '10', enterprise: 'Unlimited' },
-        { name: 'API access', free: false, pro: false, enterprise: true },
-        { name: 'SSO/SAML', free: false, pro: false, enterprise: true },
+        { name: 'Data retention', free: '7 days', pro: '90 days', premium: '90 days', forge: '1 year', enterprise: 'Unlimited' },
+        { name: 'Team members', free: '1', pro: '10', premium: '25', forge: '50', enterprise: 'Unlimited' },
+        { name: 'API access', free: false, pro: false, premium: false, forge: true, enterprise: true },
+        { name: 'SSO/SAML', free: false, pro: false, premium: false, forge: false, enterprise: true },
       ],
     },
     {
       name: 'Support',
       features: [
-        { name: 'Community', free: true, pro: true, enterprise: true },
-        { name: 'Email support', free: false, pro: true, enterprise: true },
-        { name: 'Dedicated support', free: false, pro: true, enterprise: true },
-        { name: '24/7 phone', free: false, pro: false, enterprise: true },
+        { name: 'Community', free: true, pro: true, premium: true, forge: true, enterprise: true },
+        { name: 'Email support', free: false, pro: true, premium: true, forge: true, enterprise: true },
+        { name: 'Dedicated support', free: false, pro: false, premium: false, forge: true, enterprise: true },
+        { name: '24/7 phone', free: false, pro: false, premium: false, forge: false, enterprise: true },
       ],
     },
   ]
@@ -489,30 +500,34 @@ function ComparisonTableSection() {
           Compare <span className="text-[#574a7d]">every feature</span>.
         </h2>
 
-        <div className="comparison-table bg-white border border-[#D9D9D3] rounded-xl overflow-x-auto max-w-[1200px] mx-auto">
-          <table className="w-full min-w-[700px]">
+        <div className="comparison-table bg-white border border-[#D9D9D3] rounded-xl overflow-x-auto max-w-[1320px] mx-auto">
+          <table className="w-full min-w-[860px]">
             <thead>
               <tr className="border-b border-[#D9D9D3]">
-                <th className="text-left px-5 py-4 font-semibold text-sm text-[#333333] w-[40%]">Feature</th>
-                <th className="text-center px-4 py-4 font-semibold text-sm text-[#333333]">Free</th>
-                <th className="text-center px-4 py-4 font-semibold text-sm text-[#574a7d]">Pro</th>
-                <th className="text-center px-4 py-4 font-semibold text-sm text-[#333333]">Enterprise</th>
+                <th className="text-left px-5 py-4 font-semibold text-sm text-[#333333] w-[30%]">Feature</th>
+                <th className="text-center px-3 py-4 font-semibold text-sm text-[#333333]">Free</th>
+                <th className="text-center px-3 py-4 font-semibold text-sm text-[#333333]">Pro</th>
+                <th className="text-center px-3 py-4 font-semibold text-sm text-[#333333]">Premium</th>
+                <th className="text-center px-3 py-4 font-semibold text-sm text-[#574a7d]">Forge</th>
+                <th className="text-center px-3 py-4 font-semibold text-sm text-[#333333]">Enterprise</th>
               </tr>
             </thead>
             <tbody>
               {categories.map((cat) => (
                 <>
                   <tr key={cat.name} className="bg-[#F7F7FB]">
-                    <td colSpan={4} className="px-5 py-2.5 font-semibold text-sm text-[#333333]">
+                    <td colSpan={6} className="px-5 py-2.5 font-semibold text-sm text-[#333333]">
                       {cat.name}
                     </td>
                   </tr>
                   {cat.features.map((feat) => (
                     <tr key={feat.name} className="border-b border-[#F7F7FB]">
                       <td className="px-5 py-3.5 text-sm text-[#6B6B6B]">{feat.name}</td>
-                      <td className="text-center px-4 py-3.5">{renderCell(feat.free)}</td>
-                      <td className="text-center px-4 py-3.5 bg-[rgba(87,74,125,0.04)]">{renderCell(feat.pro)}</td>
-                      <td className="text-center px-4 py-3.5">{renderCell(feat.enterprise)}</td>
+                      <td className="text-center px-3 py-3.5">{renderCell(feat.free)}</td>
+                      <td className="text-center px-3 py-3.5">{renderCell(feat.pro)}</td>
+                      <td className="text-center px-3 py-3.5">{renderCell(feat.premium)}</td>
+                      <td className="text-center px-3 py-3.5 bg-[rgba(87,74,125,0.06)]">{renderCell(feat.forge)}</td>
+                      <td className="text-center px-3 py-3.5">{renderCell(feat.enterprise)}</td>
                     </tr>
                   ))}
                 </>
