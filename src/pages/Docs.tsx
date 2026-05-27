@@ -406,10 +406,10 @@ function OverviewPage() {
           </strong>{' '}
           Email{' '}
           <a
-            href="mailto:hello@testforge.dev"
+            href="mailto:hello@testforge.run"
             className="text-[#574a7d] hover:underline"
           >
-            hello@testforge.dev
+            hello@testforge.run
           </a>
         </li>
       </ul>
@@ -445,7 +445,7 @@ function QuickStartPage() {
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
         Sign up at{' '}
         <a href="#/auth" className="text-[#574a7d] hover:underline">
-          testforge.dev
+          testforge.run
         </a>{' '}
         with your email or GitHub account. No credit card required for the free
         tier.
@@ -644,10 +644,10 @@ function WebPlatformPage() {
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
         The easiest way to use TestForge is through the web interface at{' '}
         <a
-          href="https://testforge.dev"
+          href="https://testforge.run/"
           className="text-[#574a7d] hover:underline"
         >
-          testforge.dev
+          testforge.run
         </a>
         .
       </p>
@@ -1546,8 +1546,8 @@ function TroubleshootingPage() {
       </h1>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
         Common issues and solutions. If your problem isn't listed here, contact{' '}
-        <a href="mailto:support@testforge.dev" className="text-[#574a7d] hover:underline">
-          support@testforge.dev
+        <a href="mailto:support@testforge.run" className="text-[#574a7d] hover:underline">
+          support@testforge.run
         </a>
         .
       </p>
@@ -1670,10 +1670,10 @@ function TroubleshootingPage() {
         <li>
           Email:{' '}
           <a
-            href="mailto:support@testforge.dev"
+            href="mailto:support@testforge.run"
             className="text-[#574a7d] hover:underline"
           >
-            support@testforge.dev
+            support@testforge.run
           </a>
         </li>
         <li>Response time: Within 24 hours for Pro, 4 hours for Enterprise</li>

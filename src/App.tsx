@@ -18,6 +18,8 @@ import Docs from '@/pages/Docs';
 import TestRunner from '@/pages/TestRunner';
 import ManagedTesting from '@/pages/Managed';
 import PressKit from '@/pages/Press';
+import Privacy from '@/pages/Privacy';
+import Terms from '@/pages/Terms';
 import OnboardingModal from '@/components/OnboardingModal';
 
 // Simple auth guard
@@ -98,6 +100,8 @@ export default function App() {
                 <Route path="/prd-generator" element={<PrdGenerator />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/pricing" element={<Pricing />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/terms" element={<Terms />} />
               </Routes>
             </Layout>
           }

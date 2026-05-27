@@ -68,7 +68,7 @@ function PricingCardsSection() {
 
   const handleUpgrade = async (plan: string) => {
     if (plan === 'free') { window.location.href = '/#/managed'; return; }
-    if (plan === 'enterprise') { window.location.href = 'mailto:sales@testforge.dev'; return; }
+    if (plan === 'enterprise') { window.location.href = 'mailto:sales@testforge.run'; return; }
     try {
       const res = await fetch('/api/stripe', {
         method: 'POST',
@@ -151,7 +151,7 @@ function PricingCardsSection() {
       cta: 'Contact Sales',
       ctaStyle: 'ghost' as const,
       features: [
-        'Everything in Standard, plus:',
+        'Everything in Pro, plus:',
         'Unlimited everything',
         'Custom AI model training',
         'On-premise deployment',
@@ -286,7 +286,7 @@ function PricingCardsSection() {
               <button
                 onClick={() => {
                   if (tier.name === 'Free') { window.location.href = '/#/managed'; return; }
-                  if (tier.name === 'Enterprise') { window.location.href = 'mailto:sales@testforge.dev'; return; }
+                  if (tier.name === 'Enterprise') { window.location.href = 'mailto:sales@testforge.run'; return; }
                   handleUpgrade('pro');
                 }}
                 className={`w-full py-3 rounded-lg font-body font-medium text-base mb-6 transition-all duration-200 ${
@@ -360,67 +360,68 @@ function ComparisonTableSection() {
     {
       name: 'Testing Pipeline',
       features: [
-        { name: 'Test runs/month', free: '50', starter: '500', standard: 'Unlimited', enterprise: 'Unlimited' },
-        { name: 'Testing dimensions', free: true, starter: true, standard: true, enterprise: true },
-        { name: 'Repositories', free: '1', starter: '3', standard: '10', enterprise: 'Unlimited' },
+        { name: 'Test runs/month', free: '5', pro: '100', enterprise: 'Unlimited' },
+        { name: 'Testing dimensions', free: true, pro: true, enterprise: true },
+        { name: 'Repositories', free: '1', pro: '10', enterprise: 'Unlimited' },
+        { name: 'Private repos', free: false, pro: true, enterprise: true },
       ],
     },
     {
       name: 'The Integrator',
       features: [
-        { name: 'Basic recommendations', free: false, starter: true, standard: true, enterprise: true },
-        { name: 'Full intelligence', free: false, starter: false, standard: true, enterprise: true },
-        { name: 'Custom rules', free: false, starter: false, standard: false, enterprise: true },
+        { name: 'Basic recommendations', free: false, pro: true, enterprise: true },
+        { name: 'Full intelligence', free: false, pro: true, enterprise: true },
+        { name: 'Custom rules', free: false, pro: false, enterprise: true },
       ],
     },
     {
       name: 'PRD Generator',
       features: [
-        { name: 'PRDs/month', free: '5', starter: 'Unlimited', standard: 'Unlimited', enterprise: 'Unlimited' },
-        { name: 'Severity classification', free: 'Basic', starter: 'Full', standard: 'Full', enterprise: 'Full' },
-        { name: 'Migration paths', free: false, starter: true, standard: true, enterprise: true },
+        { name: 'PRDs/month', free: '5', pro: 'Unlimited', enterprise: 'Unlimited' },
+        { name: 'Severity classification', free: 'Basic', pro: 'Full', enterprise: 'Full' },
+        { name: 'Migration paths', free: false, pro: true, enterprise: true },
       ],
     },
     {
       name: 'Analytics',
       features: [
-        { name: 'Dashboard', free: false, starter: false, standard: true, enterprise: true },
-        { name: 'Predictive models', free: false, starter: false, standard: true, enterprise: true },
-        { name: 'Historical data', free: '7 days', starter: '30 days', standard: '90 days', enterprise: 'Unlimited' },
+        { name: 'Dashboard', free: false, pro: true, enterprise: true },
+        { name: 'Predictive models', free: false, pro: true, enterprise: true },
+        { name: 'Historical data', free: '7 days', pro: '90 days', enterprise: 'Unlimited' },
       ],
     },
     {
       name: 'Security',
       features: [
-        { name: 'SAST', free: true, starter: true, standard: true, enterprise: true },
-        { name: 'DAST', free: false, starter: false, standard: true, enterprise: true },
-        { name: 'AI fuzzing', free: false, starter: false, standard: true, enterprise: true },
-        { name: 'Secret detection', free: true, starter: true, standard: true, enterprise: true },
+        { name: 'SAST', free: true, pro: true, enterprise: true },
+        { name: 'DAST', free: false, pro: true, enterprise: true },
+        { name: 'AI fuzzing', free: false, pro: true, enterprise: true },
+        { name: 'Secret detection', free: true, pro: true, enterprise: true },
       ],
     },
     {
       name: 'Visual & A11y',
       features: [
-        { name: 'Visual regression', free: false, starter: false, standard: true, enterprise: true },
-        { name: 'Accessibility testing', free: false, starter: false, standard: true, enterprise: true },
+        { name: 'Visual regression', free: false, pro: true, enterprise: true },
+        { name: 'Accessibility testing', free: false, pro: true, enterprise: true },
       ],
     },
     {
       name: 'Platform',
       features: [
-        { name: 'Data retention', free: '7 days', starter: '30 days', standard: '90 days', enterprise: 'Unlimited' },
-        { name: 'Team members', free: '1', starter: '3', standard: '10', enterprise: 'Unlimited' },
-        { name: 'API access', free: false, starter: false, standard: false, enterprise: true },
-        { name: 'SSO/SAML', free: false, starter: false, standard: false, enterprise: true },
+        { name: 'Data retention', free: '7 days', pro: '90 days', enterprise: 'Unlimited' },
+        { name: 'Team members', free: '1', pro: '10', enterprise: 'Unlimited' },
+        { name: 'API access', free: false, pro: false, enterprise: true },
+        { name: 'SSO/SAML', free: false, pro: false, enterprise: true },
       ],
     },
     {
       name: 'Support',
       features: [
-        { name: 'Community', free: true, starter: true, standard: true, enterprise: true },
-        { name: 'Email support', free: false, starter: true, standard: true, enterprise: true },
-        { name: 'Dedicated support', free: false, starter: false, standard: true, enterprise: true },
-        { name: '24/7 phone', free: false, starter: false, standard: false, enterprise: true },
+        { name: 'Community', free: true, pro: true, enterprise: true },
+        { name: 'Email support', free: false, pro: true, enterprise: true },
+        { name: 'Dedicated support', free: false, pro: true, enterprise: true },
+        { name: '24/7 phone', free: false, pro: false, enterprise: true },
       ],
     },
   ]
@@ -447,10 +448,9 @@ function ComparisonTableSection() {
           <table className="w-full min-w-[700px]">
             <thead>
               <tr className="border-b border-[#D9D9D3]">
-                <th className="text-left px-5 py-4 font-semibold text-sm text-[#333333] w-[35%]">Feature</th>
+                <th className="text-left px-5 py-4 font-semibold text-sm text-[#333333] w-[40%]">Feature</th>
                 <th className="text-center px-4 py-4 font-semibold text-sm text-[#333333]">Free</th>
-                <th className="text-center px-4 py-4 font-semibold text-sm text-[#333333]">Starter</th>
-                <th className="text-center px-4 py-4 font-semibold text-sm text-[#574a7d]">Standard</th>
+                <th className="text-center px-4 py-4 font-semibold text-sm text-[#574a7d]">Pro</th>
                 <th className="text-center px-4 py-4 font-semibold text-sm text-[#333333]">Enterprise</th>
               </tr>
             </thead>
@@ -458,7 +458,7 @@ function ComparisonTableSection() {
               {categories.map((cat) => (
                 <>
                   <tr key={cat.name} className="bg-[#F7F7FB]">
-                    <td colSpan={5} className="px-5 py-2.5 font-semibold text-sm text-[#333333]">
+                    <td colSpan={4} className="px-5 py-2.5 font-semibold text-sm text-[#333333]">
                       {cat.name}
                     </td>
                   </tr>
@@ -466,8 +466,7 @@ function ComparisonTableSection() {
                     <tr key={feat.name} className="border-b border-[#F7F7FB]">
                       <td className="px-5 py-3.5 text-sm text-[#6B6B6B]">{feat.name}</td>
                       <td className="text-center px-4 py-3.5">{renderCell(feat.free)}</td>
-                      <td className="text-center px-4 py-3.5">{renderCell(feat.starter)}</td>
-                      <td className="text-center px-4 py-3.5 bg-[rgba(90,143,94,0.03)]">{renderCell(feat.standard)}</td>
+                      <td className="text-center px-4 py-3.5 bg-[rgba(87,74,125,0.04)]">{renderCell(feat.pro)}</td>
                       <td className="text-center px-4 py-3.5">{renderCell(feat.enterprise)}</td>
                     </tr>
                   ))}
@@ -504,11 +503,11 @@ function FAQSection() {
   const faqs = [
     {
       q: "What's included in the Free plan?",
-      a: "The Free plan includes access to all 21 testing dimensions, 50 test runs per month, 1 repository, and basic PRD generation for up to 5 failed tests. It's perfect for individual developers and small side projects.",
+      a: "All 21 testing dimensions, 5 test runs per month, 1 repository, basic JSON/Markdown reports, and the MCP IDE integration. Public repos only. Perfect for individual developers exploring AI-powered testing.",
     },
     {
-      q: 'How does The Integrator work?',
-      a: "The Integrator is available on Starter (basic) and Standard+ (full). It analyzes your test results, build state, and dependencies to recommend the safest integration path. On Standard, you get merge conflict prediction, dependency analysis, and intelligent path ranking with probability scores.",
+      q: 'What do I get on Pro?',
+      a: "Everything in Free plus 100 test runs/month, 10 repositories, private repo support, full 21-dimension reports, CI/CD webhook integration, Slack/Discord notifications, README badge generator, and priority email support.",
     },
     {
       q: 'Can I switch plans anytime?',
@@ -516,19 +515,23 @@ function FAQSection() {
     },
     {
       q: 'What happens when I exceed my test run limit?',
-      a: "You'll receive a notification at 80% and 95% usage. After reaching your limit, you can either wait for the next cycle or upgrade instantly. We never stop critical security tests — those always run.",
+      a: "You'll receive a notification at 80% and 95% usage. After reaching your limit, you can wait for the next cycle or upgrade instantly. The MCP and CLI continue to run locally on your machine regardless of plan.",
     },
     {
-      q: 'Is there an enterprise trial?',
-      a: 'Yes — we offer a 30-day Enterprise trial with full feature access. Contact our sales team to set it up. We\'ll also provide onboarding support during your trial.',
+      q: 'Is there an Enterprise trial?',
+      a: 'Yes — we offer a 30-day Enterprise trial with full feature access. Email sales@testforge.run to set it up. We\'ll also provide onboarding support during your trial.',
     },
     {
       q: 'What integrations are supported?',
-      a: 'GitHub, GitLab, and Bitbucket on all plans. Custom CI/CD integrations (Jenkins, CircleCI, GitHub Actions, etc.) on Standard and above. Full API access on Enterprise.',
+      a: 'GitHub, GitLab, and Bitbucket on all plans. Custom CI/CD webhooks (GitHub Actions, CircleCI, Jenkins, etc.) on Pro and above. Full API access and on-premise deployment on Enterprise.',
     },
     {
-      q: 'How is my data secured?',
-      a: 'All code and test data is encrypted at rest (AES-256) and in transit (TLS 1.3). We never store your source code — only test metadata and results. Enterprise plans include SOC 2 compliance and custom security audits.',
+      q: 'Does my source code ever leave my machine?',
+      a: "When you use the MCP server or the CLI, no. Analysis runs entirely locally and TestForge never sees your code. The Managed flow on testforge.run does clone the repo URL you submit, run analysis ephemerally, and store only the report (not the code). See our Privacy Policy for details.",
+    },
+    {
+      q: 'How is my account data secured?',
+      a: 'Data in transit uses TLS 1.3. Account passwords are hashed with bcrypt. Payment data is handled by Stripe — we never see card numbers. We do not currently hold a SOC 2 report; we will update the pricing page when that changes.',
     },
   ]
 

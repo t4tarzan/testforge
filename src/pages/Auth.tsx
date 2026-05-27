@@ -615,9 +615,9 @@ export default function Auth() {
                 </div>
                 <span className="text-[14px] text-[#6B6B6B] font-body">
                   I agree to the{' '}
-                  <span className="text-[#574a7d] hover:underline cursor-pointer">Terms of Service</span>
+                  <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-[#574a7d] hover:underline">Terms of Service</Link>
                   {' '}and{' '}
-                  <span className="text-[#574a7d] hover:underline cursor-pointer">Privacy Policy</span>
+                  <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#574a7d] hover:underline">Privacy Policy</Link>
                 </span>
               </motion.label>
 

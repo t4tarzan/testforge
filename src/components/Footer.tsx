@@ -155,11 +155,15 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="mt-12 pt-6 border-t border-[#3A3A3A] flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-[#9A9A9A] text-sm">
-            2026 TestForge. All rights reserved.
+            &copy; 2026 TestForge. All rights reserved.
           </p>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#574a7d] animate-pulse" />
-            <span className="text-[#9A9A9A] text-xs font-mono uppercase tracking-wider">All Systems Operational</span>
+          <div className="flex items-center gap-4">
+            <Link to="/privacy" className="text-[#9A9A9A] text-sm hover:text-[#7a6fad] transition-colors">Privacy</Link>
+            <Link to="/terms" className="text-[#9A9A9A] text-sm hover:text-[#7a6fad] transition-colors">Terms</Link>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#574a7d] animate-pulse" />
+              <span className="text-[#9A9A9A] text-xs font-mono uppercase tracking-wider">All Systems Operational</span>
+            </div>
           </div>
         </div>
       </div>
