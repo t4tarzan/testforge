@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, GitBranch, ArrowUpRight, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, GitBranch, ArrowUpRight, AlertTriangle, FileText } from 'lucide-react';
 import { getShowcaseReport } from '@/data/showcaseReports';
 
 function scoreColor(score: number) {
@@ -41,12 +41,20 @@ export default function InTheWildReport() {
       {/* Header */}
       <section className="bg-[#12101A] pt-32 pb-12 px-6 lg:px-16">
         <div className="max-w-[1100px] mx-auto">
-          <Link
-            to="/in-the-wild"
-            className="inline-flex items-center gap-2 text-[#a99bff]/70 hover:text-white text-sm font-mono mb-8"
-          >
-            <ArrowLeft size={14} /> All reports
-          </Link>
+          <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
+            <Link
+              to="/in-the-wild"
+              className="inline-flex items-center gap-2 text-[#a99bff]/70 hover:text-white text-sm font-mono"
+            >
+              <ArrowLeft size={14} /> All reports
+            </Link>
+            <Link
+              to={`/in-the-wild/${report.slug}/full`}
+              className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-mono px-4 py-2 rounded transition-colors"
+            >
+              <FileText size={14} /> Open full audit report
+            </Link>
+          </div>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div>
               <div className="flex items-center gap-2 mb-3">

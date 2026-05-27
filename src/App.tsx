@@ -22,6 +22,7 @@ import Privacy from '@/pages/Privacy';
 import Terms from '@/pages/Terms';
 import InTheWild from '@/pages/InTheWild';
 import InTheWildReport from '@/pages/InTheWildReport';
+import InTheWildReportFull from '@/pages/InTheWildReportFull';
 import OnboardingModal from '@/components/OnboardingModal';
 
 // Simple auth guard
@@ -88,6 +89,9 @@ export default function App() {
         <Route path="/managed" element={<Layout><ManagedTesting /></Layout>} />
         <Route path="/press" element={<NoLayout><PressKit /></NoLayout>} />
         <Route path="/docs" element={<NoLayout><Docs /></NoLayout>} />
+
+        {/* In-the-Wild full report — no layout, standalone whitepaper-style doc */}
+        <Route path="/in-the-wild/:slug/full" element={<NoLayout><InTheWildReportFull /></NoLayout>} />
 
         {/* All other pages — with standard layout (Navbar + Footer) */}
         <Route

@@ -2,9 +2,9 @@
   "slug": "supabase",
   "repoUrl": "https://github.com/supabase/supabase",
   "repoName": "supabase",
-  "tagline": "78k-star OSS Firebase alt \u2014 TypeScript monorepo + the test-path security suppression in action",
-  "analyzedAt": "2026-05-27T22:22:50.384Z",
-  "analyzeMs": 46921,
+  "tagline": "78k-star OSS Firebase alt \u2014 TypeScript monorepo + test-path security suppression",
+  "analyzedAt": "2026-05-27T22:53:16.725Z",
+  "analyzeMs": 48297,
   "codebase": {
     "totalFiles": 7658,
     "totalLines": 2161325,
@@ -104,8 +104,8 @@
         "severity": "high",
         "title": "dangerouslySetInnerHTML with user input",
         "description": "__html is built from a variable. Verify it's sanitized.",
-        "filePath": "apps/studio/pages/_app.tsx",
-        "lineNumber": 192,
+        "filePath": "apps/design-system/app/layout.tsx",
+        "lineNumber": 128,
         "fixSuggestion": "Render the value as text (default React escaping) or run it through DOMPurify.sanitize() first."
       }
     ]
