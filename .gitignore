@@ -5,3 +5,7 @@ dist
 .env
 .env*
 .secure/
+.env*.local
+
+# Secrets drop file (belt-and-suspenders; real location is ~/testforge/keys.md outside the repo)
+keys.md
