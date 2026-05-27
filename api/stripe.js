@@ -11,11 +11,8 @@ import { requireSession } from './_session.js';
 // Enterprise is contact-sales only (no self-serve checkout), so no
 // STRIPE_PRICE_ENTERPRISE lookup here.
 function getPriceId(plan) {
-  if (plan === 'premium') {
-    return process.env.STRIPE_PRICE_PREMIUM || null;
-  }
-  if (plan === 'forge') {
-    return process.env.STRIPE_PRICE_FORGE || null;
+  if (plan === 'team') {
+    return process.env.STRIPE_PRICE_TEAM || null;
   }
   return process.env.STRIPE_PRICE_PRO || process.env.STRIPE_PRICE_ID || null;
 }
@@ -26,48 +23,49 @@ async function handler(req, res) {
       plans: [
         {
           id: 'free',
-          name: 'Free',
+          name: 'Free — Self-Host',
           price: 0,
-          features: ['5 tests/month', 'Public repos', 'Basic reports', 'Community support'],
+          oss: true,
+          features: [
+            'OSS, runs on your machine (npx)',
+            'All 21 Tier-1 dimensions, unlimited',
+            'Tier 2 — Generate & Run with your own OpenRouter key',
+            'Code never leaves your machine',
+            'Local SQLite history',
+            'Community support (GitHub issues)',
+          ],
         },
         {
           id: 'pro',
           name: 'Pro',
-          price: 29,
+          price: 49,
           features: [
+            'Managed — we host everything',
             '100 tests/month',
             '10 repositories',
-            'Private repos',
-            'Full 21-dimension reports',
-            'CI/CD webhook',
-            'Priority support',
+            'Private repos supported',
+            'Tier 2 — Generate & Run: 20 LLM iterations/mo (the AI taste)',
+            'Qwen 3.7 Max + DeepSeek V4 Flash (we manage the keys)',
+            'Cross-machine history dashboard',
+            'CI/CD webhook + Slack/Discord notifications',
+            'Priority email support',
           ],
         },
         {
-          id: 'premium',
-          name: 'Premium',
-          price: 99,
-          features: [
-            '250 tests/month',
-            '25 repositories',
-            'Tier 2 — Generate & Run (taste): 20 LLM iterations/month',
-            'Qwen 3.7 Max + DeepSeek V4 Flash (keys managed)',
-            'Generation history dashboard',
-            'Priority support',
-          ],
-        },
-        {
-          id: 'forge',
-          name: 'Forge',
+          id: 'team',
+          name: 'Team',
           price: 199,
           features: [
+            'Everything in Pro, plus:',
             '500 tests/month',
             '50 repositories',
-            'Tier 2 — Generate & Run (full): 100 LLM iterations/month',
+            'Tier 2 — Generate & Run: 200 LLM iterations/mo',
             'Iterative test → fix → re-test loop',
-            'Qwen 3.7 Max + DeepSeek V4 Flash (keys managed)',
-            'Generation history dashboard',
-            'Higher rate limits',
+            'Multi-user / org accounts',
+            'Shared history + audit trail',
+            'Custom rules persistence',
+            'Higher API rate limits',
+            'Dedicated support',
           ],
         },
         {
@@ -80,9 +78,10 @@ async function handler(req, res) {
             'Unlimited repositories',
             'Custom AI model selection',
             'SSO/SAML',
-            'Team management',
+            'On-prem / VPC deployment',
+            'API access',
             'SLA guarantee',
-            'Dedicated support',
+            'Dedicated account manager',
             'Custom integrations',
           ],
         },
@@ -110,8 +109,8 @@ async function handler(req, res) {
       contact: 'sales@testforge.run',
     });
   }
-  if (plan !== 'pro' && plan !== 'premium' && plan !== 'forge') {
-    return res.status(400).json({ error: 'plan must be "pro", "premium", or "forge"' });
+  if (plan !== 'pro' && plan !== 'team') {
+    return res.status(400).json({ error: 'plan must be "pro" or "team"' });
   }
   const priceId = getPriceId(plan);
   if (!priceId) {

@@ -827,7 +827,18 @@ export default function Home() {
           {/* Divider */}
           <div className="border-t border-[#D9D9D3] mb-16" />
 
-          {/* Testimonials */}
+          {/* Thinking behind TestForge — public quotes about AI-era code
+              quality from people we admire. These are NOT TestForge
+              endorsements; the source links go to the original posts. */}
+          <ScrollReveal>
+            <p className="section-label text-center mb-2">// The thinking behind TestForge</p>
+            <h3 className="text-center font-heading font-semibold text-[20px] text-[#333333] mb-2 max-w-[680px] mx-auto">
+              Public writing on testing + AI-assisted code that shaped how we built this
+            </h3>
+            <p className="text-center text-[13px] text-[#6B6B6B] mb-10">
+              Quoted from their public posts (sources linked). They haven&rsquo;t reviewed TestForge — these are the ideas, not endorsements.
+            </p>
+          </ScrollReveal>
           <div className="grid md:grid-cols-3 gap-6">
             {testimonials.map((t, i) => (
               <ScrollReveal key={t.name} delay={i * 0.15}>

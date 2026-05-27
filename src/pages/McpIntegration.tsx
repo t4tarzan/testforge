@@ -105,7 +105,7 @@ function HeroSection() {
           transition={{ duration: 0.4 }}
           className="font-mono font-medium text-[13px] uppercase tracking-[0.08em] text-[#574a7d] mb-6"
         >
-          {'// MCP SERVER'}
+          {'// MCP SERVER · OPEN SOURCE · MIT'}
         </motion.p>
 
         {/* Headline */}
@@ -115,9 +115,9 @@ function HeroSection() {
           transition={{ duration: 0.7, ease: easeOutExpo }}
           className="font-heading font-semibold text-[42px] md:text-[52px] leading-[1.1] tracking-[-0.025em]"
         >
-          <span className="text-white">One Line.</span>
+          <span className="text-white">Runs on your machine.</span>
           <br />
-          <span className="text-[#574a7d]">Full Integration.</span>
+          <span className="text-[#574a7d]">Code never leaves.</span>
         </motion.h1>
 
         {/* Subtitle */}
@@ -125,10 +125,11 @@ function HeroSection() {
           initial={{ opacity: 0 }}
           animate={inView ? { opacity: 1 } : {}}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="font-body text-[18px] text-[#9A9A9A] max-w-[640px] mx-auto mt-6 leading-[1.65]"
+          className="font-body text-[18px] text-[#9A9A9A] max-w-[680px] mx-auto mt-6 leading-[1.65]"
         >
-          Connect TestForge to your IDE in under 60 seconds. No configuration
-          files. No complex setup.
+          The TestForge MCP is open source (MIT) and runs locally via{' '}
+          <code className="font-mono text-[16px] text-[#a99bff]">npx</code>.
+          All 21 Tier-1 dimensions are unlimited; Tier-2 (LLM-generated tests + Docker sandbox) works too if you bring your own OpenRouter key. Zero accounts, zero data sent anywhere.
         </motion.p>
 
         {/* Install Command Box */}

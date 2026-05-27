@@ -3,16 +3,22 @@
 // stale for up to 30 days after a webhook flips users.plan.
 
 // Tier 2 ("Generate & Run" — LLM writes Vitest tests + sandbox executes them)
-// is gated by a SEPARATE monthly quota. Free / Pro get 0 iterations and the
-// /generate-and-run endpoint returns 402 with upgradeUrl. Premium gets a
-// "taste" allotment as an upsell trigger toward Forge; Forge is the headline
-// Tier-2 plan; Enterprise lifts the cap entirely.
+// is gated by a SEPARATE monthly quota. Free has 0 managed iterations
+// (BYOK on self-host instead). Pro gets a real taste (20/mo). Team is the
+// heavy-use plan. Enterprise lifts the cap entirely.
+//
+// Legacy `premium` and `forge` keys are kept as aliases so historical
+// users.plan values (rows updated by the old webhook) still resolve. New
+// upgrades will only ever write 'pro' / 'team' / 'enterprise'.
+const TEAM = { testsPerMonth: 500, tier2IterationsPerMonth: 200, repos: 50, rateLimit: 120, name: 'Team' };
 export const PLANS = {
   free:       { testsPerMonth: 5,        tier2IterationsPerMonth: 0,        repos: 1,        rateLimit: 10,  name: 'Free' },
-  pro:        { testsPerMonth: 100,      tier2IterationsPerMonth: 0,        repos: 10,       rateLimit: 60,  name: 'Pro' },
-  premium:    { testsPerMonth: 250,      tier2IterationsPerMonth: 20,       repos: 25,       rateLimit: 90,  name: 'Premium' },
-  forge:      { testsPerMonth: 500,      tier2IterationsPerMonth: 100,      repos: 50,       rateLimit: 120, name: 'Forge' },
+  pro:        { testsPerMonth: 100,      tier2IterationsPerMonth: 20,       repos: 10,       rateLimit: 60,  name: 'Pro' },
+  team:       TEAM,
   enterprise: { testsPerMonth: Infinity, tier2IterationsPerMonth: Infinity, repos: Infinity, rateLimit: 300, name: 'Enterprise' },
+  // legacy aliases (don't issue new ones)
+  premium:    { ...TEAM, name: 'Team (was Premium)' },
+  forge:      { ...TEAM, name: 'Team (was Forge)' },
 };
 
 export function monthStartIso() {

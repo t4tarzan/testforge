@@ -136,19 +136,20 @@ function DashboardTab() {
       .catch(() => setRecentRuns([]));
   }, []);
 
-  // Tier-2 card adapts to plan: Forge/Enterprise see remaining iterations,
-  // Free/Pro see "Locked" with an upgrade hint. tier2Limit === null on the
-  // API side means Infinity (Enterprise); 0/undefined means not entitled.
+  // Tier-2 card adapts to plan: Pro / Team / Enterprise see remaining
+  // iterations; Free sees "Self-host" (BYOK on the OSS MCP). The API side
+  // returns tier2Limit === null for Infinity (Enterprise), 0/undefined for
+  // not-entitled (Free on the managed plane, which doesn't apply here).
   const tier2Limit = realStats?.tier2Limit;
   const tier2Used = realStats?.tier2Used ?? 0;
   const tier2Remaining = realStats?.tier2Remaining;
   const hasTier2 = tier2Limit === null || (typeof tier2Limit === 'number' && tier2Limit > 0);
   const tier2Value = hasTier2
     ? (tier2Limit === null ? '∞' : (tier2Remaining ?? 0))
-    : 'Locked';
+    : 'Self-host';
   const tier2Trend = hasTier2
     ? (tier2Limit === null ? 'Unlimited' : `${tier2Used}/${tier2Limit} used`)
-    : 'Upgrade to Forge';
+    : 'Run OSS MCP locally (BYOK)';
 
   const stats = [
     { icon: FlaskConical, iconBg: 'bg-[#E8E5FF]', iconColor: 'text-[#574a7d]', value: realStats?.testsRun || user.testsRun || 0, label: 'TOTAL TESTS RUN', trend: realStats?.testsThisMonth ? `${realStats.testsThisMonth} this month` : '', trendUp: true },

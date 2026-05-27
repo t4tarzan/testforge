@@ -82,7 +82,7 @@ export default function ManagedTesting() {
             animate={{ opacity: 1, y: 0 }}
             className="font-mono text-xs text-[#a99bff] uppercase tracking-[0.15em] mb-6"
           >
-            // MANAGED TESTING
+            // MANAGED TESTING · OSS-FIRST
           </motion.p>
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
@@ -90,16 +90,24 @@ export default function ManagedTesting() {
             transition={{ delay: 0.1 }}
             className="text-display-xl text-white max-w-[900px] mx-auto mb-6 leading-[1.1]"
           >
-            Vibe coders & Indie developers —{' '}
-            <span className="text-[#a99bff]">managed testing</span> for GitHub repositories.
+            Don&rsquo;t want to install anything?{' '}
+            <span className="text-[#a99bff]">We&rsquo;ll host it.</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-[#a99bff]/70 text-lg max-w-[650px] mx-auto mb-10"
+            className="text-[#a99bff]/70 text-lg max-w-[720px] mx-auto mb-6"
           >
-            Drop any public repo URL. We spin up a container, run load testing, stress testing, feature matrix analysis, and security scans — no setup required.
+            TestForge is open source &mdash; you can <Link to="/mcp" className="text-[#a99bff] underline hover:text-white">run it locally with <code className="font-mono">npx</code></Link> and your code never leaves your machine. This page is for everyone who&rsquo;d rather skip the install: paste a public repo URL, we clone it into a sandboxed container, run all 21 dimensions, and give you back a report.
+          </motion.p>
+          <motion.p
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="text-[#a99bff]/50 text-sm max-w-[600px] mx-auto mb-10"
+          >
+            Tier 2 (LLM-generated tests + sandboxed Docker execution) requires a <Link to="/pricing" className="text-[#a99bff] underline hover:text-white">paid plan</Link> on the managed side — self-host runs it free with your own OpenRouter key.
           </motion.p>
 
           {/* Input */}

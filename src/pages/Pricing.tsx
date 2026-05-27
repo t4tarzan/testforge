@@ -100,89 +100,68 @@ function PricingCardsSection() {
       icon: Sparkles,
       monthlyPrice: 0,
       yearlyPrice: 0,
-      yearlyDiscount: '25% savings',
-      description: 'For individual developers exploring AI-powered testing.',
-      cta: 'Get Started',
+      yearlyDiscount: '',
+      description: 'Open source. Runs on your machine with `npx`. Your code never leaves your laptop.',
+      cta: 'Get the OSS MCP',
       ctaStyle: 'secondary' as const,
       features: [
-        'All 21 testing dimensions',
-        '5 test runs/month',
-        '1 repository',
-        'Basic reports (JSON/Markdown)',
-        'Community support',
-        'Public repos only',
-        'MCP IDE integration',
+        'OSS (MIT) · npx @whitenoisenpm/testforge-mcp@latest',
+        'All 21 Tier-1 dimensions, unlimited',
+        'Tier 2 — Generate & Run, BYOK OpenRouter',
+        'Code never leaves your machine',
+        'Local SQLite history',
+        'MCP IDE integration (Cursor / Windsurf / Claude Code)',
+        'Community support (GitHub issues)',
       ],
-      badge: null,
+      badge: { text: 'Self-host · MIT', bg: '#a39fd4', color: '#12101A' },
       borderColor: '#D9D9D3',
       recommended: false,
     },
     {
       name: 'Pro',
       icon: Zap,
-      monthlyPrice: 29,
-      yearlyPrice: 19,
-      yearlyDiscount: '30% savings',
-      description: 'For growing teams with active CI/CD pipelines.',
+      monthlyPrice: 49,
+      yearlyPrice: 39,
+      yearlyDiscount: '20% savings',
+      description: 'Managed — we host everything, including the Tier-2 LLM keys and sandbox infra. For solo devs and small teams.',
       cta: 'Upgrade to Pro',
-      ctaStyle: 'secondary' as const,
+      ctaStyle: 'primary' as const,
       features: [
         'Everything in Free, plus:',
-        '100 test runs/month',
-        '10 repositories',
+        '100 Tier-1 tests/mo · 10 repositories',
         'Private repo support',
-        'Full 21-dimension reports',
-        'CI/CD webhook integration',
-        'Slack/Discord notifications',
-        'README badge generator',
-      ],
-      badge: null,
-      borderColor: '#D9D9D3',
-      recommended: false,
-    },
-    {
-      name: 'Premium',
-      icon: Sparkles,
-      monthlyPrice: 99,
-      yearlyPrice: 79,
-      yearlyDiscount: '20% savings',
-      description: 'A taste of Tier-2 AI tests — perfect for teams evaluating LLM-driven testing before going full Forge.',
-      cta: 'Upgrade to Premium',
-      ctaStyle: 'secondary' as const,
-      features: [
-        'Everything in Pro, plus:',
-        '250 test runs/month',
-        '25 repositories',
-        'Tier 2 (taste): 20 LLM iterations/month',
-        'Generation history dashboard',
+        '20 Tier-2 iterations/mo (managed AI keys)',
+        'Cross-machine history dashboard',
+        'CI/CD webhook + Slack/Discord notifications',
         'Priority email support',
       ],
-      badge: { text: 'Tier 2 · Taste', bg: '#a39fd4', color: '#12101A' },
-      borderColor: '#D9D9D3',
-      recommended: false,
+      badge: { text: 'Most popular', bg: '#574a7d', color: '#FFFFFF' },
+      borderColor: '#574a7d',
+      recommended: true,
     },
     {
-      name: 'Forge',
+      name: 'Team',
       icon: FlaskConical,
       monthlyPrice: 199,
       yearlyPrice: 159,
       yearlyDiscount: '20% savings',
-      description: 'For teams that ship AI-generated tests as part of every merge — the full iterative test → fix → re-test loop.',
-      cta: 'Upgrade to Forge',
-      ctaStyle: 'primary' as const,
+      description: 'For teams shipping AI-generated tests on every PR. Heavy Tier-2 use + multi-user.',
+      cta: 'Upgrade to Team',
+      ctaStyle: 'secondary' as const,
       features: [
-        'Everything in Premium, plus:',
-        '500 test runs/month',
-        '50 repositories',
-        'Tier 2 (full): 100 LLM iterations/month',
+        'Everything in Pro, plus:',
+        '500 Tier-1 tests/mo · 50 repositories',
+        '200 Tier-2 iterations/mo',
         'Iterative test → fix → re-test loop',
-        'Qwen 3.7 Max + DeepSeek V4 Flash (we manage the keys)',
-        'Sandboxed execution on our infrastructure',
+        'Multi-user / org accounts',
+        'Shared history + audit trail',
+        'Custom rules persistence',
         'Higher API rate limits',
+        'Dedicated support',
       ],
-      badge: { text: 'Tier 2 · Full AI', bg: '#574a7d', color: '#FFFFFF' },
-      borderColor: '#574a7d',
-      recommended: true,
+      badge: null,
+      borderColor: '#D9D9D3',
+      recommended: false,
     },
     {
       name: 'Enterprise',
@@ -190,19 +169,18 @@ function PricingCardsSection() {
       monthlyPrice: null,
       yearlyPrice: null,
       yearlyDiscount: '',
-      description: 'For organizations with complex testing requirements. Custom pricing, custom integrations, custom AI.',
+      description: 'Custom contracts for organizations with compliance, SSO, or on-prem requirements.',
       cta: 'Contact Sales',
       ctaStyle: 'ghost' as const,
       features: [
-        'Everything in Forge, plus:',
-        'Unlimited Tier 1 + Tier 2 runs',
+        'Everything in Team, plus:',
+        'Unlimited Tier-1 + Tier-2 runs',
         'Unlimited repositories',
         'Custom AI model selection',
         'On-premise / VPC deployment',
         'SSO & SAML authentication',
         'API access',
         'Dedicated account manager',
-        '24/7 phone support',
         'SLA guarantees',
       ],
       badge: null,
@@ -245,7 +223,7 @@ function PricingCardsSection() {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 max-w-[1480px] mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 max-w-[1280px] mx-auto">
           {tiers.map((tier) => (
             <motion.div
               key={tier.name}
@@ -329,7 +307,7 @@ function PricingCardsSection() {
               {/* CTA Button */}
               <button
                 onClick={() => {
-                  if (tier.name === 'Free') { window.location.href = '/#/managed'; return; }
+                  if (tier.name === 'Free') { window.location.href = '/#/mcp'; return; }
                   if (tier.name === 'Enterprise') { window.location.href = 'mailto:sales@testforge.run'; return; }
                   handleUpgrade(tier.name.toLowerCase());
                 }}
@@ -343,7 +321,7 @@ function PricingCardsSection() {
                     : 'border border-[#D9D9D3] text-[#333333] hover:bg-[#E8E5FF] hover:border-[#a39fd4]'
                 }`}
               >
-                {tier.name === 'Free' ? 'Start Testing Free' : tier.name === 'Enterprise' ? 'Contact Sales' : tier.cta}
+                {tier.name === 'Free' ? tier.cta : tier.name === 'Enterprise' ? 'Contact Sales' : tier.cta}
               </button>
 
               {/* Features */}
@@ -400,84 +378,89 @@ function ComparisonTableSection() {
     })
   }, { scope: sectionRef })
 
+  // Free column reflects the OSS self-host story: most Tier-1 limits go
+  // away when the analyzer runs on your own machine. Constraints are about
+  // what's hosted/managed for you (history dashboard, multi-user, etc.).
   const categories = [
     {
       name: 'Testing Pipeline',
       features: [
-        { name: 'Test runs/month', free: '5', pro: '100', premium: '250', forge: '500', enterprise: 'Unlimited' },
-        { name: 'Testing dimensions', free: true, pro: true, premium: true, forge: true, enterprise: true },
-        { name: 'Repositories', free: '1', pro: '10', premium: '25', forge: '50', enterprise: 'Unlimited' },
-        { name: 'Private repos', free: false, pro: true, premium: true, forge: true, enterprise: true },
+        { name: 'Test runs/month', free: 'Unlimited (local)', pro: '100', team: '500', enterprise: 'Unlimited' },
+        { name: 'All 21 Tier-1 dimensions', free: true, pro: true, team: true, enterprise: true },
+        { name: 'Repositories', free: 'Unlimited (local)', pro: '10', team: '50', enterprise: 'Unlimited' },
+        { name: 'Private repos', free: 'Local only', pro: true, team: true, enterprise: true },
       ],
     },
     {
       name: 'Tier 2 — AI Tests (Generate & Run)',
       features: [
-        { name: 'LLM-generated Vitest files', free: false, pro: false, premium: true, forge: true, enterprise: true },
-        { name: 'Iterations / month', free: '—', pro: '—', premium: '20', forge: '100', enterprise: 'Unlimited' },
-        { name: 'Sandboxed execution (Docker)', free: false, pro: false, premium: true, forge: true, enterprise: true },
-        { name: 'Iterative test → fix → re-test', free: false, pro: false, premium: false, forge: true, enterprise: true },
-        { name: 'Generation history dashboard', free: false, pro: false, premium: true, forge: true, enterprise: true },
-        { name: 'Custom AI model selection', free: false, pro: false, premium: false, forge: false, enterprise: true },
+        { name: 'LLM-generated Vitest files', free: 'BYOK', pro: true, team: true, enterprise: true },
+        { name: 'Iterations / month', free: 'Unlimited (you pay OpenRouter)', pro: '20', team: '200', enterprise: 'Unlimited' },
+        { name: 'Sandboxed execution', free: 'Local Docker', pro: 'We host', team: 'We host', enterprise: 'We host' },
+        { name: 'Iterative test → fix → re-test', free: false, pro: false, team: true, enterprise: true },
+        { name: 'Managed AI keys (no setup)', free: false, pro: true, team: true, enterprise: true },
+        { name: 'Generation history dashboard', free: 'Local SQLite', pro: true, team: 'Shared', enterprise: 'Shared' },
+        { name: 'Custom AI model selection', free: 'Edit code', pro: false, team: false, enterprise: true },
       ],
     },
     {
       name: 'The Integrator',
       features: [
-        { name: 'Basic recommendations', free: false, pro: true, premium: true, forge: true, enterprise: true },
-        { name: 'Full intelligence', free: false, pro: true, premium: true, forge: true, enterprise: true },
-        { name: 'Custom rules', free: false, pro: false, premium: false, forge: true, enterprise: true },
+        { name: 'Basic recommendations', free: true, pro: true, team: true, enterprise: true },
+        { name: 'Full intelligence', free: true, pro: true, team: true, enterprise: true },
+        { name: 'Custom rules', free: 'Local file', pro: false, team: true, enterprise: true },
       ],
     },
     {
       name: 'PRD Generator',
       features: [
-        { name: 'PRDs/month', free: '5', pro: 'Unlimited', premium: 'Unlimited', forge: 'Unlimited', enterprise: 'Unlimited' },
-        { name: 'Severity classification', free: 'Basic', pro: 'Full', premium: 'Full', forge: 'Full', enterprise: 'Full' },
-        { name: 'Migration paths', free: false, pro: true, premium: true, forge: true, enterprise: true },
+        { name: 'PRDs/month', free: 'Unlimited (local)', pro: 'Unlimited', team: 'Unlimited', enterprise: 'Unlimited' },
+        { name: 'Severity classification', free: 'Full', pro: 'Full', team: 'Full', enterprise: 'Full' },
+        { name: 'Migration paths', free: true, pro: true, team: true, enterprise: true },
       ],
     },
     {
       name: 'Analytics',
       features: [
-        { name: 'Dashboard', free: false, pro: true, premium: true, forge: true, enterprise: true },
-        { name: 'Predictive models', free: false, pro: true, premium: true, forge: true, enterprise: true },
-        { name: 'Historical data', free: '7 days', pro: '90 days', premium: '90 days', forge: '1 year', enterprise: 'Unlimited' },
+        { name: 'Cross-machine dashboard', free: false, pro: true, team: true, enterprise: true },
+        { name: 'Predictive models', free: true, pro: true, team: true, enterprise: true },
+        { name: 'Historical data retention', free: 'Local SQLite', pro: '90 days', team: '1 year', enterprise: 'Unlimited' },
       ],
     },
     {
       name: 'Security',
       features: [
-        { name: 'SAST (Babel AST)', free: true, pro: true, premium: true, forge: true, enterprise: true },
-        { name: 'Taint-flow analysis', free: false, pro: true, premium: true, forge: true, enterprise: true },
-        { name: 'OWASP Top 10 coverage map', free: true, pro: true, premium: true, forge: true, enterprise: true },
-        { name: 'Secret / credential detection', free: true, pro: true, premium: true, forge: true, enterprise: true },
-        { name: 'Supply-chain (CVE-aware)', free: false, pro: true, premium: true, forge: true, enterprise: true },
+        { name: 'SAST (Babel AST)', free: true, pro: true, team: true, enterprise: true },
+        { name: 'Taint-flow analysis', free: true, pro: true, team: true, enterprise: true },
+        { name: 'OWASP Top 10 coverage map', free: true, pro: true, team: true, enterprise: true },
+        { name: 'Secret / credential detection', free: true, pro: true, team: true, enterprise: true },
+        { name: 'Supply-chain (CVE-aware)', free: true, pro: true, team: true, enterprise: true },
       ],
     },
     {
       name: 'Visual & A11y',
       features: [
-        { name: 'Visual regression', free: false, pro: true, premium: true, forge: true, enterprise: true },
-        { name: 'Accessibility testing', free: false, pro: true, premium: true, forge: true, enterprise: true },
+        { name: 'Visual regression', free: true, pro: true, team: true, enterprise: true },
+        { name: 'Accessibility testing', free: true, pro: true, team: true, enterprise: true },
       ],
     },
     {
       name: 'Platform',
       features: [
-        { name: 'Data retention', free: '7 days', pro: '90 days', premium: '90 days', forge: '1 year', enterprise: 'Unlimited' },
-        { name: 'Team members', free: '1', pro: '10', premium: '25', forge: '50', enterprise: 'Unlimited' },
-        { name: 'API access', free: false, pro: false, premium: false, forge: true, enterprise: true },
-        { name: 'SSO/SAML', free: false, pro: false, premium: false, forge: false, enterprise: true },
+        { name: 'CI/CD webhook + Slack/Discord', free: false, pro: true, team: true, enterprise: true },
+        { name: 'Team members', free: 'You', pro: 'You', team: 'Multi-user', enterprise: 'Unlimited' },
+        { name: 'API access', free: 'Run your own', pro: false, team: true, enterprise: true },
+        { name: 'SSO/SAML', free: false, pro: false, team: false, enterprise: true },
+        { name: 'On-prem / VPC', free: 'You install', pro: false, team: false, enterprise: true },
       ],
     },
     {
       name: 'Support',
       features: [
-        { name: 'Community', free: true, pro: true, premium: true, forge: true, enterprise: true },
-        { name: 'Email support', free: false, pro: true, premium: true, forge: true, enterprise: true },
-        { name: 'Dedicated support', free: false, pro: false, premium: false, forge: true, enterprise: true },
-        { name: '24/7 phone', free: false, pro: false, premium: false, forge: false, enterprise: true },
+        { name: 'Community (GitHub issues)', free: true, pro: true, team: true, enterprise: true },
+        { name: 'Priority email support', free: false, pro: true, team: true, enterprise: true },
+        { name: 'Dedicated support', free: false, pro: false, team: true, enterprise: true },
+        { name: 'SLA guarantee', free: false, pro: false, team: false, enterprise: true },
       ],
     },
   ]
@@ -500,23 +483,22 @@ function ComparisonTableSection() {
           Compare <span className="text-[#574a7d]">every feature</span>.
         </h2>
 
-        <div className="comparison-table bg-white border border-[#D9D9D3] rounded-xl overflow-x-auto max-w-[1320px] mx-auto">
-          <table className="w-full min-w-[860px]">
+        <div className="comparison-table bg-white border border-[#D9D9D3] rounded-xl overflow-x-auto max-w-[1200px] mx-auto">
+          <table className="w-full min-w-[780px]">
             <thead>
               <tr className="border-b border-[#D9D9D3]">
-                <th className="text-left px-5 py-4 font-semibold text-sm text-[#333333] w-[30%]">Feature</th>
-                <th className="text-center px-3 py-4 font-semibold text-sm text-[#333333]">Free</th>
-                <th className="text-center px-3 py-4 font-semibold text-sm text-[#333333]">Pro</th>
-                <th className="text-center px-3 py-4 font-semibold text-sm text-[#333333]">Premium</th>
-                <th className="text-center px-3 py-4 font-semibold text-sm text-[#574a7d]">Forge</th>
-                <th className="text-center px-3 py-4 font-semibold text-sm text-[#333333]">Enterprise</th>
+                <th className="text-left px-5 py-4 font-semibold text-sm text-[#333333] w-[34%]">Feature</th>
+                <th className="text-center px-3 py-4 font-semibold text-sm text-[#333333]">Free<br/><span className="font-mono text-[10px] text-[#9A9A9A] uppercase">Self-host · OSS</span></th>
+                <th className="text-center px-3 py-4 font-semibold text-sm text-[#574a7d]">Pro<br/><span className="font-mono text-[10px] text-[#9A9A9A] uppercase">$49 / mo</span></th>
+                <th className="text-center px-3 py-4 font-semibold text-sm text-[#333333]">Team<br/><span className="font-mono text-[10px] text-[#9A9A9A] uppercase">$199 / mo</span></th>
+                <th className="text-center px-3 py-4 font-semibold text-sm text-[#333333]">Enterprise<br/><span className="font-mono text-[10px] text-[#9A9A9A] uppercase">Contact sales</span></th>
               </tr>
             </thead>
             <tbody>
               {categories.map((cat) => (
                 <Fragment key={cat.name}>
                   <tr className="bg-[#F7F7FB]">
-                    <td colSpan={6} className="px-5 py-2.5 font-semibold text-sm text-[#333333]">
+                    <td colSpan={5} className="px-5 py-2.5 font-semibold text-sm text-[#333333]">
                       {cat.name}
                     </td>
                   </tr>
@@ -524,9 +506,8 @@ function ComparisonTableSection() {
                     <tr key={feat.name} className="border-b border-[#F7F7FB]">
                       <td className="px-5 py-3.5 text-sm text-[#6B6B6B]">{feat.name}</td>
                       <td className="text-center px-3 py-3.5">{renderCell(feat.free)}</td>
-                      <td className="text-center px-3 py-3.5">{renderCell(feat.pro)}</td>
-                      <td className="text-center px-3 py-3.5">{renderCell(feat.premium)}</td>
-                      <td className="text-center px-3 py-3.5 bg-[rgba(87,74,125,0.06)]">{renderCell(feat.forge)}</td>
+                      <td className="text-center px-3 py-3.5 bg-[rgba(87,74,125,0.06)]">{renderCell(feat.pro)}</td>
+                      <td className="text-center px-3 py-3.5">{renderCell(feat.team)}</td>
                       <td className="text-center px-3 py-3.5">{renderCell(feat.enterprise)}</td>
                     </tr>
                   ))}
