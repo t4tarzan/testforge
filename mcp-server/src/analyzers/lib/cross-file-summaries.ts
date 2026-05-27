@@ -323,8 +323,8 @@ export function lookupCrossFileSummary(
   // Namespace: `ns.X` — caller needs to pass `property`
   if (property) {
     const filePath = key.slice(0, -3); // strip "::*"
-    // testforge-disable-next-line sql-injection
     // Building a Map lookup key from two internal strings — not a query.
+    // testforge-disable-next-line sql-injection
     return table.byKey.get(`${filePath}::${property}`) ?? null;
   }
   return null;
