@@ -2,10 +2,15 @@
 // user is on their new limits immediately — the JWT-embedded plan can be
 // stale for up to 30 days after a webhook flips users.plan.
 
+// Tier 2 ("Generate & Run" — LLM writes Vitest tests + sandbox executes them)
+// is gated by a SEPARATE monthly quota. Free / Pro get 0 iterations and the
+// /generate-and-run endpoint returns 402 with upgradeUrl. Forge is the
+// dedicated Tier-2 plan; Enterprise lifts the cap entirely.
 export const PLANS = {
-  free:       { testsPerMonth: 5,        repos: 1,        rateLimit: 10,  name: 'Free' },
-  pro:        { testsPerMonth: 100,      repos: 10,       rateLimit: 60,  name: 'Pro' },
-  enterprise: { testsPerMonth: Infinity, repos: Infinity, rateLimit: 300, name: 'Enterprise' },
+  free:       { testsPerMonth: 5,        tier2IterationsPerMonth: 0,        repos: 1,        rateLimit: 10,  name: 'Free' },
+  pro:        { testsPerMonth: 100,      tier2IterationsPerMonth: 0,        repos: 10,       rateLimit: 60,  name: 'Pro' },
+  forge:      { testsPerMonth: 500,      tier2IterationsPerMonth: 100,      repos: 50,       rateLimit: 120, name: 'Forge' },
+  enterprise: { testsPerMonth: Infinity, tier2IterationsPerMonth: Infinity, repos: Infinity, rateLimit: 300, name: 'Enterprise' },
 };
 
 export function monthStartIso() {
@@ -44,11 +49,36 @@ export async function getQuota(userId, sessionPlan) {
   const [{ count: reposUsed }] = await db`
     SELECT COUNT(*)::int AS count FROM projects WHERE user_id = ${userId}
   `;
+  // tier2_iterations table is created lazily on first managed-side use; an
+  // absent table reads as zero iterations consumed.
+  let tier2Used = 0;
+  try {
+    const [row] = await db`
+      SELECT COUNT(*)::int AS count FROM tier2_iterations
+      WHERE user_id = ${userId} AND created_at >= ${monthStart}
+    `;
+    tier2Used = row?.count ?? 0;
+  } catch {
+    tier2Used = 0;
+  }
   const testsRemaining =
     limits.testsPerMonth === Infinity ? Infinity : limits.testsPerMonth - testsUsed;
   const reposRemaining =
     limits.repos === Infinity ? Infinity : limits.repos - reposUsed;
-  return { plan, limits, testsUsed, reposUsed, testsRemaining, reposRemaining };
+  const tier2Remaining =
+    limits.tier2IterationsPerMonth === Infinity
+      ? Infinity
+      : Math.max(0, limits.tier2IterationsPerMonth - tier2Used);
+  return {
+    plan,
+    limits,
+    testsUsed,
+    reposUsed,
+    tier2Used,
+    testsRemaining,
+    reposRemaining,
+    tier2Remaining,
+  };
 }
 
 // Returns null when allowed, or {status, body} to short-circuit the response.
@@ -65,4 +95,58 @@ export async function denyIfOverTestQuota(userId, sessionPlan) {
     };
   }
   return null;
+}
+
+// Tier-2 gate. Free / Pro have a quota of 0, so any call is rejected. Forge
+// has 100/month, Enterprise unlimited. Caller is responsible for inserting
+// the row into `tier2_iterations` after a successful generation.
+export async function denyIfOverTier2Quota(userId, sessionPlan) {
+  const { plan, limits, tier2Used, tier2Remaining } = await getQuota(userId, sessionPlan);
+  if (limits.tier2IterationsPerMonth === 0) {
+    return {
+      status: 402,
+      body: {
+        allowed: false,
+        reason: 'Tier 2 (Generate & Run) requires the Forge plan or higher.',
+        plan,
+        upgradeUrl: '/#/pricing',
+      },
+    };
+  }
+  if (
+    limits.tier2IterationsPerMonth !== Infinity &&
+    tier2Used >= limits.tier2IterationsPerMonth
+  ) {
+    return {
+      status: 402,
+      body: {
+        allowed: false,
+        reason: `Monthly Tier 2 iteration limit reached (${tier2Used}/${limits.tier2IterationsPerMonth}).`,
+        plan,
+        tier2Remaining: tier2Remaining === Infinity ? null : tier2Remaining,
+        upgradeUrl: '/#/pricing',
+      },
+    };
+  }
+  return null;
+}
+
+// Record one successful Tier-2 iteration for billing/quota. Idempotency is
+// handled by the caller via a unique generationId. Lazy table create so
+// existing deployments don't need a migration step before the first call.
+export async function recordTier2Iteration(userId, generationId, meta = {}) {
+  const db = await getDb();
+  await db`
+    CREATE TABLE IF NOT EXISTS tier2_iterations (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      meta JSONB
+    )
+  `;
+  await db`
+    INSERT INTO tier2_iterations (id, user_id, meta)
+    VALUES (${generationId}, ${userId}, ${JSON.stringify(meta)})
+    ON CONFLICT (id) DO NOTHING
+  `;
 }

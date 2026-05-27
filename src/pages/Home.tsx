@@ -26,6 +26,7 @@ import {
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
+import InstallCard from '@/components/InstallCard'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -513,6 +514,11 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* ═══════════════════════════════════════════
+          SECTION 2.5: INSTALL CARD (one-command tabbed)
+          ═══════════════════════════════════════════ */}
+      <InstallCard />
 
       {/* ═══════════════════════════════════════════
           SECTION 3: TRUSTED BY / LOGO STRIP

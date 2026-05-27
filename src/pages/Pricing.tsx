@@ -125,7 +125,7 @@ function PricingCardsSection() {
       yearlyDiscount: '30% savings',
       description: 'For growing teams with active CI/CD pipelines.',
       cta: 'Upgrade to Pro',
-      ctaStyle: 'primary' as const,
+      ctaStyle: 'secondary' as const,
       features: [
         'Everything in Free, plus:',
         '100 test runs/month',
@@ -137,9 +137,32 @@ function PricingCardsSection() {
         'Slack/Discord notifications',
         'README badge generator',
       ],
-      badge: { text: 'Most Popular', bg: '#574a7d', color: '#FFFFFF' },
+      badge: null,
       borderColor: '#D9D9D3',
       recommended: false,
+    },
+    {
+      name: 'Forge',
+      icon: FlaskConical,
+      monthlyPrice: 99,
+      yearlyPrice: 79,
+      yearlyDiscount: '20% savings',
+      description: 'For teams using AI-generated tests in their merge flow.',
+      cta: 'Upgrade to Forge',
+      ctaStyle: 'primary' as const,
+      features: [
+        'Everything in Pro, plus:',
+        '500 test runs/month',
+        '50 repositories',
+        'Tier 2 — Generate & Run: AI writes Vitest tests + sandbox executes',
+        '100 Tier-2 iterations/month',
+        'Qwen 3.7 Max + DeepSeek V4 Flash fallback (we manage the keys)',
+        'Sandboxed test execution on our infrastructure',
+        'Generation + run history dashboard',
+      ],
+      badge: { text: 'Tier 2 · AI Tests', bg: '#574a7d', color: '#FFFFFF' },
+      borderColor: '#574a7d',
+      recommended: true,
     },
     {
       name: 'Enterprise',
@@ -151,10 +174,10 @@ function PricingCardsSection() {
       cta: 'Contact Sales',
       ctaStyle: 'ghost' as const,
       features: [
-        'Everything in Pro, plus:',
-        'Unlimited everything',
-        'Custom AI model training',
-        'On-premise deployment',
+        'Everything in Forge, plus:',
+        'Unlimited Tier 1 + Tier 2 runs',
+        'Custom AI model selection',
+        'On-premise / VPC deployment',
         'SSO & SAML authentication',
         'API access',
         'Dedicated account manager',
@@ -201,7 +224,7 @@ function PricingCardsSection() {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 max-w-[1200px] mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 max-w-[1320px] mx-auto">
           {tiers.map((tier) => (
             <motion.div
               key={tier.name}
