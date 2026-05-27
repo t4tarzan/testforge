@@ -67,6 +67,7 @@ const POLYGLOT_PYTHON = resolve(__dirname, 'fixtures/polyglot-python');
 const UV_WORKSPACE = resolve(__dirname, 'fixtures/uv-workspace');
 const LIBS_MONOREPO = resolve(__dirname, 'fixtures/libs-monorepo');
 const TEST_PATH_SUPPRESSION = resolve(__dirname, 'fixtures/test-path-suppression');
+const POLYGLOT_GO = resolve(__dirname, 'fixtures/polyglot-go');
 
 describe('code-scanner', () => {
   let vulnInfo: CodebaseInfo;
@@ -2172,6 +2173,69 @@ describe('strategic-analyzer — Phase 5 pass 16: stack polish (strict dep sets 
     const report = await runStackAnalysis(fc, deps, [], ['Express']);
     const finding = report.findings.find((f) => /without runtime validation library/.test(f.title));
     expect(finding).toBeTruthy();
+  });
+});
+
+// Go native support — added in v0.28.0. .go files count in totalFiles,
+// go.mod parses to deps, Gin/Echo/Chi/Fiber/Gorilla/stdlib route patterns
+// are counted as endpoints, tech-stack tagger recognizes common Go libs.
+describe('code-scanner — Go native support (v0.28.0)', () => {
+  let info: CodebaseInfo;
+  beforeAll(async () => {
+    info = await scanCodebase(POLYGLOT_GO);
+  });
+
+  it('counts .go files in totalFiles', () => {
+    const goFiles = info.files.filter((f) => f.path.endsWith('.go'));
+    expect(goFiles.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('detects Gin route decorators + stdlib http.HandleFunc as endpoints', () => {
+    // main.go has 5 Gin routes (GET/POST/PATCH/DELETE) + 1 http.HandleFunc.
+    expect(info.endpoints).toBeGreaterThanOrEqual(6);
+  });
+
+  it('parses go.mod direct deps (require block)', () => {
+    expect(info.dependencies).toContain('gin');
+    expect(info.dependencies).toContain('cobra');
+    expect(info.dependencies).toContain('viper');
+    expect(info.dependencies).toContain('zap');
+    expect(info.dependencies).toContain('gorm');
+  });
+
+  it('handles semantic-import-versioning v\\d+ path suffix correctly', () => {
+    // jackc/pgx/v5 should land as 'pgx', not 'v5'
+    expect(info.dependencies).toContain('pgx');
+    expect(info.dependencies).not.toContain('v5');
+  });
+
+  it('skips // indirect deps', () => {
+    expect(info.dependencies).not.toContain('sonic');
+    expect(info.dependencies).not.toContain('go-spew');
+  });
+
+  it('tech-stack rolls up Go libraries', () => {
+    expect(info.techStack).toContain('Gin');
+    expect(info.techStack).toContain('Cobra');
+    expect(info.techStack).toContain('Viper');
+    expect(info.techStack).toContain('GORM/sqlx');
+    expect(info.techStack).toContain('Structured Go logging');
+    expect(info.techStack).toContain('PostgreSQL');
+  });
+
+  it('extracts Go function names (package-level + methods)', () => {
+    const mainFns = info.functions['cmd/server/main.go'] || [];
+    expect(mainFns).toContain('main');
+    expect(mainFns).toContain('healthHandler');
+    expect(mainFns).toContain('createUser');
+    const repoFns = info.functions['internal/users/repo.go'] || [];
+    expect(repoFns).toContain('NewRepo');
+    expect(repoFns).toContain('FindByID'); // method on *Repo
+  });
+
+  it('reports 100% language coverage when the repo is Go-only', () => {
+    expect(info.languageCoverage.coveragePercent).toBe(100);
+    expect(info.languageCoverage.unsupportedFiles).toBe(0);
   });
 });
 

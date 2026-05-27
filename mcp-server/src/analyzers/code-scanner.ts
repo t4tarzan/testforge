@@ -36,13 +36,12 @@ export interface CodebaseInfo {
 
 // File extensions the analyzer parses natively (regex-based, AST-based, or
 // both depending on dimension).
-const NATIVE_EXTS = new Set(['ts', 'js', 'tsx', 'jsx', 'mjs', 'cjs', 'mts', 'cts', 'py']);
+const NATIVE_EXTS = new Set(['ts', 'js', 'tsx', 'jsx', 'mjs', 'cjs', 'mts', 'cts', 'py', 'go']);
 
 // Source-code extensions we'll count even though we don't natively parse
 // them. Used purely to compute language coverage — the bigger this list,
 // the more honest the "we only analyzed N%" warning is for polyglot repos.
 const UNSUPPORTED_EXT_TO_LANG: Record<string, string> = {
-  go: 'Go',
   rb: 'Ruby',
   rs: 'Rust',
   java: 'Java',
@@ -82,13 +81,14 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
   //    dimension — glob's `dot:true` lets us see it. Lockfiles are excluded
   //    via separate exclude patterns.
   const patterns = [
-    '**/*.{ts,js,tsx,jsx,mjs,cjs,mts,cts,py,yaml,yml,json,toml,md}',
-    '**/{Dockerfile,Procfile,CODEOWNERS,requirements.txt,requirements-dev.txt,Pipfile}',
+    '**/*.{ts,js,tsx,jsx,mjs,cjs,mts,cts,py,go,yaml,yml,json,toml,md}',
+    '**/{Dockerfile,Procfile,CODEOWNERS,requirements.txt,requirements-dev.txt,Pipfile,go.mod,go.sum}',
     '**/.github/**/*',
     '!**/node_modules/**', '!**/.git/**', '!**/dist/**', '!**/build/**',
     '!**/.next/**', '!**/coverage/**', '!**/__pycache__/**', '!**/.venv/**',
     '!**/venv/**', '!**/.tox/**', '!**/.pytest_cache/**',
-    '!**/package-lock.json', '!**/yarn.lock', '!**/pnpm-lock.yaml', '!**/poetry.lock',
+    '!**/vendor/**',  // Go's go.mod vendor dir
+    '!**/package-lock.json', '!**/yarn.lock', '!**/pnpm-lock.yaml', '!**/poetry.lock', '!**/go.sum',
   ];
   const files = await glob(patterns, { cwd: projectPath, absolute: false, dot: true });
 
@@ -105,13 +105,15 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
       fileInfos.push({ path: f, lines });
       fileContents[f] = content;
 
-      // Function-name extraction: JS/TS vs Python vs skip
+      // Function-name extraction: JS/TS vs Python vs Go vs skip
       const ext = extOf(f);
       let fnNames: string[] = [];
-      if (NATIVE_EXTS.has(ext) && ext !== 'py') {
-        fnNames = extractJsFunctionNames(content);
-      } else if (ext === 'py') {
+      if (ext === 'py') {
         fnNames = extractPyFunctionNames(content);
+      } else if (ext === 'go') {
+        fnNames = extractGoFunctionNames(content);
+      } else if (NATIVE_EXTS.has(ext)) {
+        fnNames = extractJsFunctionNames(content);
       }
       if (fnNames.length > 0) {
         functions[f] = fnNames;
@@ -148,6 +150,24 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
       const djangoMatches = content.match(/\b(?:path|re_path|url)\s*\(\s*['"]/g);
       if (djangoMatches) endpointCount += djangoMatches.length;
 
+      continue;
+    }
+
+    if (ext === 'go') {
+      // Gin / Echo / Chi / Gorilla Mux / Fiber — all use
+      // `<router>.<METHOD>("/path", handler)`. Examples:
+      //   r.GET("/users", h)        (Gin, Echo)
+      //   router.HandleFunc("/x", h).Methods("GET")  (Gorilla)
+      //   app.Get("/x", h)          (Fiber)
+      // Verbs vary by case (Go community is title-case). We match
+      // both cases anchored to a string-arg call to keep this tight.
+      const ginEchoChiFiber = content.match(
+        /\.(?:GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|Get|Post|Put|Delete|Patch|Head|Options|Handle|HandleFunc)\s*\(\s*"[^"]*"/g
+      );
+      if (ginEchoChiFiber) endpointCount += ginEchoChiFiber.length;
+      // net/http stdlib: http.HandleFunc("/path", h) / mux.HandleFunc(...)
+      const stdHttp = content.match(/\bhttp\.HandleFunc\s*\(\s*"[^"]*"/g);
+      if (stdHttp) endpointCount += stdHttp.length;
       continue;
     }
 
@@ -265,6 +285,24 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
     }
   }
 
+  // 4d. Go — go.mod at root + every conventional member. The module path
+  //     itself isn't a dep; we extract `require` block entries. Each entry
+  //     is full module path (`github.com/gin-gonic/gin v1.10.0`) — we
+  //     normalize to the short package name (last path segment) so the
+  //     tech-stack tagger can match it ("gin" instead of full path).
+  const goMemberDirs = [
+    '',
+    ...(await discoverConventionalMembers(projectPath, 'go.mod')),
+  ];
+  for (const subdir of goMemberDirs) {
+    try {
+      const content = readFileSync(join(projectPath, subdir, 'go.mod'), 'utf-8');
+      dependencies.push(...parseGoMod(content));
+    } catch {
+      // No go.mod at this member — fine
+    }
+  }
+
   // Dedupe across sources.
   dependencies = [...new Set(dependencies)];
   devDependencies = [...new Set(devDependencies)];
@@ -309,6 +347,21 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
   if (all.includes('uvicorn') || all.includes('gunicorn')) techStack.push('Uvicorn/Gunicorn');
   if (all.includes('apscheduler')) techStack.push('APScheduler');
   if (all.includes('opentelemetry-api') || all.some((d) => d.startsWith('opentelemetry'))) techStack.push('OpenTelemetry');
+  // Go stacks. go.mod entries arrive as short package names
+  // (`gin`, `echo`, `chi`, `fiber`, `mux`, `cobra`, `viper`, etc.) via
+  // parseGoMod() which strips the module path down to the last segment.
+  if (all.includes('gin')) techStack.push('Gin');
+  if (all.includes('echo')) techStack.push('Echo');
+  if (all.includes('chi')) techStack.push('Chi');
+  if (all.includes('fiber')) techStack.push('Fiber');
+  if (all.includes('mux')) techStack.push('Gorilla Mux');
+  if (all.includes('gorm') || all.includes('sqlx')) techStack.push('GORM/sqlx');
+  if (all.includes('cobra')) techStack.push('Cobra');
+  if (all.includes('viper')) techStack.push('Viper');
+  if (all.includes('grpc-go') || all.includes('grpc')) techStack.push('gRPC');
+  if (all.includes('zap') || all.includes('zerolog') || all.includes('logrus')) techStack.push('Structured Go logging');
+  if (all.includes('testify') || all.includes('ginkgo')) techStack.push('Go testing (testify/ginkgo)');
+  if (all.includes('pgx') || all.includes('pq')) techStack.push('PostgreSQL');
 
   // 6. Language coverage — what fraction of source files did we actually
   //    understand? Helps the report avoid claiming "0 endpoints" for a
@@ -423,6 +476,78 @@ function extractPyFunctionNames(content: string): string[] {
     names.push(match[1]);
   }
   return [...new Set(names)];
+}
+
+/**
+ * Extract function names from Go source. Matches both:
+ *   - `func Name(...) ...` (package-level)
+ *   - `func (r *Receiver) Name(...) ...` (methods)
+ * Captures the name token after `func` or after the receiver group.
+ */
+function extractGoFunctionNames(content: string): string[] {
+  const names: string[] = [];
+  // Package-level + methods. The receiver `(r *T)` is optional.
+  const re = /^\s*func\s+(?:\(\s*\w+\s+\*?\w+\s*\)\s+)?([A-Za-z_]\w*)\s*\(/gm;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(content)) !== null) {
+    names.push(match[1]);
+  }
+  return [...new Set(names)];
+}
+
+/**
+ * Parse `require` blocks out of a go.mod file. Handles both:
+ *   require github.com/foo/bar v1.0.0
+ *   require (
+ *     github.com/foo/bar v1.0.0
+ *     github.com/baz/qux v2.0.0
+ *   )
+ * Returns the SHORT package name (last path segment) lowercased, e.g.
+ * `gin`, `echo`, `chi`. This matches our existing tech-stack tagging
+ * convention (which checks short names) and avoids needing to maintain a
+ * full module-path→tag mapping. Indirect deps (// indirect) are skipped.
+ */
+function parseGoMod(content: string): string[] {
+  const names: string[] = [];
+  const lines = content.split('\n');
+  let inBlock = false;
+  for (const raw of lines) {
+    let line = raw.trim();
+    if (!line || line.startsWith('//')) continue;
+    if (line.startsWith('module ') || line.startsWith('go ') || line.startsWith('toolchain ')) continue;
+
+    if (line.startsWith('require (')) { inBlock = true; continue; }
+    if (inBlock && line === ')') { inBlock = false; continue; }
+
+    let body = '';
+    if (inBlock) {
+      body = line;
+    } else if (line.startsWith('require ')) {
+      body = line.slice('require '.length).trim();
+    } else {
+      continue;
+    }
+
+    // Skip `// indirect` deps to focus on what the project actively uses.
+    if (body.includes('// indirect')) continue;
+    // body looks like: "github.com/foo/bar v1.0.0" — first token is path
+    const path = body.split(/\s+/)[0];
+    if (!path) continue;
+    // Short name = last path segment, lowercased. Strip "v\d+" major-version
+    // suffix that some modules append (`gopkg.in/foo.v2` → `foo.v2`; keep
+    // it for now since it's still a stable identifier).
+    const short = path.split('/').pop()!.toLowerCase();
+    // Skip "v\d+" path-only segments (modules sometimes end in /v2, /v3 for
+    // semantic-import-versioning); take the previous segment instead.
+    if (/^v\d+$/.test(short)) {
+      const parts = path.split('/');
+      const prev = parts[parts.length - 2];
+      if (prev) names.push(prev.toLowerCase());
+    } else {
+      names.push(short);
+    }
+  }
+  return names;
 }
 
 /**
