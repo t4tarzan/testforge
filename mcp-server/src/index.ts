@@ -34,6 +34,7 @@ import {
 import { runAgenticScalePrediction } from './analyzers/agentic-scale.js';
 import { generateTestsForFindings, type InputFinding } from './generator/generate-tests.js';
 import { hasLLMKey, PRIMARY_MODEL, FALLBACK_MODEL } from './generator/llm-client.js';
+import { runGeneratedTests } from './runner/docker-runner.js';
 
 // 33221 is the default. It's high enough to avoid common dev-server clashes
 // (3001/3000/5173/8080) and conflicts on developer machines that run a lot
@@ -91,17 +92,46 @@ async function main() {
 
     const cluster = body?.cluster ?? 'edge-case';
     const max = Math.min(body?.maxFindings ?? 3, 5);
+    const skipRun = (body as { skipRun?: boolean } | undefined)?.skipRun === true;
 
     const t0 = Date.now();
     const results = await generateTestsForFindings(findings, max);
-    const durationMs = Date.now() - t0;
+    const generationMs = Date.now() - t0;
+
+    // Day 2 — collect the files that the LLM successfully produced and ship
+    // them into the sandbox runner. If skipRun is set, return generation
+    // results only (useful when the caller wants to inspect the source
+    // before paying the runner roundtrip).
+    const generatedFiles = results
+      .map((r) => r.file)
+      .filter((f): f is NonNullable<typeof f> => f !== null);
+
+    let run: Awaited<ReturnType<typeof runGeneratedTests>> | null = null;
+    if (!skipRun && generatedFiles.length > 0) {
+      try {
+        run = await runGeneratedTests(generatedFiles);
+      } catch (err) {
+        run = {
+          runId: 'run_failed',
+          success: false,
+          numTotalTests: 0,
+          numPassedTests: 0,
+          numFailedTests: 0,
+          durationMs: 0,
+          files: [],
+          containerError: (err as Error).message,
+        };
+      }
+    }
 
     return reply.send({
       generationId: 'gen_' + Date.now().toString(36),
       cluster,
       provider: { primary: PRIMARY_MODEL, fallback: FALLBACK_MODEL, base: 'openrouter' },
       generatedAt: new Date().toISOString(),
-      durationMs,
+      durationMs: generationMs + (run?.durationMs ?? 0),
+      generationMs,
+      runMs: run?.durationMs ?? 0,
       requested: findings.length,
       processed: results.length,
       results: results.map((r) => ({
@@ -114,7 +144,7 @@ async function main() {
         file: r.file,
         attempts: r.attempts,
       })),
-      // Day 2 will add: run: { passed, failed, durationMs }
+      run,
     });
   });
 
