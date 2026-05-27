@@ -3,8 +3,8 @@
   "repoUrl": "https://github.com/langchain-ai/langchain",
   "repoName": "langchain",
   "tagline": "100k-star Python AI framework \u2014 libs/* monorepo recursion in action",
-  "analyzedAt": "2026-05-27T22:22:02.344Z",
-  "analyzeMs": 1180,
+  "analyzedAt": "2026-05-27T22:30:21.337Z",
+  "analyzeMs": 1823,
   "codebase": {
     "totalFiles": 2638,
     "totalLines": 387441,
@@ -33,21 +33,12 @@
     ]
   },
   "security": {
-    "findings": 1,
+    "findings": 0,
     "critical": 0,
     "high": 0,
-    "medium": 1,
+    "medium": 0,
     "low": 0,
-    "topItems": [
-      {
-        "severity": "medium",
-        "title": "Missing Rate Limiting",
-        "description": "No rate-limit package detected. Auth endpoints in particular should be rate-limited.",
-        "filePath": "/tmp/testforge-showcase-langchain/package.json",
-        "lineNumber": 1,
-        "fixSuggestion": "Install express-rate-limit, @fastify/rate-limit, or roll a Redis-backed limiter."
-      }
-    ]
+    "topItems": []
   },
   "scores": [
     {
