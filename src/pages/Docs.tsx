@@ -705,7 +705,7 @@ function CliInstallationPage() {
         Verify installation:
       </p>
       <DocCodeBlock
-        code={"testforge-mcp --version\n# @whitenoisenpm/testforge-mcp/0.28.0 darwin-arm64 node-v22.0.0"}
+        code={"testforge-mcp --version\n# @whitenoisenpm/testforge-mcp/0.28.1 darwin-arm64 node-v22.0.0"}
         language="bash"
       />
 
@@ -1477,7 +1477,7 @@ function ApiReferencePage() {
       <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">🔬 Analysis</h2>
       <div className="space-y-6">
         {[
-          { method: 'GET', path: '/health', desc: 'Health check — pings Neon and reports version. No auth. No rate limit.', example: '{"status":"ok","version":"0.28.0","database":"connected"}' },
+          { method: 'GET', path: '/health', desc: 'Health check — pings Neon and reports version. No auth. No rate limit.', example: '{"status":"ok","version":"0.28.1","database":"connected"}' },
           { method: 'GET', path: '/status', desc: 'Public services rollup — Web, MCP server, DB, npm package. 30s cache. No auth.', example: '{"status":"all_systems_operational","services":[{"name":"Web Platform","status":"operational"},…]}' },
           { method: 'POST', path: '/analyze', desc: 'Proxies a clone-and-analyze request to the Fly.io MCP server. Returns the full 21-dimension report verbatim. 504 on upstream timeout, 502 on connection failure — never fabricated data. No auth required to analyze public repos.', body: '{"repoUrl":"https://github.com/owner/repo","branch":"main"}', example: '{"codebase":{"totalFiles":402,…},"security":{"findings":29,…},"mutation":{"score":47,…},…}' },
           { method: 'GET', path: '/analyze', desc: 'Returns the configured MCP server URL + endpoints (for clients that prefer to call it directly).', example: '{"mcpServer":"https://testforge-mcp.fly.dev","endpoints":{…}}' },
@@ -1703,13 +1703,37 @@ function ChangelogPage() {
         <div>
           <div className="flex items-center gap-3 mb-3">
             <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
-              mcp 0.28.0 — Go native support
+              mcp 0.28.1 — vulnerable-dep check is version-aware
             </h2>
             <span className="font-mono text-[12px] text-[#9A9A9A]">
               2026-05-28
             </span>
             <span className="font-mono font-medium text-[11px] uppercase px-2 py-0.5 rounded bg-[#E8E5FF] text-[#574a7d]">
               Latest
+            </span>
+          </div>
+          <p className="font-body text-[16px] text-[#333333] leading-[1.7] ml-2 mb-3">
+            Caught by the <a href="#/in-the-wild/testforge" className="text-[#574a7d] underline">TestForge self-audit</a>: <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">express ^5.2.1</code> fired &ldquo;Potentially Vulnerable Dependency&rdquo; even though the CVE in our table is on <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">&lt;4.17.3</code>. <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">checkInsecureDependencies</code> matched by name only; now it&rsquo;s version-aware.
+          </p>
+          <ul className="list-disc list-inside space-y-2 font-body text-[15px] text-[#333333] leading-[1.7] ml-2 mb-2">
+            <li><strong>Version spec extraction:</strong> the check walks every <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">package.json</code> in <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">fileContents</code> and collects declared specs across <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">dependencies</code> / <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">devDependencies</code> / <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">peerDependencies</code>.</li>
+            <li><strong>Short-circuit rule:</strong> if the declared spec&rsquo;s major version is strictly greater than the vulnerable upper bound&rsquo;s major, the dep cannot be vulnerable and no finding fires.</li>
+            <li><strong>Conservative fallback:</strong> when the spec is unknowable (<code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">git+URL</code>, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">latest</code>, workspace alias, missing), still fires &mdash; safer than hiding a real vuln.</li>
+            <li><strong>Better finding text:</strong> when the spec is known, the description embeds it (<code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">declared as &ldquo;express@^4.16.0&rdquo;</code>) so the reader can confirm the call.</li>
+            <li><strong>Bonus:</strong> the <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">cross-file-summaries.ts</code> false-positive SQL injection finding on a Map-key template literal also fixed with an inline <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">testforge-disable-next-line</code> escape hatch.</li>
+          </ul>
+          <p className="font-body text-[15px] text-[#333333] leading-[1.7] ml-2 mt-3">
+            Tests: <strong>205 &rarr; 208</strong>. Self-audit dropped from <strong>27 findings</strong> to a much smaller number on regenerated reports (server.js + MCP files got file-level <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">testforge-disable-file authentication-bypass</code> &mdash; both are local-dev / single-user tools, no auth surface).
+          </p>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
+              mcp 0.28.0 — Go native support
+            </h2>
+            <span className="font-mono text-[12px] text-[#9A9A9A]">
+              2026-05-28
             </span>
           </div>
           <p className="font-body text-[16px] text-[#333333] leading-[1.7] ml-2 mb-3">
@@ -2291,7 +2315,7 @@ function McpUsageGuidePage() {
       </div>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#12101A] mb-4">🖥️ Local Dashboard (v0.28.0)</h2>
+        <h2 className="text-heading-sm text-[#12101A] mb-4">🖥️ Local Dashboard (v0.28.1)</h2>
         <p className="text-body-md text-[#6B6B6B] mb-4">
           The MCP server ships with a local dashboard at <code className="bg-[#E8E5FF] px-1.5 py-0.5 rounded text-[#574a7d] font-mono text-sm">http://localhost:33221</code>. No cloud, no sign-in, no hosting needed.
         </p>

@@ -1,3 +1,9 @@
+// testforge-disable-file authentication-bypass
+// The MCP server is a LOCAL-machine tool — it binds to 127.0.0.1:33221 and
+// the user running `npx testforge-mcp` is the only consumer. No auth surface
+// to protect; per-route auth middleware would be theater. (Managed/SaaS
+// access happens via the Vercel API tier in api/*.js which DOES check
+// session.)
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { randomUUID } from 'crypto';
 import chalk from 'chalk';

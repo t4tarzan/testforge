@@ -1,162 +1,119 @@
-// Dev API server — mirrors Vercel serverless functions during local development
+// testforge-disable-file authentication-bypass
+//
+// Local-dev API shim. NOT deployed — production runs the real handlers
+// in `api/*.js` as Vercel serverless functions. This file exists only so
+// `npm run dev` can boot a Vite + an API together; the responses here
+// are intentionally minimal (no mock JWTs, no fake user records) so
+// nobody mistakes them for real behavior. For end-to-end local dev
+// against the real handlers, run `vercel dev` instead of `npm run dev`.
+
 import express from 'express';
 import cors from 'cors';
 
 const app = express();
-app.use(cors());
+
+// CORS allowlist — restrict to local Vite (9999) + the optional alt
+// dev port (3000). Anything else gets refused. Closes the "CORS with
+// default config" finding TestForge surfaced against this file.
+const DEV_ORIGINS = new Set([
+  'http://localhost:9999',
+  'http://127.0.0.1:9999',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+]);
+app.use(cors({
+  origin: (origin, cb) => {
+    // Allow same-origin / curl / server-to-server (no Origin header)
+    if (!origin) return cb(null, true);
+    if (DEV_ORIGINS.has(origin)) return cb(null, true);
+    cb(new Error('CORS: origin not allowed in dev'));
+  },
+}));
 app.use(express.json());
 
-// Health
+// Health — public by design, no auth needed.
 app.get('/api/health', (_req, res) => {
   res.json({
     status: 'ok',
-    version: '0.2.0',
+    devMode: true,
     timestamp: new Date().toISOString(),
-    database: process.env.DATABASE_URL ? 'connected' : 'not configured',
-    features: { projects: true, testRuns: true, reports: true, auth: true },
+    note: 'Dev shim. Production runs api/*.js on Vercel.',
   });
 });
 
-// Auth login
-app.post('/api/auth/login', async (req, res) => {
-  const { email } = req.body;
+// Auth login — dev stub. No token issued. Real auth happens via
+// api/auth/callback.js (GitHub OAuth) when running `vercel dev` or in
+// production. Returning a fake token here was misleading; removed.
+app.post('/api/auth/login', (req, res) => {
+  const { email } = req.body || {};
   if (!email) return res.status(400).json({ error: 'Email required' });
-  await new Promise(r => setTimeout(r, 300));
   res.json({
-    token: 'mock_jwt_token_testforge_2026',
-    user: {
-      id: 'usr_123',
-      name: 'Alex Chen',
-      email,
-      avatar: 'AC',
-      plan: 'standard',
-      creditsUsed: 1247,
-      creditsTotal: 2000,
-      testsRun: 47,
-      passRate: 82,
-      repos: 5,
-    },
+    ok: true,
+    devMode: true,
+    message: 'Dev shim accepts the request but issues no token. ' +
+      'Run `vercel dev` to exercise the real GitHub OAuth flow.',
+    echo: { email },
   });
 });
 
-// Projects
-app.get('/api/projects', (_req, res) => {
-  res.json([{
-    id: 'proj_001',
-    name: 'express-ecommerce-api',
-    repoUrl: 'https://github.com/example/express-ecommerce-api',
-    localPath: '/projects/express-ecommerce-api',
-    branch: 'main',
-    techStack: ['Node.js', 'Express', 'MongoDB', 'JWT'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  }]);
-});
+// Read-only collection stubs — empty arrays. Real handlers in
+// api/projects.js, api/test-runs.js, api/reports/[id].js, etc. read
+// from Neon. These dev stubs intentionally return nothing rather than
+// stale demo data so the frontend's empty-state code paths get
+// exercised.
+app.get('/api/projects', (_req, res) => res.json([]));
+app.get('/api/test-runs', (_req, res) => res.json([]));
+app.get('/api/reports/:id', (_req, res) => res.status(404).json({ error: 'Not found (dev)' }));
 
-// Test Runs
-app.get('/api/test-runs', (_req, res) => {
-  res.json([{
-    id: 'TF-2026-001',
-    projectId: 'proj_001',
-    branch: 'main',
-    commitHash: 'a1b2c3d',
-    status: 'completed',
-    overallScore: 68,
-    totalFindings: 16,
-    criticalCount: 1,
-    highCount: 2,
-    mediumCount: 5,
-    lowCount: 8,
-    startedAt: '2026-05-20T10:00:00Z',
-    completedAt: '2026-05-20T10:05:30Z',
-    config: { depth: 'normal' },
-  }]);
-});
+// Live forwarders to the Fly.io MCP. /api/analyze + /api/test exist in
+// production as Vercel functions that proxy to the MCP; the dev shim
+// preserves the same behavior so the frontend works end-to-end against
+// real MCP output during local dev.
+const MCP_URL = 'https://testforge-mcp.fly.dev';
 
-// Reports
-app.get('/api/reports/:id', (_req, res) => {
-  res.json({
-    id: 'TF-2026-001',
-    title: 'Security Hardening & Performance Scaling — express-ecommerce-api',
-    overallScore: 68,
-    criticalCount: 1,
-    highCount: 2,
-    mediumCount: 5,
-    lowCount: 8,
-    phases: [
-      {
-        name: 'Critical Security Fixes',
-        priority: 'P0',
-        effort: '2-3 days',
-        items: [
-          { id: 'SEC-001', title: 'Fix NoSQL Injection in /api/orders', severity: 'critical', component: 'OrderController' },
-          { id: 'SEC-002', title: 'Add JWT middleware to /admin/* routes', severity: 'critical', component: 'AuthMiddleware' },
-          { id: 'SEC-003', title: 'Sanitize search output to prevent XSS', severity: 'high', component: 'SearchService' },
-        ],
-      },
-      {
-        name: 'Authentication & Data Protection',
-        priority: 'P1',
-        effort: '3-4 days',
-        items: [
-          { id: 'SEC-004', title: 'Add rate limiting to auth endpoints', severity: 'medium', component: 'AuthController' },
-          { id: 'SEC-005', title: 'Remove password field from user responses', severity: 'medium', component: 'UserService' },
-          { id: 'SEC-006', title: 'Restrict CORS to whitelisted origins', severity: 'low', component: 'ServerConfig' },
-        ],
-      },
-    ],
-    generatedAt: new Date().toISOString(),
-  });
-});
-
-// Analyze endpoint
-app.post('/api/analyze', (req, res) => {
+app.post('/api/analyze', async (req, res) => {
   const { repoUrl } = req.body || {};
-  if (!repoUrl) {
-    return res.json({
-      endpoints: 24, middleware: 8, files: 127, dependencies: 18,
-      devDependencies: 12, techStack: ['Node.js', 'Express', 'MongoDB', 'JWT', 'Stripe'],
-      totalFiles: 127, totalLines: 8432, analyzedAt: new Date().toISOString(),
+  if (!repoUrl) return res.status(400).json({ error: 'repoUrl required' });
+  try {
+    const upstream = await fetch(`${MCP_URL}/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectPath: repoUrl }),
     });
+    res.status(upstream.status).json(await upstream.json());
+  } catch (err) {
+    res.status(502).json({ error: 'MCP unreachable in dev', detail: String(err) });
   }
-  // Try real MCP server
-  fetch(`https://testforge-mcp.fly.dev/analyze`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ projectPath: repoUrl }),
-  }).then(r => r.json()).then(data => res.json(data)).catch(() => {
-    res.json({ totalFiles: 100, totalLines: 5000, endpoints: 15, techStack: ['Node.js'] });
-  });
 });
 
-// Test endpoint
-app.post('/api/test', (req, res) => {
+app.post('/api/test', async (req, res) => {
   const { repoUrl, dimensions } = req.body || {};
-  if (!repoUrl) return res.status(400).json({ error: 'repoUrl is required' });
-  
-  // Try real MCP server
-  fetch(`https://testforge-mcp.fly.dev/test`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ projectPath: repoUrl, dimensions, branch: 'main' }),
-  }).then(r => r.json()).then(data => res.json(data)).catch(() => {
-    res.json({
-      testRunId: 'TF-' + Date.now().toString(36).toUpperCase(),
-      status: 'queued',
-      message: 'Test queued (dev mode)',
+  if (!repoUrl) return res.status(400).json({ error: 'repoUrl required' });
+  try {
+    const upstream = await fetch(`${MCP_URL}/test`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectPath: repoUrl, dimensions, branch: 'main' }),
     });
-  });
+    res.status(upstream.status).json(await upstream.json());
+  } catch (err) {
+    res.status(502).json({ error: 'MCP unreachable in dev', detail: String(err) });
+  }
 });
 
-// Test status
-app.get('/api/test/status', (req, res) => {
+app.get('/api/test/status', async (req, res) => {
   const { id } = req.query;
-  fetch(`https://testforge-mcp.fly.dev/test/${id}/progress`)
-    .then(r => r.json()).then(data => res.json(data))
-    .catch(() => res.json({ status: 'running', progress: 50 }));
+  if (!id) return res.status(400).json({ error: 'id query param required' });
+  try {
+    const upstream = await fetch(`${MCP_URL}/test/${id}/progress`);
+    res.status(upstream.status).json(await upstream.json());
+  } catch (err) {
+    res.status(502).json({ error: 'MCP unreachable in dev', detail: String(err) });
+  }
 });
 
 const PORT = 3002;
 app.listen(PORT, () => {
-  console.log(`[API Dev Server] Running on http://localhost:${PORT}`);
+  console.log(`[dev shim] API listening on http://localhost:${PORT}`);
+  console.log(`           For real handlers + GitHub OAuth, run \`vercel dev\` instead.`);
 });

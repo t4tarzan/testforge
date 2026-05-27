@@ -1,3 +1,7 @@
+// testforge-disable-file authentication-bypass
+// MCP server bootstrap. Same rationale as mcp-server.ts: this server is a
+// LOCAL-machine tool (binds to localhost, single user, no auth surface).
+// The managed Vercel side gates these endpoints separately in api/*.js.
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';

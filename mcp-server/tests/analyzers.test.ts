@@ -2275,6 +2275,65 @@ describe('accessibility-analyzer — non-UI repos report applicable=false (v0.27
   });
 });
 
+// Regression for the TestForge self-audit (2026-05-28): express ^5.2.1
+// fired "Potentially Vulnerable Dependency" even though the CVE is on
+// <4.17.3. Pre-v0.28.1 the check matched by package name alone; now it
+// short-circuits when the declared spec's major is strictly greater
+// than the vulnerable upper-bound's major.
+describe('security-analyzer — Vulnerable-deps version awareness (v0.28.1)', () => {
+  it('does NOT fire on express ^5.2.1 (vulnerable upper bound is <4.17.3)', async () => {
+    const fileContents = {
+      'package.json': JSON.stringify({
+        name: 'safe', dependencies: { express: '^5.2.1' },
+      }),
+      'src/server.js': 'import express from "express";\nconst app = express();',
+    };
+    const findings = await runSecurityAnalysis({
+      projectPath: '/tmp/synthetic',
+      fileContents,
+      dependencies: ['express'],
+      devDependencies: [],
+    });
+    const vd = findings.filter((f) => f.title.startsWith('Potentially Vulnerable Dependency: express'));
+    expect(vd).toHaveLength(0);
+  });
+
+  it('DOES still fire on express ^4.16.0 (overlaps with <4.17.3)', async () => {
+    const fileContents = {
+      'package.json': JSON.stringify({
+        name: 'risky', dependencies: { express: '^4.16.0' },
+      }),
+      'src/server.js': 'import express from "express";\nconst app = express();',
+    };
+    const findings = await runSecurityAnalysis({
+      projectPath: '/tmp/synthetic',
+      fileContents,
+      dependencies: ['express'],
+      devDependencies: [],
+    });
+    const vd = findings.filter((f) => f.title.startsWith('Potentially Vulnerable Dependency: express'));
+    expect(vd).toHaveLength(1);
+    expect(vd[0].description).toContain('declared as "express@^4.16.0"');
+  });
+
+  it('fires when spec is unknowable (git+URL — fall back to flagging)', async () => {
+    const fileContents = {
+      'package.json': JSON.stringify({
+        name: 'unknown',
+        dependencies: { express: 'git+https://github.com/expressjs/express.git' },
+      }),
+    };
+    const findings = await runSecurityAnalysis({
+      projectPath: '/tmp/synthetic',
+      fileContents,
+      dependencies: ['express'],
+      devDependencies: [],
+    });
+    const vd = findings.filter((f) => f.title.startsWith('Potentially Vulnerable Dependency: express'));
+    expect(vd).toHaveLength(1);
+  });
+});
+
 // Regression for the LangChain in-the-wild report (2026-05-28): pure
 // Python library, no web framework, still got a "Missing Rate Limiting"
 // medium finding because checkMissingRateLimit fired unconditionally.

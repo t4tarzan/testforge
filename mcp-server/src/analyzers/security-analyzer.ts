@@ -199,7 +199,7 @@ export async function runSecurityAnalysis(
   }
 
   checkMissingRateLimit(allDeps, findings, config.projectPath);
-  checkInsecureDependencies(allDeps, findings);
+  checkInsecureDependencies(allDeps, findings, fileContents);
   checkMissingSecurityHeaders(fileContents, findings);
 
   return dedupeFindings(findings);
@@ -1120,7 +1120,32 @@ function checkMissingRateLimit(
   }
 }
 
-function checkInsecureDependencies(allDeps: string[], findings: SecurityFinding[]) {
+/**
+ * Extract the first numeric major version from a package.json range spec.
+ *   "^5.2.1" → 5,   "~4.16.0" → 4,   ">=2.0.0 <3" → 2,   "1.2.3" → 1,
+ *   "next" / "latest" / "*" / git+URL → null (unknowable, treat as
+ *   potentially vulnerable).
+ */
+function specMajor(spec: string | undefined): number | null {
+  if (!spec) return null;
+  const m = spec.match(/(\d+)/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+/**
+ * Extract the major from the "Versions < X.Y.Z" line in our vulnerable
+ * table. Returns null on unrecognized shape.
+ */
+function vulnUpperMajor(reason: string): number | null {
+  const m = reason.match(/Versions\s*<\s*(\d+)/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+function checkInsecureDependencies(
+  allDeps: string[],
+  findings: SecurityFinding[],
+  fileContents: Record<string, string>,
+) {
   const vulnerable: Record<string, { severity: Severity; reason: string }> = {
     lodash: { severity: 'medium', reason: 'Versions < 4.17.21 — prototype pollution CVE-2021-23337' },
     minimist: { severity: 'medium', reason: 'Versions < 1.2.6 — prototype pollution' },
@@ -1131,21 +1156,58 @@ function checkInsecureDependencies(allDeps: string[], findings: SecurityFinding[
     semver: { severity: 'high', reason: 'Versions < 7.5.2 — ReDoS CVE-2022-25883' },
     'word-wrap': { severity: 'medium', reason: 'Versions < 1.2.4 — ReDoS' },
   };
+
+  // v0.28.1 — collect declared version specs across every package.json
+  // we can find in fileContents. If a project pins express to ^5.2.1
+  // and the vulnerable range is <4.17.3, the major-version comparison
+  // short-circuits the finding. Without this, the analyzer fired on the
+  // package NAME alone, which produced false positives (caught by the
+  // TestForge self-audit). When the spec is unknowable (git+URL,
+  // "latest", workspace alias), we fall back to firing — safer than
+  // hiding a real vuln.
+  const specByName: Record<string, string> = {};
+  for (const [path, content] of Object.entries(fileContents)) {
+    if (!path.endsWith('package.json')) continue;
+    try {
+      const pkg = JSON.parse(content);
+      for (const section of ['dependencies', 'devDependencies', 'peerDependencies'] as const) {
+        const obj = pkg[section];
+        if (!obj || typeof obj !== 'object') continue;
+        for (const [name, spec] of Object.entries(obj)) {
+          // First spec wins — workspace roots often duplicate names
+          // across members; the root spec is the authoritative one.
+          if (specByName[name] === undefined && typeof spec === 'string') {
+            specByName[name] = spec;
+          }
+        }
+      }
+    } catch {
+      // bad package.json — skip
+    }
+  }
+
   for (const dep of allDeps) {
     const v = vulnerable[dep];
-    if (v) {
-      findings.push({
-        severity: v.severity,
-        confidence: 'low',
-        title: `Potentially Vulnerable Dependency: ${dep}`,
-        description: v.reason,
-        filePath: 'package.json',
-        lineNumber: 1,
-        codeSnippet: `"${dep}": "…"`,
-        fixSuggestion: `Run npm/pnpm audit; update ${dep} to a patched version.`,
-        category: 'Vulnerable Dependencies',
-      });
-    }
+    if (!v) continue;
+    const spec = specByName[dep];
+    const sMajor = specMajor(spec);
+    const vMajor = vulnUpperMajor(v.reason);
+    // Short-circuit: declared spec's major version is STRICTLY GREATER
+    // than the vulnerable upper bound's major → cannot be vulnerable.
+    if (sMajor !== null && vMajor !== null && sMajor > vMajor) continue;
+    findings.push({
+      severity: v.severity,
+      confidence: 'low',
+      title: `Potentially Vulnerable Dependency: ${dep}`,
+      description: spec
+        ? `${v.reason} (declared as "${dep}@${spec}").`
+        : v.reason,
+      filePath: 'package.json',
+      lineNumber: 1,
+      codeSnippet: `"${dep}": "${spec ?? '…'}"`,
+      fixSuggestion: `Run npm/pnpm audit; update ${dep} to a patched version.`,
+      category: 'Vulnerable Dependencies',
+    });
   }
 }
 
