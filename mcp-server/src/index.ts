@@ -32,6 +32,8 @@ import {
   runOwaspCoverage,
 } from './analyzers/advanced-analyzer.js';
 import { runAgenticScalePrediction } from './analyzers/agentic-scale.js';
+import { generateTestsForFindings, type InputFinding } from './generator/generate-tests.js';
+import { hasLLMKey, PRIMARY_MODEL, FALLBACK_MODEL } from './generator/llm-client.js';
 
 // 33221 is the default. It's high enough to avoid common dev-server clashes
 // (3001/3000/5173/8080) and conflicts on developer machines that run a lot
@@ -58,6 +60,63 @@ async function main() {
 
   // Health check
   app.get('/health', async () => ({ status: 'ok', version: '0.6.0' }));
+
+  // ── Tier 2 — Generate & Run (Day 1: generate only, no sandbox yet) ──
+  //
+  // Given findings produced by /clone-and-analyze (we pass them inline for
+  // now — Day 2 will look them up by reportId), call the LLM to synthesize
+  // one Vitest file per finding. Provider rotation: DeepSeek primary,
+  // Kimi fallback, both via OpenRouter.
+  app.post('/generate-and-run', async (request, reply) => {
+    const body = request.body as {
+      findings?: InputFinding[];
+      maxFindings?: number;
+      cluster?: string;
+    } | undefined;
+
+    if (!hasLLMKey()) {
+      return reply.status(503).send({
+        error: 'OPENROUTER_API_KEY not configured on the MCP server',
+        hint: 'Set OPENROUTER_API_KEY before starting. Both DeepSeek and Kimi are routed through OpenRouter.',
+      });
+    }
+
+    const findings = body?.findings ?? [];
+    if (!Array.isArray(findings) || findings.length === 0) {
+      return reply.status(400).send({
+        error: 'findings: Finding[] required in request body',
+        hint: 'POST {findings: [{rule, title, description, filePath, lineNumber, fixSuggestion, severity}]}',
+      });
+    }
+
+    const cluster = body?.cluster ?? 'edge-case';
+    const max = Math.min(body?.maxFindings ?? 3, 5);
+
+    const t0 = Date.now();
+    const results = await generateTestsForFindings(findings, max);
+    const durationMs = Date.now() - t0;
+
+    return reply.send({
+      generationId: 'gen_' + Date.now().toString(36),
+      cluster,
+      provider: { primary: PRIMARY_MODEL, fallback: FALLBACK_MODEL, base: 'openrouter' },
+      generatedAt: new Date().toISOString(),
+      durationMs,
+      requested: findings.length,
+      processed: results.length,
+      results: results.map((r) => ({
+        finding: {
+          rule: r.finding.rule,
+          title: r.finding.title,
+          filePath: r.finding.filePath,
+          lineNumber: r.finding.lineNumber,
+        },
+        file: r.file,
+        attempts: r.attempts,
+      })),
+      // Day 2 will add: run: { passed, failed, durationMs }
+    });
+  });
 
   app.get('/reports', async (request, reply) => {
     const reports = getReports(20);
