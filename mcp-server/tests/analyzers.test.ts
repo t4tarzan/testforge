@@ -2175,6 +2175,49 @@ describe('strategic-analyzer — Phase 5 pass 16: stack polish (strict dep sets 
   });
 });
 
+// Regression for the LangChain in-the-wild report (2026-05-28): pure
+// Python library, no web framework, still got a "Missing Rate Limiting"
+// medium finding because checkMissingRateLimit fired unconditionally.
+// 0.27.1 only fires the check when a web framework is in deps.
+describe('security-analyzer — Missing Rate Limiting only fires on web apps (v0.27.1)', () => {
+  it('does NOT emit on a library / monorepo with no web framework', async () => {
+    const info = await scanCodebase(LIBS_MONOREPO);
+    const findings = await runSecurityAnalysis({
+      projectPath: LIBS_MONOREPO,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const rateLimitFindings = findings.filter((f) => f.title === 'Missing Rate Limiting');
+    expect(rateLimitFindings).toHaveLength(0);
+  });
+
+  it('still emits on a FastAPI project (web framework in deps)', async () => {
+    const info = await scanCodebase(POLYGLOT_PYTHON);
+    const findings = await runSecurityAnalysis({
+      projectPath: POLYGLOT_PYTHON,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const rateLimitFindings = findings.filter((f) => f.title === 'Missing Rate Limiting');
+    expect(rateLimitFindings).toHaveLength(1);
+    expect(rateLimitFindings[0].severity).toBe('medium');
+  });
+
+  it('still emits on an Express project (existing vulnerable-app fixture)', async () => {
+    const info = await scanCodebase(VULNERABLE);
+    const findings = await runSecurityAnalysis({
+      projectPath: VULNERABLE,
+      fileContents: info.fileContents,
+      dependencies: info.dependencies,
+      devDependencies: info.devDependencies,
+    });
+    const rateLimitFindings = findings.filter((f) => f.title === 'Missing Rate Limiting');
+    expect(rateLimitFindings).toHaveLength(1);
+  });
+});
+
 // Regression for the Supabase in-the-wild report (2026-05-28): 125
 // "critical" findings, almost all SQL-string-concat patterns in
 // e2e/studio/features/*.spec.ts where building the string is exactly

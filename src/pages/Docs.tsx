@@ -705,7 +705,7 @@ function CliInstallationPage() {
         Verify installation:
       </p>
       <DocCodeBlock
-        code={"testforge-mcp --version\n# @whitenoisenpm/testforge-mcp/0.27.0 darwin-arm64 node-v22.0.0"}
+        code={"testforge-mcp --version\n# @whitenoisenpm/testforge-mcp/0.27.1 darwin-arm64 node-v22.0.0"}
         language="bash"
       />
 
@@ -1477,7 +1477,7 @@ function ApiReferencePage() {
       <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">🔬 Analysis</h2>
       <div className="space-y-6">
         {[
-          { method: 'GET', path: '/health', desc: 'Health check — pings Neon and reports version. No auth. No rate limit.', example: '{"status":"ok","version":"0.27.0","database":"connected"}' },
+          { method: 'GET', path: '/health', desc: 'Health check — pings Neon and reports version. No auth. No rate limit.', example: '{"status":"ok","version":"0.27.1","database":"connected"}' },
           { method: 'GET', path: '/status', desc: 'Public services rollup — Web, MCP server, DB, npm package. 30s cache. No auth.', example: '{"status":"all_systems_operational","services":[{"name":"Web Platform","status":"operational"},…]}' },
           { method: 'POST', path: '/analyze', desc: 'Proxies a clone-and-analyze request to the Fly.io MCP server. Returns the full 21-dimension report verbatim. 504 on upstream timeout, 502 on connection failure — never fabricated data. No auth required to analyze public repos.', body: '{"repoUrl":"https://github.com/owner/repo","branch":"main"}', example: '{"codebase":{"totalFiles":402,…},"security":{"findings":29,…},"mutation":{"score":47,…},…}' },
           { method: 'GET', path: '/analyze', desc: 'Returns the configured MCP server URL + endpoints (for clients that prefer to call it directly).', example: '{"mcpServer":"https://testforge-mcp.fly.dev","endpoints":{…}}' },
@@ -1703,13 +1703,35 @@ function ChangelogPage() {
         <div>
           <div className="flex items-center gap-3 mb-3">
             <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
-              mcp 0.27.0 — security findings in test paths are now suppressed
+              mcp 0.27.1 — &ldquo;Missing Rate Limiting&rdquo; only fires on web apps
             </h2>
             <span className="font-mono text-[12px] text-[#9A9A9A]">
               2026-05-28
             </span>
             <span className="font-mono font-medium text-[11px] uppercase px-2 py-0.5 rounded bg-[#E8E5FF] text-[#574a7d]">
               Latest
+            </span>
+          </div>
+          <p className="font-body text-[16px] text-[#333333] leading-[1.7] ml-2 mb-3">
+            Caught by the <a href="#/in-the-wild/langchain" className="text-[#574a7d] underline">in-the-wild LangChain report</a>: a pure Python library with no web framework still got a medium &ldquo;Missing Rate Limiting&rdquo; finding because <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">checkMissingRateLimit</code> fired on any project without a <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">rate-limit</code> package. Rate-limiting is a concern for code that serves HTTP traffic; for a library, it&rsquo;s noise.
+          </p>
+          <ul className="list-disc list-inside space-y-2 font-body text-[15px] text-[#333333] leading-[1.7] ml-2 mb-2">
+            <li><strong>Gated on a <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">WEB_FRAMEWORK_DEPS</code> set:</strong> JS &mdash; Express, Fastify, Koa, Hono, NestJS, Next.js, Remix, Astro, Nuxt, SvelteKit, h3, Polka, Micro, Solid Start, Qwik. Python &mdash; FastAPI, Flask, Django, Starlette, Sanic, Tornado, Bottle, Pyramid, Falcon, Aiohttp, Blacksheep, Litestar, Quart, Robyn.</li>
+            <li><strong>If no web framework is in deps, the check skips entirely.</strong> Libraries, CLIs, data-science repos no longer get pestered about rate limiting.</li>
+            <li><strong>Three new tests:</strong> libs-monorepo (no web framework) emits zero rate-limit findings; polyglot-python (FastAPI) still emits one; vulnerable-app (Express) still emits one. The check still works exactly as before on the projects it was designed for.</li>
+          </ul>
+          <p className="font-body text-[15px] text-[#333333] leading-[1.7] ml-2 mt-3">
+            Tests: <strong>191 &rarr; 194</strong>. Third release in two days driven entirely by what the In-the-Wild reports surfaced.
+          </p>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
+              mcp 0.27.0 — security findings in test paths are now suppressed
+            </h2>
+            <span className="font-mono text-[12px] text-[#9A9A9A]">
+              2026-05-28
             </span>
           </div>
           <p className="font-body text-[16px] text-[#333333] leading-[1.7] ml-2 mb-3">
@@ -2222,7 +2244,7 @@ function McpUsageGuidePage() {
       </div>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#12101A] mb-4">🖥️ Local Dashboard (v0.27.0)</h2>
+        <h2 className="text-heading-sm text-[#12101A] mb-4">🖥️ Local Dashboard (v0.27.1)</h2>
         <p className="text-body-md text-[#6B6B6B] mb-4">
           The MCP server ships with a local dashboard at <code className="bg-[#E8E5FF] px-1.5 py-0.5 rounded text-[#574a7d] font-mono text-sm">http://localhost:33221</code>. No cloud, no sign-in, no hosting needed.
         </p>

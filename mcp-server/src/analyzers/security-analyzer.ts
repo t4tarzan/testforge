@@ -1075,11 +1075,35 @@ function checkSecretStringLiteral(
 /* Project-level checks                                                       */
 /* -------------------------------------------------------------------------- */
 
+// Web frameworks where "rate limit" is actually a meaningful concern.
+// If none of these is in deps, the project isn't serving HTTP traffic
+// and asking "where's your rate limiter?" is noise (the LangChain
+// in-the-wild report surfaced this — pure Python lib, no web framework,
+// still got a Missing Rate Limiting medium finding).
+const WEB_FRAMEWORK_DEPS = new Set([
+  // JS/TS
+  'express', 'fastify', '@fastify/fastify', 'koa', '@koa/router', 'hono',
+  '@hono/node-server', 'nestjs', '@nestjs/core', '@nestjs/common',
+  'next', 'remix', '@remix-run/serve', '@remix-run/node', '@remix-run/react',
+  'astro', 'nuxt', 'sveltekit', '@sveltejs/kit', 'solidstart', '@solidjs/start',
+  '@builder.io/qwik', 'qwik', 'h3', 'polka', 'micro',
+  // Python
+  'fastapi', 'flask', 'django', 'starlette', 'sanic', 'tornado',
+  'bottle', 'pyramid', 'falcon', 'aiohttp', 'blacksheep', 'litestar',
+  'quart', 'robyn',
+]);
+
 function checkMissingRateLimit(
   allDeps: string[],
   findings: SecurityFinding[],
   projectPath: string
 ) {
+  // Skip the entire check on non-web projects. "Missing rate limit" is
+  // a finding about web app risk; libraries / CLIs / data-science repos
+  // don't serve traffic so it doesn't apply.
+  const isWebApp = allDeps.some((d) => WEB_FRAMEWORK_DEPS.has(d.toLowerCase()));
+  if (!isWebApp) return;
+
   const hasRateLimit = allDeps.some((d) => d.includes('rate-limit') || d.includes('ratelimit'));
   if (!hasRateLimit) {
     findings.push({

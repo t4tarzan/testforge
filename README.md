@@ -46,7 +46,7 @@ Tier-1 analyzers are deterministic — same input always produces the same outpu
 
 ### 🆕 Recent work (2026-05-28)
 
-Shipped **23 npm releases** (`0.6.0 → 0.27.0`) covering:
+Shipped **24 npm releases** (`0.6.0 → 0.27.1`) covering:
 
 - **Spine (phases 4a/4b/4c)** — intra-file → cross-file taint propagation + user-authored rules DSL (`.testforge/rules.yaml`)
 - **16 deepening passes** across all 21 dimensions: substring-matching → AST analysis. Substring traps fixed across the board (e.g. `dep.includes('vite')` no longer matches `vitest`)
@@ -55,6 +55,7 @@ Shipped **23 npm releases** (`0.6.0 → 0.27.0`) covering:
 - **Monorepo recursion** (`0.26.1`) — uv workspaces + npm/yarn/bun/pnpm workspaces + PEP 735 `[dependency-groups]` + a string-aware TOML array parser that fixes silent truncation on entries like `"fastapi[standard]"`
 - **Conventional-monorepo recursion** (`0.26.2`) — also globs `libs/*`, `packages/*`, `apps/*`, `services/*` for `pyproject.toml` / `package.json` / `requirements.txt`. Caught by the In-the-Wild showcase: LangChain went from `deps: 0` to `27 + 66 dev-deps` once we followed `libs/<pkg>/pyproject.toml` even with no workspace declaration at root.
 - **Test-path security suppression** (`0.27.0`) — per-file SAST findings in `tests/`, `__tests__/`, `e2e/`, `cypress/`, `playwright/`, `*.test.*`, `*.spec.*`, `test_*.py`, `*_test.py`, `.d.ts` paths are dropped (the patterns we flag are usually intentional in tests). Caught by the In-the-Wild showcase: Supabase went from 125 "critical" findings to a trustworthy small number that reflects production code only.
+- **Rate-limit check only fires on web apps** (`0.27.1`) — `checkMissingRateLimit` now gates on a `WEB_FRAMEWORK_DEPS` set (Express/Fastify/Hono/Next/etc. + FastAPI/Flask/Django/Starlette/etc.). Caught by the In-the-Wild LangChain report: pure Python library got pestered about missing rate limiting it can't possibly need.
 - **127 → 0** ESLint errors with CI gate now blocking
 - **30 → 179** vitest tests (6×)
 
