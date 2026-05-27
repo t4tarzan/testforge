@@ -705,7 +705,7 @@ function CliInstallationPage() {
         Verify installation:
       </p>
       <DocCodeBlock
-        code={"testforge-mcp --version\n# @whitenoisenpm/testforge-mcp/0.25.0 darwin-arm64 node-v22.0.0"}
+        code={"testforge-mcp --version\n# @whitenoisenpm/testforge-mcp/0.26.0 darwin-arm64 node-v22.0.0"}
         language="bash"
       />
 
@@ -1477,7 +1477,7 @@ function ApiReferencePage() {
       <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">🔬 Analysis</h2>
       <div className="space-y-6">
         {[
-          { method: 'GET', path: '/health', desc: 'Health check — pings Neon and reports version. No auth. No rate limit.', example: '{"status":"ok","version":"0.25.0","database":"connected"}' },
+          { method: 'GET', path: '/health', desc: 'Health check — pings Neon and reports version. No auth. No rate limit.', example: '{"status":"ok","version":"0.26.0","database":"connected"}' },
           { method: 'GET', path: '/status', desc: 'Public services rollup — Web, MCP server, DB, npm package. 30s cache. No auth.', example: '{"status":"all_systems_operational","services":[{"name":"Web Platform","status":"operational"},…]}' },
           { method: 'POST', path: '/analyze', desc: 'Proxies a clone-and-analyze request to the Fly.io MCP server. Returns the full 21-dimension report verbatim. 504 on upstream timeout, 502 on connection failure — never fabricated data. No auth required to analyze public repos.', body: '{"repoUrl":"https://github.com/owner/repo","branch":"main"}', example: '{"codebase":{"totalFiles":402,…},"security":{"findings":29,…},"mutation":{"score":47,…},…}' },
           { method: 'GET', path: '/analyze', desc: 'Returns the configured MCP server URL + endpoints (for clients that prefer to call it directly).', example: '{"mcpServer":"https://testforge-mcp.fly.dev","endpoints":{…}}' },
@@ -1703,13 +1703,58 @@ function ChangelogPage() {
         <div>
           <div className="flex items-center gap-3 mb-3">
             <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
+              mcp 0.26.0 — Python support (close the polyglot blind spot)
+            </h2>
+            <span className="font-mono text-[12px] text-[#9A9A9A]">
+              2026-05-28
+            </span>
+            <span className="font-mono font-medium text-[11px] uppercase px-2 py-0.5 rounded bg-[#E8E5FF] text-[#574a7d]">
+              Latest
+            </span>
+          </div>
+          <p className="font-body text-[16px] text-[#333333] leading-[1.7] ml-2 mb-3">
+            Real-world test on a Next.js + FastAPI repo surfaced a structural gap: the analyzer was JS/TS-only by construction, so the report claimed <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">techStack: []</code>, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">endpoints: 0</code>, "0 test files" for a backend with 54 routes and 13 pytest files — and Tier-2 then generated tests against those false-positive findings. 0.26.0 closes the gap.
+          </p>
+          <ul className="list-disc list-inside space-y-2 font-body text-[15px] text-[#333333] leading-[1.7] ml-2 mb-2">
+            <li><strong>Python files counted</strong> in <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">totalFiles</code> / <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">totalLines</code> alongside JS/TS.</li>
+            <li><strong>Endpoint detection</strong> for FastAPI / Starlette / Flask / Django: <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">@router.get(...)</code>, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">@app.route(...)</code>, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">path(...)</code>/<code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">re_path(...)</code>.</li>
+            <li><strong>Dependency parsing</strong> for <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">requirements.txt</code> (variants + <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">backend/</code> subdirs) and <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">pyproject.toml</code> (PEP 621 <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">[project]</code> + Poetry <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">[tool.poetry.dependencies]</code>) with version-spec, extras, env-marker, and comment handling.</li>
+            <li><strong>Tech-stack tagging</strong> now picks up FastAPI, Flask, Django, Starlette, SQLAlchemy, Pydantic, Alembic, Celery, pytest, Uvicorn/Gunicorn, APScheduler, OpenTelemetry, PostgreSQL (asyncpg/psycopg).</li>
+            <li><strong>Pytest detection</strong> — <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">test_*.py</code>, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">*_test.py</code>, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">tests/**/*.py</code> counted via <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">def test_</code> regex; <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">pytest</code> added to the frameworks list; no more false "No Test Files Found" finding for pytest-only projects.</li>
+            <li><strong>Honesty banner</strong> — new <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">languageCoverage</code> field. When a repo has source files in languages we still don't parse (Go, Ruby, Rust, Java, Kotlin, Scala, Swift, PHP, C#, C/C++, Elixir, Erlang, Clojure, OCaml, Dart), the dashboard shows an amber banner naming each one with its file count: "TestForge analyzed N% of this repo natively." No more pretending 0 means 0.</li>
+          </ul>
+          <p className="font-body text-[15px] text-[#333333] leading-[1.7] ml-2 mt-3">
+            Tests: <strong>166 → 179</strong>. New fixture <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">tests/fixtures/polyglot-python/</code> (FastAPI + requirements + pyproject + Next.js frontend) is the model for future language additions.
+          </p>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
+              mcp 0.25.0 → 0.25.2 — Tier 2: Generate &amp; Run
+            </h2>
+            <span className="font-mono text-[12px] text-[#9A9A9A]">
+              2026-05-27
+            </span>
+          </div>
+          <p className="font-body text-[16px] text-[#333333] leading-[1.7] ml-2 mb-3">
+            New <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">POST /generate-and-run</code> endpoint takes findings from a Tier-1 report, generates one Vitest file per finding via OpenRouter (primary: Qwen 3.7 Max, fallback: DeepSeek V4 Flash), executes them inside a sandboxed Docker container (<code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">node:22-slim</code> + vitest, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">--network=none --rm</code>), and returns structured pass/fail JSON. Provider rotation is automatic on rate-limit or schema rejection; both attempts are recorded.
+          </p>
+          <ul className="list-disc list-inside space-y-2 font-body text-[15px] text-[#333333] leading-[1.7] ml-2 mb-2">
+            <li><strong>0.25.0</strong> — Tier 2 endpoint + generations history (<code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">GET /api/generations</code>, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">GET /api/generations/:id</code>). Dashboard grows a "🤖 Generate Tests (Tier 2)" button under any report.</li>
+            <li><strong>0.25.1</strong> — <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">/health</code> reports the correct version (was hardcoded).</li>
+            <li><strong>0.25.2</strong> — Runner image published to GHCR (<code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">ghcr.io/t4tarzan/testforge-runner:0.25.2</code>). No more manual <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">docker build</code> on first use — the MCP auto-pulls (~92 MB) on the first <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">/generate-and-run</code> call.</li>
+            <li><strong>Self-host vs managed</strong>: local MCP runs Tier 2 with no quota (BYOK OpenRouter, you pay them directly). Managed at <a href="https://testforge.run" className="text-[#574a7d] underline">testforge.run</a> meters per the Forge plan.</li>
+          </ul>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
               mcp 0.24.0 — analyzer deepening (passes 1-16)
             </h2>
             <span className="font-mono text-[12px] text-[#9A9A9A]">
               2026-05-26
-            </span>
-            <span className="font-mono font-medium text-[11px] uppercase px-2 py-0.5 rounded bg-[#E8E5FF] text-[#574a7d]">
-              Latest
             </span>
           </div>
           <p className="font-body text-[16px] text-[#333333] leading-[1.7] ml-2 mb-3">
@@ -2106,7 +2151,7 @@ function McpUsageGuidePage() {
       </div>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#12101A] mb-4">🖥️ Local Dashboard (v0.24.0)</h2>
+        <h2 className="text-heading-sm text-[#12101A] mb-4">🖥️ Local Dashboard (v0.26.0)</h2>
         <p className="text-body-md text-[#6B6B6B] mb-4">
           The MCP server ships with a local dashboard at <code className="bg-[#E8E5FF] px-1.5 py-0.5 rounded text-[#574a7d] font-mono text-sm">http://localhost:33221</code>. No cloud, no sign-in, no hosting needed.
         </p>

@@ -42,16 +42,18 @@ Dashboard accepts a local project path **or** a GitHub URL. The npm package ship
 | **Strategic** | Vision & goals, Scope coverage, Stack analysis | Strict dep-name sets + tsconfig parse |
 | **Enterprise** | Agentic-scale, DORA, Supply chain (lockfile), N+1 queries, Dead code, License (SPDX), OWASP | AST + package-lock parse + node_modules walk |
 
-Tier-1 analyzers are deterministic — same input always produces the same output. No LLM calls, no `Math.random()`. Every dimension shipped substantive AST-based depth in v0.6.0 → v0.24.0 (16 deepening passes; see the [mcp-server changelog](./mcp-server/README.md)). **Tier 2 (v0.25.0)** layers LLM-generated Vitest tests + sandbox execution on top — separate path, optional, BYOK on self-host.
+Tier-1 analyzers are deterministic — same input always produces the same output. No LLM calls, no `Math.random()`. Every dimension shipped substantive AST-based depth in v0.6.0 → v0.24.0 (16 deepening passes; see the [mcp-server changelog](./mcp-server/README.md)). **Tier 2 (v0.25.0)** layers LLM-generated Vitest tests + sandbox execution on top — separate path, optional, BYOK on self-host. **v0.26.0** closes the polyglot blind spot: Python (FastAPI / Flask / Django / pytest) is now native alongside JS/TS, and the dashboard surfaces a `languageCoverage` banner instead of pretending "0 endpoints" means "no endpoints" on repos written in languages we don't parse yet.
 
-### 🆕 Recent work (2026-05-26)
+### 🆕 Recent work (2026-05-28)
 
-Shipped **19 npm releases** (`0.6.0 → 0.25.0`) covering:
+Shipped **20 npm releases** (`0.6.0 → 0.26.0`) covering:
 
 - **Spine (phases 4a/4b/4c)** — intra-file → cross-file taint propagation + user-authored rules DSL (`.testforge/rules.yaml`)
 - **16 deepening passes** across all 21 dimensions: substring-matching → AST analysis. Substring traps fixed across the board (e.g. `dep.includes('vite')` no longer matches `vitest`)
+- **Tier 2** (`0.25.0 → 0.25.2`) — LLM-generated Vitest + sandboxed Docker execution, runner image auto-pulled from GHCR
+- **Python support** (`0.26.0`) — FastAPI/Flask/Django routes detected, `requirements.txt` + `pyproject.toml` parsed, pytest counted, `languageCoverage` honesty banner for everything else
 - **127 → 0** ESLint errors with CI gate now blocking
-- **30 → 166** vitest tests (5.5×)
+- **30 → 179** vitest tests (6×)
 
 Full per-pass detail in [`mcp-server/README.md` changelog](./mcp-server/README.md#changelog-highlights).
 
