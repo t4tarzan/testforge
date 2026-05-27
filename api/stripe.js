@@ -12,6 +12,9 @@ function getPriceId(plan) {
   if (plan === 'enterprise') {
     return process.env.STRIPE_PRICE_ENTERPRISE || null;
   }
+  if (plan === 'forge') {
+    return process.env.STRIPE_PRICE_FORGE || null;
+  }
   return process.env.STRIPE_PRICE_PRO || process.env.STRIPE_PRICE_ID || null;
 }
 
@@ -35,6 +38,18 @@ async function handler(req, res) {
             'Full 21-dimension reports',
             'CI/CD webhook',
             'Priority support',
+          ],
+        },
+        {
+          id: 'forge',
+          name: 'Forge',
+          price: 99,
+          features: [
+            '500 tests/month',
+            'Tier 2 — Generate & Run (LLM tests + sandbox)',
+            '100 Tier-2 iterations/month',
+            'Qwen 3.7 Max + DeepSeek V4 Flash (keys managed)',
+            'Generation history dashboard',
           ],
         },
         {
@@ -66,8 +81,8 @@ async function handler(req, res) {
   }
 
   const { plan } = req.body || {};
-  if (plan !== 'pro' && plan !== 'enterprise') {
-    return res.status(400).json({ error: 'plan must be "pro" or "enterprise"' });
+  if (plan !== 'pro' && plan !== 'forge' && plan !== 'enterprise') {
+    return res.status(400).json({ error: 'plan must be "pro", "forge", or "enterprise"' });
   }
   const priceId = getPriceId(plan);
   if (!priceId) {

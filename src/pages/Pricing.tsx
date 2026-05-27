@@ -310,7 +310,7 @@ function PricingCardsSection() {
                 onClick={() => {
                   if (tier.name === 'Free') { window.location.href = '/#/managed'; return; }
                   if (tier.name === 'Enterprise') { window.location.href = 'mailto:sales@testforge.run'; return; }
-                  handleUpgrade('pro');
+                  handleUpgrade(tier.name.toLowerCase());
                 }}
                 className={`w-full py-3 rounded-lg font-body font-medium text-base mb-6 transition-all duration-200 ${
                   tier.ctaStyle === 'primary'

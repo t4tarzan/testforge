@@ -47,6 +47,13 @@ async function handler(req, res) {
       plan: quota.plan,
       testsLimit: quota.limits.testsPerMonth === Infinity ? null : quota.limits.testsPerMonth,
       testsRemaining: quota.testsRemaining === Infinity ? null : Math.max(0, quota.testsRemaining),
+      tier2Limit:
+        quota.limits.tier2IterationsPerMonth === Infinity
+          ? null
+          : quota.limits.tier2IterationsPerMonth,
+      tier2Used: quota.tier2Used,
+      tier2Remaining:
+        quota.tier2Remaining === Infinity ? null : Math.max(0, quota.tier2Remaining),
     });
   } catch (e) {
     console.error('[usage] DB error:', e.message);

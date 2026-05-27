@@ -8,7 +8,8 @@ import {
   Users, CreditCard, Settings, LogOut, Menu,
   HelpCircle, Zap, Play, FileText, ArrowRight,
   MoreHorizontal, Eye, Download, Search, ChevronLeft, ChevronRight,
-  TrendingDown, TrendingUp, CheckCircle2, Plus, UserPlus, FileDown
+  TrendingDown, TrendingUp, CheckCircle2, Plus, UserPlus, FileDown,
+  Sparkles
 } from 'lucide-react';
 import {
   XAxis, YAxis, CartesianGrid,
@@ -135,11 +136,26 @@ function DashboardTab() {
       .catch(() => setRecentRuns([]));
   }, []);
 
+  // Tier-2 card adapts to plan: Forge/Enterprise see remaining iterations,
+  // Free/Pro see "Locked" with an upgrade hint. tier2Limit === null on the
+  // API side means Infinity (Enterprise); 0/undefined means not entitled.
+  const tier2Limit = realStats?.tier2Limit;
+  const tier2Used = realStats?.tier2Used ?? 0;
+  const tier2Remaining = realStats?.tier2Remaining;
+  const hasTier2 = tier2Limit === null || (typeof tier2Limit === 'number' && tier2Limit > 0);
+  const tier2Value = hasTier2
+    ? (tier2Limit === null ? '∞' : (tier2Remaining ?? 0))
+    : 'Locked';
+  const tier2Trend = hasTier2
+    ? (tier2Limit === null ? 'Unlimited' : `${tier2Used}/${tier2Limit} used`)
+    : 'Upgrade to Forge';
+
   const stats = [
     { icon: FlaskConical, iconBg: 'bg-[#E8E5FF]', iconColor: 'text-[#574a7d]', value: realStats?.testsRun || user.testsRun || 0, label: 'TOTAL TESTS RUN', trend: realStats?.testsThisMonth ? `${realStats.testsThisMonth} this month` : '', trendUp: true },
     { icon: CheckCircle2, iconBg: 'bg-[rgba(90,143,94,0.1)]', iconColor: 'text-[#574a7d]', value: realStats?.averageScore || user.passRate || 0, label: 'AVG SCORE', trend: '', trendUp: true, suffix: '', decimals: 0 },
     { icon: GitBranch, iconBg: 'bg-[rgba(74,144,217,0.1)]', iconColor: 'text-[#4A90D9]', value: user.repos || 0, label: 'ACTIVE REPOSITORIES', trend: '', trendUp: true },
     { icon: Zap, iconBg: 'bg-[rgba(232,168,56,0.1)]', iconColor: 'text-[#E8A838]', value: realStats?.testsRemaining ?? realStats?.testsLimit ?? 0, label: 'TESTS REMAINING', trend: `Plan: ${(realStats?.plan || user.plan || 'free').toUpperCase()}`, trendUp: true },
+    { icon: Sparkles, iconBg: 'bg-[rgba(87,74,125,0.1)]', iconColor: 'text-[#574a7d]', value: tier2Value, label: 'TIER 2 ITERATIONS', trend: tier2Trend, trendUp: true },
   ];
 
   return (
@@ -165,7 +181,7 @@ function DashboardTab() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         {stats.map((s, i) => (
           <motion.div
             key={s.label}
@@ -182,7 +198,11 @@ function DashboardTab() {
             </div>
             <div className="mt-4">
               <div className="font-heading font-bold text-[32px] text-[#12101A]">
-                <CountUp end={s.value} duration={1} decimals={s.decimals || 0} suffix={s.suffix || ''} />
+                {typeof s.value === 'number' ? (
+                  <CountUp end={s.value} duration={1} decimals={s.decimals || 0} suffix={s.suffix || ''} />
+                ) : (
+                  s.value
+                )}
               </div>
               <div className="font-mono font-medium text-[12px] uppercase text-[#6B6B6B] tracking-[0.08em] mt-1">
                 {s.label}
