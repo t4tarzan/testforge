@@ -446,11 +446,13 @@
     background: var(--paper);
     overflow: hidden;
   }
-  figure.figure img {
+  figure.figure img,
+  figure.figure video {
     display: block;
     width: 100%;
     height: auto;
     border-bottom: 1px solid var(--rule);
+    background: #12101A;
   }
   figure.figure figcaption {
     padding: 0.7rem 1.1rem 0.85rem;
@@ -746,8 +748,8 @@
     <p>The design choice that defines the rest of the product is what TestForge <em>doesn't</em> do. It does not load-test. It does not fuzz at runtime. It does not run Robot Framework. It pairs with k6, Locust, ZAP, Stryker, Pitest, Gremlin, Litmus, Chaos Mesh — handing them a much smaller surface to cover because the static layer has already been walked.</p>
 
     <figure class="figure">
-      <img src="/hero-dashboard.jpg" alt="TestForge homepage hero showing a recent analysis report" />
-      <figcaption><span class="fig-label">Figure 1</span> The TestForge surface — a single report card on the homepage summarizes one full twenty-one-dimension pass. From here the reader drills into any dimension to see the line-precise findings.</figcaption>
+      <img src="/malibu-demo-poster.jpg" alt="TestForge MCP dashboard analyzing tinyhttp/malibu — report rendered" />
+      <figcaption><span class="fig-label">Figure 1</span> A real run, captured in this whitepaper's verification pass — the local MCP dashboard analyzing <code>github.com/tinyhttp/malibu</code>. Clone, scan, and full report rendered in ~1.3 seconds on the host; ~11 seconds end-to-end including the dashboard handoff. The same flow plays in Figure 3.</figcaption>
     </figure>
   </section>
 
@@ -839,8 +841,8 @@
     </div>
 
     <figure class="figure">
-      <img src="/dashboard-preview.jpg" alt="TestForge analytics dashboard with usage and quota cards" />
-      <figcaption><span class="fig-label">Figure 3</span> The Account analytics surface — average score, runs this month, repos under analysis, and the live <code>testsRemaining</code> count computed from the same gate that enforces the quota server-side.</figcaption>
+      <video src="/malibu-demo.mp4" poster="/malibu-demo-poster.jpg" controls muted playsinline preload="metadata"></video>
+      <figcaption><span class="fig-label">Figure 3</span> The full local-MCP flow on <code>tinyhttp/malibu</code>, recorded end-to-end. Type the repo URL, click analyze, watch the twenty-one-dimension report render. No code leaves the machine — the MCP server clones into <code>/tmp</code>, parses each file once, and writes the run to <code>~/.testforge/history.db</code>.</figcaption>
     </figure>
   </section>
 

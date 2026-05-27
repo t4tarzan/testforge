@@ -74,17 +74,20 @@ async function main() {
 
   // ── Clone & Analyze (accepts git URLs) ─────────────────────────────────
   app.post('/clone-and-analyze', async (request, reply) => {
-    const { repoUrl, branch = 'main' } = request.body as { repoUrl: string; branch?: string };
+    const { repoUrl, branch } = request.body as { repoUrl: string; branch?: string };
     if (!repoUrl) return reply.status(400).send({ error: 'repoUrl required' });
 
     const repoName = repoUrl.split('/').pop()?.replace('.git', '') || 'repo';
     const projectPath = join(TMP_DIR, repoName + '-' + Date.now());
 
     try {
-      // Clone repo
+      // Clone repo. If the caller named a branch, use it; otherwise let git
+      // clone the repo's default HEAD — many repos still use 'master', and
+      // hardcoding 'main' breaks the demo flow on those.
       mkdirSync(TMP_DIR, { recursive: true });
       console.log(`Cloning ${repoUrl} into ${projectPath}...`);
-      execSync(`git clone --depth 1 --branch ${branch} ${repoUrl} ${projectPath}`, {
+      const branchFlag = branch ? `--branch ${branch} ` : '';
+      execSync(`git clone --depth 1 ${branchFlag}${repoUrl} ${projectPath}`, {
         timeout: 30000,
         stdio: 'pipe',
       });

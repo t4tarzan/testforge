@@ -88,17 +88,11 @@ function PricingCardsSection() {
     }
   };
 
-  useGSAP(() => {
-    if (!sectionRef.current) return
-    gsap.from('.pricing-card', {
-      y: 40,
-      opacity: 0,
-      duration: 0.6,
-      stagger: 0.1,
-      ease: 'power2.out',
-      scrollTrigger: { trigger: sectionRef.current, start: 'top 70%', once: true },
-    })
-  }, { scope: sectionRef })
+  // Entrance animation removed — ScrollTrigger was occasionally leaving the
+  // Pro / Enterprise cards stuck near opacity:0 (especially on hash-route
+  // navigation to /#/pricing where the scroller hadn't recalculated yet).
+  // The cards are visible from the start now; hover still animates via
+  // framer-motion's whileHover.
 
   const tiers = [
     {

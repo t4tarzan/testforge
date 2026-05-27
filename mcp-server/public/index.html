@@ -112,7 +112,7 @@ async function runAnalysis() {
   
   try {
     var endpoint = repo ? '/clone-and-analyze' : '/analyze';
-    var body = repo ? { repoUrl: repo, branch: 'main' } : { projectPath: path };
+    var body = repo ? { repoUrl: repo } : { projectPath: path };
     
     var stages = ['Scanning codebase', 'Security analysis', 'Unit tests', 'Load analysis', 'Accessibility', 'Strategic dimensions', 'Advanced analysis', 'Generating report'];
     var stage = 0;
