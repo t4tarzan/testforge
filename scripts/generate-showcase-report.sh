@@ -79,6 +79,13 @@ dims = [
 scores = []
 for key, label, fn in dims:
     try:
+        # Per-dimension "not applicable" guards. The analyzer surfaces
+        # an `applicable: false` on dimensions that don't make sense for
+        # the project type (a11y on a Python lib, coverage on a CLI, etc.)
+        # Future passes will add more of these flags.
+        if key == 'accessibility' and raw.get('accessibility', {}).get('applicable') is False:
+            scores.append({'key': key, 'label': label, 'score': None})
+            continue
         v = fn(raw)
         # Clamp to 0-100 — some analyzer outputs (notably scope.coverage)
         # are absolute counts rather than percentages and would otherwise
@@ -88,7 +95,8 @@ for key, label, fn in dims:
     except Exception:
         scores.append({'key': key, 'label': label, 'score': 0})
 
-overall = int(round(sum(s['score'] for s in scores) / len(scores)))
+applicable_scores = [s['score'] for s in scores if s['score'] is not None]
+overall = int(round(sum(applicable_scores) / len(applicable_scores))) if applicable_scores else 0
 
 distilled = {
     'slug': slug,

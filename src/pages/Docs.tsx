@@ -705,7 +705,7 @@ function CliInstallationPage() {
         Verify installation:
       </p>
       <DocCodeBlock
-        code={"testforge-mcp --version\n# @whitenoisenpm/testforge-mcp/0.27.1 darwin-arm64 node-v22.0.0"}
+        code={"testforge-mcp --version\n# @whitenoisenpm/testforge-mcp/0.27.2 darwin-arm64 node-v22.0.0"}
         language="bash"
       />
 
@@ -1477,7 +1477,7 @@ function ApiReferencePage() {
       <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">🔬 Analysis</h2>
       <div className="space-y-6">
         {[
-          { method: 'GET', path: '/health', desc: 'Health check — pings Neon and reports version. No auth. No rate limit.', example: '{"status":"ok","version":"0.27.1","database":"connected"}' },
+          { method: 'GET', path: '/health', desc: 'Health check — pings Neon and reports version. No auth. No rate limit.', example: '{"status":"ok","version":"0.27.2","database":"connected"}' },
           { method: 'GET', path: '/status', desc: 'Public services rollup — Web, MCP server, DB, npm package. 30s cache. No auth.', example: '{"status":"all_systems_operational","services":[{"name":"Web Platform","status":"operational"},…]}' },
           { method: 'POST', path: '/analyze', desc: 'Proxies a clone-and-analyze request to the Fly.io MCP server. Returns the full 21-dimension report verbatim. 504 on upstream timeout, 502 on connection failure — never fabricated data. No auth required to analyze public repos.', body: '{"repoUrl":"https://github.com/owner/repo","branch":"main"}', example: '{"codebase":{"totalFiles":402,…},"security":{"findings":29,…},"mutation":{"score":47,…},…}' },
           { method: 'GET', path: '/analyze', desc: 'Returns the configured MCP server URL + endpoints (for clients that prefer to call it directly).', example: '{"mcpServer":"https://testforge-mcp.fly.dev","endpoints":{…}}' },
@@ -1703,13 +1703,35 @@ function ChangelogPage() {
         <div>
           <div className="flex items-center gap-3 mb-3">
             <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
-              mcp 0.27.1 — &ldquo;Missing Rate Limiting&rdquo; only fires on web apps
+              mcp 0.27.2 — Accessibility ignores non-UI files + N/A on non-UI repos
             </h2>
             <span className="font-mono text-[12px] text-[#9A9A9A]">
               2026-05-28
             </span>
             <span className="font-mono font-medium text-[11px] uppercase px-2 py-0.5 rounded bg-[#E8E5FF] text-[#574a7d]">
               Latest
+            </span>
+          </div>
+          <p className="font-body text-[16px] text-[#333333] leading-[1.7] ml-2 mb-3">
+            Caught by the <a href="#/in-the-wild/langchain" className="text-[#574a7d] underline">in-the-wild LangChain report</a>: scored 10/100 on Accessibility because the per-file loop ran <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">checkLinkText</code> on <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">README.md</code> and emitted 44 false-positive &ldquo;Empty Link&rdquo; findings. The glob fallback was already filtered to UI extensions, but when called with a pre-populated <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">fileContents</code> (the orchestrator path), the loop iterated every file.
+          </p>
+          <ul className="list-disc list-inside space-y-2 font-body text-[15px] text-[#333333] leading-[1.7] ml-2 mb-2">
+            <li><strong>Hard filter at the loop level:</strong> only <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">.html</code>, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">.tsx</code>, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">.jsx</code>, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">.vue</code>, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">.svelte</code> reach the per-file checks. Markdown, Python, backend TS, etc. are skipped entirely.</li>
+            <li><strong>New <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">applicable: boolean</code></strong> on <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">A11yReport</code>: true if the project has any UI files. Non-UI projects (Python lib, CLI, data-science repo) get <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">applicable: false</code>; dashboards should render the dimension as N/A rather than a score.</li>
+            <li><strong>Real-world impact:</strong> LangChain Accessibility went from 10/100 with 44 findings &rarr; <strong>N/A with 0 findings.</strong> Same fix applies to anyone running TestForge on a backend-only repo.</li>
+          </ul>
+          <p className="font-body text-[15px] text-[#333333] leading-[1.7] ml-2 mt-3">
+            Tests: <strong>194 &rarr; 197</strong>. This is the third dimension-correctness fix triggered by In-the-Wild reports in two days (after test-path security suppression and the rate-limit web-framework gate). The pattern: every dimension's &ldquo;find what&rsquo;s missing&rdquo; check needs to know whether the missing-thing is even applicable to the project type.
+          </p>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
+              mcp 0.27.1 — &ldquo;Missing Rate Limiting&rdquo; only fires on web apps
+            </h2>
+            <span className="font-mono text-[12px] text-[#9A9A9A]">
+              2026-05-28
             </span>
           </div>
           <p className="font-body text-[16px] text-[#333333] leading-[1.7] ml-2 mb-3">
@@ -2244,7 +2266,7 @@ function McpUsageGuidePage() {
       </div>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#12101A] mb-4">🖥️ Local Dashboard (v0.27.1)</h2>
+        <h2 className="text-heading-sm text-[#12101A] mb-4">🖥️ Local Dashboard (v0.27.2)</h2>
         <p className="text-body-md text-[#6B6B6B] mb-4">
           The MCP server ships with a local dashboard at <code className="bg-[#E8E5FF] px-1.5 py-0.5 rounded text-[#574a7d] font-mono text-sm">http://localhost:33221</code>. No cloud, no sign-in, no hosting needed.
         </p>

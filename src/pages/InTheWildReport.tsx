@@ -150,7 +150,8 @@ export default function InTheWildReport() {
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {report.scores.map((s) => {
-            const c = scoreColor(s.score);
+            const notApplicable = s.score === null;
+            const c = notApplicable ? '#9A9A9A' : scoreColor(s.score!);
             return (
               <div
                 key={s.key}
@@ -160,15 +161,21 @@ export default function InTheWildReport() {
                   <span className="font-mono text-[11px] uppercase tracking-wider text-[#6B6B6B]">
                     {s.label}
                   </span>
-                  <span className="font-heading font-bold text-[24px]" style={{ color: c }}>
-                    {s.score}
+                  <span
+                    className={notApplicable ? 'font-mono text-[13px]' : 'font-heading font-bold text-[24px]'}
+                    style={{ color: c }}
+                    title={notApplicable ? 'Not applicable to this repo' : undefined}
+                  >
+                    {notApplicable ? 'N/A' : s.score}
                   </span>
                 </div>
                 <div className="w-full h-1.5 bg-[#F7F7FB] rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${Math.min(100, s.score)}%`, backgroundColor: c }}
-                  />
+                  {!notApplicable && (
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${Math.min(100, s.score!)}%`, backgroundColor: c }}
+                    />
+                  )}
                 </div>
               </div>
             );

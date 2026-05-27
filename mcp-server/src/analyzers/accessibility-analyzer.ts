@@ -22,6 +22,26 @@ export interface A11yReport {
   missingAriaCount: number;
   totalHtmlFiles: number;
   score: number; // 0-100
+  /**
+   * True if the project has any UI files (.html/.tsx/.jsx/.vue/.svelte).
+   * Non-UI projects (Python libraries, CLIs, data-science repos) have
+   * `applicable: false` — the dashboard should render the dimension as
+   * N/A rather than as a score. Without this flag, the LangChain
+   * report scored 10/100 on Accessibility because the per-file loop
+   * was scanning README.md for "Empty Link" patterns.
+   */
+  applicable: boolean;
+}
+
+// File extensions we ACTUALLY analyze for accessibility. The glob and
+// the per-file loop both filter to this set so the report can't
+// fabricate findings on documentation (.md) or backend code (.py/.ts).
+const UI_EXTENSIONS = new Set(['.html', '.tsx', '.jsx', '.vue', '.svelte']);
+
+function isUiFile(path: string): boolean {
+  const i = path.lastIndexOf('.');
+  if (i < 0) return false;
+  return UI_EXTENSIONS.has(path.slice(i).toLowerCase());
 }
 
 /**
@@ -60,10 +80,16 @@ export async function runAccessibilityAnalysis(config: {
   let imagesWithoutAlt = 0;
   let formsWithoutLabels = 0;
   let missingAriaCount = 0;
-  const htmlFiles = Object.keys(fileContents).filter(f => f.endsWith('.html') || f.endsWith('.tsx') || f.endsWith('.jsx') || f.endsWith('.vue') || f.endsWith('.svelte'));
+  const htmlFiles = Object.keys(fileContents).filter(isUiFile);
 
   for (const [filePath, content] of Object.entries(fileContents)) {
     if (filePath.includes('node_modules')) continue;
+    // v0.27.2: the per-file loop now hard-filters to UI files only.
+    // Before this, calling runAccessibilityAnalysis with a full
+    // fileContents (which includes .md / .py / .ts / etc.) caused
+    // checks like checkLinkText to fire on README.md and emit
+    // dozens of false-positive "Empty Link" findings.
+    if (!isUiFile(filePath)) continue;
     const lines = content.split('\n');
 
     // AST-based JSX/TSX checks (pass 5). Replaces several line-level
@@ -145,6 +171,7 @@ export async function runAccessibilityAnalysis(config: {
     missingAriaCount,
     totalHtmlFiles: htmlFiles.length,
     score,
+    applicable: htmlFiles.length > 0,
   };
 }
 

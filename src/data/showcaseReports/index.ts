@@ -10,7 +10,10 @@
 export interface ShowcaseDimensionScore {
   key: string;
   label: string;
-  score: number;
+  /** Number 0-100, or null when the dimension is not applicable to this
+   * project (e.g. Accessibility on a Python library — there are no UI
+   * files to evaluate). Pages should render null as "N/A". */
+  score: number | null;
 }
 
 export interface ShowcaseFinding {

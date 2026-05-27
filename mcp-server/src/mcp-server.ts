@@ -574,7 +574,7 @@ export async function setupMCPServer(app: FastifyInstance) {
         security: { findings: securityFindings.length, critical: securityFindings.filter((f)=>f.severity==='critical').length, high: securityFindings.filter((f)=>f.severity==='high').length, medium: securityFindings.filter((f)=>f.severity==='medium').length, low: securityFindings.filter((f)=>f.severity==='low').length, items: securityFindings.slice(0,10) },
         unit: { coverage: unitReport.testCoverage||0, testFiles: unitReport.totalTestFiles||0, totalTests: unitReport.totalTests||0, frameworks: unitReport.frameworks||[], findings: unitReport.findings?.length||0 },
         load: { maxUsers: loadReport.estimatedMaxConcurrentUsers||0, rateLimiting: loadReport.hasRateLimiting||false, caching: loadReport.hasCaching||false, recommendations: loadReport.recommendations||[] },
-        accessibility: { score: a11yReport.score||0, issues: a11yReport.findings?.length||0 },
+        accessibility: { score: a11yReport.score||0, issues: a11yReport.findings?.length||0, applicable: a11yReport.applicable, totalHtmlFiles: a11yReport.totalHtmlFiles||0 },
         vision: { score: visionReport.score, summary: visionReport.summary, findings: visionReport.findings },
         scope: { coverage: scopeReport.coverage, documentedFeatures: scopeReport.documentedFeatures, implementedFeatures: scopeReport.implementedFeatures, missingFeatures: scopeReport.missingFeatures },
         stack: { score: stackReport.score, strengths: stackReport.strengths, weaknesses: stackReport.weaknesses, recommendations: stackReport.recommendations },

@@ -258,7 +258,7 @@ async function main() {
       const a11yReport = await runAccessibilityAnalysis({
         projectPath,
         fileContents: codebase.fileContents,
-      }).catch(() => ({ score: 0, findings: [], imagesWithoutAlt: 0, formsWithoutLabels: 0 }));
+      }).catch(() => ({ score: 0, findings: [], imagesWithoutAlt: 0, formsWithoutLabels: 0, applicable: false, totalHtmlFiles: 0 }));
 
       // ── Strategic Analysis (unique differentiator) ──────────────────────
       const visionReport = await runVisionAnalysis(
@@ -346,6 +346,8 @@ async function main() {
           issues: a11yReport.findings?.length || 0,
           imagesWithoutAlt: a11yReport.imagesWithoutAlt || 0,
           formsWithoutLabels: a11yReport.formsWithoutLabels || 0,
+          applicable: a11yReport.applicable,
+          totalHtmlFiles: a11yReport.totalHtmlFiles || 0,
         },
         vision: {
           score: visionReport.score,

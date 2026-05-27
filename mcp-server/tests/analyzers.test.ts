@@ -2175,6 +2175,42 @@ describe('strategic-analyzer — Phase 5 pass 16: stack polish (strict dep sets 
   });
 });
 
+// Regression for the LangChain in-the-wild report (2026-05-28): a pure
+// Python repo scored 10/100 on Accessibility because the analyzer was
+// scanning README.md for "Empty Link" patterns. 0.27.2 hard-filters the
+// per-file loop to .html/.tsx/.jsx/.vue/.svelte and adds `applicable`.
+describe('accessibility-analyzer — non-UI repos report applicable=false (v0.27.2)', () => {
+  it('a Python-only repo (libs-monorepo) returns applicable=false and zero findings', async () => {
+    const info = await scanCodebase(LIBS_MONOREPO);
+    const r = await runAccessibilityAnalysis({ projectPath: LIBS_MONOREPO, fileContents: info.fileContents });
+    expect(r.applicable).toBe(false);
+    expect(r.totalHtmlFiles).toBe(0);
+    expect(r.findings).toHaveLength(0);
+  });
+
+  it('a Next.js + FastAPI repo (polyglot-python) returns applicable=true', async () => {
+    const info = await scanCodebase(POLYGLOT_PYTHON);
+    const r = await runAccessibilityAnalysis({ projectPath: POLYGLOT_PYTHON, fileContents: info.fileContents });
+    expect(r.applicable).toBe(true);
+    expect(r.totalHtmlFiles).toBeGreaterThan(0);
+  });
+
+  it('does NOT scan README.md or other markdown for a11y patterns', async () => {
+    // libs-monorepo has no .md but if any fileContent ends in .md it should
+    // be ignored — even if the file contains a literal '[]()' empty link.
+    const fileContents = {
+      'README.md': '# Project\n\nSee [](https://example.com)\n',  // empty link in MD
+      'index.html': '<html><body><a href="/foo">go</a></body></html>',
+    };
+    const r = await runAccessibilityAnalysis({ projectPath: LIBS_MONOREPO, fileContents });
+    // The markdown empty-link must not be reported
+    const onMarkdown = r.findings.filter((f) => f.filePath.endsWith('.md'));
+    expect(onMarkdown).toHaveLength(0);
+    // The html link with valid text should pass too
+    expect(r.applicable).toBe(true);
+  });
+});
+
 // Regression for the LangChain in-the-wild report (2026-05-28): pure
 // Python library, no web framework, still got a "Missing Rate Limiting"
 // medium finding because checkMissingRateLimit fired unconditionally.
