@@ -7,6 +7,12 @@
 #        (the mount writes the test files in; the container writes JSON to stdout)
 FROM node:22-slim
 
+# Links this image to the public GitHub repo on GHCR so the package page
+# shows source/readme and inherits permissions correctly.
+LABEL org.opencontainers.image.source="https://github.com/t4tarzan/testforge"
+LABEL org.opencontainers.image.description="TestForge Tier-2 sandbox runner — node 22 + vitest + tsx, pre-installed. Runs LLM-generated Vitest files in --network=none isolation."
+LABEL org.opencontainers.image.licenses="MIT"
+
 WORKDIR /runner
 
 # Pre-install vitest + typescript at build time so the cold path is fast.

@@ -19,8 +19,39 @@ import { homedir } from 'os';
 import type { GeneratedTestFile } from '../generator/generate-tests.js';
 
 const RUNS_DIR = join(homedir(), '.testforge', 'runs');
-const IMAGE = process.env.TESTFORGE_RUNNER_IMAGE || 'testforge-runner:local';
+// Default to the public GHCR image so a fresh `npx` install only needs Docker
+// running — no `docker build` step. Auto-pulled on first use (see ensureImage
+// below). Override with TESTFORGE_RUNNER_IMAGE to point at a local build.
+const IMAGE = process.env.TESTFORGE_RUNNER_IMAGE || 'ghcr.io/t4tarzan/testforge-runner:latest';
 const RUNNER_TIMEOUT_MS = 120_000;
+
+// Pull the runner image if it isn't already on the host. We only ever need
+// to do this once per Docker daemon — subsequent calls find it locally and
+// skip the network round-trip. Returns null on success or an error string
+// suitable for surfacing to the caller.
+let imagePullAttempted = false;
+async function ensureImage(): Promise<string | null> {
+  // Skip the pull entirely if the user is on a local-build image — they
+  // built it themselves, no need to fetch.
+  if (!IMAGE.includes('/') || IMAGE.endsWith(':local')) return null;
+  if (imagePullAttempted) return null;
+  imagePullAttempted = true;
+  return new Promise((resolve) => {
+    const inspect = spawn('docker', ['image', 'inspect', IMAGE], { stdio: 'ignore' });
+    inspect.on('close', (code) => {
+      if (code === 0) return resolve(null); // already present
+      // Not present — pull it.
+      const pull = spawn('docker', ['pull', IMAGE], { stdio: ['ignore', 'pipe', 'pipe'] });
+      let err = '';
+      pull.stderr.on('data', (b) => { err += b.toString(); });
+      pull.on('close', (pullCode) => {
+        if (pullCode === 0) return resolve(null);
+        imagePullAttempted = false; // allow retry on next request
+        resolve(err.trim() || `docker pull ${IMAGE} exited ${pullCode}`);
+      });
+    });
+  });
+}
 
 export interface RunFileResult {
   filename: string;
@@ -129,6 +160,23 @@ export async function runGeneratedTests(files: GeneratedTestFile[]): Promise<Run
   const runId = 'run_' + Date.now().toString(36);
   const mountDir = join(RUNS_DIR, runId);
   mkdirSync(mountDir, { recursive: true });
+
+  // First-call: make sure the runner image is on disk. Errors here surface
+  // back to the caller as a normal RunResult so the UI can show "couldn't
+  // pull image" without a 500.
+  const pullErr = await ensureImage();
+  if (pullErr) {
+    return {
+      runId,
+      success: false,
+      numTotalTests: 0,
+      numPassedTests: 0,
+      numFailedTests: 0,
+      durationMs: 0,
+      files: [],
+      containerError: `Could not pull ${IMAGE}: ${pullErr}`,
+    };
+  }
 
   // Drop the generated test files in. Sanitize filenames so a model can't
   // path-traverse out of the mount dir.

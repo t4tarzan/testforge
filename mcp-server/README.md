@@ -39,17 +39,18 @@ The dashboard lets you paste a local project path **or** a public GitHub URL, ru
 # 1. Get a free OpenRouter API key — https://openrouter.ai/
 export OPENROUTER_API_KEY=sk-or-v1-...
 
-# 2. Build the sandbox runner image (one time, ~30s)
-docker build -t testforge-runner:local \
-  $(npm root -g)/@whitenoisenpm/testforge-mcp/runner
+# 2. Make sure Docker is running (Docker Desktop on macOS / Windows;
+#    docker daemon on Linux). No image build step needed — the runner
+#    image is pulled from GHCR on first use.
 
 # 3. Start the server with the key in env
 OPENROUTER_API_KEY=$OPENROUTER_API_KEY \
   npx @whitenoisenpm/testforge-mcp@latest
 
 # 4. In the dashboard, click "🤖 Generate Tests (Tier 2)"
-#    under any analysis report — three Vitest files generated,
-#    executed in the sandbox, pass/fail returned.
+#    under any analysis report. The first call pulls
+#    ghcr.io/t4tarzan/testforge-runner:latest (~92 MB, ~10s).
+#    Subsequent calls reuse the local image and run in ~1s.
 ```
 
 **What it does**: takes the top-3 highest-severity findings from a Tier-1 run, sends each to the LLM with a Zod-enforced schema (filename, content, reasoning), then drops the generated `.test.ts` files into a `node:22-slim` container (`--network=none`, `--rm`) where Vitest runs them with the JSON reporter.
@@ -178,10 +179,12 @@ Your source never leaves the machine — the dashboard is local, the analyzers a
 | `OPENROUTER_API_KEY` | — | **Tier 2 only.** OpenRouter key for LLM test generation. Without it, `POST /generate-and-run` returns 503. Get one at https://openrouter.ai/. |
 | `TESTFORGE_PRIMARY_MODEL` | `qwen/qwen3.7-max` | Tier 2 primary model. Any OpenRouter model id works. |
 | `TESTFORGE_FALLBACK_MODEL` | `deepseek/deepseek-v4-flash` | Tier 2 fallback when the primary errors or rejects the schema. |
-| `TESTFORGE_RUNNER_IMAGE` | `testforge-runner:local` | Tier 2 sandbox image. Build with `docker build mcp-server/runner` once. |
+| `TESTFORGE_RUNNER_IMAGE` | `ghcr.io/t4tarzan/testforge-runner:latest` | Tier 2 sandbox image — auto-pulled from GHCR on first use. Override to point at a local build (`testforge-runner:local`) if you've made changes. |
 
 ## Changelog highlights
 
+- **0.25.2** — Runner image published to GHCR (`ghcr.io/t4tarzan/testforge-runner:0.25.2`). No more manual `docker build` step on first Tier-2 use — the MCP auto-pulls the image (~92 MB) on the first `/generate-and-run` call. Existing `testforge-runner:local` builds still work via `TESTFORGE_RUNNER_IMAGE` override.
+- **0.25.1** — `/health` now reports the correct version (was hardcoded to "0.6.0").
 - **0.25.0** — **Tier 2: Generate & Run.** New `POST /generate-and-run` endpoint takes findings from a Tier-1 report, generates one Vitest file per finding via OpenRouter (primary: Qwen 3.7 Max, fallback: DeepSeek V4 Flash), executes them inside a pre-baked Docker container (`node:22-slim` + vitest, `--network=none --rm`), and returns structured pass/fail JSON. Provider rotation is automatic on rate-limit or schema rejection; both attempts are recorded. New `~/.testforge/history.db.generations` table persists every iteration. New `GET /api/generations` + `GET /api/generations/:id` endpoints. Dashboard grows a "🤖 Generate Tests (Tier 2)" button under any report. Env overrides: `TESTFORGE_PRIMARY_MODEL`, `TESTFORGE_FALLBACK_MODEL`, `TESTFORGE_RUNNER_IMAGE`. Self-host has no quota (BYOK pays OpenRouter); managed SaaS gates Tier 2 to the Forge plan ($99/mo · 100 iterations/mo). Verified end-to-end against `tinyhttp/malibu`: 3 findings → 3 Vitest files → sandbox run in ~45s total. Demo video at https://testforge.run/malibu-tier2.mp4.
 - **0.24.0** — Dimension deepening, pass 16. **Stack analysis** polished — substring traps eliminated and new signals added. Old code: `dep.includes('vite')` matched `vitest`, `vitest-mock-extended`, `vite-something-else` (vitest is a test framework, NOT a bundler — false strength). Now uses strict Sets per category for: test frameworks (jest/vitest/mocha/ava/tap/node-tap/@japa/runner/uvu/tape), lint tools (eslint/prettier/@biomejs/biome/rome/standard/xo/oxlint), ORMs (Prisma/Drizzle/TypeORM/Sequelize/Mongoose/MikroORM/Kysely/Knex/Objection), caches (Redis/ioredis/@upstash/memcached/lru-cache/node-cache/cache-manager), monorepo (Turbo/Nx/Lerna/Rush/Changesets), modern bundlers (vite/esbuild/SWC/Turbopack/Parcel/Rspack/Rollup), and new categories: modern frameworks (Next/Remix/Astro/Nuxt/SvelteKit/SolidStart/Qwik/Hono/h3), runtime validation (Zod/Yup/Joi/ajv/Valibot/Arktype/Effect/io-ts/class-validator), tRPC, TS runtimes (tsx/ts-node/esno). **New tsconfig strict-mode detection**: parses `tsconfig.json` and emits a low-severity finding when TypeScript is present but `compilerOptions.strict` is not true. **New "API server without validation library"** finding: medium severity, fires only when a server framework is detected (Express/Fastify/Koa/Hono/NestJS) and no Zod/Yup/Joi/Valibot is in deps. Monorepo detection now also looks at `nx.json` and `pnpm-workspace.yaml` (not just turbo.json). Tests: 159 → 166. New fixtures `tests/fixtures/stack-modern/` (Next + Hono + Prisma + Zod + tRPC + Vitest + Vite + Biome + tsconfig strict) and `tests/fixtures/stack-legacy/` (Express + Mongo + no TS + `vite-something-else` and `vitest-mock-extended` traps that must NOT count).
 - **0.23.0** — Dimension deepening, pass 15. **Visual regression** and **property-based testing** both move from substring soup to AST-aware signals. **Visual regression**: new `lib/visual-regression.ts` walks JSXAttribute nodes for the `style` attribute, counts REAL `style={{…}}` props (not lines containing "style="), and inspects each object property's string value for hardcoded pixel values (`/(\d{2,4})px\b/g`) and inline hex color literals (`#abc` / `#abcdef` / `#abcdef00`). Findings fire at proper thresholds (≥3 files with inline styles + no CSS Modules → medium; ≥10 hardcoded px / ≥5 inline colors → low). **Property-based testing**: new `lib/property-based.ts` removes the previous noisy "function with this.* > 1 is impure" heuristic (fired on every class method) and replaces substring checks with proper AST detection: imports of `fast-check` / `jsverify` / `@fast-check/vitest`; `fc.assert()` / `fc.property()` / `fc.check()` call sites; `typeof x === '…'` / `Array.isArray(x)` / `x instanceof Class` type guards; `assert(...)` / `invariant(...)` runtime invariants. New scope-aware findings: "no framework", "framework but no `fc.assert` calls" (catches `import` without usage), "no runtime invariants". Tests: 150 → 159. New fixtures: `tests/fixtures/visual-quality/` (Bad.tsx with 3 components heavy in inline styles + comment trap; Good.tsx using CSS Modules) and `tests/fixtures/property-quality/` (util.js with type guards + assert.ok; util.property.test.js with two `fc.property` invariants).
