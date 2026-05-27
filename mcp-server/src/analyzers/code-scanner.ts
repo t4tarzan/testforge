@@ -428,7 +428,7 @@ function parsePyRequirements(content: string): string[] {
     // `pkg @ git+https://…` — name is everything before the @
     // `pkg[extra]==1.0` — name is everything before [
     // `pkg==1.0`, `pkg>=1`, `pkg~=1.0`, `pkg<2,>=1` — name is before any of < > = ~ ! [
-    const nameMatch = line.match(/^([A-Za-z0-9_.\-]+)/);
+    const nameMatch = line.match(/^([A-Za-z0-9_.-]+)/);
     if (nameMatch && nameMatch[1]) {
       names.push(nameMatch[1].toLowerCase());
     }
@@ -454,7 +454,7 @@ function parsePyProjectToml(content: string): { runtime: string[]; dev: string[]
   const pep621Body = extractTomlArrayBody(content, 'dependencies');
   if (pep621Body) {
     for (const m of pep621Body.matchAll(/["']([^"']+)["']/g)) {
-      const name = m[1].match(/^([A-Za-z0-9_.\-]+)/);
+      const name = m[1].match(/^([A-Za-z0-9_.-]+)/);
       if (name) runtime.push(name[1].toLowerCase());
     }
   }
@@ -462,7 +462,7 @@ function parsePyProjectToml(content: string): { runtime: string[]; dev: string[]
   const optBlock = content.match(/\[project\.optional-dependencies\]([\s\S]*?)(?=\n\[|$)/);
   if (optBlock && optBlock[1]) {
     for (const m of optBlock[1].matchAll(/["']([^"']+)["']/g)) {
-      const name = m[1].match(/^([A-Za-z0-9_.\-]+)/);
+      const name = m[1].match(/^([A-Za-z0-9_.-]+)/);
       if (name) dev.push(name[1].toLowerCase());
     }
   }
@@ -481,7 +481,7 @@ function parsePyProjectToml(content: string): { runtime: string[]; dev: string[]
       : [...content.matchAll(re as RegExp)];
     for (const sec of matches) {
       const body = sec?.[1] ?? '';
-      for (const lineMatch of body.matchAll(/^\s*([A-Za-z0-9_\-]+)\s*=/gm)) {
+      for (const lineMatch of body.matchAll(/^\s*([A-Za-z0-9_-]+)\s*=/gm)) {
         const name = lineMatch[1].toLowerCase();
         if (name === 'python') continue; // not a package
         bucket.push(name);
@@ -502,12 +502,12 @@ function parsePyProjectToml(content: string): { runtime: string[]; dev: string[]
   if (depGroupsBlock && depGroupsBlock[1]) {
     // Find each `name = [` inside the block. Use the string-aware
     // extractor for the same `fastapi[standard]` reason as PEP 621.
-    for (const keyM of depGroupsBlock[1].matchAll(/^\s*([A-Za-z0-9_\-]+)\s*=\s*\[/gm)) {
+    for (const keyM of depGroupsBlock[1].matchAll(/^\s*([A-Za-z0-9_-]+)\s*=\s*\[/gm)) {
       const groupName = keyM[1];
       const body = extractTomlArrayBody(depGroupsBlock[1], groupName);
       if (!body) continue;
       for (const m of body.matchAll(/["']([^"']+)["']/g)) {
-        const name = m[1].match(/^([A-Za-z0-9_.\-]+)/);
+        const name = m[1].match(/^([A-Za-z0-9_.-]+)/);
         if (name) dev.push(name[1].toLowerCase());
       }
     }
