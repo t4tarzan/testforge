@@ -2,15 +2,21 @@
   "slug": "langchain",
   "repoUrl": "https://github.com/langchain-ai/langchain",
   "repoName": "langchain",
-  "tagline": "100k-star Python AI framework \u2014 the polyglot honesty banner in the wild",
-  "analyzedAt": "2026-05-27T21:49:53.963Z",
-  "analyzeMs": 1080,
+  "tagline": "100k-star Python AI framework \u2014 libs/* monorepo recursion in action",
+  "analyzedAt": "2026-05-27T22:09:00.806Z",
+  "analyzeMs": 1142,
   "codebase": {
     "totalFiles": 2638,
     "totalLines": 387441,
     "endpoints": 6,
-    "dependencies": 0,
-    "techStack": [],
+    "dependencies": 27,
+    "techStack": [
+      "Playwright",
+      "SQLAlchemy",
+      "Pydantic",
+      "pytest",
+      "HTTP client (httpx/requests)"
+    ],
     "languageCoverage": {
       "nativelyAnalyzedFiles": 2488,
       "unsupportedFiles": 0,
@@ -67,12 +73,12 @@
     {
       "key": "scope",
       "label": "Scope",
-      "score": 500
+      "score": 100
     },
     {
       "key": "stack",
       "label": "Stack",
-      "score": 55
+      "score": 41
     },
     {
       "key": "chaos",
@@ -105,5 +111,5 @@
       "score": 70
     }
   ],
-  "overall": 92
+  "overall": 58
 }

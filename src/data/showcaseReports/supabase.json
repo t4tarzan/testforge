@@ -3,8 +3,8 @@
   "repoUrl": "https://github.com/supabase/supabase",
   "repoName": "supabase",
   "tagline": "78k-star OSS Firebase alt \u2014 TypeScript monorepo with multi-language services",
-  "analyzedAt": "2026-05-27T21:53:49.415Z",
-  "analyzeMs": 50504,
+  "analyzedAt": "2026-05-27T22:09:49.033Z",
+  "analyzeMs": 47119,
   "codebase": {
     "totalFiles": 7658,
     "totalLines": 2161325,
@@ -85,27 +85,27 @@
         "fixSuggestion": "Exclude generated files from the analyzed tree (e.g. dist/, build/, .next/)."
       },
       {
-        "severity": "high",
-        "title": "Route Without Inline Auth",
-        "description": "app.get() declares a route with no visible auth middleware. If your app uses a global auth middleware, suppress this with a comment.",
-        "filePath": "examples/oauth-app-authorization-flow/src/index.ts",
-        "lineNumber": 17,
-        "fixSuggestion": "Either pass an auth middleware function in the args list, or annotate the file with `// testforge-disable-file authentication-bypass` if a global middleware is intentional."
-      },
-      {
-        "severity": "high",
-        "title": "Route Without Inline Auth",
-        "description": "app.get() declares a route with no visible auth middleware. If your app uses a global auth middleware, suppress this with a comment.",
-        "filePath": "examples/oauth-app-authorization-flow/src/index.ts",
-        "lineNumber": 34,
-        "fixSuggestion": "Either pass an auth middleware function in the args list, or annotate the file with `// testforge-disable-file authentication-bypass` if a global middleware is intentional."
+        "severity": "critical",
+        "title": "Potential SQL/NoSQL Injection",
+        "description": "query() is called with a string built from variables. Verify the inputs are bound, not concatenated.",
+        "filePath": "e2e/studio/features/table-editor.spec.ts",
+        "lineNumber": 198,
+        "fixSuggestion": "Use parameterized queries (placeholders like $1, $2) or an ORM. If you must build dynamic SQL, allowlist the variable parts and pass user values via bound parameters."
       },
       {
         "severity": "critical",
         "title": "Potential SQL/NoSQL Injection",
         "description": "query() is called with a string built from variables. Verify the inputs are bound, not concatenated.",
         "filePath": "e2e/studio/features/table-editor.spec.ts",
-        "lineNumber": 198,
+        "lineNumber": 199,
+        "fixSuggestion": "Use parameterized queries (placeholders like $1, $2) or an ORM. If you must build dynamic SQL, allowlist the variable parts and pass user values via bound parameters."
+      },
+      {
+        "severity": "critical",
+        "title": "Potential SQL/NoSQL Injection",
+        "description": "query() is called with a string built from variables. Verify the inputs are bound, not concatenated.",
+        "filePath": "e2e/studio/features/table-editor.spec.ts",
+        "lineNumber": 203,
         "fixSuggestion": "Use parameterized queries (placeholders like $1, $2) or an ORM. If you must build dynamic SQL, allowlist the variable parts and pass user values via bound parameters."
       }
     ]
@@ -134,7 +134,7 @@
     {
       "key": "scope",
       "label": "Scope",
-      "score": 125
+      "score": 100
     },
     {
       "key": "stack",
@@ -172,5 +172,5 @@
       "score": 85
     }
   ],
-  "overall": 64
+  "overall": 62
 }

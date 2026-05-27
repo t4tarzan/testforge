@@ -80,7 +80,11 @@ scores = []
 for key, label, fn in dims:
     try:
         v = fn(raw)
-        scores.append({'key': key, 'label': label, 'score': int(round(v))})
+        # Clamp to 0-100 — some analyzer outputs (notably scope.coverage)
+        # are absolute counts rather than percentages and would otherwise
+        # show wild values like 500 on a repo with many features.
+        v = max(0, min(100, int(round(v or 0))))
+        scores.append({'key': key, 'label': label, 'score': v})
     except Exception:
         scores.append({'key': key, 'label': label, 'score': 0})
 
