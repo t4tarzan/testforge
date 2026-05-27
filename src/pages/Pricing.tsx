@@ -11,6 +11,12 @@ import {
   Sparkles,
   Zap,
   Building2,
+  Shield,
+  FlaskConical,
+  Gauge,
+  TrendingUp,
+  Network,
+  Trash2,
 } from 'lucide-react'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -393,10 +399,11 @@ function ComparisonTableSection() {
     {
       name: 'Security',
       features: [
-        { name: 'SAST', free: true, pro: true, enterprise: true },
-        { name: 'DAST', free: false, pro: true, enterprise: true },
-        { name: 'AI fuzzing', free: false, pro: true, enterprise: true },
-        { name: 'Secret detection', free: true, pro: true, enterprise: true },
+        { name: 'SAST (Babel AST)', free: true, pro: true, enterprise: true },
+        { name: 'Taint-flow analysis', free: false, pro: true, enterprise: true },
+        { name: 'OWASP Top 10 coverage map', free: true, pro: true, enterprise: true },
+        { name: 'Secret / credential detection', free: true, pro: true, enterprise: true },
+        { name: 'Supply-chain (CVE-aware)', free: false, pro: true, enterprise: true },
       ],
     },
     {
@@ -610,6 +617,153 @@ function CTASection() {
 }
 
 /* ═══════════════════════════════════════════
+   Alternative Stack ROI Section
+   Frames TestForge against the cost of assembling
+   equivalent coverage from point tools.
+   ═══════════════════════════════════════════ */
+
+function AlternativeStackSection() {
+  const sectionRef = useRef<HTMLDivElement>(null)
+
+  useGSAP(() => {
+    if (!sectionRef.current) return
+    gsap.from('.stack-row', {
+      opacity: 0,
+      y: 20,
+      duration: 0.5,
+      stagger: 0.07,
+      ease: 'power2.out',
+      scrollTrigger: { trigger: sectionRef.current, start: 'top 75%', once: true },
+    })
+  }, { scope: sectionRef })
+
+  // Public list prices, sampled May 2026. We list the cheapest credible
+  // team-tier option for each capability and round monthly costs to the
+  // nearest $10. Setup time is for a 5-engineer team integrating from zero.
+  const stackRows = [
+    {
+      icon: Shield,
+      capability: 'SAST + dependency vulnerability',
+      tools: 'Snyk Team or SonarCloud Team',
+      monthly: '$160–490 / mo',
+      setup: '1–2 weeks',
+      tfDelivers: 'Babel AST + taint tracking, OWASP map, supply-chain audit',
+    },
+    {
+      icon: FlaskConical,
+      capability: 'Mutation testing + test quality',
+      tools: 'Stryker / Pitest (OSS) + CI integration',
+      monthly: '$0 SaaS',
+      setup: '2–3 weeks',
+      tfDelivers: 'Mutation-score estimate + test-quality heuristics',
+    },
+    {
+      icon: Gauge,
+      capability: 'Accessibility + visual regression',
+      tools: 'axe DevTools Pro + Percy',
+      monthly: '$200–350 / mo',
+      setup: '1 week',
+      tfDelivers: 'WCAG static checks + visual signal scan',
+    },
+    {
+      icon: Network,
+      capability: 'Contract + load + resilience patterns',
+      tools: 'PactFlow + k6 Cloud + manual chaos review',
+      monthly: '$350–600 / mo',
+      setup: '4–6 weeks',
+      tfDelivers: 'Static pattern detection across all three',
+    },
+    {
+      icon: TrendingUp,
+      capability: 'DORA metrics + stack health',
+      tools: 'LinearB / Sleuth / Faros',
+      monthly: '$100–250 / mo',
+      setup: '1 week',
+      tfDelivers: 'DORA capability classification + stack signals',
+    },
+    {
+      icon: Trash2,
+      capability: 'Dead-code, N+1, license audit',
+      tools: 'Knip + manual ORM review + license-checker',
+      monthly: '$0–100 / mo',
+      setup: '1–2 weeks',
+      tfDelivers: 'AST cross-file dead-code, loop+sink N+1, SPDX audit',
+    },
+  ]
+
+  return (
+    <section ref={sectionRef} className="relative w-full bg-[#F7F7FB] py-20 lg:py-24">
+      <div className="bg-grid-pattern absolute inset-0 pointer-events-none" />
+      <div className="container-tf relative z-10 max-w-[1100px]">
+        <SectionLabel text="THE OTHERWISE COST" />
+        <h2 className="text-display-md text-[#333333] mb-3">
+          Assembling this elsewhere takes <span className="text-[#574a7d]">months and ~$1K/mo</span>.
+        </h2>
+        <p className="text-body-lg text-[#6B6B6B] max-w-[720px] mb-12">
+          TestForge is a static-analysis layer — not a replacement for live security scanners or load runners.
+          But the pre-merge signals it surfaces would otherwise require a stack of point tools, weeks of
+          integration, and ongoing vendor fees. Here&apos;s a sober estimate for a five-engineer team:
+        </p>
+
+        <div className="bg-white border border-[#D9D9D3] rounded-xl overflow-hidden mb-8">
+          <div className="hidden md:grid md:grid-cols-[1.3fr_1.5fr_0.9fr_0.7fr_1.5fr] gap-4 px-6 py-4 bg-[#1E1B2E] text-white">
+            <div className="font-mono text-[11px] uppercase tracking-wider">Capability</div>
+            <div className="font-mono text-[11px] uppercase tracking-wider">Typical tools</div>
+            <div className="font-mono text-[11px] uppercase tracking-wider">Monthly</div>
+            <div className="font-mono text-[11px] uppercase tracking-wider">Setup</div>
+            <div className="font-mono text-[11px] uppercase tracking-wider">What TestForge delivers</div>
+          </div>
+          {stackRows.map((row) => {
+            const Icon = row.icon
+            return (
+              <div
+                key={row.capability}
+                className="stack-row grid grid-cols-1 md:grid-cols-[1.3fr_1.5fr_0.9fr_0.7fr_1.5fr] gap-2 md:gap-4 px-6 py-5 border-b border-[#F0F0F5] last:border-b-0 hover:bg-[#FAFAFC] transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[#E8E5FF] flex items-center justify-center flex-shrink-0">
+                    <Icon size={16} className="text-[#574a7d]" />
+                  </div>
+                  <span className="text-[14px] font-medium text-[#333333]">{row.capability}</span>
+                </div>
+                <div className="text-[13px] text-[#6B6B6B] md:self-center">{row.tools}</div>
+                <div className="text-[13px] font-mono text-[#333333] md:self-center">{row.monthly}</div>
+                <div className="text-[13px] font-mono text-[#333333] md:self-center">{row.setup}</div>
+                <div className="text-[13px] text-[#574a7d] md:self-center">{row.tfDelivers}</div>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="bg-[#1E1B2E] rounded-xl p-8 grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+          <div className="lg:col-span-2">
+            <p className="font-mono text-[11px] uppercase tracking-wider text-[#a39fd4] mb-2">// THE BUNDLED ALTERNATIVE</p>
+            <p className="text-white text-[20px] leading-snug mb-3">
+              Roughly <strong className="text-[#a99bff]">$810–1,790/mo in SaaS subscriptions</strong> + <strong className="text-[#a99bff]">10–15 engineer-weeks</strong> of integration to get the same pre-merge signal.
+            </p>
+            <p className="text-[#9A9A9A] text-[13px] leading-relaxed">
+              That doesn&apos;t replace the runtime tools you should still run in CI and production. It does buy back
+              the time + cost of catching these issues at code-review speed instead of after they ship.
+            </p>
+          </div>
+          <div className="text-center lg:text-right">
+            <p className="font-mono text-[11px] uppercase tracking-wider text-[#a39fd4] mb-1">// TESTFORGE PRO</p>
+            <p className="font-heading text-[48px] text-white leading-none mb-1">$29</p>
+            <p className="text-[#9A9A9A] text-sm">/ month · 21 dimensions in one tool</p>
+          </div>
+        </div>
+
+        <p className="text-[12px] text-[#9A9A9A] mt-6 italic">
+          Pricing references list public May 2026 list prices for Snyk Team, SonarCloud Team, axe DevTools Pro,
+          Percy by BrowserStack, PactFlow Foundation, k6 Cloud Team, LinearB, Sleuth, Faros. Your actual stack
+          and vendors will differ.
+        </p>
+      </div>
+    </section>
+  )
+}
+
+/* ═══════════════════════════════════════════
    Main Page Component
    ═══════════════════════════════════════════ */
 
@@ -619,6 +773,7 @@ export default function Pricing() {
       <HeroSection />
       <PricingCardsSection />
       <ComparisonTableSection />
+      <AlternativeStackSection />
       <FAQSection />
       <CTASection />
     </div>
