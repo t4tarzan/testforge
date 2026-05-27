@@ -46,12 +46,13 @@ Tier-1 analyzers are deterministic — same input always produces the same outpu
 
 ### 🆕 Recent work (2026-05-28)
 
-Shipped **20 npm releases** (`0.6.0 → 0.26.0`) covering:
+Shipped **21 npm releases** (`0.6.0 → 0.26.1`) covering:
 
 - **Spine (phases 4a/4b/4c)** — intra-file → cross-file taint propagation + user-authored rules DSL (`.testforge/rules.yaml`)
 - **16 deepening passes** across all 21 dimensions: substring-matching → AST analysis. Substring traps fixed across the board (e.g. `dep.includes('vite')` no longer matches `vitest`)
 - **Tier 2** (`0.25.0 → 0.25.2`) — LLM-generated Vitest + sandboxed Docker execution, runner image auto-pulled from GHCR
 - **Python support** (`0.26.0`) — FastAPI/Flask/Django routes detected, `requirements.txt` + `pyproject.toml` parsed, pytest counted, `languageCoverage` honesty banner for everything else
+- **Monorepo recursion** (`0.26.1`) — uv workspaces + npm/yarn/bun/pnpm workspaces + PEP 735 `[dependency-groups]` + a string-aware TOML array parser that fixes silent truncation on entries like `"fastapi[standard]"`
 - **127 → 0** ESLint errors with CI gate now blocking
 - **30 → 179** vitest tests (6×)
 

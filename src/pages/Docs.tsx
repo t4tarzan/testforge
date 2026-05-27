@@ -705,7 +705,7 @@ function CliInstallationPage() {
         Verify installation:
       </p>
       <DocCodeBlock
-        code={"testforge-mcp --version\n# @whitenoisenpm/testforge-mcp/0.26.0 darwin-arm64 node-v22.0.0"}
+        code={"testforge-mcp --version\n# @whitenoisenpm/testforge-mcp/0.26.1 darwin-arm64 node-v22.0.0"}
         language="bash"
       />
 
@@ -1477,7 +1477,7 @@ function ApiReferencePage() {
       <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">🔬 Analysis</h2>
       <div className="space-y-6">
         {[
-          { method: 'GET', path: '/health', desc: 'Health check — pings Neon and reports version. No auth. No rate limit.', example: '{"status":"ok","version":"0.26.0","database":"connected"}' },
+          { method: 'GET', path: '/health', desc: 'Health check — pings Neon and reports version. No auth. No rate limit.', example: '{"status":"ok","version":"0.26.1","database":"connected"}' },
           { method: 'GET', path: '/status', desc: 'Public services rollup — Web, MCP server, DB, npm package. 30s cache. No auth.', example: '{"status":"all_systems_operational","services":[{"name":"Web Platform","status":"operational"},…]}' },
           { method: 'POST', path: '/analyze', desc: 'Proxies a clone-and-analyze request to the Fly.io MCP server. Returns the full 21-dimension report verbatim. 504 on upstream timeout, 502 on connection failure — never fabricated data. No auth required to analyze public repos.', body: '{"repoUrl":"https://github.com/owner/repo","branch":"main"}', example: '{"codebase":{"totalFiles":402,…},"security":{"findings":29,…},"mutation":{"score":47,…},…}' },
           { method: 'GET', path: '/analyze', desc: 'Returns the configured MCP server URL + endpoints (for clients that prefer to call it directly).', example: '{"mcpServer":"https://testforge-mcp.fly.dev","endpoints":{…}}' },
@@ -1703,13 +1703,38 @@ function ChangelogPage() {
         <div>
           <div className="flex items-center gap-3 mb-3">
             <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
-              mcp 0.26.0 — Python support (close the polyglot blind spot)
+              mcp 0.26.1 — monorepo / workspace recursion
             </h2>
             <span className="font-mono text-[12px] text-[#9A9A9A]">
               2026-05-28
             </span>
             <span className="font-mono font-medium text-[11px] uppercase px-2 py-0.5 rounded bg-[#E8E5FF] text-[#574a7d]">
               Latest
+            </span>
+          </div>
+          <p className="font-body text-[16px] text-[#333333] leading-[1.7] ml-2 mb-3">
+            A real-world test on <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">tiangolo/full-stack-fastapi-template</code> caught 0.26.0 detecting endpoints + pytest files correctly but still returning <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">dependencies: 0</code> and <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">techStack: []</code>. The actual deps lived in workspace members the scanner never opened, plus a regex bug silently truncated PEP 621 dep lists at the first <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">]</code> — which is inside <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">"fastapi[standard]"</code>.
+          </p>
+          <ul className="list-disc list-inside space-y-2 font-body text-[15px] text-[#333333] leading-[1.7] ml-2 mb-2">
+            <li><strong>uv workspace recursion</strong> — parses <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">[tool.uv.workspace] members = [...]</code> and reads each member's <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">pyproject.toml</code>.</li>
+            <li><strong>Node workspace recursion</strong> — parses <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">package.json "workspaces": [...]</code> (npm/yarn/bun, handles globs like <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">packages/*</code>) and reads <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">pnpm-workspace.yaml</code>.</li>
+            <li><strong>PEP 735 <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">[dependency-groups]</code></strong> — Astral's new standard for dev/test/docs groups. The full-stack-fastapi-template root uses it for <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">zizmor</code> + <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">smokeshow</code>.</li>
+            <li><strong>String-aware bracket balancing</strong> — new <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">extractTomlArrayBody()</code> helper replaces the broken non-greedy regex. Strings (incl. <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">"pkg[extra]"</code>) and nested arrays are now handled.</li>
+            <li><strong><code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">peerDependencies</code> rolled into runtime</strong> — framework targeting (React/Vue/Svelte) now shows in techStack.</li>
+            <li><strong><code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">@playwright/test</code> tagged as Playwright</strong> alongside the bare <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">playwright</code> name.</li>
+          </ul>
+          <p className="font-body text-[15px] text-[#333333] leading-[1.7] ml-2 mt-3">
+            Same input, very different output: <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">tiangolo/full-stack-fastapi-template</code> went from <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">deps: 0, techStack: []</code> to <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">deps: 49 + 21 dev, techStack: 11</code> in 25 ms of scan time. New fixture <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">tests/fixtures/uv-workspace/</code> mirrors that real-world layout. Tests: <strong>179 → 184</strong>.
+          </p>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
+              mcp 0.26.0 — Python support (close the polyglot blind spot)
+            </h2>
+            <span className="font-mono text-[12px] text-[#9A9A9A]">
+              2026-05-28
             </span>
           </div>
           <p className="font-body text-[16px] text-[#333333] leading-[1.7] ml-2 mb-3">
@@ -2151,7 +2176,7 @@ function McpUsageGuidePage() {
       </div>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#12101A] mb-4">🖥️ Local Dashboard (v0.26.0)</h2>
+        <h2 className="text-heading-sm text-[#12101A] mb-4">🖥️ Local Dashboard (v0.26.1)</h2>
         <p className="text-body-md text-[#6B6B6B] mb-4">
           The MCP server ships with a local dashboard at <code className="bg-[#E8E5FF] px-1.5 py-0.5 rounded text-[#574a7d] font-mono text-sm">http://localhost:33221</code>. No cloud, no sign-in, no hosting needed.
         </p>

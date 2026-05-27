@@ -172,18 +172,37 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
   //    + pyproject.toml (Python). All sources are unioned into the same
   //    `dependencies` / `devDependencies` arrays — downstream analyzers
   //    look for known names regardless of language.
+  //
+  //    Monorepos (uv workspaces / npm/yarn/bun/pnpm workspaces) are
+  //    recursed: a root manifest that only declares workspace members
+  //    typically has no runtime deps itself, so we follow each member
+  //    and pull its manifest too. Without this, modern templates like
+  //    tiangolo/full-stack-fastapi-template would report `dependencies:
+  //    0, techStack: []` even though all the real deps live in
+  //    backend/pyproject.toml and frontend/package.json.
   let dependencies: string[] = [];
   let devDependencies: string[] = [];
   const techStack: string[] = [];
 
-  // 4a. Node — package.json
-  try {
-    const pkgPath = join(projectPath, 'package.json');
-    const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
-    dependencies.push(...Object.keys(pkg.dependencies || {}));
-    devDependencies.push(...Object.keys(pkg.devDependencies || {}));
-  } catch {
-    // No package.json — maybe not a Node project
+  // Discover workspace members (paths relative to projectPath). Always
+  // includes '' (the root itself) so we read root manifests too.
+  const pyMemberDirs = ['', ...(await discoverUvWorkspaceMembers(projectPath))];
+  const nodeMemberDirs = ['', ...(await discoverNodeWorkspaceMembers(projectPath))];
+
+  // 4a. Node — package.json across root + every workspace member.
+  for (const subdir of nodeMemberDirs) {
+    try {
+      const pkgPath = join(projectPath, subdir, 'package.json');
+      const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+      dependencies.push(...Object.keys(pkg.dependencies || {}));
+      devDependencies.push(...Object.keys(pkg.devDependencies || {}));
+      // peerDependencies often signal the framework being targeted
+      // (React/Vue/Svelte) — count them as runtime so techStack tagging
+      // catches them.
+      dependencies.push(...Object.keys(pkg.peerDependencies || {}));
+    } catch {
+      // file absent / malformed — fine
+    }
   }
 
   // 4b. Python — requirements.txt (and dev variants). Lines like
@@ -202,7 +221,9 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
       // file absent — fine
     }
   }
-  // Also check common backend/ requirements (dclaw-monitor pattern).
+  // Also check common backend/server/api subdirs for requirements.txt
+  // (dclaw-monitor pattern — backend at known path without uv workspace
+  // declaration).
   for (const subdir of ['backend', 'server', 'api']) {
     try {
       const content = readFileSync(join(projectPath, subdir, 'requirements.txt'), 'utf-8');
@@ -212,15 +233,19 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
     }
   }
 
-  // 4c. Python — pyproject.toml. Minimal regex parse (no toml lib
-  //     dependency); handles PEP 621 [project] and Poetry [tool.poetry].
-  try {
-    const content = readFileSync(join(projectPath, 'pyproject.toml'), 'utf-8');
-    const { runtime, dev } = parsePyProjectToml(content);
-    dependencies.push(...runtime);
-    devDependencies.push(...dev);
-  } catch {
-    // No pyproject.toml — fine
+  // 4c. Python — pyproject.toml across root + every uv workspace member.
+  //     Handles PEP 621 [project], Poetry [tool.poetry.*], and PEP 735
+  //     [dependency-groups] (which the tiangolo full-stack template uses
+  //     at the root for dev tooling).
+  for (const subdir of pyMemberDirs) {
+    try {
+      const content = readFileSync(join(projectPath, subdir, 'pyproject.toml'), 'utf-8');
+      const { runtime, dev } = parsePyProjectToml(content);
+      dependencies.push(...runtime);
+      devDependencies.push(...dev);
+    } catch {
+      // No pyproject.toml at this member — fine
+    }
   }
 
   // Dedupe across sources.
@@ -249,7 +274,7 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
   if (all.includes('tailwindcss')) techStack.push('TailwindCSS');
   if (all.includes('socket.io')) techStack.push('Socket.IO');
   if (all.includes('bull') || all.includes('bullmq')) techStack.push('Queue/Bull');
-  if (all.includes('playwright')) techStack.push('Playwright');
+  if (all.includes('playwright') || all.includes('@playwright/test')) techStack.push('Playwright');
   if (all.includes('cypress')) techStack.push('Cypress');
   // Python stacks
   if (all.includes('fastapi')) techStack.push('FastAPI');
@@ -422,10 +447,13 @@ function parsePyProjectToml(content: string): { runtime: string[]; dev: string[]
   const runtime: string[] = [];
   const dev: string[] = [];
 
-  // PEP 621: dependencies = ["fastapi>=0.110", "pydantic"]
-  const pep621Block = content.match(/^\s*dependencies\s*=\s*\[([\s\S]*?)\]/m);
-  if (pep621Block && pep621Block[1]) {
-    for (const m of pep621Block[1].matchAll(/["']([^"']+)["']/g)) {
+  // PEP 621: dependencies = ["fastapi>=0.110", "pydantic[extra]>=2"]
+  // The naive non-greedy `\[([\s\S]*?)\]` terminates at the FIRST `]`,
+  // which is wrong for entries with [extras] like `fastapi[standard]`.
+  // Use a string-aware bracket scan instead.
+  const pep621Body = extractTomlArrayBody(content, 'dependencies');
+  if (pep621Body) {
+    for (const m of pep621Body.matchAll(/["']([^"']+)["']/g)) {
       const name = m[1].match(/^([A-Za-z0-9_.\-]+)/);
       if (name) runtime.push(name[1].toLowerCase());
     }
@@ -461,5 +489,176 @@ function parsePyProjectToml(content: string): { runtime: string[]; dev: string[]
     }
   }
 
+  // PEP 735: [dependency-groups] table with named arrays
+  //   [dependency-groups]
+  //   dev = ["pytest>=8", "mypy"]
+  //   docs = [...]
+  //
+  // Every named group is treated as dev for our purposes — they're
+  // tooling groups (dev / test / docs / lint / typecheck), not runtime
+  // deps. The tiangolo full-stack-fastapi-template root pyproject.toml
+  // uses exactly this shape for `zizmor` and `smokeshow`.
+  const depGroupsBlock = content.match(/^\s*\[dependency-groups\]([\s\S]*?)(?=^\s*\[|$(?![\s\S]))/m);
+  if (depGroupsBlock && depGroupsBlock[1]) {
+    // Find each `name = [` inside the block. Use the string-aware
+    // extractor for the same `fastapi[standard]` reason as PEP 621.
+    for (const keyM of depGroupsBlock[1].matchAll(/^\s*([A-Za-z0-9_\-]+)\s*=\s*\[/gm)) {
+      const groupName = keyM[1];
+      const body = extractTomlArrayBody(depGroupsBlock[1], groupName);
+      if (!body) continue;
+      for (const m of body.matchAll(/["']([^"']+)["']/g)) {
+        const name = m[1].match(/^([A-Za-z0-9_.\-]+)/);
+        if (name) dev.push(name[1].toLowerCase());
+      }
+    }
+  }
+
   return { runtime, dev };
+}
+
+/**
+ * Extract the body of a TOML array assigned to `key`, returning the text
+ * between the `[` and its matching `]`. String-aware: brackets inside
+ * single- or double-quoted strings (e.g. `"fastapi[standard]"`) are
+ * skipped. Returns null if the key isn't found.
+ *
+ * The previous non-greedy regex (`key\s*=\s*\[([\s\S]*?)\]`) silently
+ * truncated arrays at the first `]` inside the first entry's extras
+ * marker, which broke parsing of any real-world Python project using
+ * `pkg[extra]` syntax (fastapi/sqlalchemy/psycopg/etc.).
+ */
+function extractTomlArrayBody(content: string, key: string): string | null {
+  const re = new RegExp(`^\\s*${key}\\s*=\\s*\\[`, 'm');
+  const m = re.exec(content);
+  if (!m) return null;
+  const start = m.index + m[0].length;
+  let depth = 1;
+  let i = start;
+  let inStr = false;
+  let strCh = '';
+  while (i < content.length) {
+    const c = content[i];
+    if (inStr) {
+      if (c === '\\') { i += 2; continue; }
+      if (c === strCh) inStr = false;
+    } else if (c === '"' || c === "'") {
+      inStr = true;
+      strCh = c;
+    } else if (c === '[') {
+      depth++;
+    } else if (c === ']') {
+      depth--;
+      if (depth === 0) return content.slice(start, i);
+    }
+    i++;
+  }
+  return null;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                          Workspace recursion                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Discover uv workspace members. Reads `[tool.uv.workspace] members = [...]`
+ * from the root pyproject.toml. Members are subdirectory names; uv supports
+ * globs but the common case is an explicit list. Returns relative paths
+ * (no leading slash); empty array if none.
+ */
+async function discoverUvWorkspaceMembers(rootPath: string): Promise<string[]> {
+  let content: string;
+  try {
+    content = readFileSync(join(rootPath, 'pyproject.toml'), 'utf-8');
+  } catch {
+    return [];
+  }
+  const block = content.match(/\[tool\.uv\.workspace\]([\s\S]*?)(?=\n\[|$)/);
+  if (!block) return [];
+  const membersLine = block[1].match(/members\s*=\s*\[([\s\S]*?)\]/);
+  if (!membersLine) return [];
+  const out = new Set<string>();
+  for (const m of membersLine[1].matchAll(/["']([^"']+)["']/g)) {
+    const pattern = m[1];
+    if (pattern.includes('*')) {
+      // uv supports globs; expand them.
+      try {
+        const matches = await glob(pattern, { cwd: rootPath, absolute: false });
+        for (const x of matches) out.add(x);
+      } catch {
+        // skip bad pattern
+      }
+    } else {
+      out.add(pattern);
+    }
+  }
+  return [...out];
+}
+
+/**
+ * Discover Node workspace members (npm / yarn / bun / pnpm). Reads either:
+ *   - `"workspaces": ["packages/*", ...]` from root package.json (npm/yarn/bun)
+ *   - `"workspaces": { "packages": [...] }` (rarer object form)
+ *   - `pnpm-workspace.yaml` with top-level `packages:` list
+ * Patterns can be globs; results are unique subdirectory paths that
+ * actually contain a package.json. Empty array if no workspace declared.
+ */
+async function discoverNodeWorkspaceMembers(rootPath: string): Promise<string[]> {
+  const patterns: string[] = [];
+
+  // package.json "workspaces"
+  try {
+    const pkg = JSON.parse(readFileSync(join(rootPath, 'package.json'), 'utf-8'));
+    const ws = pkg.workspaces;
+    if (Array.isArray(ws)) patterns.push(...ws);
+    else if (ws && typeof ws === 'object' && Array.isArray(ws.packages)) patterns.push(...ws.packages);
+  } catch {
+    // no/invalid root package.json — fine
+  }
+
+  // pnpm-workspace.yaml
+  try {
+    const yaml = await import('js-yaml');
+    const content = readFileSync(join(rootPath, 'pnpm-workspace.yaml'), 'utf-8');
+    const parsed = yaml.load(content) as { packages?: string[] } | null;
+    if (parsed && Array.isArray(parsed.packages)) patterns.push(...parsed.packages);
+  } catch {
+    // file absent / parse error — fine
+  }
+
+  if (patterns.length === 0) return [];
+
+  const out = new Set<string>();
+  for (const pattern of patterns) {
+    if (pattern.includes('*')) {
+      // Glob expansion. Use the glob package to expand the pattern, then
+      // filter to those that have a package.json (a workspace pattern can
+      // legally match directories without package.json — we skip those).
+      try {
+        const matches = await glob(pattern, {
+          cwd: rootPath,
+          absolute: false,
+          dot: false,
+        });
+        for (const m of matches) {
+          try {
+            readFileSync(join(rootPath, m, 'package.json'), 'utf-8');
+            out.add(m);
+          } catch {
+            // not a real workspace package
+          }
+        }
+      } catch {
+        // skip bad pattern
+      }
+    } else {
+      // literal path
+      try {
+        readFileSync(join(rootPath, pattern, 'package.json'), 'utf-8');
+        out.add(pattern);
+      } catch {
+        // skip — listed but missing
+      }
+    }
+  }
+  return [...out];
 }

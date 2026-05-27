@@ -1,0 +1,8 @@
+{
+  "name": "uv-workspace-fixture",
+  "private": true,
+  "workspaces": ["frontend"],
+  "scripts": {
+    "dev": "bun run --filter frontend dev"
+  }
+}

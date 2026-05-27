@@ -64,6 +64,7 @@ const PROPERTY_QUALITY = resolve(__dirname, 'fixtures/property-quality');
 const STACK_MODERN = resolve(__dirname, 'fixtures/stack-modern');
 const STACK_LEGACY = resolve(__dirname, 'fixtures/stack-legacy');
 const POLYGLOT_PYTHON = resolve(__dirname, 'fixtures/polyglot-python');
+const UV_WORKSPACE = resolve(__dirname, 'fixtures/uv-workspace');
 
 describe('code-scanner', () => {
   let vulnInfo: CodebaseInfo;
@@ -174,6 +175,59 @@ describe('code-scanner — Python (FastAPI + requirements + pyproject)', () => {
     expect(info.languageCoverage.coveragePercent).toBe(100);
     expect(info.languageCoverage.unsupportedFiles).toBe(0);
     expect(info.languageCoverage.nativelyAnalyzedFiles).toBeGreaterThanOrEqual(7);
+  });
+});
+
+// Regression for the tiangolo/full-stack-fastapi-template real-world test
+// (2026-05-28): 0.26.0 detected endpoints + pytest files but returned
+// dependencies:0 and techStack:[] because the manifest-discovery code
+// only read root pyproject.toml / package.json — missing the workspace
+// members where deps actually live. 0.26.1 recurses.
+describe('code-scanner — workspace recursion (uv + npm/bun)', () => {
+  let info: CodebaseInfo;
+  beforeAll(async () => {
+    info = await scanCodebase(UV_WORKSPACE);
+  });
+
+  it('follows [tool.uv.workspace] members into backend/pyproject.toml', () => {
+    expect(info.dependencies).toContain('fastapi');
+    expect(info.dependencies).toContain('pydantic');
+    expect(info.dependencies).toContain('sqlmodel');
+    expect(info.dependencies).toContain('alembic');
+    expect(info.dependencies).toContain('psycopg');
+    expect(info.dependencies).toContain('httpx');
+  });
+
+  it('follows package.json "workspaces" into frontend/package.json', () => {
+    expect(info.dependencies).toContain('react');
+    expect(info.dependencies).toContain('react-dom');
+    expect(info.devDependencies).toContain('vite');
+    expect(info.devDependencies).toContain('typescript');
+    expect(info.devDependencies).toContain('@playwright/test');
+  });
+
+  it('parses PEP 735 [dependency-groups] from root pyproject.toml', () => {
+    // Root pyproject.toml declares dev = ["zizmor>=1.23.1", "ruff>=0.5"]
+    // and ci = ["smokeshow>=0.5.0"] under [dependency-groups]. All named
+    // groups land in devDependencies.
+    expect(info.devDependencies).toContain('zizmor');
+    expect(info.devDependencies).toContain('ruff');
+    expect(info.devDependencies).toContain('smokeshow');
+  });
+
+  it('also collects member-level [dependency-groups] (backend dev tools)', () => {
+    // backend/pyproject.toml has [dependency-groups] dev = ["pytest", "mypy"]
+    expect(info.devDependencies).toContain('pytest');
+    expect(info.devDependencies).toContain('mypy');
+  });
+
+  it('tech-stack tagging now sees the full polyglot stack', () => {
+    expect(info.techStack).toContain('FastAPI');
+    expect(info.techStack).toContain('Pydantic');
+    expect(info.techStack).toContain('React');
+    expect(info.techStack).toContain('Playwright');
+    // pytest is named in [dependency-groups] inside backend/pyproject.toml
+    expect(info.techStack).toContain('pytest');
   });
 });
 

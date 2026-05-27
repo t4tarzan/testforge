@@ -1,0 +1,16 @@
+# Root pyproject.toml — uv workspace declaration only. Real deps live
+# in backend/pyproject.toml. Mirrors tiangolo/full-stack-fastapi-template's
+# shape, the case that broke 0.26.0's manifest discovery.
+
+[tool.uv.workspace]
+members = ["backend"]
+
+[dependency-groups]
+dev = [
+  "zizmor>=1.23.1",
+  "ruff>=0.5",
+]
+
+ci = [
+  "smokeshow>=0.5.0",
+]
