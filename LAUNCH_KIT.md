@@ -18,7 +18,7 @@ TestForge is the first testing platform that analyzes your code across 21 dimens
 
 **Link:** https://testforge.run
 **GitHub:** https://github.com/t4tarzan/testforge
-**npm:** npx @whitenoisenpm/testforge-mcp install
+**npm:** npx @whitenoisenpm/testforge-mcp@latest
 
 **Topics:** Developer Tools, Testing, AI, DevOps, Open Source, SaaS
 

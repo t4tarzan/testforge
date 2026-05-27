@@ -33,7 +33,7 @@ export default function OnboardingModal() {
     },
     {
       title: 'Install MCP for IDE',
-      description: 'Get real-time analysis in Cursor or VS Code with one command: npx @whitenoisenpm/testforge-mcp install',
+      description: 'Get real-time analysis in Cursor or VS Code with one command: npx @whitenoisenpm/testforge-mcp@latest',
       icon: Zap,
       action: { label: 'MCP Docs', path: '/#/mcp' },
     },

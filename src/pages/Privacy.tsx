@@ -25,7 +25,7 @@ export default function Privacy() {
           <Section title="What we collect">
             <SubSection title="Local mode (MCP / CLI) — almost nothing">
               <p>
-                When you run <code className="font-mono text-[13px] bg-white border border-[#E8E5FF] px-1.5 py-0.5 rounded">npx @whitenoisenpm/testforge-mcp</code>{' '}
+                When you run <code className="font-mono text-[13px] bg-white border border-[#E8E5FF] px-1.5 py-0.5 rounded">npx @whitenoisenpm/testforge-mcp@latest</code>{' '}
                 or use the MCP server from your IDE, the binary executes entirely on your machine. We do not receive
                 your code, your analysis results, or any telemetry. If the MCP is configured to call our hosted
                 completion endpoints, the request payloads are limited to the prompts you explicitly send and contain

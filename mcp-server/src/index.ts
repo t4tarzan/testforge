@@ -35,6 +35,18 @@ import { runAgenticScalePrediction } from './analyzers/agentic-scale.js';
 import { generateTestsForFindings, type InputFinding } from './generator/generate-tests.js';
 import { hasLLMKey, PRIMARY_MODEL, FALLBACK_MODEL } from './generator/llm-client.js';
 import { runGeneratedTests } from './runner/docker-runner.js';
+import { readFileSync } from 'fs';
+
+// Single source of truth for the version string — read from package.json at
+// startup so /health never drifts from what npm shows on the package page.
+const PKG_VERSION: string = (() => {
+  try {
+    const pkgPath = join(import.meta.dirname, '..', 'package.json');
+    return JSON.parse(readFileSync(pkgPath, 'utf8')).version || '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+})();
 
 // 33221 is the default. It's high enough to avoid common dev-server clashes
 // (3001/3000/5173/8080) and conflicts on developer machines that run a lot
@@ -60,7 +72,7 @@ async function main() {
   });
 
   // Health check
-  app.get('/health', async () => ({ status: 'ok', version: '0.6.0' }));
+  app.get('/health', async () => ({ status: 'ok', version: PKG_VERSION }));
 
   // ── Tier 2 — Generate & Run (Day 1: generate only, no sandbox yet) ──
   //

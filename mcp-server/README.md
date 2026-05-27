@@ -17,22 +17,78 @@ npx @whitenoisenpm/testforge-mcp@latest serve
 | **Product & ops** | Vision/goal alignment (observability, analytics, feature flags), scope coverage, stack quality, DORA estimate, agentic-scale prediction |
 | **UI** | Accessibility (WCAG-ish): alt text, form labels, visual-regression hints |
 
-All analysis is regex/static — fast, no LLM calls, deterministic. Same input → same output (replaces the previous `Math.random()` heuristics in v0.2.16 and earlier).
+All Tier-1 analysis is regex/static — fast, no LLM calls, deterministic. Same input → same output. **Tier 2 (Generate & Run)** layers an LLM on top: it writes Vitest tests for the top findings and executes them inside a sandboxed Docker container. See the Tier 2 section below.
 
-## Quick Start
+## Quick Start (Tier 1)
 
 ```bash
-# One-command install: writes MCP config into your IDE
-npx @whitenoisenpm/testforge-mcp install
-
-# Or start the server directly (port 33221)
-npx @whitenoisenpm/testforge-mcp serve
+# Start the server (port 33221)
+npx @whitenoisenpm/testforge-mcp@latest
 
 # Dashboard:
 open http://localhost:33221
 ```
 
-The dashboard lets you paste a local project path **or** a public GitHub URL, runs the full 21-dimension analysis, and persists each run to SQLite at `~/.testforge/history.db` so `/reports` shows your history.
+The dashboard lets you paste a local project path **or** a public GitHub URL, runs the full 21-dimension analysis, and persists each run to SQLite at `~/.testforge/history.db` so `/reports` shows your history. Everything stays on your machine — no API keys required.
+
+## Tier 2 — Generate & Run (LLM tests + sandbox)
+
+> Added in **v0.25.0**. Tier 1 keeps working without any extra setup. Tier 2 needs an OpenRouter API key and a one-time Docker image build.
+
+```bash
+# 1. Get a free OpenRouter API key — https://openrouter.ai/
+export OPENROUTER_API_KEY=sk-or-v1-...
+
+# 2. Build the sandbox runner image (one time, ~30s)
+docker build -t testforge-runner:local \
+  $(npm root -g)/@whitenoisenpm/testforge-mcp/runner
+
+# 3. Start the server with the key in env
+OPENROUTER_API_KEY=$OPENROUTER_API_KEY \
+  npx @whitenoisenpm/testforge-mcp@latest
+
+# 4. In the dashboard, click "🤖 Generate Tests (Tier 2)"
+#    under any analysis report — three Vitest files generated,
+#    executed in the sandbox, pass/fail returned.
+```
+
+**What it does**: takes the top-3 highest-severity findings from a Tier-1 run, sends each to the LLM with a Zod-enforced schema (filename, content, reasoning), then drops the generated `.test.ts` files into a `node:22-slim` container (`--network=none`, `--rm`) where Vitest runs them with the JSON reporter.
+
+**Provider stack** (both routed through OpenRouter under one key):
+
+| Model | Role | Override |
+|---|---|---|
+| `qwen/qwen3.7-max` | Primary — 1M context, top-tier reasoning | `TESTFORGE_PRIMARY_MODEL` |
+| `deepseek/deepseek-v4-flash` | Fallback — cheap, fast, different lineage | `TESTFORGE_FALLBACK_MODEL` |
+
+**Endpoint shape**:
+
+```bash
+curl -X POST http://localhost:33221/generate-and-run \
+  -H "Content-Type: application/json" \
+  -d '{
+    "findings": [{ "title": "…", "description": "…", "filePath": "…",
+                   "lineNumber": 42, "severity": "high", "rule": "…",
+                   "fixSuggestion": "…" }],
+    "maxFindings": 3,
+    "cluster": "edge-case"
+  }'
+# → { generationId, provider, generationMs, runMs,
+#     results: [{ finding, file: { filename, content, reasoning },
+#                 attempts: [{ model, ok, durationMs }] }],
+#     run: { numPassedTests, numFailedTests, files: [...] } }
+```
+
+History endpoints:
+
+| Endpoint | Returns |
+|---|---|
+| `GET /api/generations` | List of recent Tier-2 generations (id, cluster, provider, pass/fail counts) |
+| `GET /api/generations/:id` | One generation with the full payload (source files + run details) |
+
+**Cost** at OpenRouter list prices: roughly **$0.02 per Tier-2 invocation** (3 generations × ~1.5k output tokens at Qwen 3.7 Max pricing). Sandbox compute is free locally.
+
+**Self-host vs managed**: the local MCP runs Tier 2 with no quota — you BYOK OpenRouter and pay them directly. The managed SaaS at [testforge.run](https://testforge.run) gates Tier 2 to the **Forge plan** ($99/mo, 100 iterations/mo) and handles the keys for you.
 
 ## Manual MCP Setup
 
@@ -45,9 +101,10 @@ Open IDE settings → MCP → add server:
   "mcpServers": {
     "testforge": {
       "command": "npx",
-      "args": ["-y", "@whitenoisenpm/testforge-mcp", "serve"],
+      "args": ["-y", "@whitenoisenpm/testforge-mcp@latest"],
       "env": {
-        "TESTFORGE_MCP_PORT": "33221"
+        "TESTFORGE_MCP_PORT": "33221",
+        "OPENROUTER_API_KEY": "sk-or-v1-…  (optional — only needed for Tier 2)"
       }
     }
   }
@@ -118,9 +175,14 @@ Your source never leaves the machine — the dashboard is local, the analyzers a
 | `TMP_DIR` | `/tmp/testforge-repos` | Where `/clone-and-analyze` puts temp checkouts. |
 | `LOG_LEVEL` | `info` | Fastify logger level (`debug`, `info`, `warn`, `error`). |
 | `DATABASE_URL` | — | Optional. If set, the server can fall back to Neon for read-replica history. Not required for local-only use. |
+| `OPENROUTER_API_KEY` | — | **Tier 2 only.** OpenRouter key for LLM test generation. Without it, `POST /generate-and-run` returns 503. Get one at https://openrouter.ai/. |
+| `TESTFORGE_PRIMARY_MODEL` | `qwen/qwen3.7-max` | Tier 2 primary model. Any OpenRouter model id works. |
+| `TESTFORGE_FALLBACK_MODEL` | `deepseek/deepseek-v4-flash` | Tier 2 fallback when the primary errors or rejects the schema. |
+| `TESTFORGE_RUNNER_IMAGE` | `testforge-runner:local` | Tier 2 sandbox image. Build with `docker build mcp-server/runner` once. |
 
 ## Changelog highlights
 
+- **0.25.0** — **Tier 2: Generate & Run.** New `POST /generate-and-run` endpoint takes findings from a Tier-1 report, generates one Vitest file per finding via OpenRouter (primary: Qwen 3.7 Max, fallback: DeepSeek V4 Flash), executes them inside a pre-baked Docker container (`node:22-slim` + vitest, `--network=none --rm`), and returns structured pass/fail JSON. Provider rotation is automatic on rate-limit or schema rejection; both attempts are recorded. New `~/.testforge/history.db.generations` table persists every iteration. New `GET /api/generations` + `GET /api/generations/:id` endpoints. Dashboard grows a "🤖 Generate Tests (Tier 2)" button under any report. Env overrides: `TESTFORGE_PRIMARY_MODEL`, `TESTFORGE_FALLBACK_MODEL`, `TESTFORGE_RUNNER_IMAGE`. Self-host has no quota (BYOK pays OpenRouter); managed SaaS gates Tier 2 to the Forge plan ($99/mo · 100 iterations/mo). Verified end-to-end against `tinyhttp/malibu`: 3 findings → 3 Vitest files → sandbox run in ~45s total. Demo video at https://testforge.run/malibu-tier2.mp4.
 - **0.24.0** — Dimension deepening, pass 16. **Stack analysis** polished — substring traps eliminated and new signals added. Old code: `dep.includes('vite')` matched `vitest`, `vitest-mock-extended`, `vite-something-else` (vitest is a test framework, NOT a bundler — false strength). Now uses strict Sets per category for: test frameworks (jest/vitest/mocha/ava/tap/node-tap/@japa/runner/uvu/tape), lint tools (eslint/prettier/@biomejs/biome/rome/standard/xo/oxlint), ORMs (Prisma/Drizzle/TypeORM/Sequelize/Mongoose/MikroORM/Kysely/Knex/Objection), caches (Redis/ioredis/@upstash/memcached/lru-cache/node-cache/cache-manager), monorepo (Turbo/Nx/Lerna/Rush/Changesets), modern bundlers (vite/esbuild/SWC/Turbopack/Parcel/Rspack/Rollup), and new categories: modern frameworks (Next/Remix/Astro/Nuxt/SvelteKit/SolidStart/Qwik/Hono/h3), runtime validation (Zod/Yup/Joi/ajv/Valibot/Arktype/Effect/io-ts/class-validator), tRPC, TS runtimes (tsx/ts-node/esno). **New tsconfig strict-mode detection**: parses `tsconfig.json` and emits a low-severity finding when TypeScript is present but `compilerOptions.strict` is not true. **New "API server without validation library"** finding: medium severity, fires only when a server framework is detected (Express/Fastify/Koa/Hono/NestJS) and no Zod/Yup/Joi/Valibot is in deps. Monorepo detection now also looks at `nx.json` and `pnpm-workspace.yaml` (not just turbo.json). Tests: 159 → 166. New fixtures `tests/fixtures/stack-modern/` (Next + Hono + Prisma + Zod + tRPC + Vitest + Vite + Biome + tsconfig strict) and `tests/fixtures/stack-legacy/` (Express + Mongo + no TS + `vite-something-else` and `vitest-mock-extended` traps that must NOT count).
 - **0.23.0** — Dimension deepening, pass 15. **Visual regression** and **property-based testing** both move from substring soup to AST-aware signals. **Visual regression**: new `lib/visual-regression.ts` walks JSXAttribute nodes for the `style` attribute, counts REAL `style={{…}}` props (not lines containing "style="), and inspects each object property's string value for hardcoded pixel values (`/(\d{2,4})px\b/g`) and inline hex color literals (`#abc` / `#abcdef` / `#abcdef00`). Findings fire at proper thresholds (≥3 files with inline styles + no CSS Modules → medium; ≥10 hardcoded px / ≥5 inline colors → low). **Property-based testing**: new `lib/property-based.ts` removes the previous noisy "function with this.* > 1 is impure" heuristic (fired on every class method) and replaces substring checks with proper AST detection: imports of `fast-check` / `jsverify` / `@fast-check/vitest`; `fc.assert()` / `fc.property()` / `fc.check()` call sites; `typeof x === '…'` / `Array.isArray(x)` / `x instanceof Class` type guards; `assert(...)` / `invariant(...)` runtime invariants. New scope-aware findings: "no framework", "framework but no `fc.assert` calls" (catches `import` without usage), "no runtime invariants". Tests: 150 → 159. New fixtures: `tests/fixtures/visual-quality/` (Bad.tsx with 3 components heavy in inline styles + comment trap; Good.tsx using CSS Modules) and `tests/fixtures/property-quality/` (util.js with type guards + assert.ok; util.property.test.js with two `fc.property` invariants).
 - **0.22.0** — Dimension deepening, pass 14. **Edge-case detection** moves from broken line-level checks (the old code asked "does the ENTIRE PROJECT contain `.length`?" to decide if any array access was bounds-checked — false clean on every real project) to AST-aware footgun detection. New `lib/edge-cases.ts` catches six real bug shapes: (1) `parseInt(x)` without explicit radix (MDN best-practice); (2) `JSON.parse(x)` outside a try/catch (range-tracks try blocks via pre-pass); (3) `new Date(nonLiteralString)` (Invalid Date silently breaks downstream math); (4) loose equality `==`/`!=` (with the `== null` exception preserved as canonical nullish check); (5) `Number(x)` used inline in a binary expression / return / member access where guarding is structurally impossible (parent-aware Babel traverse to skip `const n = Number(x)` cases); (6) `switch` without `default:`. Public report grows a `byRule` field with hit counts per rule. Score: weighted cost per rule (JSON-parse 4pts, parseInt/Number 2pts, switch/loose 1pt). Tests: 141 → 150. New fixture `tests/fixtures/edge-cases/` with `src/bad.js` (every rule fires) and `src/good.js` (well-guarded variants; nothing fires, including `== null` and `const n = Number(x); if (isNaN(n))…`).

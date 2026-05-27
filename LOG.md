@@ -4,7 +4,7 @@
 
 **Started**: May 24, 2026 | **Last Updated**: May 25, 2026  
 **URL**: https://testforge.run | **GitHub**: https://github.com/t4tarzan/testforge  
-**npm**: `@whitenoisenpm/testforge-mcp` (v0.2.17)
+**npm**: `@whitenoisenpm/testforge-mcp` (v0.25.0)
 
 ---
 
@@ -31,8 +31,8 @@
 
 ┌──────────────────────────────────────────────────────┐
 │  Local MCP (npm package)                             │
-│  npx @whitenoisenpm/testforge-mcp serve              │
-│  Dashboard: http://localhost:3001                    │
+│  npx @whitenoisenpm/testforge-mcp@latest             │
+│  Dashboard: http://localhost:33221                   │
 │  SQLite: ~/.testforge/history.db                     │
 │  🔒 Code never leaves the machine                    │
 └──────────────────────────────────────────────────────┘
@@ -166,9 +166,8 @@ Located in `mcp-server/src/analyzers/`:
 ## 📦 npm Package
 
 ```
-npx @whitenoisenpm/testforge-mcp install   # IDE setup guide
-npx @whitenoisenpm/testforge-mcp serve     # Start MCP server (port 3001)
-npx @whitenoisenpm/testforge-mcp score <url> # CLI score (CI/CD)
+npx @whitenoisenpm/testforge-mcp@latest    # Start MCP server (port 33221)
+                                            # Dashboard: http://localhost:33221
 ```
 
 **Version**: 0.2.17 | **Size**: ~165KB | **Files**: 24
@@ -250,8 +249,8 @@ npm run dev    # → localhost:9999
 
 ### Local MCP
 ```bash
-npx @whitenoisenpm/testforge-mcp@0.2.17 serve
-open http://localhost:3001
+npx @whitenoisenpm/testforge-mcp@latest
+open http://localhost:33221
 ```
 
 ### Deploy

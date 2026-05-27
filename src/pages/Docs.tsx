@@ -705,7 +705,7 @@ function CliInstallationPage() {
         Verify installation:
       </p>
       <DocCodeBlock
-        code={"testforge-mcp --version\n# @whitenoisenpm/testforge-mcp/0.24.0 darwin-arm64 node-v20.11.0"}
+        code={"testforge-mcp --version\n# @whitenoisenpm/testforge-mcp/0.25.0 darwin-arm64 node-v22.0.0"}
         language="bash"
       />
 
@@ -762,7 +762,7 @@ function McpServerPage() {
       <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         One-Line Install
       </h2>
-      <DocCodeBlock code="npx @whitenoisenpm/testforge-mcp install" language="bash" />
+      <DocCodeBlock code="npx @whitenoisenpm/testforge-mcp@latest" language="bash" />
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
         This installs the MCP server and guides you through IDE configuration.
       </p>
@@ -1477,7 +1477,7 @@ function ApiReferencePage() {
       <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">🔬 Analysis</h2>
       <div className="space-y-6">
         {[
-          { method: 'GET', path: '/health', desc: 'Health check — pings Neon and reports version. No auth. No rate limit.', example: '{"status":"ok","version":"0.24.0","database":"connected"}' },
+          { method: 'GET', path: '/health', desc: 'Health check — pings Neon and reports version. No auth. No rate limit.', example: '{"status":"ok","version":"0.25.0","database":"connected"}' },
           { method: 'GET', path: '/status', desc: 'Public services rollup — Web, MCP server, DB, npm package. 30s cache. No auth.', example: '{"status":"all_systems_operational","services":[{"name":"Web Platform","status":"operational"},…]}' },
           { method: 'POST', path: '/analyze', desc: 'Proxies a clone-and-analyze request to the Fly.io MCP server. Returns the full 21-dimension report verbatim. 504 on upstream timeout, 502 on connection failure — never fabricated data. No auth required to analyze public repos.', body: '{"repoUrl":"https://github.com/owner/repo","branch":"main"}', example: '{"codebase":{"totalFiles":402,…},"security":{"findings":29,…},"mutation":{"score":47,…},…}' },
           { method: 'GET', path: '/analyze', desc: 'Returns the configured MCP server URL + endpoints (for clients that prefer to call it directly).', example: '{"mcpServer":"https://testforge-mcp.fly.dev","endpoints":{…}}' },
@@ -1594,7 +1594,7 @@ function TroubleshootingPage() {
         </li>
         <li>
           Port already in use? Override with{' '}
-          <Code>TESTFORGE_MCP_PORT=9000 npx @whitenoisenpm/testforge-mcp serve</Code>
+          <Code>TESTFORGE_MCP_PORT=9000 npx @whitenoisenpm/testforge-mcp@latest</Code>
         </li>
         <li>
           The local MCP requires no API key — it's fully on-machine. Don't set{' '}
@@ -1917,7 +1917,7 @@ function McpIdeSetupPage() {
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
         <h2 className="text-heading-sm text-[#12101A] mb-4">One-Command Installation</h2>
         <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm text-[#a39fd4] overflow-x-auto mb-4">
-          npx @whitenoisenpm/testforge-mcp install
+          npx @whitenoisenpm/testforge-mcp@latest
         </div>
         <p className="text-body-md text-[#6B6B6B] mb-4">
           This automatically detects your IDE and configures the MCP connection. TestForge supports:
@@ -2135,7 +2135,7 @@ function McpUsageGuidePage() {
         <h2 className="text-heading-sm text-[#12101A] mb-4">Quick Start Flow</h2>
         <div className="space-y-4">
           {[
-            { step: '1', title: 'Install MCP Server', cmd: 'npx @whitenoisenpm/testforge-mcp install' },
+            { step: '1', title: 'Install MCP Server', cmd: 'npx @whitenoisenpm/testforge-mcp@latest' },
             { step: '2', title: 'Open Your Project in Cursor/VS Code', cmd: 'code .' },
             { step: '3', title: 'Ask Your AI Assistant', cmd: '"Analyze this project for security vulnerabilities"' },
             { step: '4', title: 'Review Results in IDE', desc: 'Findings appear inline with file paths and line numbers' },

@@ -59,7 +59,7 @@ function SectionReveal({
 function HeroSection() {
   const [showManual, setShowManual] = useState(false);
   const [typedText, setTypedText] = useState('');
-  const fullCommand = 'npx @whitenoisenpm/testforge-mcp install';
+  const fullCommand = 'npx @whitenoisenpm/testforge-mcp@latest';
   const sectionRef = useRef<HTMLDivElement>(null);
   const inView = useInView(sectionRef, { once: true });
 
@@ -167,7 +167,7 @@ function HeroSection() {
 
             {/* Copy button */}
             <div className="absolute top-[60px] right-6">
-              <CopyButton text="npx @whitenoisenpm/testforge-mcp install" />
+              <CopyButton text="npx @whitenoisenpm/testforge-mcp@latest" />
             </div>
           </div>
         </motion.div>
@@ -301,7 +301,7 @@ const ideConfigs = [
   "mcpServers": {
     "testforge": {
       "command": "npx",
-      "args": ["-y", "@whitenoisenpm/testforge-mcp", "serve"],
+      "args": ["-y", "@whitenoisenpm/testforge-mcp@latest"],
       "env": {
         "TESTFORGE_MCP_PORT": "33221"
       }
@@ -323,7 +323,7 @@ const ideConfigs = [
     "testforge": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@whitenoisenpm/testforge-mcp", "serve"]
+      "args": ["-y", "@whitenoisenpm/testforge-mcp@latest"]
     }
   }
 }`,
@@ -341,7 +341,7 @@ const ideConfigs = [
   "mcpServers": {
     "testforge": {
       "command": "npx",
-      "args": ["-y", "@whitenoisenpm/testforge-mcp", "serve"]
+      "args": ["-y", "@whitenoisenpm/testforge-mcp@latest"]
     }
   }
 }`,
@@ -359,7 +359,7 @@ const ideConfigs = [
   "mcpServers": {
     "testforge": {
       "command": "npx",
-      "args": ["-y", "@whitenoisenpm/testforge-mcp", "serve"]
+      "args": ["-y", "@whitenoisenpm/testforge-mcp@latest"]
     }
   }
 }`,
@@ -374,11 +374,11 @@ const ideConfigs = [
     description: 'Register the MCP server with Claude Code.',
     config: `# Add to Claude Code (uses default port 33221)
 claude mcp add testforge \\
-  npx -y @whitenoisenpm/testforge-mcp serve
+  npx -y @whitenoisenpm/testforge-mcp@latest
 
 # Or override the port:
 TESTFORGE_MCP_PORT=9000 claude mcp add testforge \\
-  npx -y @whitenoisenpm/testforge-mcp serve`,
+  npx -y @whitenoisenpm/testforge-mcp@latest`,
     buttonText: 'Add to Claude Code',
     buttonStyle: 'ghost' as const,
     language: 'bash',
@@ -394,7 +394,7 @@ TESTFORGE_MCP_PORT=9000 claude mcp add testforge \\
   "name": "testforge",
   "transport": "stdio",
   "command": "npx",
-  "args": ["-y", "@whitenoisenpm/testforge-mcp", "serve"],
+  "args": ["-y", "@whitenoisenpm/testforge-mcp@latest"],
   "description": "21-dimension code analysis (local)"
 }`,
     buttonText: 'Copy Config',
@@ -542,7 +542,7 @@ const steps = [
     icon: Download,
     number: '01',
     title: 'Install',
-    description: 'Run npx @whitenoisenpm/testforge-mcp install — takes 10 seconds.',
+    description: 'Run npx @whitenoisenpm/testforge-mcp@latest — takes 10 seconds.',
   },
   {
     icon: Settings,
@@ -721,7 +721,7 @@ function HowItWorksSection() {
    TERMINAL DEMO SECTION
    ──────────────────────────────────────────── */
 const terminalLines = [
-  { text: '$ npx @whitenoisenpm/testforge-mcp install', color: '#E8E8E3' },
+  { text: '$ npx @whitenoisenpm/testforge-mcp@latest', color: '#E8E8E3' },
   { text: '✓ MCP server installed (2.3s)', color: '#7a6fad' },
   { text: '✓ Detected project: express-ecommerce-api', color: '#7a6fad' },
   { text: '✓ Found 47 endpoints, 12 middleware functions', color: '#7a6fad' },
@@ -996,7 +996,7 @@ function CTASection() {
   const [typedText, setTypedText] = useState('');
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true });
-  const fullCommand = 'npx @whitenoisenpm/testforge-mcp install';
+  const fullCommand = 'npx @whitenoisenpm/testforge-mcp@latest';
 
   useEffect(() => {
     if (!inView) return;
@@ -1051,7 +1051,7 @@ function CTASection() {
               </span>
             </div>
             <div className="mt-4 flex justify-end">
-              <CopyButton text="npx @whitenoisenpm/testforge-mcp install" size="sm" />
+              <CopyButton text="npx @whitenoisenpm/testforge-mcp@latest" size="sm" />
             </div>
           </div>
         </motion.div>
