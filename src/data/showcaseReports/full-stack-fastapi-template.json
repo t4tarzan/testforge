@@ -1,0 +1,137 @@
+{
+  "slug": "full-stack-fastapi-template",
+  "repoUrl": "https://github.com/tiangolo/full-stack-fastapi-template",
+  "repoName": "full-stack-fastapi-template",
+  "tagline": "Next.js + FastAPI starter \u2014 exercises polyglot detection end-to-end",
+  "analyzedAt": "2026-05-27T21:49:41.079Z",
+  "analyzeMs": 422,
+  "codebase": {
+    "totalFiles": 183,
+    "totalLines": 16626,
+    "endpoints": 24,
+    "dependencies": 49,
+    "techStack": [
+      "React",
+      "TypeScript",
+      "Zod",
+      "TailwindCSS",
+      "Playwright",
+      "FastAPI",
+      "Pydantic",
+      "Alembic",
+      "pytest",
+      "HTTP client (httpx/requests)",
+      "PostgreSQL"
+    ],
+    "languageCoverage": {
+      "nativelyAnalyzedFiles": 142,
+      "unsupportedFiles": 0,
+      "coveragePercent": 100,
+      "unsupportedLanguages": []
+    }
+  },
+  "unit": {
+    "coverage": 74,
+    "testFiles": 23,
+    "totalTests": 121,
+    "frameworks": [
+      "pytest"
+    ]
+  },
+  "security": {
+    "findings": 3,
+    "critical": 1,
+    "high": 0,
+    "medium": 2,
+    "low": 0,
+    "topItems": [
+      {
+        "severity": "critical",
+        "title": "Potential SQL/NoSQL Injection",
+        "description": "request.get() is called with a string built from variables. Verify the inputs are bound, not concatenated.",
+        "filePath": "frontend/tests/utils/mailcatcher.ts",
+        "lineNumber": 16,
+        "fixSuggestion": "Use parameterized queries (placeholders like $1, $2) or an ORM. If you must build dynamic SQL, allowlist the variable parts and pass user values via bound parameters."
+      },
+      {
+        "severity": "medium",
+        "title": "Missing Rate Limiting",
+        "description": "No rate-limit package detected. Auth endpoints in particular should be rate-limited.",
+        "filePath": "/tmp/testforge-showcase-full-stack-fastapi-template/package.json",
+        "lineNumber": 1,
+        "fixSuggestion": "Install express-rate-limit, @fastify/rate-limit, or roll a Redis-backed limiter."
+      },
+      {
+        "severity": "medium",
+        "title": "Potentially Vulnerable Dependency: axios",
+        "description": "Versions < 0.21.1 \u2014 SSRF CVE-2020-28168",
+        "filePath": "package.json",
+        "lineNumber": 1,
+        "fixSuggestion": "Run npm/pnpm audit; update axios to a patched version."
+      }
+    ]
+  },
+  "scores": [
+    {
+      "key": "security",
+      "label": "Security",
+      "score": 80
+    },
+    {
+      "key": "unit",
+      "label": "Unit Tests",
+      "score": 74
+    },
+    {
+      "key": "accessibility",
+      "label": "Accessibility",
+      "score": 89
+    },
+    {
+      "key": "vision",
+      "label": "Vision",
+      "score": 45
+    },
+    {
+      "key": "scope",
+      "label": "Scope",
+      "score": 225
+    },
+    {
+      "key": "stack",
+      "label": "Stack",
+      "score": 61
+    },
+    {
+      "key": "chaos",
+      "label": "Chaos / Resilience",
+      "score": 100
+    },
+    {
+      "key": "mutation",
+      "label": "Mutation",
+      "score": 0
+    },
+    {
+      "key": "predictive",
+      "label": "Predictive Risk",
+      "score": 84
+    },
+    {
+      "key": "supplyChain",
+      "label": "Supply Chain",
+      "score": 94
+    },
+    {
+      "key": "dora",
+      "label": "DORA",
+      "score": 25
+    },
+    {
+      "key": "agentic",
+      "label": "Agentic Scale",
+      "score": 55
+    }
+  ],
+  "overall": 78
+}

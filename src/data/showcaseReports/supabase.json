@@ -1,0 +1,176 @@
+{
+  "slug": "supabase",
+  "repoUrl": "https://github.com/supabase/supabase",
+  "repoName": "supabase",
+  "tagline": "78k-star OSS Firebase alt \u2014 TypeScript monorepo with multi-language services",
+  "analyzedAt": "2026-05-27T21:53:49.415Z",
+  "analyzeMs": 50504,
+  "codebase": {
+    "totalFiles": 7658,
+    "totalLines": 2161325,
+    "endpoints": 632,
+    "dependencies": 252,
+    "techStack": [
+      "Next.js",
+      "React",
+      "TypeScript",
+      "Testing",
+      "Zod",
+      "TailwindCSS",
+      "Playwright"
+    ],
+    "languageCoverage": {
+      "nativelyAnalyzedFiles": 6860,
+      "unsupportedFiles": 107,
+      "coveragePercent": 98,
+      "unsupportedLanguages": [
+        {
+          "language": "Kotlin",
+          "files": 58
+        },
+        {
+          "language": "Dart",
+          "files": 29
+        },
+        {
+          "language": "Swift",
+          "files": 14
+        },
+        {
+          "language": "C/C++ header",
+          "files": 4
+        },
+        {
+          "language": "Elixir",
+          "files": 1
+        },
+        {
+          "language": "Rust",
+          "files": 1
+        }
+      ]
+    }
+  },
+  "unit": {
+    "coverage": 90,
+    "testFiles": 422,
+    "totalTests": 4275,
+    "frameworks": [
+      "Testing Library",
+      "Vitest",
+      "pytest"
+    ]
+  },
+  "security": {
+    "findings": 170,
+    "critical": 125,
+    "high": 28,
+    "medium": 13,
+    "low": 0,
+    "topItems": [
+      {
+        "severity": "critical",
+        "title": "Potential SQL/NoSQL Injection",
+        "description": "url.searchParams.get() is called with a string built from variables. Verify the inputs are bound, not concatenated.",
+        "filePath": "supabase/functions/og-images/handler.tsx",
+        "lineNumber": 36,
+        "fixSuggestion": "Use parameterized queries (placeholders like $1, $2) or an ORM. If you must build dynamic SQL, allowlist the variable parts and pass user values via bound parameters."
+      },
+      {
+        "severity": "info",
+        "title": "File too large to analyze",
+        "description": "File exceeds the 500 KB analyzer cap. Likely generated / bundled output.",
+        "filePath": "packages/api-types/types/platform.d.ts",
+        "lineNumber": 1,
+        "fixSuggestion": "Exclude generated files from the analyzed tree (e.g. dist/, build/, .next/)."
+      },
+      {
+        "severity": "high",
+        "title": "Route Without Inline Auth",
+        "description": "app.get() declares a route with no visible auth middleware. If your app uses a global auth middleware, suppress this with a comment.",
+        "filePath": "examples/oauth-app-authorization-flow/src/index.ts",
+        "lineNumber": 17,
+        "fixSuggestion": "Either pass an auth middleware function in the args list, or annotate the file with `// testforge-disable-file authentication-bypass` if a global middleware is intentional."
+      },
+      {
+        "severity": "high",
+        "title": "Route Without Inline Auth",
+        "description": "app.get() declares a route with no visible auth middleware. If your app uses a global auth middleware, suppress this with a comment.",
+        "filePath": "examples/oauth-app-authorization-flow/src/index.ts",
+        "lineNumber": 34,
+        "fixSuggestion": "Either pass an auth middleware function in the args list, or annotate the file with `// testforge-disable-file authentication-bypass` if a global middleware is intentional."
+      },
+      {
+        "severity": "critical",
+        "title": "Potential SQL/NoSQL Injection",
+        "description": "query() is called with a string built from variables. Verify the inputs are bound, not concatenated.",
+        "filePath": "e2e/studio/features/table-editor.spec.ts",
+        "lineNumber": 198,
+        "fixSuggestion": "Use parameterized queries (placeholders like $1, $2) or an ORM. If you must build dynamic SQL, allowlist the variable parts and pass user values via bound parameters."
+      }
+    ]
+  },
+  "scores": [
+    {
+      "key": "security",
+      "label": "Security",
+      "score": 0
+    },
+    {
+      "key": "unit",
+      "label": "Unit Tests",
+      "score": 90
+    },
+    {
+      "key": "accessibility",
+      "label": "Accessibility",
+      "score": 10
+    },
+    {
+      "key": "vision",
+      "label": "Vision",
+      "score": 100
+    },
+    {
+      "key": "scope",
+      "label": "Scope",
+      "score": 125
+    },
+    {
+      "key": "stack",
+      "label": "Stack",
+      "score": 100
+    },
+    {
+      "key": "chaos",
+      "label": "Chaos / Resilience",
+      "score": 100
+    },
+    {
+      "key": "mutation",
+      "label": "Mutation",
+      "score": 37
+    },
+    {
+      "key": "predictive",
+      "label": "Predictive Risk",
+      "score": 10
+    },
+    {
+      "key": "supplyChain",
+      "label": "Supply Chain",
+      "score": 49
+    },
+    {
+      "key": "dora",
+      "label": "DORA",
+      "score": 65
+    },
+    {
+      "key": "agentic",
+      "label": "Agentic Scale",
+      "score": 85
+    }
+  ],
+  "overall": 64
+}

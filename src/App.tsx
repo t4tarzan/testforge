@@ -20,6 +20,8 @@ import ManagedTesting from '@/pages/Managed';
 import PressKit from '@/pages/Press';
 import Privacy from '@/pages/Privacy';
 import Terms from '@/pages/Terms';
+import InTheWild from '@/pages/InTheWild';
+import InTheWildReport from '@/pages/InTheWildReport';
 import OnboardingModal from '@/components/OnboardingModal';
 
 // Simple auth guard
@@ -100,6 +102,8 @@ export default function App() {
                 <Route path="/prd-generator" element={<PrdGenerator />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/pricing" element={<Pricing />} />
+                <Route path="/in-the-wild" element={<InTheWild />} />
+                <Route path="/in-the-wild/:slug" element={<InTheWildReport />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
               </Routes>

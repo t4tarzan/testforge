@@ -20,6 +20,7 @@ const LogoIconWhite = () => (
 const productLinks = [
   { label: 'Managed', path: '/managed' },
   { label: 'MCP Integration', path: '/mcp' },
+  { label: 'In the Wild', path: '/in-the-wild' },
   { label: 'Pipeline', path: '/pipeline' },
   { label: 'The Integrator', path: '/integrator' },
   { label: 'Dashboard', path: '/dashboard' },
