@@ -100,23 +100,28 @@ function FeatureCard({ icon, title, description, badge }: { icon: React.ReactNod
 }
 
 /* ──────────────────────── Testimonial Card ──────────────────────── */
-function TestimonialCard({ quote, name, title, image }: { quote: string; name: string; title: string; image: string }) {
+function TestimonialCard({ quote, name, title, source }: { quote: string; name: string; title: string; source: string }) {
   return (
     <motion.div
       whileHover={{ y: -4 }}
       transition={{ duration: 0.3 }}
-      className="bg-[#1E1B2E] border border-[#3A3A3A] rounded-xl p-8 relative"
+      className="bg-[#1E1B2E] border border-[#3A3A3A] rounded-xl p-8 relative flex flex-col h-full"
     >
       <span className="absolute top-4 left-6 text-[48px] leading-none text-[#574a7d] opacity-20 font-heading">
         &ldquo;
       </span>
-      <p className="text-white text-base leading-relaxed italic pt-8 mb-6">{quote}</p>
-      <div className="flex items-center gap-3">
-        <img src={image} alt={name} className="w-10 h-10 rounded-full object-cover" />
-        <div>
-          <p className="text-white font-medium text-[15px]">{name}</p>
-          <p className="text-[#9A9A9A] text-sm">{title}</p>
-        </div>
+      <p className="text-white text-base leading-relaxed italic pt-8 mb-6 flex-1">{quote}</p>
+      <div>
+        <p className="text-white font-medium text-[15px]">{name}</p>
+        <p className="text-[#9A9A9A] text-sm mb-3">{title}</p>
+        <a
+          href={source}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-mono text-[11px] uppercase tracking-wider text-[#a99bff] hover:text-white transition-colors"
+        >
+          Source &#x2197;
+        </a>
       </div>
     </motion.div>
   )
@@ -383,22 +388,22 @@ export default function Home() {
 
   const testimonials = [
     {
-      quote: "Agentic coding systems accelerate development but are also unreliable. Agentic testing — where AI writes tests and checks your code against them — is the missing piece.",
-      name: 'Andrew K.',
-      title: 'VP Engineering at DeepFlow',
-      image: '/testimonial-1.jpg',
+      quote: "Software 1.0 easily automates what you can specify. Software 2.0 easily automates what you can verify.",
+      name: 'Andrej Karpathy',
+      title: 'AI researcher · founding member, OpenAI',
+      source: 'https://karpathy.bearblog.dev/verifiability/',
     },
     {
-      quote: "Don't tell AI what to do, give it success criteria and watch it go. Get it to write tests first, then pass them. TestForge makes this loop autonomous.",
-      name: 'Sarah L.',
-      title: 'AI Researcher',
-      image: '/testimonial-2.jpg',
+      quote: "If an LLM wrote every line of your code but you've reviewed, tested and understood it all, that's not vibe coding in my book — that's using an LLM as a typing assistant.",
+      name: 'Simon Willison',
+      title: 'Co-creator of Django',
+      source: 'https://simonwillison.net/2025/Mar/6/vibe-coding/',
     },
     {
-      quote: "The most important thing for AI code quality — give it a feedback loop. TestForge provides that verification layer and it 3x'd our production stability.",
-      name: 'Marcus T.',
-      title: 'CTO at BuildScale',
-      image: '/testimonial-3.jpg',
+      quote: "In vibe coding you don't care about the code, just the behavior of the system. In augmented coding you care about the code, its complexity, the tests, & their coverage.",
+      name: 'Kent Beck',
+      title: 'Creator of TDD · Agile Manifesto signatory',
+      source: 'https://tidyfirst.substack.com/p/augmented-coding-beyond-the-vibes',
     },
   ]
 
@@ -820,7 +825,7 @@ export default function Home() {
           <div className="grid md:grid-cols-3 gap-6">
             {testimonials.map((t, i) => (
               <ScrollReveal key={t.name} delay={i * 0.15}>
-                <TestimonialCard quote={t.quote} name={t.name} title={t.title} image={t.image} />
+                <TestimonialCard quote={t.quote} name={t.name} title={t.title} source={t.source} />
               </ScrollReveal>
             ))}
           </div>
