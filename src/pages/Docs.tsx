@@ -415,10 +415,7 @@ function OverviewPage() {
       </ul>
 
       <InfoCallout title="New to TestForge?">
-        Start with the{' '}
-        <a href="#" className="text-[#574a7d] hover:underline">
-          Quick Start Guide
-        </a>{' '}
+        Start with the <strong className="text-[#574a7d]">Quick Start</strong> section in the left sidebar
         to run your first test in under 3 minutes.
       </InfoCallout>
     </div>

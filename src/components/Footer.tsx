@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Github, Twitter, Linkedin, MessageCircle } from 'lucide-react'
+import { Github } from 'lucide-react'
 
 const LogoIconWhite = () => (
   <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -28,7 +28,6 @@ const productLinks = [
 
 const resourceLinks = [
   { label: 'Documentation', path: '/docs' },
-  { label: 'API Reference', path: '/docs' },
   { label: 'Test Runner', path: '/run-test' },
   { label: 'PRD Generator', path: '/prd-generator' },
   { label: 'Testing Dimensions', path: '/testing-dimensions' },
@@ -36,10 +35,9 @@ const resourceLinks = [
 
 const companyLinks = [
   { label: 'GitHub', path: 'https://github.com/t4tarzan/testforge' },
-  { label: 'Fly.io MCP', path: 'https://testforge-mcp.fly.dev' },
+  { label: 'MCP server', path: 'https://testforge-mcp.fly.dev' },
   { label: 'Contact', path: 'https://github.com/t4tarzan/testforge/issues' },
   { label: 'Changelog', path: '/docs' },
-  { label: 'Status', path: 'https://testforge-mcp.fly.dev/health' },
 ]
 
 export default function Footer() {
@@ -68,17 +66,8 @@ export default function Footer() {
               <span className="text-xs text-white/80 font-medium">Featured on Product Hunt</span>
             </a>
             <div className="flex items-center gap-4">
-              <a href="https://github.com/t4tarzan/testforge" target="_blank" rel="noopener noreferrer" className="text-[#9A9A9A] hover:text-[#7a6fad] transition-colors duration-200">
+              <a href="https://github.com/t4tarzan/testforge" target="_blank" rel="noopener noreferrer" aria-label="TestForge on GitHub" className="text-[#9A9A9A] hover:text-[#7a6fad] transition-colors duration-200">
                 <Github size={20} />
-              </a>
-              <a href="#" className="text-[#9A9A9A] hover:text-[#7a6fad] transition-colors duration-200">
-                <Twitter size={20} />
-              </a>
-              <a href="#" className="text-[#9A9A9A] hover:text-[#7a6fad] transition-colors duration-200">
-                <Linkedin size={20} />
-              </a>
-              <a href="#" className="text-[#9A9A9A] hover:text-[#7a6fad] transition-colors duration-200">
-                <MessageCircle size={20} />
               </a>
             </div>
           </motion.div>

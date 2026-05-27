@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, useInView } from 'framer-motion';
 import { Check, ArrowRight } from 'lucide-react';
 import type { Dimension } from './data';
@@ -132,8 +133,8 @@ export default function DimensionSection({ dimension, index }: DimensionSectionP
             </div>
 
             {/* CTA */}
-            <a
-              href="#"
+            <Link
+              to="/run-test"
               className="inline-flex items-center gap-2 text-[15px] font-medium text-[#574a7d] hover:gap-3 transition-all duration-200 group"
             >
               Learn more in a test run
@@ -141,7 +142,7 @@ export default function DimensionSection({ dimension, index }: DimensionSectionP
                 size={16}
                 className="transition-transform duration-200 group-hover:translate-x-1"
               />
-            </a>
+            </Link>
           </motion.div>
         </motion.div>
       </div>

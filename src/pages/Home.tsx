@@ -550,7 +550,7 @@ export default function Home() {
           </ScrollReveal>
           <ScrollReveal delay={0.2}>
             <p className="text-body-lg text-[#9A9A9A] max-w-[640px] mx-auto mb-16">
-              When AI builds your app, traditional testing catches barely half the issues. TestForge closes the gap with 20 autonomous testing dimensions — so your code ships with confidence.
+              When AI builds your app, traditional testing catches barely half the issues. TestForge closes the gap with 21 autonomous testing dimensions — so your code ships with confidence.
             </p>
           </ScrollReveal>
 
@@ -752,7 +752,7 @@ export default function Home() {
                 <span className="text-[#333333]"> Every time.</span>
               </h2>
               <p className="text-body-lg text-[#6B6B6B]">
-                Our autonomous agents don&apos;t just test — they probe, stress, and challenge your code from 20 independent dimensions.
+                Our autonomous agents don&apos;t just test — they probe, stress, and challenge your code from 21 independent dimensions.
               </p>
             </ScrollReveal>
           </div>
@@ -929,15 +929,15 @@ export default function Home() {
           </ScrollReveal>
           <ScrollReveal delay={0.3}>
             <div className="flex flex-wrap items-center justify-center gap-6">
-              <a href="#" className="text-white/70 text-sm hover:text-white hover:underline transition-colors duration-200">Join Discord</a>
-              <a href="#" className="text-white/70 text-sm hover:text-white hover:underline transition-colors duration-200">Read Docs</a>
+              <Link to="/docs" className="text-white/70 text-sm hover:text-white hover:underline transition-colors duration-200">Read Docs</Link>
+              <a href="https://github.com/t4tarzan/testforge" target="_blank" rel="noopener noreferrer" className="text-white/70 text-sm hover:text-white hover:underline transition-colors duration-200">GitHub</a>
               <Link to="/pricing" className="text-white/70 text-sm hover:text-white hover:underline transition-colors duration-200">View Pricing</Link>
             </div>
           </ScrollReveal>
         </div>
       </section>
 
-      {/* ═══ 20 DIMENSIONS SHOWCASE ═══ */}
+      {/* ═══ 21 DIMENSIONS SHOWCASE ═══ */}
       <section className="px-6 lg:px-16 py-[100px] bg-[#F7F7FB]">
         <div className="max-w-[1280px] mx-auto">
           <div className="text-center mb-16">
