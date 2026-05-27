@@ -139,7 +139,7 @@ function DashboardTab() {
     { icon: FlaskConical, iconBg: 'bg-[#E8E5FF]', iconColor: 'text-[#574a7d]', value: realStats?.testsRun || user.testsRun || 0, label: 'TOTAL TESTS RUN', trend: realStats?.testsThisMonth ? `${realStats.testsThisMonth} this month` : '', trendUp: true },
     { icon: CheckCircle2, iconBg: 'bg-[rgba(90,143,94,0.1)]', iconColor: 'text-[#574a7d]', value: realStats?.averageScore || user.passRate || 0, label: 'AVG SCORE', trend: '', trendUp: true, suffix: '', decimals: 0 },
     { icon: GitBranch, iconBg: 'bg-[rgba(74,144,217,0.1)]', iconColor: 'text-[#4A90D9]', value: user.repos || 0, label: 'ACTIVE REPOSITORIES', trend: '', trendUp: true },
-    { icon: Zap, iconBg: 'bg-[rgba(232,168,56,0.1)]', iconColor: 'text-[#E8A838]', value: realStats?.remainingQuota || user.creditsTotal - user.creditsUsed || 5, label: 'TESTS REMAINING', trend: `Plan: ${user.plan?.toUpperCase() || 'FREE'}`, trendUp: true },
+    { icon: Zap, iconBg: 'bg-[rgba(232,168,56,0.1)]', iconColor: 'text-[#E8A838]', value: realStats?.testsRemaining ?? realStats?.testsLimit ?? 0, label: 'TESTS REMAINING', trend: `Plan: ${(realStats?.plan || user.plan || 'free').toUpperCase()}`, trendUp: true },
   ];
 
   return (

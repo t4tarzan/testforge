@@ -3,6 +3,7 @@
 import crypto from 'crypto';
 import { withSecurity } from './_security.js';
 import { requireSession } from './_session.js';
+import { denyIfOverTestQuota } from './_gate.js';
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -20,6 +21,12 @@ async function handler(req, res) {
     const db = neon(process.env.DATABASE_URL);
     const body = req.body || {};
     const userId = session.userId;
+
+    // Server-side quota check — bypass-proof (any client that hits the save
+    // endpoint directly without going through /api/gate first is still
+    // blocked here).
+    const deny = await denyIfOverTestQuota(userId, session.plan || 'free');
+    if (deny) return res.status(deny.status).json(deny.body);
 
     // Look up or create the project, scoped per user so two users can have
     // repos with the same name without colliding.

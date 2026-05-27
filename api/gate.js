@@ -1,23 +1,13 @@
 // /api/gate — plan limits & usage. GET returns current usage + remaining;
-// POST {action:'test_run'} attempts to consume one test from the quota.
+// POST {action:'test_run'} authorizes one test against the quota.
 //
-// Usage is computed from real data rather than a denormalized counter:
-//   testsThisMonth = COUNT(test_runs) where user_id = X AND started_at >= month_start
-//   reposUsed      = COUNT(projects)  where user_id = X
-// This avoids the "tests_this_month" reset-cron problem.
+// Plan is read live from users.plan via _gate.js — the session JWT's plan
+// field is only used as a fallback if the DB lookup fails.
 import { withSecurity } from './_security.js';
 import { requireSession } from './_session.js';
+import { PLANS, getQuota, denyIfOverTestQuota } from './_gate.js';
 
-export const PLANS = {
-  free:       { testsPerMonth: 5,        repos: 1,        rateLimit: 10,  name: 'Free' },
-  pro:        { testsPerMonth: 100,      repos: 10,       rateLimit: 60,  name: 'Pro' },
-  enterprise: { testsPerMonth: Infinity, repos: Infinity, rateLimit: 300, name: 'Enterprise' },
-};
-
-function monthStartIso() {
-  const d = new Date();
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)).toISOString();
-}
+export { PLANS };
 
 async function handler(req, res) {
   const session = await requireSession(req, res);
@@ -28,46 +18,29 @@ async function handler(req, res) {
   }
 
   try {
-    const { neon } = await import('@neondatabase/serverless');
-    const db = neon(process.env.DATABASE_URL);
     const userId = session.userId;
-    const plan = session.plan || 'free';
-    const limits = PLANS[plan] || PLANS.free;
-
-    const monthStart = monthStartIso();
-    const [{ count: testsUsed }] = await db`
-      SELECT COUNT(*)::int AS count FROM test_runs
-      WHERE user_id = ${userId} AND started_at >= ${monthStart}
-    `;
-    const [{ count: reposUsed }] = await db`
-      SELECT COUNT(*)::int AS count FROM projects WHERE user_id = ${userId}
-    `;
-
-    const testsRemaining =
-      limits.testsPerMonth === Infinity ? Infinity : limits.testsPerMonth - testsUsed;
-    const reposRemaining =
-      limits.repos === Infinity ? Infinity : limits.repos - reposUsed;
+    const sessionPlan = session.plan || 'free';
 
     if (req.method === 'POST') {
       const { action } = req.body || {};
       if (action === 'test_run') {
-        if (limits.testsPerMonth !== Infinity && testsUsed >= limits.testsPerMonth) {
-          return res.status(402).json({
-            allowed: false,
-            reason: `Monthly limit reached (${testsUsed}/${limits.testsPerMonth})`,
-            upgradeUrl: '/#/pricing',
-          });
-        }
+        const deny = await denyIfOverTestQuota(userId, sessionPlan);
+        if (deny) return res.status(deny.status).json(deny.body);
+        const { testsUsed, testsRemaining } = await getQuota(userId, sessionPlan);
         // The actual increment happens when save-results.js writes the row;
         // this endpoint just authorizes the attempt.
         return res.json({
           allowed: true,
           testsUsed,
-          testsRemaining: testsRemaining === Infinity ? null : Math.max(0, testsRemaining - 1),
+          testsRemaining:
+            testsRemaining === Infinity ? null : Math.max(0, testsRemaining - 1),
         });
       }
       return res.status(400).json({ error: 'Unknown action' });
     }
+
+    const { plan, limits, testsUsed, reposUsed, testsRemaining, reposRemaining } =
+      await getQuota(userId, sessionPlan);
 
     return res.json({
       plan,

@@ -2,6 +2,7 @@
 // no data yet (the UI shows an empty state, not seed numbers).
 import { withSecurity } from './_security.js';
 import { requireSession } from './_session.js';
+import { getQuota } from './_gate.js';
 
 async function handler(req, res) {
   const session = await requireSession(req, res);
@@ -36,12 +37,16 @@ async function handler(req, res) {
       FROM test_runs WHERE user_id = ${userId}
     `;
 
+    const quota = await getQuota(userId, session.plan || 'free');
+
     return res.json({
       testsRun: totalRuns.count,
       testsThisMonth: thisMonth.count,
       averageScore: avgScore.avg ?? 0,
       totalFindingsFound: totalFindings.sum,
-      plan: session.plan || 'free',
+      plan: quota.plan,
+      testsLimit: quota.limits.testsPerMonth === Infinity ? null : quota.limits.testsPerMonth,
+      testsRemaining: quota.testsRemaining === Infinity ? null : Math.max(0, quota.testsRemaining),
     });
   } catch (e) {
     console.error('[usage] DB error:', e.message);
