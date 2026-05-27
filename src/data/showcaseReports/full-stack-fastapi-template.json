@@ -3,8 +3,8 @@
   "repoUrl": "https://github.com/tiangolo/full-stack-fastapi-template",
   "repoName": "full-stack-fastapi-template",
   "tagline": "Next.js + FastAPI starter \u2014 exercises polyglot detection end-to-end",
-  "analyzedAt": "2026-05-27T22:09:50.450Z",
-  "analyzeMs": 431,
+  "analyzedAt": "2026-05-27T22:22:51.797Z",
+  "analyzeMs": 429,
   "codebase": {
     "totalFiles": 183,
     "totalLines": 16626,
@@ -39,20 +39,12 @@
     ]
   },
   "security": {
-    "findings": 3,
-    "critical": 1,
+    "findings": 2,
+    "critical": 0,
     "high": 0,
     "medium": 2,
     "low": 0,
     "topItems": [
-      {
-        "severity": "critical",
-        "title": "Potential SQL/NoSQL Injection",
-        "description": "request.get() is called with a string built from variables. Verify the inputs are bound, not concatenated.",
-        "filePath": "frontend/tests/utils/mailcatcher.ts",
-        "lineNumber": 16,
-        "fixSuggestion": "Use parameterized queries (placeholders like $1, $2) or an ORM. If you must build dynamic SQL, allowlist the variable parts and pass user values via bound parameters."
-      },
       {
         "severity": "medium",
         "title": "Missing Rate Limiting",
@@ -75,7 +67,7 @@
     {
       "key": "security",
       "label": "Security",
-      "score": 80
+      "score": 100
     },
     {
       "key": "unit",
@@ -133,5 +125,5 @@
       "score": 55
     }
   ],
-  "overall": 67
+  "overall": 69
 }

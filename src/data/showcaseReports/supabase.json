@@ -2,9 +2,9 @@
   "slug": "supabase",
   "repoUrl": "https://github.com/supabase/supabase",
   "repoName": "supabase",
-  "tagline": "78k-star OSS Firebase alt \u2014 TypeScript monorepo with multi-language services",
-  "analyzedAt": "2026-05-27T22:09:49.033Z",
-  "analyzeMs": 47119,
+  "tagline": "78k-star OSS Firebase alt \u2014 TypeScript monorepo + the test-path security suppression in action",
+  "analyzedAt": "2026-05-27T22:22:50.384Z",
+  "analyzeMs": 46921,
   "codebase": {
     "totalFiles": 7658,
     "totalLines": 2161325,
@@ -62,8 +62,8 @@
     ]
   },
   "security": {
-    "findings": 170,
-    "critical": 125,
+    "findings": 57,
+    "critical": 14,
     "high": 28,
     "medium": 13,
     "low": 0,
@@ -77,36 +77,36 @@
         "fixSuggestion": "Use parameterized queries (placeholders like $1, $2) or an ORM. If you must build dynamic SQL, allowlist the variable parts and pass user values via bound parameters."
       },
       {
-        "severity": "info",
-        "title": "File too large to analyze",
-        "description": "File exceeds the 500 KB analyzer cap. Likely generated / bundled output.",
-        "filePath": "packages/api-types/types/platform.d.ts",
-        "lineNumber": 1,
-        "fixSuggestion": "Exclude generated files from the analyzed tree (e.g. dist/, build/, .next/)."
+        "severity": "high",
+        "title": "Route Without Inline Auth",
+        "description": "app.get() declares a route with no visible auth middleware. If your app uses a global auth middleware, suppress this with a comment.",
+        "filePath": "examples/oauth-app-authorization-flow/src/index.ts",
+        "lineNumber": 17,
+        "fixSuggestion": "Either pass an auth middleware function in the args list, or annotate the file with `// testforge-disable-file authentication-bypass` if a global middleware is intentional."
+      },
+      {
+        "severity": "high",
+        "title": "Route Without Inline Auth",
+        "description": "app.get() declares a route with no visible auth middleware. If your app uses a global auth middleware, suppress this with a comment.",
+        "filePath": "examples/oauth-app-authorization-flow/src/index.ts",
+        "lineNumber": 34,
+        "fixSuggestion": "Either pass an auth middleware function in the args list, or annotate the file with `// testforge-disable-file authentication-bypass` if a global middleware is intentional."
       },
       {
         "severity": "critical",
         "title": "Potential SQL/NoSQL Injection",
-        "description": "query() is called with a string built from variables. Verify the inputs are bound, not concatenated.",
-        "filePath": "e2e/studio/features/table-editor.spec.ts",
-        "lineNumber": 198,
+        "description": "get() is called with a string built from variables. Verify the inputs are bound, not concatenated.",
+        "filePath": "apps/www/data/organizations.ts",
+        "lineNumber": 17,
         "fixSuggestion": "Use parameterized queries (placeholders like $1, $2) or an ORM. If you must build dynamic SQL, allowlist the variable parts and pass user values via bound parameters."
       },
       {
-        "severity": "critical",
-        "title": "Potential SQL/NoSQL Injection",
-        "description": "query() is called with a string built from variables. Verify the inputs are bound, not concatenated.",
-        "filePath": "e2e/studio/features/table-editor.spec.ts",
-        "lineNumber": 199,
-        "fixSuggestion": "Use parameterized queries (placeholders like $1, $2) or an ORM. If you must build dynamic SQL, allowlist the variable parts and pass user values via bound parameters."
-      },
-      {
-        "severity": "critical",
-        "title": "Potential SQL/NoSQL Injection",
-        "description": "query() is called with a string built from variables. Verify the inputs are bound, not concatenated.",
-        "filePath": "e2e/studio/features/table-editor.spec.ts",
-        "lineNumber": 203,
-        "fixSuggestion": "Use parameterized queries (placeholders like $1, $2) or an ORM. If you must build dynamic SQL, allowlist the variable parts and pass user values via bound parameters."
+        "severity": "high",
+        "title": "dangerouslySetInnerHTML with user input",
+        "description": "__html is built from a variable. Verify it's sanitized.",
+        "filePath": "apps/studio/pages/_app.tsx",
+        "lineNumber": 192,
+        "fixSuggestion": "Render the value as text (default React escaping) or run it through DOMPurify.sanitize() first."
       }
     ]
   },
