@@ -3,8 +3,8 @@
   "repoUrl": "https://github.com/supabase/supabase",
   "repoName": "supabase",
   "tagline": "78k-star OSS Firebase alt \u2014 TypeScript monorepo + test-path security suppression",
-  "analyzedAt": "2026-05-28T10:40:45.574Z",
-  "analyzeMs": 46059,
+  "analyzedAt": "2026-05-28T11:18:11.901Z",
+  "analyzeMs": 46622,
   "codebase": {
     "totalFiles": 7662,
     "totalLines": 2161917,
@@ -56,8 +56,8 @@
     "testFiles": 423,
     "totalTests": 4283,
     "frameworks": [
-      "Vitest",
       "Testing Library",
+      "Vitest",
       "pytest"
     ]
   },
