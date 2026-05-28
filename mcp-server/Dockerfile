@@ -13,14 +13,16 @@ WORKDIR /app
 COPY package.json ./
 RUN npm install --omit=dev && npm install -g tsx
 
-# Copy source
+# Copy source + the static install-guide page (served at /public)
 COPY src/ ./src/
+COPY public/ ./public/
 COPY tsconfig.json ./
 
-# The server defaults to :33221 (since v0.2.18); Fly routes to internal_port
-# 3001, so pin the listen port. GIT_TERMINAL_PROMPT=0 makes clones of missing/
-# private repos fail fast instead of hanging on a credential prompt.
-ENV PORT=3001
+# The server reads TESTFORGE_MCP_PORT (default :33221); Fly routes to
+# internal_port 3001, so pin the listen port to match. GIT_TERMINAL_PROMPT=0
+# makes clones of missing/private repos fail fast instead of hanging on a
+# credential prompt.
+ENV TESTFORGE_MCP_PORT=3001
 ENV GIT_TERMINAL_PROMPT=0
 ENV NODE_ENV=production
 
