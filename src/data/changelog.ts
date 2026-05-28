@@ -50,6 +50,22 @@ export const TAG_COLORS: Record<ChangelogTag, string> = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '0.30.0',
+    date: '2026-05-29',
+    tag: 'platform',
+    title: 'Real simulation engine — load, agent & chaos actually run',
+    summary:
+      'The simulation-named dimensions stop being heuristics and start measuring. /simulate boots a runnable repo (Dockerfile or docker-compose) in an isolated, resource-capped sandbox and drives live traffic: a load ramp to the breaking-point concurrency, a fleet of think-time agents, and a mid-load crash to measure error-spike + recovery time. Async (jobId + poll) so multi-minute runs don’t time out. Also in this release: per-line Python edge-case analysis via a python3 AST pass (FastAPI/Flask/Django backends finally get deep checks, not just project-level), and a Tier-2 fix where same-rule findings collided on one filename and silently dropped tests (dkubex: 13 → 33 executed).',
+  },
+  {
+    version: '0.29.0',
+    date: '2026-05-28',
+    tag: 'polyglot',
+    title: 'Polyglot Tier-2 — generate AND run tests in a sandbox',
+    summary:
+      'Tier-2 went polyglot and real: the LLM generates a targeted test per finding and TestForge executes it in a hardened, network-less, resource-capped Docker sandbox — Vitest for JS/TS, pytest for Python, go test for Go — parsing each framework’s output into a uniform pass/fail result. Hardened with cap-drop ALL, no-new-privileges, tmpfs-only scratch, and a shared-secret gate on the managed path.',
+  },
+  {
     version: '0.28.6',
     date: '2026-05-28',
     tag: 'precision',
