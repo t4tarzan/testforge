@@ -6,6 +6,7 @@ import { findNPlusOneHits } from './lib/n-plus-one.js';
 import { findDeadCode } from './lib/dead-code.js';
 import { extractOpenApi, canonicalPath } from './lib/openapi-parse.js';
 import { discoverEndpoints, endpointSet, type DiscoveredEndpoint } from './lib/endpoint-discovery.js';
+import { findPythonEndpoints, type PyEndpoint } from './lib/py-endpoints.js';
 import { computeFileComplexity } from './lib/complexity.js';
 import { OWASP_2021, owaspCodesForCategory, type OwaspCode } from './lib/owasp-map.js';
 import {
@@ -84,6 +85,19 @@ export async function runContractAnalysis(
     discovered.push(...discoverEndpoints(filePath, parsed.ast));
   }
 
+  // 1b. Discover Python (FastAPI/Flask/Starlette) endpoints via AST — the JS
+  // walk above can't see them, so a FastAPI backend's routes were uncounted.
+  const pyEndpoints: PyEndpoint[] = [];
+  let isFastapi = false;
+  for (const [filePath, content] of Object.entries(fileContents)) {
+    if (!filePath.endsWith('.py') || filePath.includes('test')) continue;
+    if (!isFastapi && /\bfrom\s+fastapi\b|\bimport\s+fastapi\b|FastAPI\s*\(/.test(content)) isFastapi = true;
+    for (const ep of findPythonEndpoints(filePath, content)) {
+      pyEndpoints.push(ep);
+      discovered.push({ path: ep.path, method: ep.method, filePath, line: ep.line, receiverName: 'py' });
+    }
+  }
+
   // 2. Extract documented endpoints from OpenAPI / Swagger spec files.
   const openapi = extractOpenApi(fileContents);
   const docSet = endpointSet(openapi.endpoints);
@@ -104,8 +118,26 @@ export async function runContractAnalysis(
   // (Some codebases use higher-order route registration we don't follow.)
   const totalEndpoints = Math.max(discovered.length, endpoints);
 
-  // ── Finding 1: missing spec entirely
-  if (openapi.validFiles.length === 0 && !hasGraphQL && !hasGrpc && totalEndpoints > 5) {
+  // ── FastAPI: the contract IS the type hints — response_model + Pydantic
+  // bodies feed an auto-generated OpenAPI at /openapi.json. So a missing static
+  // spec file isn't a real gap for FastAPI; response_model coverage is.
+  if (isFastapi && pyEndpoints.length > 0) {
+    const respMethods = new Set(['get', 'post', 'put', 'patch']);
+    const missing = pyEndpoints.filter((e) => respMethods.has(e.method) && !e.responseModel);
+    if (missing.length > 0) {
+      const sample = missing.slice(0, 5).map((e) => `${e.method.toUpperCase()} ${e.path} (${e.filePath}:${e.line})`).join(', ');
+      findings.push({
+        severity: missing.length > pyEndpoints.length / 2 ? 'medium' : 'low',
+        title: `${missing.length} FastAPI endpoint(s) without response_model`,
+        description: `The response shape isn't declared, so it's missing from the generated OpenAPI and clients can't rely on it. Examples: ${sample}${missing.length > 5 ? ', …' : ''}.`,
+        fixSuggestion: 'Add `response_model=YourSchema` (a Pydantic model) to each route decorator so the response is typed, validated, and self-documented.',
+        category: 'API Contracts',
+      });
+    }
+  }
+
+  // ── Finding 1: missing spec entirely (skip for FastAPI — it generates one)
+  if (openapi.validFiles.length === 0 && !hasGraphQL && !hasGrpc && !isFastapi && totalEndpoints > 5) {
     findings.push({
       severity: 'high',
       title: 'No API contract specification',
@@ -201,7 +233,11 @@ export async function runContractAnalysis(
     s + (f.severity === 'high' ? 25 : f.severity === 'medium' ? 15 : 8), 0
   ));
 
-  const documented = totalEndpoints - undocumentedInCode.length;
+  // FastAPI with no static spec: "documented" = endpoints with a response_model
+  // (their contract is the generated OpenAPI), not "all undocumented".
+  const documented = (openapi.validFiles.length === 0 && isFastapi)
+    ? pyEndpoints.filter((e) => e.responseModel).length
+    : totalEndpoints - undocumentedInCode.length;
 
   return {
     score,
