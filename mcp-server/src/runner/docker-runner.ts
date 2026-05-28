@@ -1,57 +1,30 @@
-// Tier-2 sandbox runner. Takes the test files that came out of the generator,
-// drops them into an ephemeral host directory, runs them inside the pre-baked
-// `testforge-runner:local` container, parses the JSON reporter output, and
-// destroys the host directory on completion.
+// Tier-2 sandbox runner — polyglot since v0.29.0. Takes the generated test
+// files, groups them by language, and runs each group inside its matching
+// pre-baked sandbox image (node/vitest · python/pytest · go/test), all with
+// --network=none. Parses each framework's machine-readable output into a
+// uniform RunResult, then destroys the ephemeral host dir.
 //
-// Why local Docker (not Fly Machines yet):
-// - Colima is already running on the hub, no infra to provision
-// - Cold start is ~1-3s vs Fly's 5-15s
-// - Same `docker run` interface — Day 3 swaps the spawn step for a Fly
-//   Machines API call without changing the public route shape
-//
-// Host-path note: Colima/virtiofs only mounts /Users/* by default — we write
-// runs under ~/.testforge/runs/ rather than /tmp so the bind-mount actually
-// shows up inside the container.
+// Host-path note: Colima/virtiofs only mounts /Users/* by default — runs live
+// under ~/.testforge/runs/ so the bind-mount shows up inside the container.
 import { spawn } from 'child_process';
 import { mkdirSync, writeFileSync, rmSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
-import type { GeneratedTestFile } from '../generator/generate-tests.js';
+import type { GeneratedTestFile, TestLanguage } from '../generator/generate-tests.js';
 
 const RUNS_DIR = join(homedir(), '.testforge', 'runs');
-// Default to the public GHCR image so a fresh `npx` install only needs Docker
-// running — no `docker build` step. Auto-pulled on first use (see ensureImage
-// below). Override with TESTFORGE_RUNNER_IMAGE to point at a local build.
-const IMAGE = process.env.TESTFORGE_RUNNER_IMAGE || 'ghcr.io/t4tarzan/testforge-runner:latest';
 const RUNNER_TIMEOUT_MS = 120_000;
 
-// Pull the runner image if it isn't already on the host. We only ever need
-// to do this once per Docker daemon — subsequent calls find it locally and
-// skip the network round-trip. Returns null on success or an error string
-// suitable for surfacing to the caller.
-let imagePullAttempted = false;
-async function ensureImage(): Promise<string | null> {
-  // Skip the pull entirely if the user is on a local-build image — they
-  // built it themselves, no need to fetch.
-  if (!IMAGE.includes('/') || IMAGE.endsWith(':local')) return null;
-  if (imagePullAttempted) return null;
-  imagePullAttempted = true;
-  return new Promise((resolve) => {
-    const inspect = spawn('docker', ['image', 'inspect', IMAGE], { stdio: 'ignore' });
-    inspect.on('close', (code) => {
-      if (code === 0) return resolve(null); // already present
-      // Not present — pull it.
-      const pull = spawn('docker', ['pull', IMAGE], { stdio: ['ignore', 'pipe', 'pipe'] });
-      let err = '';
-      pull.stderr.on('data', (b) => { err += b.toString(); });
-      pull.on('close', (pullCode) => {
-        if (pullCode === 0) return resolve(null);
-        imagePullAttempted = false; // allow retry on next request
-        resolve(err.trim() || `docker pull ${IMAGE} exited ${pullCode}`);
-      });
-    });
-  });
-}
+// Per-language sandbox images. Defaults are the public GHCR images so a fresh
+// `npx` install only needs Docker. Override any with env to point at a local
+// build (e.g. on the managed box).
+const IMAGES: Record<TestLanguage, string> = {
+  js: process.env.TESTFORGE_RUNNER_IMAGE || 'ghcr.io/t4tarzan/testforge-runner:latest',
+  python: process.env.TESTFORGE_RUNNER_IMAGE_PYTHON || 'ghcr.io/t4tarzan/testforge-runner-python:latest',
+  go: process.env.TESTFORGE_RUNNER_IMAGE_GO || 'ghcr.io/t4tarzan/testforge-runner-go:latest',
+};
+
+const EXT: Record<TestLanguage, string> = { js: '.test.ts', python: '_test.py', go: '_test.go' };
 
 export interface RunFileResult {
   filename: string;
@@ -73,144 +46,176 @@ export interface RunResult {
   containerError?: string;
 }
 
-async function dockerRun(hostMountDir: string): Promise<{ stdout: string; stderr: string; code: number }> {
+const imagePullAttempted = new Set<string>();
+async function ensureImage(image: string): Promise<string | null> {
+  // Local builds (no registry host or :local tag) are never pulled.
+  if (!image.includes('/') || image.endsWith(':local')) return null;
+  if (imagePullAttempted.has(image)) return null;
+  imagePullAttempted.add(image);
   return new Promise((resolve) => {
-    // --rm so the container is gone the moment it exits. Bind-mount is
-    // read-only — generated tests should not need to write to disk.
-    const args = [
-      'run',
-      '--rm',
-      '--network', 'none', // no outbound — LLM-generated code is untrusted
-      '-v', `${hostMountDir}:/runner/tests:ro`,
-      IMAGE,
-    ];
-    const proc = spawn('docker', args, { stdio: ['ignore', 'pipe', 'pipe'] });
-    let out = '';
-    let err = '';
-    const killer = setTimeout(() => {
-      try { proc.kill('SIGKILL'); } catch { /* ignore */ }
-    }, RUNNER_TIMEOUT_MS);
-    proc.stdout.on('data', (b) => { out += b.toString(); });
-    proc.stderr.on('data', (b) => { err += b.toString(); });
-    proc.on('close', (code) => {
-      clearTimeout(killer);
-      resolve({ stdout: out, stderr: err, code: code ?? -1 });
+    const inspect = spawn('docker', ['image', 'inspect', image], { stdio: 'ignore' });
+    inspect.on('close', (code) => {
+      if (code === 0) return resolve(null);
+      const pull = spawn('docker', ['pull', image], { stdio: ['ignore', 'pipe', 'pipe'] });
+      let err = '';
+      pull.stderr.on('data', (b) => { err += b.toString(); });
+      pull.on('close', (pc) => {
+        if (pc === 0) return resolve(null);
+        imagePullAttempted.delete(image); // allow retry
+        resolve(err.trim() || `docker pull ${image} exited ${pc}`);
+      });
     });
   });
 }
 
-function parseVitestJson(raw: string, files: GeneratedTestFile[]): {
-  numTotalTests: number;
-  numPassedTests: number;
-  numFailedTests: number;
-  success: boolean;
-  fileResults: RunFileResult[];
-} {
-  const trimmed = raw.trim();
-  // Vitest may emit non-JSON warnings before the report; the report itself
-  // is one top-level JSON object. Find the FIRST `{` (not the last — that
-  // grabs an inner nested object and parsing fails) and parse from there.
-  const start = trimmed.indexOf('{');
-  const candidate = start >= 0 ? trimmed.slice(start) : trimmed;
+async function dockerRun(image: string, hostMountDir: string): Promise<{ stdout: string; stderr: string; code: number }> {
+  return new Promise((resolve) => {
+    const args = ['run', '--rm', '--network', 'none', '-v', `${hostMountDir}:/runner/tests:ro`, image];
+    const proc = spawn('docker', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    let out = '', err = '';
+    const killer = setTimeout(() => { try { proc.kill('SIGKILL'); } catch { /* ignore */ } }, RUNNER_TIMEOUT_MS);
+    proc.stdout.on('data', (b) => { out += b.toString(); });
+    proc.stderr.on('data', (b) => { err += b.toString(); });
+    proc.on('close', (code) => { clearTimeout(killer); resolve({ stdout: out, stderr: err, code: code ?? -1 }); });
+  });
+}
+
+interface ParsedGroup { total: number; passed: number; failed: number; files: RunFileResult[] }
+
+function erroredGroup(files: GeneratedTestFile[], msg: string): ParsedGroup {
+  return { total: 0, passed: 0, failed: 0, files: files.map((f) => ({ filename: f.filename, status: 'errored', numPassed: 0, numFailed: 0, failureMessages: [msg] })) };
+}
+
+// ── Vitest JSON reporter ───────────────────────────────────────────────────
+function parseVitest(raw: string, files: GeneratedTestFile[]): ParsedGroup {
+  const start = raw.trim().indexOf('{');
   let obj: Record<string, unknown>;
-  try {
-    obj = JSON.parse(candidate);
-  } catch {
-    return {
-      numTotalTests: 0,
-      numPassedTests: 0,
-      numFailedTests: 0,
-      success: false,
-      fileResults: files.map((f) => ({
-        filename: f.filename,
-        status: 'errored',
-        numPassed: 0,
-        numFailed: 0,
-        failureMessages: ['Could not parse vitest JSON output'],
-      })),
-    };
-  }
+  try { obj = JSON.parse(start >= 0 ? raw.trim().slice(start) : raw.trim()); }
+  catch { return erroredGroup(files, 'Could not parse vitest JSON output'); }
   const testResults = (obj.testResults as Array<Record<string, unknown>> | undefined) ?? [];
   const fileResults: RunFileResult[] = testResults.map((tr) => {
     const filename = String(tr.name ?? '').split('/').pop() ?? 'unknown.test.ts';
-    const assertion = (tr.assertionResults as Array<Record<string, unknown>> | undefined) ?? [];
-    const passed = assertion.filter((a) => a.status === 'passed').length;
-    const failed = assertion.filter((a) => a.status === 'failed').length;
-    const failureMessages: string[] = assertion
-      .filter((a) => a.status === 'failed')
-      .flatMap((a) => (a.failureMessages as string[] | undefined) ?? []);
-    return {
-      filename,
-      status: tr.status === 'passed' ? 'passed' : tr.status === 'failed' ? 'failed' : 'errored',
-      numPassed: passed,
-      numFailed: failed,
-      failureMessages,
-    };
+    const a = (tr.assertionResults as Array<Record<string, unknown>> | undefined) ?? [];
+    const passed = a.filter((x) => x.status === 'passed').length;
+    const failed = a.filter((x) => x.status === 'failed').length;
+    const failureMessages = a.filter((x) => x.status === 'failed').flatMap((x) => (x.failureMessages as string[] | undefined) ?? []);
+    return { filename, status: tr.status === 'passed' ? 'passed' : tr.status === 'failed' ? 'failed' : 'errored', numPassed: passed, numFailed: failed, failureMessages };
   });
-  return {
-    numTotalTests: Number(obj.numTotalTests ?? 0),
-    numPassedTests: Number(obj.numPassedTests ?? 0),
-    numFailedTests: Number(obj.numFailedTests ?? 0),
-    success: Boolean(obj.success),
-    fileResults,
-  };
+  return { total: Number(obj.numTotalTests ?? 0), passed: Number(obj.numPassedTests ?? 0), failed: Number(obj.numFailedTests ?? 0), files: fileResults };
+}
+
+// ── pytest-json-report ─────────────────────────────────────────────────────
+function parsePytest(raw: string, files: GeneratedTestFile[]): ParsedGroup {
+  const start = raw.trim().indexOf('{');
+  let obj: Record<string, unknown>;
+  try { obj = JSON.parse(start >= 0 ? raw.trim().slice(start) : raw.trim()); }
+  catch { return erroredGroup(files, 'Could not parse pytest JSON output'); }
+  const tests = (obj.tests as Array<Record<string, unknown>> | undefined) ?? [];
+  const byFile = new Map<string, RunFileResult>();
+  for (const t of tests) {
+    const nodeid = String(t.nodeid ?? '');
+    const filename = (nodeid.split('::')[0] || 'unknown_test.py').split('/').pop()!;
+    const outcome = String(t.outcome ?? '');
+    const r = byFile.get(filename) ?? { filename, status: 'passed', numPassed: 0, numFailed: 0, failureMessages: [] };
+    if (outcome === 'passed') r.numPassed++;
+    else { r.numFailed++; r.status = 'failed';
+      const call = (t.call as Record<string, unknown> | undefined);
+      const longrepr = String(call?.longrepr ?? t.longrepr ?? '').slice(0, 1200);
+      if (longrepr) r.failureMessages.push(longrepr);
+    }
+    byFile.set(filename, r);
+  }
+  const summary = (obj.summary as Record<string, number> | undefined) ?? {};
+  const passed = Number(summary.passed ?? 0);
+  const failed = Number(summary.failed ?? 0) + Number(summary.error ?? 0);
+  return { total: Number(summary.total ?? passed + failed), passed, failed, files: [...byFile.values()] };
+}
+
+// ── go test -json (one JSON object per line) ───────────────────────────────
+function parseGoTest(raw: string, files: GeneratedTestFile[]): ParsedGroup {
+  const status = new Map<string, 'pass' | 'fail'>();
+  const output = new Map<string, string[]>();
+  for (const line of raw.split('\n')) {
+    const s = line.trim();
+    if (!s.startsWith('{')) continue;
+    let ev: Record<string, unknown>;
+    try { ev = JSON.parse(s); } catch { continue; }
+    const test = ev.Test as string | undefined;
+    if (!test) continue; // package-level event
+    const action = ev.Action as string;
+    if (action === 'pass' || action === 'fail') status.set(test, action);
+    else if (action === 'output') {
+      const arr = output.get(test) ?? []; arr.push(String(ev.Output ?? '')); output.set(test, arr);
+    }
+  }
+  let passed = 0, failed = 0;
+  const failureMessages: string[] = [];
+  for (const [test, st] of status) {
+    if (st === 'pass') passed++;
+    else { failed++; failureMessages.push((output.get(test) ?? []).join('').slice(0, 1200)); }
+  }
+  // go test -json doesn't map tests→files; report at the group (file-set) level.
+  const filename = files.map((f) => f.filename).join(', ') || 'go tests';
+  const total = passed + failed;
+  return { total, passed, failed, files: [{ filename, status: failed > 0 ? 'failed' : total > 0 ? 'passed' : 'errored', numPassed: passed, numFailed: failed, failureMessages }] };
+}
+
+const PARSERS: Record<TestLanguage, (raw: string, files: GeneratedTestFile[]) => ParsedGroup> = {
+  js: parseVitest, python: parsePytest, go: parseGoTest,
+};
+
+function safeName(f: GeneratedTestFile): string {
+  const ext = EXT[f.language];
+  const base = f.filename.replace(/[^a-zA-Z0-9._-]/g, '-');
+  return base.endsWith(ext) ? base : `${base}${ext}`;
 }
 
 export async function runGeneratedTests(files: GeneratedTestFile[]): Promise<RunResult> {
   const runId = 'run_' + Date.now().toString(36);
-  const mountDir = join(RUNS_DIR, runId);
-  mkdirSync(mountDir, { recursive: true });
-
-  // First-call: make sure the runner image is on disk. Errors here surface
-  // back to the caller as a normal RunResult so the UI can show "couldn't
-  // pull image" without a 500.
-  const pullErr = await ensureImage();
-  if (pullErr) {
-    return {
-      runId,
-      success: false,
-      numTotalTests: 0,
-      numPassedTests: 0,
-      numFailedTests: 0,
-      durationMs: 0,
-      files: [],
-      containerError: `Could not pull ${IMAGE}: ${pullErr}`,
-    };
-  }
-
-  // Drop the generated test files in. Sanitize filenames so a model can't
-  // path-traverse out of the mount dir.
-  for (const f of files) {
-    const safe = f.filename.replace(/[^a-zA-Z0-9._-]/g, '-');
-    const finalName = safe.endsWith('.test.ts') ? safe : `${safe}.test.ts`;
-    writeFileSync(join(mountDir, finalName), f.content, 'utf8');
-  }
-
   const t0 = Date.now();
-  let containerError: string | undefined;
-  let rawJson = '';
-  try {
-    const { stdout, stderr, code } = await dockerRun(mountDir);
-    rawJson = stdout;
-    if (code !== 0 && !stdout.trim().startsWith('{')) {
-      containerError = stderr.trim() || `docker exited with code ${code}`;
-    }
-  } finally {
-    // Always clean up the host mount dir
-    try { rmSync(mountDir, { recursive: true, force: true }); } catch { /* ignore */ }
-  }
-  const durationMs = Date.now() - t0;
 
-  const parsed = parseVitestJson(rawJson, files);
+  // Group by language; each language runs in its own sandbox image.
+  const groups = new Map<TestLanguage, GeneratedTestFile[]>();
+  for (const f of files) {
+    const lang: TestLanguage = f.language ?? 'js';
+    (groups.get(lang) ?? groups.set(lang, []).get(lang)!).push(f);
+  }
+
+  const allFiles: RunFileResult[] = [];
+  let total = 0, passed = 0, failed = 0;
+  let containerError: string | undefined;
+
+  for (const [lang, groupFiles] of groups) {
+    const image = IMAGES[lang];
+    const pullErr = await ensureImage(image);
+    if (pullErr) {
+      containerError = `Could not pull ${image}: ${pullErr}`;
+      allFiles.push(...erroredGroup(groupFiles, containerError).files);
+      continue;
+    }
+    const mountDir = join(RUNS_DIR, `${runId}_${lang}`);
+    mkdirSync(mountDir, { recursive: true });
+    try {
+      for (const f of groupFiles) writeFileSync(join(mountDir, safeName(f)), f.content, 'utf8');
+      const { stdout, stderr, code } = await dockerRun(image, mountDir);
+      let parsed: ParsedGroup;
+      if (code !== 0 && !stdout.trim()) parsed = erroredGroup(groupFiles, stderr.trim() || `${lang} runner exited ${code}`);
+      else parsed = PARSERS[lang](stdout, groupFiles);
+      total += parsed.total; passed += parsed.passed; failed += parsed.failed;
+      allFiles.push(...parsed.files);
+    } finally {
+      try { rmSync(mountDir, { recursive: true, force: true }); } catch { /* ignore */ }
+    }
+  }
 
   return {
     runId,
-    success: parsed.success,
-    numTotalTests: parsed.numTotalTests,
-    numPassedTests: parsed.numPassedTests,
-    numFailedTests: parsed.numFailedTests,
-    durationMs,
-    files: parsed.fileResults,
+    success: failed === 0 && total > 0,
+    numTotalTests: total,
+    numPassedTests: passed,
+    numFailedTests: failed,
+    durationMs: Date.now() - t0,
+    files: allFiles,
     containerError,
   };
 }

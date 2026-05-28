@@ -1,0 +1,24 @@
+# TestForge Tier-2 sandbox runner — Python. Executes LLM-generated pytest
+# files in --network=none isolation and emits the pytest-json-report JSON to
+# stdout (same contract as the node/vitest runner).
+FROM python:3.12-slim
+
+LABEL org.opencontainers.image.source="https://github.com/t4tarzan/testforge"
+LABEL org.opencontainers.image.description="TestForge Tier-2 sandbox runner — Python 3.12 + pytest + pytest-json-report. Runs LLM-generated pytest files in --network=none isolation."
+LABEL org.opencontainers.image.licenses="MIT"
+
+WORKDIR /runner
+
+RUN pip install --no-cache-dir "pytest>=8,<9" "pytest-json-report>=1.5,<2"
+
+# Tests are bind-mounted read-only at /runner/tests. pytest reads them there;
+# the report + cache go to writable /tmp. We always emit a JSON object on
+# stdout so the parser never sees an empty stream.
+RUN printf '%s\n' \
+  '#!/bin/sh' \
+  'cd /tmp' \
+  'pytest /runner/tests -p no:cacheprovider -q --json-report --json-report-file=/tmp/report.json >/dev/null 2>&1' \
+  'cat /tmp/report.json 2>/dev/null || echo "{\"summary\":{},\"tests\":[]}"' \
+  > /runner/entrypoint.sh && chmod +x /runner/entrypoint.sh
+
+ENTRYPOINT ["/runner/entrypoint.sh"]
