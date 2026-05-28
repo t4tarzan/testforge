@@ -2642,3 +2642,87 @@ describe('advanced-analyzer — determinism (S1)', () => {
     expect(a.riskLevel).toBe(b.riskLevel);
   });
 });
+
+// v0.28.5 — accessibility precision pass. The TestForge self-audit surfaced
+// a cluster of false positives (the same class as the Supabase security run):
+// the analyzer flagged correctly-written UI as broken. Each of these guards a
+// real over-firing source that was fixed.
+describe('accessibility-analyzer — precision pass (v0.28.5)', () => {
+  const a11y = (files: Record<string, string>) =>
+    runAccessibilityAnalysis({ projectPath: VULNERABLE, fileContents: files });
+
+  const byRule = (r: Awaited<ReturnType<typeof a11y>>, rule: string) =>
+    r.findings.filter((f) => (f.rule ?? f.title) === rule || f.title === rule);
+
+  it('button label from a conditional expression is an accessible name', async () => {
+    const r = await a11y({ 'src/A.tsx': `<button onClick={x}><Plus/> {loading ? 'Saving…' : 'Save'}</button>` });
+    expect(byRule(r, 'button-no-accessible-name')).toHaveLength(0);
+  });
+
+  it('still flags a genuinely icon-only conditional button', async () => {
+    const r = await a11y({ 'src/A.tsx': `<button onClick={x}>{open ? <X/> : <Menu/>}</button>` });
+    expect(byRule(r, 'button-no-accessible-name').length).toBeGreaterThan(0);
+  });
+
+  it('does not flag a primitive that spreads props (name/label may come from caller)', async () => {
+    const r = await a11y({
+      'src/Input.tsx': `function Input(props){ return <input type="text" {...props} /> }`,
+      'src/IconBtn.tsx': `function IconBtn(props){ return <button {...props}><Icon/></button> }`,
+    });
+    expect(byRule(r, 'input-no-label')).toHaveLength(0);
+    expect(byRule(r, 'button-no-accessible-name')).toHaveLength(0);
+  });
+
+  it('recognizes <label htmlFor> + <input id> association across the file', async () => {
+    const r = await a11y({
+      'src/Form.tsx': `<><label htmlFor="email">Email</label><input id="email" type="email" /></>`,
+    });
+    expect(byRule(r, 'input-no-label')).toHaveLength(0);
+  });
+
+  it('flags an input with neither inline label nor a matching <label htmlFor>', async () => {
+    const r = await a11y({ 'src/Form.tsx': `<input id="lonely" type="text" />` });
+    expect(byRule(r, 'input-no-label').length).toBeGreaterThan(0);
+  });
+
+  it('does not flag a clickable div with a structural role or aria-hidden', async () => {
+    const r = await a11y({
+      'src/Group.tsx': `<div role="group" onClick={f}><input/></div>`,
+      'src/Backdrop.tsx': `<div aria-hidden="true" onClick={close} className="overlay" />`,
+    });
+    expect(byRule(r, 'clickable-non-interactive')).toHaveLength(0);
+  });
+
+  it('still flags a bare clickable div (no role, not hidden)', async () => {
+    const r = await a11y({ 'src/Card.tsx': `<div onClick={go}>Open</div>` });
+    expect(byRule(r, 'clickable-non-interactive').length).toBeGreaterThan(0);
+  });
+
+  it('does not flag a table whose <th> lives on a following line', async () => {
+    const r = await a11y({
+      'src/T.tsx': `<table className="data">\n  <thead><tr><th>Name</th><th>Value</th></tr></thead>\n  <tbody><tr><td>a</td><td>1</td></tr></tbody>\n</table>`,
+    });
+    expect(byRule(r, 'Table Without Headers')).toHaveLength(0);
+  });
+
+  it('still flags a header-less data table', async () => {
+    const r = await a11y({
+      'src/T.tsx': `<table>\n  <tbody><tr><td>a</td><td>1</td></tr></tbody>\n</table>`,
+    });
+    expect(byRule(r, 'Table Without Headers').length).toBeGreaterThan(0);
+  });
+
+  it('does not flag light hex on backgroundColor / config objects', async () => {
+    const r = await a11y({
+      'src/Chart.tsx': `const data = [{ name: 'Other', value: 20, color: '#D9D9D3' }];\nconst style = { backgroundColor: '#ffffff', borderColor: '#eeeeee' };`,
+    });
+    expect(byRule(r, 'Potentially Low Contrast Text Color')).toHaveLength(0);
+  });
+
+  it('honors inline suppression for a11y findings', async () => {
+    const r = await a11y({
+      'src/A.tsx': `// testforge-disable-next-line button-no-accessible-name\n<button onClick={x}><Icon/></button>`,
+    });
+    expect(byRule(r, 'button-no-accessible-name')).toHaveLength(0);
+  });
+});

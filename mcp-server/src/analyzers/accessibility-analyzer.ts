@@ -4,6 +4,7 @@ import { glob } from 'glob';
 import { parseFile, isParseable } from './lib/parse.js';
 import { checkJsxAccessibility } from './lib/a11y-jsx.js';
 import { isTestPath } from './security-analyzer.js';
+import { collectSuppressionsFromLines, isSuppressed } from './lib/suppressions.js';
 
 export interface A11yFinding {
   severity: 'critical' | 'high' | 'medium' | 'low';
@@ -14,6 +15,8 @@ export interface A11yFinding {
   codeSnippet: string;
   fixSuggestion: string;
   wcagCriterion: string;
+  /** Stable rule slug (AST checks). Used for inline suppression matching. */
+  rule?: string;
 }
 
 export interface A11yReport {
@@ -116,6 +119,7 @@ export async function runAccessibilityAnalysis(config: {
             codeSnippet: snippet,
             fixSuggestion: hit.fix,
             wcagCriterion: hit.wcagCriterion,
+            rule: hit.rule,
           });
           if (hit.rule === 'img-no-alt') imagesWithoutAlt++;
           if (hit.rule === 'input-no-label') formsWithoutLabels++;
@@ -158,6 +162,25 @@ export async function runAccessibilityAnalysis(config: {
     // 8. Link text
     checkLinkText(lines, filePath, findings);
   }
+
+  // Inline suppression — honor `// testforge-disable-next-line <rule>` and
+  // `// testforge-disable-file <rule>` the same way the security analyzer
+  // does. Lets a design-system primitive (e.g. a base <input> that's labelled
+  // by its caller) silence a finding that is correct-by-design. A finding
+  // matches if its rule slug OR its human title is suppressed on that line.
+  const suppByFile = new Map<string, ReturnType<typeof collectSuppressionsFromLines>>();
+  for (const [fp, content] of Object.entries(fileContents)) {
+    suppByFile.set(fp, collectSuppressionsFromLines(content.split('\n')));
+  }
+  const visibleFindings = findings.filter((f) => {
+    const tbl = suppByFile.get(f.filePath);
+    if (!tbl) return true;
+    if (isSuppressed(tbl, f.lineNumber, f.title)) return false;
+    if (f.rule && isSuppressed(tbl, f.lineNumber, f.rule)) return false;
+    return true;
+  });
+  findings.length = 0;
+  findings.push(...visibleFindings);
 
   // Calculate score (0-100)
   const totalIssues = findings.length;
@@ -397,25 +420,32 @@ function checkColorContrast(
   findings: A11yFinding[]
 ) {
   // Non-hex patterns stay regex-based and are inherently low-risk volume.
+  // `\bcolor` (word boundary) so `backgroundColor`/`borderColor` don't match.
   const simplePatterns = [
-    { regex: /color\s*:\s*['"]?(lightgray|lightgrey|#ddd|#ccc|#bbb|#aaa)['"]?/i, severity: 'medium' as const, title: 'Potentially Low Contrast Text Color', desc: 'Light named/short-hex text colors may not meet WCAG AA (4.5:1).' },
-    { regex: /background(?:-color)?\s*:\s*['"]?(transparent|none)['"]?/i, severity: 'low' as const, title: 'Transparent Background', desc: 'Transparent backgrounds may cause readability issues depending on the container.' },
+    { regex: /\bcolor\s*:\s*['"]?(lightgray|lightgrey|#ddd|#ccc|#bbb|#aaa)['"]?/i, severity: 'medium' as const, title: 'Potentially Low Contrast Text Color', desc: 'Light named/short-hex text colors may not meet WCAG AA (4.5:1).' },
     // gray-500 on white is ~4.6:1 (passes AA); only 300/400 are risky.
     { regex: /text-gray-[34]00\b/, severity: 'medium' as const, title: 'Low Contrast Tailwind Text', desc: 'Tailwind gray-300/400 may not provide sufficient contrast on white backgrounds.' },
   ];
 
-  // v0.28.3 — the old check matched ANY `color: #xxxxxx`, so near-black
-  // text like `#12101A` fired "low contrast" (100 false positives on the
-  // TestForge self-audit alone). Now we parse the hex and only flag
-  // genuinely LIGHT text (luminance > 0.55), which is the only case at
-  // real risk on the light backgrounds these apps use.
-  const HEX_COLOR_RE = /color\s*:\s*['"]?(#[a-fA-F0-9]{6}|#[a-fA-F0-9]{3})\b/i;
+  // v0.28.3 parsed the hex and only flagged LIGHT text (luminance > 0.55).
+  // v0.28.5 tightens two more false-positive sources surfaced by the
+  // self-audit:
+  //   1. `\bcolor` word boundary — `backgroundColor`/`borderColor` are not
+  //      text colors and must not match.
+  //   2. SIBLING_KEY skip — a `color:` hex sitting next to a data/style
+  //      sibling (`{ name, value, color }` chart series, `{ text, bg, color }`
+  //      terminal/badge config, or an inline style that also sets a
+  //      background) is intentional, not a lone light-text declaration on a
+  //      default-light surface. Static analysis can't see the real background,
+  //      so we only flag an isolated `color:` hex.
+  const HEX_COLOR_RE = /\bcolor\s*:\s*['"]?(#[a-fA-F0-9]{6}|#[a-fA-F0-9]{3})\b/i;
+  const SIBLING_KEY_RE = /\b(?:text|name|value|label|title|bg|background|backgroundColor|fill|stroke)\s*:/i;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
     const hexMatch = HEX_COLOR_RE.exec(line);
-    if (hexMatch) {
+    if (hexMatch && !SIBLING_KEY_RE.test(line)) {
       const lum = hexLuminance(hexMatch[1]);
       if (lum !== null && lum > 0.55) {
         findings.push({
@@ -537,18 +567,36 @@ function checkSemanticHtml(
       });
     }
 
-    // Tables without headers
-    if (line.includes('<table') && !line.includes('<th') && !line.includes('role="presentation"')) {
-      findings.push({
-        severity: 'medium',
-        title: 'Table Without Headers',
-        description: 'Data table does not have <th> header cells. Screen readers cannot associate data cells with headers.',
-        filePath,
-        lineNumber: i + 1,
-        codeSnippet: line.trim().slice(0, 120),
-        fixSuggestion: 'Add <th> elements with scope="col" or scope="row". For layout tables, use role="presentation".',
-        wcagCriterion: 'WCAG 1.3.1 (Info and Relationships)',
-      });
+    // Tables without headers — scan the table body, not just the opening
+    // line. v0.28.5: the old check was line-local, so any table whose
+    // <th>/<thead>/scope= lived on the following lines (i.e. every normal
+    // table) was wrongly flagged. Now we collect the table's source up to
+    // its closing tag (capped) and only flag when no header cell exists.
+    const tableOpen = line.indexOf('<table');
+    if (tableOpen !== -1 && !/role=["']presentation["']/.test(line)) {
+      let body = line.slice(tableOpen);
+      let closed = body.includes('</table>');
+      for (let j = i + 1; j < lines.length && !closed && j < i + 400; j++) {
+        body += '\n' + lines[j];
+        if (lines[j].includes('</table>')) closed = true;
+      }
+      const hasHeaders =
+        /<th[\s>]/.test(body) ||
+        /\bscope\s*=/.test(body) ||
+        /role=["'](?:presentation|none|grid)["']/.test(body) ||
+        /<(?:TableHead|TableHeader|Th)\b/.test(body); // shadcn / component libs
+      if (!hasHeaders) {
+        findings.push({
+          severity: 'medium',
+          title: 'Table Without Headers',
+          description: 'Data table does not have <th> header cells. Screen readers cannot associate data cells with headers.',
+          filePath,
+          lineNumber: i + 1,
+          codeSnippet: line.trim().slice(0, 120),
+          fixSuggestion: 'Add <th> elements with scope="col" or scope="row". For layout tables, use role="presentation".',
+          wcagCriterion: 'WCAG 1.3.1 (Info and Relationships)',
+        });
+      }
     }
 
     // Missing lang attribute on <html>

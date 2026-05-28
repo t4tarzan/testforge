@@ -51,11 +51,26 @@ export interface A11yJsxFinding {
 export function checkJsxAccessibility(filePath: string, ast: File): A11yJsxFinding[] {
   const out: A11yJsxFinding[] = [];
 
+  // Pre-pass: collect every `<label htmlFor="x">` / `<label for="x">` target in
+  // the file. An <input id="x"> paired with such a label IS labelled — this is
+  // the canonical accessible pattern. Without this the analyzer false-positives
+  // on every correctly-labelled form (the inline check only sees aria-label).
+  const labelFor = new Set<string>();
+  walk(ast, (node) => {
+    if (t.isJSXElement(node) && jsxElementName(node.openingElement) === 'label') {
+      const target =
+        getStringAttributeValue(node.openingElement, 'htmlFor') ??
+        getStringAttributeValue(node.openingElement, 'for');
+      if (target) labelFor.add(target);
+    }
+    return true;
+  });
+
   walk(ast, (parentNode) => {
     // We need the JSXElement (parent of the opening element) so we can
     // see children. JSXFragment also has children but no name → skip.
     if (t.isJSXElement(parentNode)) {
-      checkOne(parentNode.openingElement, parentNode.children, filePath, out);
+      checkOne(parentNode.openingElement, parentNode.children, filePath, out, labelFor);
       return true;
     }
     // Self-closing elements also show up as JSXElement with selfClosing=true
@@ -89,7 +104,8 @@ function checkOne(
   node: t.JSXOpeningElement,
   children: t.JSXElement['children'],
   filePath: string,
-  out: A11yJsxFinding[]
+  out: A11yJsxFinding[],
+  labelFor: Set<string>
 ) {
   const name = jsxElementName(node);
   if (!name) return;
@@ -164,7 +180,9 @@ function checkOne(
       if (name === 'input' && (inputType === 'hidden' || inputType === 'submit' || inputType === 'button')) {
         return;
       }
-      if (!hasInlineLabelAssociation(node)) {
+      const ownId = getStringAttributeValue(node, 'id');
+      const labelledByFor = ownId !== null && labelFor.has(ownId);
+      if (!hasInlineLabelAssociation(node) && !labelledByFor) {
         out.push({
           rule: 'input-no-label',
           severity: 'medium',
@@ -178,10 +196,23 @@ function checkOne(
     }
 
     // ── div / span with onClick but no role + tabIndex
-    if ((name === 'div' || name === 'span') && hasAttribute(node, 'onClick')) {
+    // `aria-hidden` elements are removed from the accessibility tree, so a
+    // dismiss-backdrop / decorative overlay with a mouse-only onClick is not a
+    // keyboard control — the real control lives elsewhere. Don't flag it.
+    if (
+      (name === 'div' || name === 'span') &&
+      hasAttribute(node, 'onClick') &&
+      !hasSpread(node) &&
+      getStringAttributeValue(node, 'aria-hidden') !== 'true'
+    ) {
+      const role = getStringAttributeValue(node, 'role');
       const hasRole = hasAttribute(node, 'role');
       const hasTabIndex = hasAttribute(node, 'tabIndex');
-      if (!hasRole || !hasTabIndex) {
+      // A structural role (group/region/list/…) means the onClick is an
+      // enhancement, not a custom control — keyboard focus lives on the
+      // real interactive children, so don't demand tabIndex here.
+      const structural = role !== null && NON_INTERACTIVE_ROLES.has(role);
+      if (!structural && (!hasRole || !hasTabIndex)) {
         out.push({
           rule: 'clickable-non-interactive',
           severity: 'medium',
@@ -231,6 +262,28 @@ function hasAttribute(node: t.JSXOpeningElement, name: string): boolean {
   );
 }
 
+/**
+ * Does the element spread props (`{...props}` / `{...rest}`)? Design-system
+ * primitives and wrapper components forward arbitrary props this way, so the
+ * accessible name (children / aria-label) or a label association (id /
+ * aria-label) may be supplied by the caller. We can't see that statically, so
+ * a name/label check must NOT fire — otherwise every shadcn/MUI primitive
+ * `<input {...props} />` produces a false positive.
+ */
+function hasSpread(node: t.JSXOpeningElement): boolean {
+  return node.attributes.some((a) => t.isJSXSpreadAttribute(a));
+}
+
+// Structural / non-interactive ARIA roles. A div/span carrying one of these
+// plus an onClick is a container with an enhancement handler (e.g. a group
+// that forwards focus to its input), not a custom control — it doesn't need
+// tabIndex/keyboard handling.
+const NON_INTERACTIVE_ROLES = new Set([
+  'group', 'presentation', 'none', 'region', 'list', 'listitem',
+  'row', 'rowgroup', 'cell', 'gridcell', 'separator', 'toolbar',
+  'tablist', 'document', 'article', 'banner', 'main', 'navigation',
+]);
+
 function getStringAttributeValue(node: t.JSXOpeningElement, name: string): string | null {
   for (const attr of node.attributes) {
     if (!t.isJSXAttribute(attr) || !t.isJSXIdentifier(attr.name)) continue;
@@ -276,6 +329,7 @@ function hasAccessibleName(
   node: t.JSXOpeningElement,
   children: t.JSXElement['children']
 ): boolean {
+  if (hasSpread(node)) return true; // name may arrive via {...props}
   if (hasAttribute(node, 'aria-label')) {
     const v = getStringAttributeValue(node, 'aria-label');
     if (v === null || v.trim() !== '') return true;
@@ -294,17 +348,8 @@ function childrenHaveAccessibleText(children: t.JSXElement['children']): boolean
     if (t.isJSXText(child)) {
       if (child.value.trim() !== '') return true;
     } else if (t.isJSXExpressionContainer(child)) {
-      // {`Hello`} or {someVar} — string-literal/template count;
-      // identifier we can't prove but accept as "probably has text."
-      const e = child.expression;
-      if (t.isStringLiteral(e) && e.value.trim() !== '') return true;
-      if (t.isTemplateLiteral(e)) {
-        const joined = e.quasis.map((q) => q.value.cooked ?? '').join('');
-        if (joined.trim() !== '') return true;
-      }
-      if (t.isIdentifier(e)) return true; // can't prove empty
-      if (t.isMemberExpression(e)) return true;
-      if (t.isCallExpression(e)) return true;
+      // {`Hello`}, {label}, {cond ? 'a' : 'b'}, {loading && 'Saving'} …
+      if (expressionHasAccessibleText(child.expression)) return true;
     } else if (t.isJSXElement(child)) {
       // Recurse — child element might carry text or its own aria-label.
       if (
@@ -320,7 +365,64 @@ function childrenHaveAccessibleText(children: t.JSXElement['children']): boolean
   return false;
 }
 
+/**
+ * Does a JSX expression `{…}` render accessible text? Handles the shapes a
+ * button label actually takes: string/template literals, identifiers/calls
+ * (can't prove empty → accept), conditionals (`{loading ? 'Saving' : 'Save'}`),
+ * `&&` guards (`{count && \`(${count})\`}`), `+` concatenation, and nested
+ * JSX. An icon-only conditional like `{open ? <X/> : <Menu/>}` yields false in
+ * both branches and is still — correctly — flagged.
+ */
+function expressionHasAccessibleText(
+  e: t.Expression | t.JSXEmptyExpression
+): boolean {
+  if (t.isJSXEmptyExpression(e)) return false;
+  if (t.isStringLiteral(e)) return e.value.trim() !== '';
+  if (t.isTemplateLiteral(e)) {
+    const joined = e.quasis.map((q) => q.value.cooked ?? '').join('');
+    if (joined.trim() !== '') return true;
+    return e.expressions.length > 0; // `${dynamic}` — can't prove empty
+  }
+  if (t.isIdentifier(e) || t.isMemberExpression(e) || t.isCallExpression(e)) {
+    return true; // dynamic — assume it may render text (avoid false positives)
+  }
+  if (t.isConditionalExpression(e)) {
+    return (
+      expressionHasAccessibleText(e.consequent) ||
+      expressionHasAccessibleText(e.alternate)
+    );
+  }
+  if (t.isLogicalExpression(e)) {
+    // `a && b` → only the right operand renders; `a || b` / `a ?? b` → either.
+    if (e.operator === '&&') return expressionHasAccessibleText(e.right);
+    return (
+      expressionHasAccessibleText(e.left) ||
+      expressionHasAccessibleText(e.right)
+    );
+  }
+  if (t.isBinaryExpression(e) && e.operator === '+') {
+    const leftHasText = t.isExpression(e.left)
+      ? expressionHasAccessibleText(e.left)
+      : false;
+    return leftHasText || expressionHasAccessibleText(e.right);
+  }
+  if (t.isJSXElement(e)) {
+    if (
+      hasAttribute(e.openingElement, 'aria-label') ||
+      hasAttribute(e.openingElement, 'aria-labelledby') ||
+      hasAttribute(e.openingElement, 'title')
+    )
+      return true;
+    return childrenHaveAccessibleText(e.children);
+  }
+  if (t.isJSXFragment(e)) return childrenHaveAccessibleText(e.children);
+  // Unknown expression type — be conservative and don't flag (a real
+  // icon-only button renders the icon directly as a child, not via `{…}`).
+  return true;
+}
+
 function hasInlineLabelAssociation(node: t.JSXOpeningElement): boolean {
+  if (hasSpread(node)) return true; // id / aria-label may arrive via {...props}
   if (hasAttribute(node, 'aria-label')) {
     const v = getStringAttributeValue(node, 'aria-label');
     if (v === null || v.trim() !== '') return true;

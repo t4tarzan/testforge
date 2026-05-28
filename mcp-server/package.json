@@ -1,6 +1,6 @@
 {
   "name": "@whitenoisenpm/testforge-mcp",
-  "version": "0.28.4",
+  "version": "0.28.5",
   "description": "TestForge MCP Server — AI-powered testing in your IDE. Analyzes code for security, unit tests, load, accessibility, vision alignment, scope coverage, and stack quality.",
   "type": "module",
   "bin": {

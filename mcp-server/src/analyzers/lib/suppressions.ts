@@ -57,6 +57,36 @@ export function collectSuppressions(ast: File): SuppressionTable {
   return { byLine, byFile };
 }
 
+/**
+ * Same as collectSuppressions, but for analyzers that work on raw text lines
+ * rather than a Babel AST (e.g. the line-based accessibility checks, or
+ * HTML/Vue/Svelte files Babel can't parse). The directive must be on its own
+ * line; the target is the line immediately below it.
+ */
+export function collectSuppressionsFromLines(lines: string[]): SuppressionTable {
+  const byLine = new Set<string>();
+  const byFile = new Set<string>();
+
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+
+    const m1 = NEXT_LINE.exec(raw);
+    if (m1) {
+      const cats = parseCategoryList(m1[1]);
+      const targetLine = i + 2; // comment is 1-based line i+1; target is next
+      for (const cat of cats) byLine.add(`${targetLine}:${cat}`);
+      continue;
+    }
+    const m2 = FILE_WIDE.exec(raw);
+    if (m2) {
+      const cats = parseCategoryList(m2[1]);
+      for (const cat of cats) byFile.add(cat);
+    }
+  }
+
+  return { byLine, byFile };
+}
+
 export function isSuppressed(table: SuppressionTable, line: number, category: string): boolean {
   const cat = normCategory(category);
   return (
