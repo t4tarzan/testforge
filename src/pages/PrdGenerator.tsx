@@ -264,6 +264,7 @@ function FlowSection() {
                 <button
                   key={i}
                   onClick={() => setActivePhase(i)}
+                  aria-label={`Go to phase ${i + 1}`}
                   className={`h-1.5 rounded-full transition-all duration-300 ${
                     i === activePhase ? 'w-8 bg-[#574a7d]' : 'w-4 bg-[#3A3A3A] hover:bg-[#6B6B6B]'
                   }`}

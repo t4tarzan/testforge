@@ -253,9 +253,9 @@ function PricingCardsSection() {
                     size={20}
                     className={tier.dark ? 'text-[#a39fd4]' : 'text-[#574a7d]'}
                   />
-                  <h3 className={`font-heading font-semibold text-2xl ${tier.dark ? 'text-white' : 'text-[#333333]'}`}>
+                  <h2 className={`font-heading font-semibold text-2xl ${tier.dark ? 'text-white' : 'text-[#333333]'}`}>
                     {tier.name}
-                  </h3>
+                  </h2>
                 </div>
 
                 {/* Price */}

@@ -246,10 +246,10 @@ export default function InTheWildReportFull() {
               </p>
               <table className="data">
                 <tbody>
-                  <tr><td>Estimated function coverage</td><td className="num">{report.unit.coverage}%</td></tr>
-                  <tr><td>Test files</td><td className="num">{report.unit.testFiles.toLocaleString()}</td></tr>
-                  <tr><td>Test cases</td><td className="num">{report.unit.totalTests.toLocaleString()}</td></tr>
-                  <tr><td>Frameworks detected</td><td>{report.unit.frameworks.length === 0 ? <em className="muted">none</em> : report.unit.frameworks.join(', ')}</td></tr>
+                  <tr><th scope="row">Estimated function coverage</th><td className="num">{report.unit.coverage}%</td></tr>
+                  <tr><th scope="row">Test files</th><td className="num">{report.unit.testFiles.toLocaleString()}</td></tr>
+                  <tr><th scope="row">Test cases</th><td className="num">{report.unit.totalTests.toLocaleString()}</td></tr>
+                  <tr><th scope="row">Frameworks detected</th><td>{report.unit.frameworks.length === 0 ? <em className="muted">none</em> : report.unit.frameworks.join(', ')}</td></tr>
                 </tbody>
               </table>
             </section>
@@ -579,6 +579,15 @@ const INLINE_CSS = `
   background: rgba(87, 74, 125, 0.04);
 }
 .itw-full table.data td.num, .itw-full table.data th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.itw-full table.data th[scope="row"] {
+  font-weight: 500;
+  font-family: inherit;
+  font-size: inherit;
+  text-transform: none;
+  letter-spacing: normal;
+  color: inherit;
+  background: none;
+}
 .itw-full .dim-table .bar {
   width: 100%;
   height: 6px;

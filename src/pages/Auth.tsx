@@ -118,6 +118,7 @@ const AuthInput = ({
       </div>
       <input
         type={type}
+        aria-label={label}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
@@ -448,7 +449,7 @@ export default function Auth() {
                 placeholder="••••••••"
                 icon={<Lock size={18} />}
                 rightIcon={
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} tabIndex={-1}>
+                  <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(!showPassword)} tabIndex={-1}>
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 }
@@ -468,6 +469,11 @@ export default function Auth() {
                 <label className="flex items-center gap-3 cursor-pointer">
                   <div
                     onClick={() => setRememberMe(!rememberMe)}
+                    role="checkbox"
+                    aria-checked={rememberMe}
+                    aria-label="Remember me"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setRememberMe(!rememberMe); } }}
                     className={`w-[18px] h-[18px] rounded-[5px] border-2 flex items-center justify-center transition-all duration-200 cursor-pointer ${
                       rememberMe
                         ? 'bg-[#574a7d] border-[#574a7d]'
@@ -561,7 +567,7 @@ export default function Auth() {
                 placeholder="Min. 8 characters"
                 icon={<Lock size={18} />}
                 rightIcon={
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} tabIndex={-1}>
+                  <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(!showPassword)} tabIndex={-1}>
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 }
@@ -577,7 +583,7 @@ export default function Auth() {
                 placeholder="••••••••"
                 icon={<Lock size={18} />}
                 rightIcon={
-                  <button type="button" onClick={() => setShowConfirm(!showConfirm)} tabIndex={-1}>
+                  <button type="button" aria-label={showConfirm ? 'Hide password' : 'Show password'} onClick={() => setShowConfirm(!showConfirm)} tabIndex={-1}>
                     {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 }
@@ -605,6 +611,11 @@ export default function Auth() {
               >
                 <div
                   onClick={() => setAgreedToTerms(!agreedToTerms)}
+                  role="checkbox"
+                  aria-checked={agreedToTerms}
+                  aria-label="I agree to the Terms of Service and Privacy Policy"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setAgreedToTerms(!agreedToTerms); } }}
                   className={`w-[18px] h-[18px] rounded-[5px] border-2 flex items-center justify-center transition-all duration-200 cursor-pointer flex-shrink-0 ${
                     agreedToTerms
                       ? 'bg-[#574a7d] border-[#574a7d]'

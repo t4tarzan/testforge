@@ -122,6 +122,7 @@ export default function ManagedTesting() {
                 <GitBranch size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#a99bff]" />
                 <input
                   type="text"
+                  aria-label="Repository URL"
                   value={repoUrl}
                   onChange={(e) => { setRepoUrl(e.target.value); setError(''); }}
                   placeholder="https://github.com/owner/repo"

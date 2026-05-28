@@ -86,7 +86,7 @@ export default function Press() {
             ].map(([label, url]) => (
               <div key={label} className="flex items-center gap-3">
                 <span className="text-[#9A9A9A] w-24">{label}:</span>
-                <a href={url} target="_blank" className="text-[#574a7d] hover:underline">{url}</a>
+                <a href={url} target="_blank" rel="noopener noreferrer" className="text-[#574a7d] hover:underline">{url}</a>
                 <button onClick={() => copy(url)} className="text-xs text-[#574a7d] underline">Copy</button>
               </div>
             ))}

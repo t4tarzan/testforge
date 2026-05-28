@@ -350,7 +350,7 @@ function QualityScorecardSection() {
 
           {/* Right: Dimension Score Bars */}
           <div>
-            <h3 className="font-heading font-medium text-lg text-[#333333] mb-6">Testing Dimensions</h3>
+            <h2 className="font-heading font-medium text-lg text-[#333333] mb-6">Testing Dimensions</h2>
             <div className="space-y-3">
               {dimensionScores.map((dim) => {
                 let barColor = '#574a7d'

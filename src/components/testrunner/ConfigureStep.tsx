@@ -233,6 +233,7 @@ export default function ConfigureStep({ onComplete, onBack }: ConfigureStepProps
             <div className="relative">
               <input
                 type="range"
+                aria-label="Test Coverage"
                 min={0}
                 max={2}
                 step={1}
@@ -273,6 +274,7 @@ export default function ConfigureStep({ onComplete, onBack }: ConfigureStepProps
                   </label>
                   <input
                     type="number"
+                    aria-label="Timeout per test (seconds)"
                     value={timeoutVal}
                     onChange={(e) => setTimeoutVal(Number(e.target.value))}
                     className="w-full h-9 px-3 bg-white border border-[#D9D9D3] rounded-md font-mono text-[13px] focus:outline-none focus:border-[#574a7d]"
@@ -284,6 +286,7 @@ export default function ConfigureStep({ onComplete, onBack }: ConfigureStepProps
                   </label>
                   <input
                     type="number"
+                    aria-label="Concurrent tests"
                     value={concurrent}
                     onChange={(e) => setConcurrent(Number(e.target.value))}
                     className="w-full h-9 px-3 bg-white border border-[#D9D9D3] rounded-md font-mono text-[13px] focus:outline-none focus:border-[#574a7d]"
@@ -295,6 +298,9 @@ export default function ConfigureStep({ onComplete, onBack }: ConfigureStepProps
                   </label>
                   <button
                     onClick={() => setFailFast(!failFast)}
+                    role="switch"
+                    aria-checked={failFast}
+                    aria-label="Fail fast"
                     className={`w-10 h-5 rounded-full transition-colors duration-200 ${failFast ? 'bg-[#574a7d]' : 'bg-[#D9D9D3]'}`}
                   >
                     <motion.div

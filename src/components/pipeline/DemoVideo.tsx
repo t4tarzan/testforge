@@ -107,12 +107,14 @@ const DemoVideo = memo(function DemoVideo() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={handlePlay}
+                    aria-label={isPlaying ? 'Pause' : 'Play'}
                     className="text-white hover:text-[#574a7d] transition-colors duration-200"
                   >
                     {isPlaying ? <Pause size={20} /> : <Play size={20} />}
                   </button>
                   <button
                     onClick={() => setIsMuted(!isMuted)}
+                    aria-label={isMuted ? 'Unmute' : 'Mute'}
                     className="text-white hover:text-[#574a7d] transition-colors duration-200"
                   >
                     {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
@@ -120,6 +122,7 @@ const DemoVideo = memo(function DemoVideo() {
                 </div>
                 <button
                   onClick={handleFullscreen}
+                  aria-label="Toggle fullscreen"
                   className="text-white hover:text-[#574a7d] transition-colors duration-200"
                 >
                   <Maximize size={20} />

@@ -308,12 +308,13 @@ function DashboardTab() {
                   </span>
                   <div className="flex items-center justify-end gap-2">
                     <button
+                      aria-label="View report"
                       className="w-8 h-8 rounded-[6px] flex items-center justify-center hover:bg-[#F7F7FB] transition-colors"
                       onClick={(e) => { e.stopPropagation(); navigate(`/report/${run.id}`); }}
                     >
                       <Eye size={16} className="text-[#6B6B6B]" />
                     </button>
-                    <button className="w-8 h-8 rounded-[6px] flex items-center justify-center hover:bg-[#F7F7FB] transition-colors">
+                    <button aria-label="Download report" className="w-8 h-8 rounded-[6px] flex items-center justify-center hover:bg-[#F7F7FB] transition-colors">
                       <Download size={16} className="text-[#6B6B6B]" />
                     </button>
                   </div>
@@ -443,6 +444,7 @@ function TestRunsTab() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9A9A9A]" />
           <input
             type="text"
+            aria-label="Search repositories"
             placeholder="Search repositories..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -451,6 +453,7 @@ function TestRunsTab() {
         </div>
         <select
           value={statusFilter}
+          aria-label="Filter by status"
           onChange={(e) => setStatusFilter(e.target.value)}
           className="h-10 bg-white border border-[#D9D9D3] rounded-lg px-3 text-[14px] font-body text-[#12101A] focus:outline-none focus:border-[#574a7d] cursor-pointer"
         >
@@ -499,8 +502,8 @@ function TestRunsTab() {
             <span><StatusBadge status={run.status} /></span>
             <span className={`text-[14px] font-semibold font-body ${scoreColor(run.score)}`}>{run.score}/100</span>
             <div className="flex items-center justify-end gap-2">
-              <button className="w-8 h-8 rounded-[6px] flex items-center justify-center hover:bg-[#F7F7FB]"><Eye size={16} className="text-[#6B6B6B]" /></button>
-              <button className="w-8 h-8 rounded-[6px] flex items-center justify-center hover:bg-[#F7F7FB]"><Download size={16} className="text-[#6B6B6B]" /></button>
+              <button aria-label="View report" className="w-8 h-8 rounded-[6px] flex items-center justify-center hover:bg-[#F7F7FB]"><Eye size={16} className="text-[#6B6B6B]" /></button>
+              <button aria-label="Download report" className="w-8 h-8 rounded-[6px] flex items-center justify-center hover:bg-[#F7F7FB]"><Download size={16} className="text-[#6B6B6B]" /></button>
             </div>
           </motion.div>
         ))}
@@ -512,7 +515,7 @@ function TestRunsTab() {
           Showing {(page - 1) * perPage + 1}-{Math.min(page * perPage, filtered.length)} of {filtered.length}
         </span>
         <div className="flex items-center gap-2">
-          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-[#F7F7FB] disabled:opacity-30 transition-colors">
+          <button aria-label="Previous page" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-[#F7F7FB] disabled:opacity-30 transition-colors">
             <ChevronLeft size={16} />
           </button>
           {Array.from({ length: Math.min(5, totalPages) }, (_, i) => i + 1).map((n) => (
@@ -527,7 +530,7 @@ function TestRunsTab() {
             </button>
           ))}
           {totalPages > 5 && <span className="text-[#9A9A9A] px-1">...</span>}
-          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-[#F7F7FB] disabled:opacity-30 transition-colors">
+          <button aria-label="Next page" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-[#F7F7FB] disabled:opacity-30 transition-colors">
             <ChevronRight size={16} />
           </button>
         </div>
@@ -906,8 +909,9 @@ function SettingsTab() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <div>
-            <label className="block text-[14px] text-[#333333] font-medium font-body mb-2">Full Name</label>
+            <label htmlFor="account-full-name" className="block text-[14px] text-[#333333] font-medium font-body mb-2">Full Name</label>
             <input
+              id="account-full-name"
               type="text"
               defaultValue={user?.name || ''}
               disabled
@@ -915,8 +919,9 @@ function SettingsTab() {
             />
           </div>
           <div>
-            <label className="block text-[14px] text-[#333333] font-medium font-body mb-2">Email</label>
+            <label htmlFor="account-email" className="block text-[14px] text-[#333333] font-medium font-body mb-2">Email</label>
             <input
+              id="account-email"
               type="email"
               defaultValue={user?.email || ''}
               disabled
@@ -941,6 +946,9 @@ function SettingsTab() {
               </div>
               <button
                 onClick={() => toggle(item.key)}
+                role="switch"
+                aria-checked={toggles[item.key]}
+                aria-label={item.label}
                 className={`relative w-11 h-6 rounded-full transition-all duration-200 ${
                   toggles[item.key] ? 'bg-[#574a7d]' : 'bg-[#D9D9D3]'
                 }`}
@@ -1022,6 +1030,7 @@ export default function Account() {
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
+          aria-hidden="true"
           className="fixed inset-0 bg-[#12101A]/50 z-30 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -1104,6 +1113,7 @@ export default function Account() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
+              aria-label="Open menu"
               className="lg:hidden p-2 text-[#333333]"
             >
               <Menu size={20} />

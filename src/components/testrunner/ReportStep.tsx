@@ -128,7 +128,7 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
         </div>`
       ).join('');
       
-      content = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>TestForge Report</title>
+      content = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>TestForge Report</title>
         <style>body{font-family:-apple-system,sans-serif;max-width:800px;margin:40px auto;color:#333;line-height:1.6}
         h1{color:#574a7d;border-bottom:2px solid #574a7d;padding-bottom:10px}
         h2{color:#12101A;margin-top:30px}.stat{display:inline-block;padding:10px 20px;margin:5px;background:#f5f5f0;border-radius:8px}

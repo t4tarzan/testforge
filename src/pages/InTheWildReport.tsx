@@ -262,9 +262,9 @@ export default function InTheWildReport() {
                     >
                       {item.severity}
                     </span>
-                    <h4 className="font-heading font-semibold text-[16px] text-[#12101A]">
+                    <h3 className="font-heading font-semibold text-[16px] text-[#12101A]">
                       {item.title}
-                    </h4>
+                    </h3>
                   </div>
                   {item.filePath && (
                     <p className="font-mono text-[12px] text-[#574a7d] mb-2">

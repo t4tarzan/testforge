@@ -1452,7 +1452,7 @@ function ApiReferencePage() {
       </p>
 
       <div className="bg-[#F7F7FB] border border-[#D9D9D3] rounded-xl p-5 mb-8 space-y-3">
-        <h3 className="font-body font-semibold text-[15px] text-[#12101A]">Conventions</h3>
+        <h2 className="font-body font-semibold text-[15px] text-[#12101A]">Conventions</h2>
         <ul className="list-disc list-inside space-y-2 text-[14px] text-[#333333] leading-[1.6]">
           <li><strong>Auth</strong> — most routes require a signed-in session. The cookie
             (<code className="font-mono text-[12px] text-[#574a7d]">tf_session</code>, httpOnly +
@@ -2619,6 +2619,7 @@ export default function Docs() {
       {/* Mobile hamburger */}
       <button
         onClick={() => setMobileOpen(!mobileOpen)}
+        aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
         className="fixed bottom-6 right-6 z-50 lg:hidden w-12 h-12 rounded-full bg-[#574a7d] text-white shadow-lg flex items-center justify-center"
       >
         {mobileOpen ? <X size={20} /> : <Menu size={20} />}
@@ -2648,6 +2649,7 @@ export default function Docs() {
             />
             <input
               type="text"
+              aria-label="Search documentation"
               placeholder="Search documentation..."
               className="w-full h-10 bg-[#F7F7FB] border border-[#D9D9D3] rounded-lg pl-10 pr-4
                 font-body text-[14px] text-[#333333]
@@ -2694,6 +2696,7 @@ export default function Docs() {
             Version
           </p>
           <select
+            aria-label="Documentation version"
             className="w-full h-9 bg-[#F7F7FB] border border-[#D9D9D3] rounded-md px-3
               font-body text-[13px] text-[#333333] focus:outline-none focus:border-[#574a7d]"
           >

@@ -62,12 +62,13 @@ export default function ConnectStep({ onComplete }: ConnectStepProps) {
 
       <div className="max-w-[600px] mx-auto space-y-5">
         <div>
-          <label className="font-mono text-[12px] uppercase tracking-[0.08em] text-[#6B6B6B] font-medium block mb-2">
+          <label htmlFor="connect-repo-url" className="font-mono text-[12px] uppercase tracking-[0.08em] text-[#6B6B6B] font-medium block mb-2">
             Repository URL
           </label>
           <div className="relative">
             <GitBranch size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#574a7d]" />
             <input
+              id="connect-repo-url"
               type="text"
               value={repoUrl}
               onChange={(e) => { setRepoUrl(e.target.value); setError(''); }}
@@ -79,8 +80,9 @@ export default function ConnectStep({ onComplete }: ConnectStepProps) {
         </div>
 
         <div>
-          <label className="font-mono text-[12px] uppercase tracking-[0.08em] text-[#6B6B6B] font-medium block mb-2">Branch</label>
+          <label htmlFor="connect-branch" className="font-mono text-[12px] uppercase tracking-[0.08em] text-[#6B6B6B] font-medium block mb-2">Branch</label>
           <input
+            id="connect-branch"
             type="text"
             value={branch}
             onChange={(e) => setBranch(e.target.value)}
