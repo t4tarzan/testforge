@@ -50,6 +50,14 @@ export const TAG_COLORS: Record<ChangelogTag, string> = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '0.31.0',
+    date: '2026-05-29',
+    tag: 'analyzer',
+    title: 'Kubernetes dimension + honest per-dimension findings',
+    summary:
+      'A 22nd dimension: TestForge now parses every Kubernetes manifest and Helm chart (Go-template expressions stubbed) and checks PodSpecs + RBAC — securityContext (runAsNonRoot/privileged/allowPrivilegeEscalation), resource requests/limits, liveness/readiness probes, mutable image tags, wildcard RBAC, secrets-in-ConfigMaps, and NetworkPolicy presence. For a k8s platform the real risk lives in YAML, not app code, and this was the biggest blind spot (16 of 21 dimensions wanted it). Reports also stop headlining only security: findings are now grouped by dimension with how-each-was-tested (method), language/coverage breadth, and the N/A reason — so a high score can never hide an unanalyzed half of a polyglot repo.',
+  },
+  {
     version: '0.30.0',
     date: '2026-05-29',
     tag: 'platform',
