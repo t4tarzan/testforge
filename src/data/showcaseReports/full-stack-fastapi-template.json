@@ -3,8 +3,8 @@
   "repoUrl": "https://github.com/tiangolo/full-stack-fastapi-template",
   "repoName": "full-stack-fastapi-template",
   "tagline": "Next.js + FastAPI starter \u2014 exercises polyglot detection end-to-end",
-  "analyzedAt": "2026-05-27T23:43:17.784Z",
-  "analyzeMs": 442,
+  "analyzedAt": "2026-05-28T00:21:07.356Z",
+  "analyzeMs": 422,
   "codebase": {
     "totalFiles": 183,
     "totalLines": 16626,
@@ -94,7 +94,7 @@
     {
       "key": "mutation",
       "label": "Mutation",
-      "score": 0
+      "score": 35
     },
     {
       "key": "predictive",
@@ -117,5 +117,5 @@
       "score": 55
     }
   ],
-  "overall": 70
+  "overall": 73
 }

@@ -3,8 +3,8 @@
   "repoUrl": "https://github.com/supabase/supabase",
   "repoName": "supabase",
   "tagline": "78k-star OSS Firebase alt \u2014 TypeScript monorepo + test-path security suppression",
-  "analyzedAt": "2026-05-27T23:43:16.347Z",
-  "analyzeMs": 48087,
+  "analyzedAt": "2026-05-28T00:21:05.910Z",
+  "analyzeMs": 48648,
   "codebase": {
     "totalFiles": 7658,
     "totalLines": 2161325,
@@ -77,19 +77,27 @@
         "fixSuggestion": "Use parameterized queries (placeholders like $1, $2) or an ORM. If you must build dynamic SQL, allowlist the variable parts and pass user values via bound parameters."
       },
       {
+        "severity": "high",
+        "title": "Route Without Inline Auth",
+        "description": "app.get() declares a route with no visible auth middleware. If your app uses a global auth middleware, suppress this with a comment.",
+        "filePath": "examples/oauth-app-authorization-flow/src/index.ts",
+        "lineNumber": 17,
+        "fixSuggestion": "Either pass an auth middleware function in the args list, or annotate the file with `// testforge-disable-file authentication-bypass` if a global middleware is intentional."
+      },
+      {
+        "severity": "high",
+        "title": "Route Without Inline Auth",
+        "description": "app.get() declares a route with no visible auth middleware. If your app uses a global auth middleware, suppress this with a comment.",
+        "filePath": "examples/oauth-app-authorization-flow/src/index.ts",
+        "lineNumber": 34,
+        "fixSuggestion": "Either pass an auth middleware function in the args list, or annotate the file with `// testforge-disable-file authentication-bypass` if a global middleware is intentional."
+      },
+      {
         "severity": "critical",
         "title": "Potential SQL/NoSQL Injection",
         "description": "get() is called with a string built from variables. Verify the inputs are bound, not concatenated.",
         "filePath": "apps/www/data/organizations.ts",
         "lineNumber": 17,
-        "fixSuggestion": "Use parameterized queries (placeholders like $1, $2) or an ORM. If you must build dynamic SQL, allowlist the variable parts and pass user values via bound parameters."
-      },
-      {
-        "severity": "critical",
-        "title": "Potential SQL/NoSQL Injection",
-        "description": "run() is called with a string built from variables. Verify the inputs are bound, not concatenated.",
-        "filePath": "apps/learn/scripts/sync-internal-content.mts",
-        "lineNumber": 57,
         "fixSuggestion": "Use parameterized queries (placeholders like $1, $2) or an ORM. If you must build dynamic SQL, allowlist the variable parts and pass user values via bound parameters."
       },
       {
@@ -99,14 +107,6 @@
         "filePath": "apps/studio/pages/_app.tsx",
         "lineNumber": 192,
         "fixSuggestion": "Render the value as text (default React escaping) or run it through DOMPurify.sanitize() first."
-      },
-      {
-        "severity": "high",
-        "title": "Path Traversal Risk",
-        "description": "window.open() path was built from a variable. Verify it can't escape the intended directory.",
-        "filePath": "apps/studio/lib/navigation.ts",
-        "lineNumber": 45,
-        "fixSuggestion": "Resolve to an absolute path, then verify the result starts with the expected base directory. Allowlist file ids \u2192 server-resolved paths, never echo user paths back."
       }
     ]
   },
