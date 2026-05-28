@@ -366,20 +366,66 @@ function checkHeadingHierarchy(
   }
 }
 
+/**
+ * WCAG relative luminance from a 3- or 6-digit hex. Returns null if not
+ * a parseable hex. Range 0 (black) .. 1 (white).
+ */
+function hexLuminance(hex: string): number | null {
+  let h = hex.replace('#', '');
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+  if (h.length !== 6) return null;
+  const toLin = (v: number) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  if ([r, g, b].some(Number.isNaN)) return null;
+  return 0.2126 * toLin(r) + 0.7152 * toLin(g) + 0.0722 * toLin(b);
+}
+
 function checkColorContrast(
   lines: string[],
   filePath: string,
   findings: A11yFinding[]
 ) {
-  const colorPatterns = [
-    { regex: /color\s*:\s*['"]?(#[a-fA-F0-9]{3,6}|lightgray|lightgrey|#ddd|#ccc|#bbb|#aaa)['"]?/, severity: 'medium' as const, title: 'Potentially Low Contrast Text Color', desc: 'Light text colors may not meet WCAG AA contrast ratio (4.5:1 for normal text).' },
-    { regex: /background(?:-color)?\s*:\s*['"]?(transparent|none)['"]?/, severity: 'low' as const, title: 'Transparent Background', desc: 'Transparent backgrounds may cause readability issues depending on the container.' },
-    { regex: /text-gray-[3-5]00/, severity: 'medium' as const, title: 'Low Contrast Tailwind Text', desc: 'Tailwind gray-300 to gray-500 may not provide sufficient contrast on white backgrounds.' },
+  // Non-hex patterns stay regex-based and are inherently low-risk volume.
+  const simplePatterns = [
+    { regex: /color\s*:\s*['"]?(lightgray|lightgrey|#ddd|#ccc|#bbb|#aaa)['"]?/i, severity: 'medium' as const, title: 'Potentially Low Contrast Text Color', desc: 'Light named/short-hex text colors may not meet WCAG AA (4.5:1).' },
+    { regex: /background(?:-color)?\s*:\s*['"]?(transparent|none)['"]?/i, severity: 'low' as const, title: 'Transparent Background', desc: 'Transparent backgrounds may cause readability issues depending on the container.' },
+    // gray-500 on white is ~4.6:1 (passes AA); only 300/400 are risky.
+    { regex: /text-gray-[34]00\b/, severity: 'medium' as const, title: 'Low Contrast Tailwind Text', desc: 'Tailwind gray-300/400 may not provide sufficient contrast on white backgrounds.' },
   ];
+
+  // v0.28.3 — the old check matched ANY `color: #xxxxxx`, so near-black
+  // text like `#12101A` fired "low contrast" (100 false positives on the
+  // TestForge self-audit alone). Now we parse the hex and only flag
+  // genuinely LIGHT text (luminance > 0.55), which is the only case at
+  // real risk on the light backgrounds these apps use.
+  const HEX_COLOR_RE = /color\s*:\s*['"]?(#[a-fA-F0-9]{6}|#[a-fA-F0-9]{3})\b/i;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    for (const p of colorPatterns) {
+
+    const hexMatch = HEX_COLOR_RE.exec(line);
+    if (hexMatch) {
+      const lum = hexLuminance(hexMatch[1]);
+      if (lum !== null && lum > 0.55) {
+        findings.push({
+          severity: 'medium',
+          title: 'Potentially Low Contrast Text Color',
+          description: `Light text color ${hexMatch[1]} (luminance ${lum.toFixed(2)}) likely fails WCAG AA (4.5:1) on a light background.`,
+          filePath,
+          lineNumber: i + 1,
+          codeSnippet: line.trim().slice(0, 120),
+          fixSuggestion: 'Darken the text or verify against the actual background with the WebAIM Contrast Checker. Aim for 4.5:1 normal / 3:1 large.',
+          wcagCriterion: 'WCAG 1.4.3 (Contrast Minimum)',
+        });
+      }
+    }
+
+    for (const p of simplePatterns) {
       if (p.regex.test(line)) {
         findings.push({
           severity: p.severity,

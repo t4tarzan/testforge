@@ -146,6 +146,32 @@ export function isTestPath(filePath: string): boolean {
   return TEST_PATH_RE.test(filePath) || filePath.endsWith('.d.ts');
 }
 
+// Path markers of third-party / generated bundles we shouldn't scan as
+// the project's own source.
+const VENDOR_PATH_RE = /(?:^|\/)(?:vendor|vendored|third[-_]?party|monaco-editor|codemirror|\.min\.)/i;
+
+/**
+ * True for minified or vendored files. Two signals:
+ *   - path looks vendored (vendor/, monaco-editor/, *.min.js)
+ *   - content looks minified: a single very long line (>5000 chars) or
+ *     a high average line length (>500) on a multi-line file. Minified
+ *     bundles are not the project's own code and produce garbage findings
+ *     (the Supabase report flagged monaco-editor/workerMain.js's `v.get()`
+ *     and `g.exec()` as SQL injection).
+ */
+function isMinifiedOrVendored(filePath: string, content: string): boolean {
+  if (VENDOR_PATH_RE.test(filePath)) return true;
+  if (/\.min\.[mc]?jsx?$/.test(filePath)) return true;
+  if (content.length === 0) return false;
+  const newlineCount = (content.match(/\n/g) || []).length;
+  const avgLineLen = content.length / (newlineCount + 1);
+  // A single 5k+ char line, or sustained 500+ char average — both
+  // strongly indicate machine-generated / minified output.
+  if (newlineCount <= 1 && content.length > 5000) return true;
+  if (avgLineLen > 500) return true;
+  return false;
+}
+
 export async function runSecurityAnalysis(
   config: SecurityConfig
 ): Promise<SecurityFinding[]> {
@@ -189,6 +215,11 @@ export async function runSecurityAnalysis(
     // usually intentional inside tests. Project-level deps + header
     // checks below still cover the real risk surface.
     if (isTestPath(filePath)) continue;
+    // v0.28.3 — skip minified / vendored bundles. They aren't the
+    // project's own code, and matching minified `v.get()` / `g.exec()`
+    // produces noise (the Supabase report flagged monaco-editor's
+    // workerMain.js this way). Path heuristics + a content check.
+    if (isMinifiedOrVendored(filePath, content)) continue;
     const parsed = parsedByFile.get(filePath)!;
     const imports = parsed.ast
       ? collectFileImports(filePath, parsed.ast, candidatePaths)
@@ -1015,6 +1046,27 @@ function severityFor(cat: string): Severity {
 
 const SECRET_NAME_RE = /^(?:api_?key|secret|password|passwd|pwd|token|private_?key|aws_?secret|client_?secret)$/i;
 
+/**
+ * True when a string literal assigned to a secret-named variable is
+ * obviously a placeholder, not a real credential. Covers:
+ *   - bracketed/templated: `[YOUR-PASSWORD]`, `<password>`, `${...}`, `{{...}}`
+ *   - common placeholder words: your-, my-, example, changeme, placeholder,
+ *     dummy, sample, redacted, todo, insert-, test, xxxx
+ *   - all-symbol masks: `********`, `xxxxxxxx`, `--------`
+ */
+function isPlaceholderSecret(value: string): boolean {
+  const s = value.trim();
+  if (!s) return true;
+  const first = s[0];
+  if (first === '[' || first === '<' || first === '{') return true;
+  if (s.includes('${') || s.includes('{{') || s.includes('<%')) return true;
+  if (/^[*x.\-_•]+$/i.test(s)) return true; // ****, xxxx, ----
+  const low = s.toLowerCase();
+  if (/\b(?:your|my|example|change[-_ ]?me|placeholder|dummy|sample|redacted|insert|replace)[-_ ]?/.test(low)) return true;
+  if (['password', 'secret', 'changeme', 'password123', 'your_password', 'your-password', 'xxxxxxxx'].includes(low)) return true;
+  return false;
+}
+
 function checkHardcodedSecret(
   node: t.VariableDeclarator,
   filePath: string,
@@ -1027,6 +1079,11 @@ function checkHardcodedSecret(
   if (!init || !t.isStringLiteral(init)) return;
   if (init.value.length < 8) return;
   if (init.value.includes('process.env')) return;
+  // v0.28.3 — skip obvious placeholders. The Supabase report flagged
+  // `const password = '[YOUR-PASSWORD]'` in a connection-string-builder
+  // UI as a hardcoded secret. Bracketed/templated values and common
+  // placeholder words are not real secrets.
+  if (isPlaceholderSecret(init.value)) return;
 
   push(out, filePath, content, node, {
     severity: 'critical',

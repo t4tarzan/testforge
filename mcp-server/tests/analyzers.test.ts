@@ -2353,6 +2353,81 @@ describe('advanced-analyzer — mutation uses test-file count, not root devDeps 
   });
 });
 
+// Regression for the Supabase in-the-wild report (2026-05-28): 14
+// "critical" findings, almost all false positives — the SQL/NoSQL sink
+// matched bare .get()/.all()/.run(), minified vendored code got scanned,
+// and hardcoded-password fired on '[YOUR-PASSWORD]'. 0.28.3 precision pass.
+describe('security-analyzer — SQL/NoSQL sink precision (v0.28.3)', () => {
+  const mk = (file: string, code: string) => ({ [file]: code });
+  const run = (fileContents: Record<string, string>) =>
+    runSecurityAnalysis({ projectPath: '/tmp/synthetic', fileContents, dependencies: [], devDependencies: [] });
+
+  it('does NOT flag urlParams.get() with a built string', async () => {
+    const f = await run(mk('src/x.ts', 'const p = new URLSearchParams(); const v = p.get(`${key}`);'));
+    expect(f.filter((x) => x.title === 'Potential SQL/NoSQL Injection')).toHaveLength(0);
+  });
+
+  it('does NOT flag Promise.all() with a built array', async () => {
+    const f = await run(mk('src/x.ts', 'const r = await Promise.all(items.map((i) => fetch(`${base}/${i}`)));'));
+    expect(f.filter((x) => x.title === 'Potential SQL/NoSQL Injection')).toHaveLength(0);
+  });
+
+  it('does NOT flag map.get() / array.find() on non-DB receivers', async () => {
+    const f = await run(mk('src/x.ts',
+      'const a = byId.get(`${id}`);\nconst b = list.find((x) => x.id === `${id}`);'));
+    expect(f.filter((x) => x.title === 'Potential SQL/NoSQL Injection')).toHaveLength(0);
+  });
+
+  it('STILL flags db.query() / collection.find() on DB-ish receivers', async () => {
+    const f = await run(mk('src/x.ts',
+      'const r = db.query(`SELECT * FROM users WHERE id = ${id}`);'));
+    expect(f.filter((x) => x.title === 'Potential SQL/NoSQL Injection').length).toBeGreaterThan(0);
+  });
+
+  it('STILL flags .raw() and .exec() regardless of receiver (strong methods)', async () => {
+    const f = await run(mk('src/x.ts', 'const r = qb.raw(`SELECT ${cols} FROM t`);'));
+    expect(f.filter((x) => x.title === 'Potential SQL/NoSQL Injection').length).toBeGreaterThan(0);
+  });
+
+  it('skips minified / vendored files entirely', async () => {
+    // A single very long line of minified-looking code with a db.query in it.
+    const minified = 'var a=1;'.repeat(800) + 'db.query(`SELECT ${x}`);';
+    const f = await run({ 'public/monaco-editor/workerMain.js': minified });
+    expect(f.filter((x) => x.title === 'Potential SQL/NoSQL Injection')).toHaveLength(0);
+  });
+
+  it('skips hardcoded-secret on bracketed placeholders', async () => {
+    const f = await run(mk('src/x.ts', "const password = '[YOUR-PASSWORD]';"));
+    expect(f.filter((x) => x.category === 'Hardcoded Secrets')).toHaveLength(0);
+  });
+
+  it('STILL flags a real-looking hardcoded password', async () => {
+    const f = await run(mk('src/x.ts', "const password = 'Pr0d_S3cret_9q8w7e';"));
+    expect(f.filter((x) => x.category === 'Hardcoded Secrets').length).toBeGreaterThan(0);
+  });
+});
+
+describe('accessibility-analyzer — contrast is luminance-aware (v0.28.3)', () => {
+  // runAccessibilityAnalysis requires projectPath to exist on disk even
+  // when fileContents is supplied — use the repo root as a harmless
+  // existing path and pass synthetic fileContents.
+  it('does NOT flag near-black text colors', async () => {
+    const r = await runAccessibilityAnalysis({
+      projectPath: VULNERABLE,
+      fileContents: { 'src/A.tsx': `<div style={{ color: '#12101A' }}>hi</div>` },
+    });
+    expect(r.findings.filter((f) => f.title.includes('Low Contrast Text'))).toHaveLength(0);
+  });
+
+  it('DOES flag genuinely light text colors', async () => {
+    const r = await runAccessibilityAnalysis({
+      projectPath: VULNERABLE,
+      fileContents: { 'src/A.tsx': `<div style={{ color: '#eeeeee' }}>hi</div>` },
+    });
+    expect(r.findings.filter((f) => f.title.includes('Low Contrast Text')).length).toBeGreaterThan(0);
+  });
+});
+
 // Regression for the TestForge self-audit (2026-05-28): express ^5.2.1
 // fired "Potentially Vulnerable Dependency" even though the CVE is on
 // <4.17.3. Pre-v0.28.1 the check matched by package name alone; now it

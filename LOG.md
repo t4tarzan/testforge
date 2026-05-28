@@ -4,7 +4,7 @@
 
 **Started**: May 24, 2026 | **Last Updated**: May 25, 2026  
 **URL**: https://testforge.run | **GitHub**: https://github.com/t4tarzan/testforge  
-**npm**: `@whitenoisenpm/testforge-mcp` (v0.28.2)
+**npm**: `@whitenoisenpm/testforge-mcp` (v0.28.3)
 
 ---
 

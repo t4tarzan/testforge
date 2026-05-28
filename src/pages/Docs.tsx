@@ -705,7 +705,7 @@ function CliInstallationPage() {
         Verify installation:
       </p>
       <DocCodeBlock
-        code={"testforge-mcp --version\n# @whitenoisenpm/testforge-mcp/0.28.2 darwin-arm64 node-v22.0.0"}
+        code={"testforge-mcp --version\n# @whitenoisenpm/testforge-mcp/0.28.3 darwin-arm64 node-v22.0.0"}
         language="bash"
       />
 
@@ -1477,7 +1477,7 @@ function ApiReferencePage() {
       <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">🔬 Analysis</h2>
       <div className="space-y-6">
         {[
-          { method: 'GET', path: '/health', desc: 'Health check — pings Neon and reports version. No auth. No rate limit.', example: '{"status":"ok","version":"0.28.2","database":"connected"}' },
+          { method: 'GET', path: '/health', desc: 'Health check — pings Neon and reports version. No auth. No rate limit.', example: '{"status":"ok","version":"0.28.3","database":"connected"}' },
           { method: 'GET', path: '/status', desc: 'Public services rollup — Web, MCP server, DB, npm package. 30s cache. No auth.', example: '{"status":"all_systems_operational","services":[{"name":"Web Platform","status":"operational"},…]}' },
           { method: 'POST', path: '/analyze', desc: 'Proxies a clone-and-analyze request to the Fly.io MCP server. Returns the full 21-dimension report verbatim. 504 on upstream timeout, 502 on connection failure — never fabricated data. No auth required to analyze public repos.', body: '{"repoUrl":"https://github.com/owner/repo","branch":"main"}', example: '{"codebase":{"totalFiles":402,…},"security":{"findings":29,…},"mutation":{"score":47,…},…}' },
           { method: 'GET', path: '/analyze', desc: 'Returns the configured MCP server URL + endpoints (for clients that prefer to call it directly).', example: '{"mcpServer":"https://testforge-mcp.fly.dev","endpoints":{…}}' },
@@ -1703,13 +1703,36 @@ function ChangelogPage() {
         <div>
           <div className="flex items-center gap-3 mb-3">
             <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
-              mcp 0.28.2 — Coverage + Mutation dimension-correctness
+              mcp 0.28.3 — security + a11y precision pass
             </h2>
             <span className="font-mono text-[12px] text-[#9A9A9A]">
               2026-05-28
             </span>
             <span className="font-mono font-medium text-[11px] uppercase px-2 py-0.5 rounded bg-[#E8E5FF] text-[#574a7d]">
               Latest
+            </span>
+          </div>
+          <p className="font-body text-[16px] text-[#333333] leading-[1.7] ml-2 mb-3">
+            Running TestForge against <a href="#/in-the-wild/supabase" className="text-[#574a7d] underline">Supabase</a> and <a href="#/in-the-wild/testforge" className="text-[#574a7d] underline">itself</a> exposed that the &ldquo;critical&rdquo; counts were mostly false positives. Four targeted precision fixes &mdash; honesty over volume.
+          </p>
+          <ul className="list-disc list-inside space-y-2 font-body text-[15px] text-[#333333] leading-[1.7] ml-2 mb-2">
+            <li><strong>SQL/NoSQL sink receiver-awareness:</strong> the sink matched generic methods (<code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">get</code>, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">find</code>, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">all</code>, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">run</code>) regardless of receiver &mdash; so <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">urlParams.get()</code>, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">Promise.all()</code>, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">map.get()</code> all flagged as SQL injection. Now generic methods only fire on DB-ish receivers (db/conn/client/pool/knex/prisma/collection/etc). <strong>Supabase criticals: 14 &rarr; 1.</strong></li>
+            <li><strong>Minified / vendored skip:</strong> <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">monaco-editor/</code>, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">*.min.js</code>, <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">vendor/</code>, and content-detected minified files are no longer scanned as project code.</li>
+            <li><strong>Placeholder secrets:</strong> <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">password = &apos;[YOUR-PASSWORD]&apos;</code> in a connection-string UI is no longer a &ldquo;hardcoded secret.&rdquo; Bracketed/templated values + placeholder words skipped.</li>
+            <li><strong>Luminance-aware contrast:</strong> the check matched ANY hex, so near-black <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">#12101A</code> fired &ldquo;low contrast&rdquo; &mdash; 100 false positives on the self-audit. Now computes WCAG luminance and only flags genuinely light text (&gt; 0.55). <strong>TestForge a11y findings: 175 &rarr; 87.</strong></li>
+          </ul>
+          <p className="font-body text-[15px] text-[#333333] leading-[1.7] ml-2 mt-3">
+            Tests: <strong>211 &rarr; 221</strong>. The 1 remaining Supabase critical is a real <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">CompiledQuery.raw()</code> in an example Kysely driver &mdash; correctly flagged.
+          </p>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
+              mcp 0.28.2 — Coverage + Mutation dimension-correctness
+            </h2>
+            <span className="font-mono text-[12px] text-[#9A9A9A]">
+              2026-05-28
             </span>
           </div>
           <p className="font-body text-[16px] text-[#333333] leading-[1.7] ml-2 mb-3">
@@ -2342,7 +2365,7 @@ function McpUsageGuidePage() {
       </div>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#12101A] mb-4">🖥️ Local Dashboard (v0.28.2)</h2>
+        <h2 className="text-heading-sm text-[#12101A] mb-4">🖥️ Local Dashboard (v0.28.3)</h2>
         <p className="text-body-md text-[#6B6B6B] mb-4">
           The MCP server ships with a local dashboard at <code className="bg-[#E8E5FF] px-1.5 py-0.5 rounded text-[#574a7d] font-mono text-sm">http://localhost:33221</code>. No cloud, no sign-in, no hosting needed.
         </p>

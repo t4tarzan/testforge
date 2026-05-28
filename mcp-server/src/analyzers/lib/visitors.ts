@@ -72,10 +72,32 @@ export function getCalleeName(callee: t.Expression | t.V8IntrinsicIdentifier): s
   return '';
 }
 
-/** True for `db.query`, `db.exec`, `connection.query`, `prisma.user.findMany`, etc. */
+// Method names that are almost always a DB query regardless of receiver.
+const STRONG_QUERY_METHOD = /(?:^|\.)(?:query|exec|execute|raw|findOne|findMany|findUnique|findFirst|aggregate|queryRaw|executeRaw)$/i;
+// Method names that are DB-ish ONLY when the receiver looks like a DB handle.
+// `get` / `find` / `all` / `run` / `count` are far too common on Maps,
+// URLSearchParams, arrays, Promise, and HTTP helpers to flag unconditionally
+// (this was the source of the Supabase false-positive flood: urlParams.get(),
+// Promise.all(), map.get(), an http get() helper all tripped the SQL sink).
+const WEAK_QUERY_METHOD = /(?:^|\.)(?:find|get|all|run|count)$/i;
+// Receiver tokens that signal an actual DB handle / ORM / driver.
+const DB_RECEIVER = /\b(?:db|database|conn|connection|client|pool|knex|prisma|sequelize|collection|coll|model|models|repository|repo|mongoose|mongo|sql|cursor|tx|trx|trans|transaction|queryrunner|datasource|orm|dao|pg|pgp|sqlite|d1|drizzle|stmt|statement|prepared)\b/i;
+
+/**
+ * True for DB query call sites: `db.query`, `connection.exec`,
+ * `prisma.user.findMany`, `collection.find`, etc. Generic methods
+ * (`get`/`find`/`all`/`run`/`count`) only count when the receiver looks
+ * like a DB handle — otherwise `urlParams.get()` and `Promise.all()` would
+ * be flagged as SQL injection.
+ */
 export function isDbQueryCall(name: string): boolean {
-  // dotted name ends with one of these or contains a query-shaped segment
-  return /(?:^|\.)(?:query|exec|execute|raw|find|findOne|findMany|findUnique|findFirst|all|get|run|aggregate|count)$/i.test(name);
+  if (STRONG_QUERY_METHOD.test(name)) return true;
+  if (WEAK_QUERY_METHOD.test(name)) {
+    const dot = name.lastIndexOf('.');
+    const receiver = dot >= 0 ? name.slice(0, dot) : '';
+    return DB_RECEIVER.test(receiver);
+  }
+  return false;
 }
 
 /** True for response writers: `res.send`, `res.json`, `res.render`, `reply.send`, etc. */
