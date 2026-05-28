@@ -44,6 +44,7 @@ import { prepareSandbox, teardownSandbox } from './simulation/sandbox.js';
 import { prepareComposeSandbox } from './simulation/compose-sandbox.js';
 import { runLoadRamp, type LoadSimResult } from './simulation/load-sim.js';
 import { runChaos, type FaultType } from './simulation/chaos-sim.js';
+import { runAgentLoad } from './simulation/agent-sim.js';
 import { createJob, getJob, listJobs, updateJob } from './simulation/job-store.js';
 import { discoverEndpoints } from './analyzers/lib/endpoint-discovery.js';
 import { parseFile, isParseable } from './analyzers/lib/parse.js';
@@ -86,7 +87,7 @@ function discoverGetPaths(fileContents: Record<string, string>): string[] {
   return ['/', ...[...paths].filter((p) => p !== '/')].slice(0, 4);
 }
 
-type SimDimension = 'load' | 'chaos';
+type SimDimension = 'load' | 'chaos' | 'agent';
 
 interface SimJobBody {
   repoUrl: string;
@@ -98,6 +99,9 @@ interface SimJobBody {
   durationPerLevelSec?: number;
   /** Chaos fault to inject (default 'restart' = crash-recovery). */
   faultType?: FaultType;
+  /** Agent-pattern: fleet sizes to ramp + per-agent request rate (think-time = 1/rate). */
+  agentLevels?: number[];
+  reqsPerAgent?: number;
 }
 
 // Pick a chaos load level the app can actually sustain: the highest concurrency
@@ -152,7 +156,7 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
       score: staticChaos.score, resilienceLevel: staticChaos.resilienceLevel, findings: staticChaos.findings,
     } : null;
 
-    const out: { load?: Record<string, unknown>; chaos?: Record<string, unknown> } = {};
+    const out: { load?: Record<string, unknown>; chaos?: Record<string, unknown>; agent?: Record<string, unknown> } = {};
 
     const canBoot = !!(runnable.runnable && runnable.contextPath && (
       (runnable.method === 'dockerfile' && runnable.dockerfilePath) ||
@@ -180,6 +184,7 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
         const fail = { ranReal: false, reason: prep.reason, buildLogTail: prep.buildLogTail, appLogTail: prep.appLogTail };
         if (dims.includes('load')) out.load = { ...fail, static: staticLoadBlock };
         if (dims.includes('chaos')) out.chaos = { ...fail, static: staticChaosBlock };
+        if (dims.includes('agent')) out.agent = { ...fail };
       } else {
         const sb = prep.sandbox;
         const paths = body.paths?.length ? body.paths : discoverGetPaths(codebase.fileContents);
@@ -194,6 +199,17 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
               onProgress: (detail) => updateJob(jobId, { phase: 'load', detail }),
             });
             out.load = { ...loadResult };
+          }
+          if (dims.includes('agent')) {
+            updateJob(jobId, { phase: 'agent', detail: 'Starting agent-pattern load' });
+            const agentRes = await runAgentLoad(sb, {
+              paths,
+              agentLevels: body.agentLevels,
+              reqsPerAgent: body.reqsPerAgent,
+              durationPerLevelSec: body.durationPerLevelSec,
+              onProgress: (detail) => updateJob(jobId, { phase: 'agent', detail }),
+            });
+            out.agent = { ...agentRes };
           }
           if (dims.includes('chaos')) {
             updateJob(jobId, { phase: 'chaos', detail: 'Starting chaos' });
@@ -213,6 +229,7 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
       const fail = { ranReal: false, reason: runnable.reason };
       if (dims.includes('load')) out.load = { ...fail, static: staticLoadBlock };
       if (dims.includes('chaos')) out.chaos = { ...fail, static: staticChaosBlock };
+      if (dims.includes('agent')) out.agent = { ...fail };
     }
 
     try { rmSync(projectPath, { recursive: true, force: true }); } catch { /* best-effort */ }

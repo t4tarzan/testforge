@@ -87,10 +87,15 @@ export function parseAutocannon(raw: string, concurrency: number, durationSec: n
   const totalRequests = statusSum + errors;
   const failed = non2xx + errors; // non2xx ⊂ statusSum; errors are the rest
   const errorRate = totalRequests > 0 ? Math.min(1, failed / totalRequests) : 0;
+  // Throughput = completed requests / wall time. This equals autocannon's
+  // requests.average for unthrottled runs but is CORRECT for rate-limited
+  // (agent-pattern `-R`) runs, where requests.average reports the per-connection
+  // rate rather than aggregate throughput.
+  const rps = durationSec > 0 ? totalRequests / durationSec : Number(requests.average ?? requests.mean ?? 0);
   return {
     concurrency,
     durationSec,
-    rps: Number(requests.average ?? requests.mean ?? 0),
+    rps,
     latencyP50: Number(latency.p50 ?? latency.average ?? 0),
     latencyP90: Number(latency.p90 ?? 0),
     latencyP99: Number(latency.p99 ?? 0),
@@ -266,14 +271,22 @@ export async function waitForHealthyPort(
   return null;
 }
 
-/** Run one autocannon window against the sandbox app at the given path. */
+/**
+ * Run one autocannon window against the sandbox app at the given path.
+ * `overallRatePerSec` (autocannon --overallRate: aggregate requests/sec across
+ * all connections) models agent-style think-time — `-c N --overallRate N*R`
+ * behaves like N concurrent agents each issuing ~R req/s (think-time ≈ 1/R).
+ * Omit for raw max load. (NB: autocannon's per-connection `-R` throttles
+ * globally in this build, so we use --overallRate instead.)
+ */
 export async function runAutocannon(
-  sb: Sandbox, path: string, concurrency: number, durationSec: number,
+  sb: Sandbox, path: string, concurrency: number, durationSec: number, overallRatePerSec?: number,
 ): Promise<LoadLevelResult | null> {
   const target = `http://${sb.appHost}:${sb.targetPort}${path}`;
+  const rateArgs = overallRatePerSec && overallRatePerSec > 0 ? ['--overallRate', String(Math.round(overallRatePerSec))] : [];
   const ac = await dockerExec(
     ['run', '--rm', '--network', sb.netName, LOADGEN_IMAGE,
-      'autocannon', '-j', '-c', String(concurrency), '-d', String(durationSec), '--renderStatusCodes', target],
+      'autocannon', '-j', '-c', String(concurrency), '-d', String(durationSec), ...rateArgs, '--renderStatusCodes', target],
     (durationSec + 25) * 1000,
   );
   return parseAutocannon(ac.stdout, concurrency, durationSec);
