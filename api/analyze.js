@@ -5,6 +5,16 @@ import { withSecurity, isValidRepoUrl } from './_security.js';
 
 const MCP_SERVER = process.env.MCP_SERVER_URL || 'https://testforge-mcp.fly.dev';
 
+// Clone + multi-dimension analysis of a real repo takes far longer than the
+// old 9s budget allowed (that comment predated Vercel's 300s ceiling). Give
+// the upstream 120s; the function ceiling below sits well above it so we can
+// still return a clean response/timeout.
+const UPSTREAM_TIMEOUT_MS = 120_000;
+
+// Allow the function to run long enough for a real analysis (Vercel default is
+// now 300s on all plans).
+export const config = { maxDuration: 300 };
+
 async function handler(req, res) {
   if (req.method === 'GET') {
     return res.json({
@@ -29,10 +39,8 @@ async function handler(req, res) {
     return res.status(400).json({ error: 'repoUrl must be a public GitHub URL' });
   }
 
-  // Vercel functions get ~10s; budget 9s for the upstream and reserve the
-  // remainder for our own response handling.
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 9000);
+  const timeout = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
 
   try {
     const upstream = await fetch(`${MCP_SERVER}/clone-and-analyze`, {
