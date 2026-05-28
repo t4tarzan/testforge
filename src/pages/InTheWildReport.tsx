@@ -224,9 +224,20 @@ export default function InTheWildReport() {
             </h3>
             <div className="space-y-2 text-[14px] text-[#333333]">
               <div className="flex justify-between">
-                <span className="text-[#6B6B6B]">Total findings</span>
+                <span className="text-[#6B6B6B]">Security findings</span>
                 <strong>{report.security.findings}</strong>
               </div>
+              {typeof report.totalFindings === 'number' && (
+                <div className="flex justify-between border-t border-[#EEE] pt-2 mt-1">
+                  <span className="text-[#6B6B6B]">All dimensions</span>
+                  <strong>
+                    {report.totalFindings} findings
+                    {report.dimensionFindings?.length ? (
+                      <span className="font-normal text-[#6B6B6B]"> across {report.dimensionFindings.filter((d) => d.findingCount > 0).length} dimensions</span>
+                    ) : null}
+                  </strong>
+                </div>
+              )}
               {(['critical', 'high', 'medium', 'low'] as const).map(
                 (sev) => report.security[sev] > 0 && (
                   <div key={sev} className="flex justify-between">

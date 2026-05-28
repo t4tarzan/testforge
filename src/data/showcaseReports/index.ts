@@ -32,6 +32,29 @@ export interface ShowcaseLanguageCoverage {
   unsupportedLanguages: Array<{ language: string; files: number }>;
 }
 
+export interface ShowcaseDimensionFinding {
+  severity: string;
+  title: string;
+  description?: string;
+  filePath?: string;
+  lineNumber?: number;
+  fixSuggestion?: string;
+}
+
+/** All findings for one dimension, plus whether it ran and its score. The
+ * report merges this with dimensionMeta (methodology / coverage / N/A) to show
+ * an honest per-dimension breakdown instead of a bare score. */
+export interface ShowcaseDimensionGroup {
+  key: string;
+  label: string;
+  score: number | null;
+  applicable: boolean;
+  findingCount: number;
+  findings: ShowcaseDimensionFinding[];
+  /** Why this dimension was N/A this run (overrides the generic naCriteria). */
+  naReason?: string;
+}
+
 export interface ShowcaseReport {
   slug: string;
   repoUrl: string;
@@ -63,6 +86,10 @@ export interface ShowcaseReport {
   };
   scores: ShowcaseDimensionScore[];
   overall: number;
+  /** Total findings across ALL dimensions (not just security). */
+  totalFindings?: number;
+  /** Per-dimension findings + applicability, for the honest breakdown. */
+  dimensionFindings?: ShowcaseDimensionGroup[];
 }
 
 // Vite glob import — eager so each JSON ships in the bundle directly.

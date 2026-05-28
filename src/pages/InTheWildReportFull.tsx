@@ -18,6 +18,7 @@
 import { useEffect } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { getShowcaseReport } from '@/data/showcaseReports';
+import { dimensionMeta } from '@/data/dimensionMeta';
 
 const SEV_COLOR: Record<string, string> = {
   critical: '#c53030',
@@ -58,6 +59,7 @@ export default function InTheWildReportFull() {
     { id: 'codebase', label: 'Codebase' },
     ...(showCoverageBanner ? [{ id: 'language-coverage', label: 'Language coverage' }] : []),
     { id: 'dimension-scores', label: 'Dimension scores' },
+    ...(report.dimensionFindings?.length ? [{ id: 'findings-by-dimension', label: 'Findings by dimension' }] : []),
     { id: 'test-coverage', label: 'Test coverage' },
     { id: 'security', label: 'Security findings' },
     { id: 'methodology', label: 'Methodology' },
@@ -142,7 +144,10 @@ export default function InTheWildReportFull() {
                   { label: 'Test files', value: report.unit.testFiles.toLocaleString() },
                   { label: 'Test cases', value: report.unit.totalTests.toLocaleString() },
                   { label: 'Coverage est.', value: `${report.unit.coverage}%` },
-                  { label: 'Security findings', value: report.security.findings.toLocaleString() },
+                  {
+                    label: 'Total findings',
+                    value: (report.totalFindings ?? report.security.findings).toLocaleString(),
+                  },
                 ].map((s) => (
                   <div key={s.label} className="stat">
                     <div className="stat-value">{s.value}</div>
@@ -236,6 +241,73 @@ export default function InTheWildReportFull() {
                 </tbody>
               </table>
             </section>
+
+            {report.dimensionFindings && report.dimensionFindings.length > 0 && (
+              <section id="findings-by-dimension">
+                <h2>Findings by dimension</h2>
+                <p>
+                  Every finding across all dimensions &mdash; not just security &mdash; with, per
+                  dimension, <strong>how it was tested</strong>, its <strong>language/coverage
+                  breadth</strong>, and (where it didn&rsquo;t apply) <strong>why</strong>. A high
+                  score on a polyglot or Kubernetes repo should never hide an unanalyzed half of the
+                  system, so the method and coverage are stated explicitly.
+                </p>
+                <p className="findings-total">
+                  <strong>{report.totalFindings ?? 0}</strong> findings across{' '}
+                  <strong>{report.dimensionFindings.filter((d) => d.findingCount > 0).length}</strong>{' '}
+                  dimensions.
+                </p>
+                {report.dimensionFindings.map((dim) => {
+                  const meta = dimensionMeta[dim.key];
+                  const na = !dim.applicable;
+                  return (
+                    <div key={dim.key} className="dimblock">
+                      <div className="dimblock-head">
+                        <h3>{dim.label}</h3>
+                        <span className="dimblock-score" style={{ color: scoreColor(na ? null : dim.score) }}>
+                          {na ? 'N/A' : `${dim.score}/100`}
+                        </span>
+                        <span className="dimblock-count">
+                          {dim.findingCount} finding{dim.findingCount === 1 ? '' : 's'}
+                        </span>
+                      </div>
+                      {meta && (
+                        <dl className="dimblock-meta">
+                          <div><dt>Method</dt><dd>{meta.methodology}</dd></div>
+                          <div><dt>Coverage</dt><dd>{meta.languageCoverage}</dd></div>
+                          {na && <div><dt>Why N/A</dt><dd>{dim.naReason || meta.naCriteria}</dd></div>}
+                        </dl>
+                      )}
+                      {dim.findings.length > 0 ? (
+                        <ul className="dimfindings">
+                          {dim.findings.map((f, i) => (
+                            <li key={i}>
+                              <span className="sev" style={{ background: SEV_COLOR[f.severity] || '#9A9A9A' }}>
+                                {f.severity}
+                              </span>
+                              <div className="dimfinding-body">
+                                <strong>{f.title}</strong>
+                                {f.filePath && (
+                                  <span className="loc"> {f.filePath}{f.lineNumber ? `:${f.lineNumber}` : ''}</span>
+                                )}
+                                {f.description && <p>{f.description}</p>}
+                                {f.fixSuggestion && <p className="fix">Fix: {f.fixSuggestion}</p>}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="dimfindings-none">
+                          {na ? 'Not applicable to this repo.' : dim.findingCount > 0
+                            ? `${dim.findingCount} finding(s) — counted, items not itemized for this dimension.`
+                            : 'No issues found in this dimension.'}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </section>
+            )}
 
             <section id="test-coverage">
               <h2>Test coverage</h2>
@@ -490,6 +562,26 @@ const INLINE_CSS = `
 .itw-full .body { min-width: 0; }
 .itw-full .body section { padding: 1.5rem 0 2.5rem; border-bottom: 1px dashed var(--rule); }
 .itw-full .body section:last-child { border-bottom: 0; }
+
+/* Findings by dimension */
+.itw-full .findings-total { font-size: 0.95rem; margin: 0.25rem 0 1.25rem; }
+.itw-full .dimblock { border: 1px solid var(--rule); border-radius: 10px; padding: 1rem 1.15rem; margin-bottom: 1rem; }
+.itw-full .dimblock-head { display: flex; align-items: baseline; gap: 0.75rem; }
+.itw-full .dimblock-head h3 { margin: 0; font-size: 1.05rem; }
+.itw-full .dimblock-score { font-weight: 700; font-variant-numeric: tabular-nums; }
+.itw-full .dimblock-count { margin-left: auto; font-family: monospace; font-size: 0.78rem; color: #6B6B6B; }
+.itw-full .dimblock-meta { margin: 0.6rem 0 0.4rem; display: grid; gap: 0.3rem; }
+.itw-full .dimblock-meta div { display: grid; grid-template-columns: 90px 1fr; gap: 0.6rem; }
+.itw-full .dimblock-meta dt { font-family: monospace; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: #9A6B3A; margin: 0; }
+.itw-full .dimblock-meta dd { margin: 0; font-size: 0.82rem; color: #4a4a4a; line-height: 1.4; }
+.itw-full ul.dimfindings { list-style: none; padding: 0; margin: 0.7rem 0 0; display: grid; gap: 0.55rem; }
+.itw-full ul.dimfindings li { display: flex; gap: 0.6rem; align-items: flex-start; }
+.itw-full ul.dimfindings .sev { flex-shrink: 0; color: #fff; font-family: monospace; font-size: 0.62rem; text-transform: uppercase; padding: 0.12rem 0.4rem; border-radius: 4px; margin-top: 0.15rem; min-width: 56px; text-align: center; }
+.itw-full .dimfinding-body { font-size: 0.86rem; }
+.itw-full .dimfinding-body .loc { font-family: monospace; font-size: 0.74rem; color: #6B6B6B; }
+.itw-full .dimfinding-body p { margin: 0.2rem 0 0; color: #555; line-height: 1.45; }
+.itw-full .dimfinding-body p.fix { color: #2f7a4d; }
+.itw-full .dimfindings-none { font-size: 0.82rem; color: #6B6B6B; margin: 0.6rem 0 0; font-style: italic; }
 .itw-full .body h2 {
   font-weight: 700;
   font-size: clamp(1.5rem, 2.3vw, 2rem);

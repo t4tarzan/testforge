@@ -36,6 +36,7 @@ import {
   runOwaspCoverage,
 } from './analyzers/advanced-analyzer.js';
 import { runAgenticScalePrediction } from './analyzers/agentic-scale.js';
+import { runKubernetesAnalysis } from './analyzers/k8s-analyzer.js';
 import { generateTestsForFindings, type InputFinding } from './generator/generate-tests.js';
 import { hasLLMKey, PRIMARY_MODEL, FALLBACK_MODEL } from './generator/llm-client.js';
 import { runGeneratedTests } from './runner/docker-runner.js';
@@ -577,6 +578,9 @@ async function main() {
         codebase.totalLines
       );
 
+      // ── Kubernetes (22nd dimension) — parse manifests/Helm + check the YAML ──
+      const k8sReport = await runKubernetesAnalysis(projectPath).catch(() => null);
+
       // Clean up
       rmSync(projectPath, { recursive: true, force: true });
 
@@ -724,6 +728,15 @@ async function main() {
           failurePatterns: agenticReport.failurePatterns,
           recommendations: agenticReport.recommendations,
           findings: agenticReport.findings,
+        },
+        kubernetes: {
+          applicable: k8sReport?.applicable ?? false,
+          score: k8sReport?.score ?? 0,
+          manifestsParsed: k8sReport?.manifestsParsed ?? 0,
+          documents: k8sReport?.documents ?? 0,
+          kinds: k8sReport?.kinds ?? {},
+          findings: k8sReport?.findings ?? [],
+          naReason: k8sReport?.naReason,
         },
       });
     } catch (err) {
