@@ -146,6 +146,19 @@ export function isTestPath(filePath: string): boolean {
   return TEST_PATH_RE.test(filePath) || filePath.endsWith('.d.ts');
 }
 
+/**
+ * Example / demo / sample code is illustrative, not the deployed product.
+ * The same patterns we flag (routes without inline auth, raw queries built
+ * from config, redirects) are intentional in a how-to demo. Like test paths,
+ * we skip per-file emission so the security SCORE reflects production risk,
+ * not sample code. (Supabase's report showed why: its single "critical" and
+ * ~13 "no inline auth" highs were all in examples/ — Hono/Deno demo apps.)
+ */
+const EXAMPLE_PATH_RE = /(?:^|\/)(?:examples?|samples?|demos?)\//i;
+export function isExampleOrDemoPath(filePath: string): boolean {
+  return EXAMPLE_PATH_RE.test(filePath);
+}
+
 // Path markers of third-party / generated bundles we shouldn't scan as
 // the project's own source.
 const VENDOR_PATH_RE = /(?:^|\/)(?:vendor|vendored|third[-_]?party|monaco-editor|codemirror|\.min\.)/i;
@@ -215,6 +228,8 @@ export async function runSecurityAnalysis(
     // usually intentional inside tests. Project-level deps + header
     // checks below still cover the real risk surface.
     if (isTestPath(filePath)) continue;
+    // v0.28.6 — skip example / demo / sample code (same rationale as tests).
+    if (isExampleOrDemoPath(filePath)) continue;
     // v0.28.3 — skip minified / vendored bundles. They aren't the
     // project's own code, and matching minified `v.get()` / `g.exec()`
     // produces noise (the Supabase report flagged monaco-editor's
@@ -555,6 +570,10 @@ function checkPathTraversalSink(
   const isFs = FS_NAMES.has(tail);
   const isPathBuild = name === 'path.join' || name === 'path.resolve';
   if (!isFs && !isPathBuild) return;
+  // `open`/`openSync` are ambiguous: fs.open() is a file op, but
+  // window.open / self.open / screen.open are BROWSER NAVIGATION — the first
+  // arg is a URL, not a filesystem path. Those are not path-traversal sinks.
+  if (/(?:^|\.)(?:window|self|globalThis|top|parent|screen)\.open(?:Sync)?$/.test(name)) return;
 
   // First non-callback argument is the file path
   const pathArg = call.arguments[0] as t.Node | undefined;
@@ -562,7 +581,10 @@ function checkPathTraversalSink(
   if (!report) return;
 
   push(out, filePath, content, call, {
-    severity: 'high',
+    // Confirmed taint flow → high. "Built from a variable" with no proven
+    // user-controlled source → low (an unverified review item shouldn't tank
+    // the score the way a confirmed exploit does).
+    severity: report.taint ? 'high' : 'low',
     confidence: report.confidence,
     title: 'Path Traversal Risk',
     description: report.taint
@@ -591,11 +613,20 @@ function checkOpenRedirectSink(
   const name = getCalleeName(call.callee);
   if (!/(?:^|\.)redirect$/.test(name)) return;
   const arg = call.arguments[call.arguments.length - 1] as t.Node | undefined;
+  // A redirect to a FIXED internal path (`/auth/error?msg=${e}`) is not an
+  // open redirect — the destination is hardcoded and only a query/fragment is
+  // interpolated. An open redirect needs the leading destination to be
+  // user-controlled (`${origin}${next}`, `${userUrl}`), where the first quasi
+  // is empty or doesn't start with a single '/'.
+  if (t.isTemplateLiteral(arg)) {
+    const head = arg.quasis[0]?.value.cooked ?? '';
+    if (/^\/(?!\/)/.test(head)) return; // leading single-slash = internal path
+  }
   const report = analyzeSinkArg(arg, table);
   if (!report) return;
 
   push(out, filePath, content, call, {
-    severity: 'medium',
+    severity: report.taint ? 'medium' : 'low',
     confidence: report.confidence,
     title: 'Unvalidated Redirect',
     description: report.taint
@@ -633,9 +664,11 @@ function checkReflectedXssSink(
 
   const fix = report.confidence === 'high' ? buildResSendEscapeFix(call, content) : null;
   push(out, filePath, content, call, {
-    severity: 'high',
+    severity: report.taint ? 'high' : 'low',
     confidence: report.confidence,
-    title: 'Unsanitized User Input in Response',
+    title: report.taint
+      ? 'Unsanitized User Input in Response'
+      : 'Response built from a non-literal value',
     description: report.taint
       ? `${obj.name}.${propName}() echoes data that ${describeFlow(report.taint)}.`
       : `${obj.name}.${propName}() echoes a value built from variables.`,
@@ -670,9 +703,9 @@ function checkInnerHtmlAssignmentSink(
 
   const fix = report.confidence === 'high' ? buildInnerHtmlFix(node, content) : null;
   push(out, filePath, content, node, {
-    severity: 'high',
+    severity: report.taint ? 'high' : 'low',
     confidence: report.confidence,
-    title: `${prop} with user input`,
+    title: report.taint ? `${prop} with user input` : `${prop} from a non-literal value`,
     description: report.taint
       ? `${prop} assigned a value that ${describeFlow(report.taint)}. DOM-based XSS.`
       : `${prop} assigned a value built from variables. Verify it's escaped.`,
@@ -712,9 +745,11 @@ function checkDangerouslySetInnerHTMLSink(
       ? buildDangerouslySetInnerHtmlFix(attr, htmlProp.value as t.Node, content)
       : null;
   push(out, filePath, content, attr, {
-    severity: 'high',
+    severity: report.taint ? 'high' : 'low',
     confidence: report.confidence,
-    title: 'dangerouslySetInnerHTML with user input',
+    title: report.taint
+      ? 'dangerouslySetInnerHTML with user input'
+      : 'dangerouslySetInnerHTML from a non-literal value',
     description: report.taint
       ? `__html ${describeFlow(report.taint)} — XSS.`
       : '__html is built from a variable. Verify it\'s sanitized.',
@@ -751,7 +786,9 @@ function checkAuthBypassRoute(
   if (!handler || containsAuthTokenLike(handler)) return;
 
   push(out, filePath, content, call, {
-    severity: 'high',
+    // Low-confidence heuristic (can't see global middleware) → medium, not
+    // high. A guess shouldn't tank the score the way a confirmed flaw does.
+    severity: 'medium',
     confidence: 'low',
     title: 'Route Without Inline Auth',
     description: `${obj.name}.${propName}() declares a route with no visible auth middleware. ` +

@@ -2726,3 +2726,41 @@ describe('accessibility-analyzer — precision pass (v0.28.5)', () => {
     expect(byRule(r, 'button-no-accessible-name')).toHaveLength(0);
   });
 });
+
+// v0.28.6 — security precision pass. The Supabase report showed 41 findings
+// (1 critical, 28 high) that were almost all cry-wolf: demo code, browser
+// navigation misread as filesystem path traversal, and "built from a variable"
+// speculation reported at HIGH. Each guard below is verified.
+describe('security-analyzer — false-positive guards (v0.28.6)', () => {
+  const sec = (files: Record<string, string>) =>
+    runSecurityAnalysis({ projectPath: '/tmp/synthetic', fileContents: files, dependencies: [], devDependencies: [] });
+  const titled = (f: Awaited<ReturnType<typeof sec>>, t: string) => f.filter((x) => x.title.includes(t));
+
+  it('skips example / demo / sample paths', async () => {
+    const f = await sec({ 'examples/auth/hono/src/index.ts': `app.get('/countries', (c) => c.json([]))` });
+    expect(titled(f, 'Route Without Inline Auth')).toHaveLength(0);
+  });
+
+  it('does not read window.open as a filesystem path-traversal sink', async () => {
+    const f = await sec({ 'src/nav.ts': `function go(url: string){ window.open(\`\${BASE_PATH}\${url}\`, '_blank') }` });
+    expect(titled(f, 'Path Traversal')).toHaveLength(0);
+  });
+
+  it('does not flag a redirect to a fixed internal path', async () => {
+    const f = await sec({ 'src/route.ts': `export function h(req: any){ const m = req.query.error; return redirect(\`/auth/error?error=\${m}\`); }` });
+    expect(titled(f, 'Unvalidated Redirect')).toHaveLength(0);
+  });
+
+  it('does not report dangerouslySetInnerHTML at HIGH without confirmed taint', async () => {
+    const f = await sec({ 'src/C.tsx': `const html = buildJsonLd(pageData);\nexport default () => <script dangerouslySetInnerHTML={{ __html: html }} />;` });
+    const d = titled(f, 'dangerouslySetInnerHTML');
+    expect(d.every((x) => x.severity !== 'high' && x.severity !== 'critical')).toBe(true);
+  });
+
+  it('reports Route Without Inline Auth as medium (low-confidence heuristic)', async () => {
+    const f = await sec({ 'src/server.ts': `app.get('/admin', (req, res) => res.send('ok'))` });
+    const r = titled(f, 'Route Without Inline Auth');
+    expect(r.length).toBeGreaterThan(0);
+    expect(r.every((x) => x.severity === 'medium')).toBe(true);
+  });
+});
