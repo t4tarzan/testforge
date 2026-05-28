@@ -7,6 +7,7 @@ import { findDeadCode } from './lib/dead-code.js';
 import { extractOpenApi, canonicalPath } from './lib/openapi-parse.js';
 import { discoverEndpoints, endpointSet, type DiscoveredEndpoint } from './lib/endpoint-discovery.js';
 import { findPythonEndpoints, type PyEndpoint } from './lib/py-endpoints.js';
+import { collectEcosystemPackages, queryOsvBatch, osvKey, type OsvPkg } from './lib/osv.js';
 import { computeFileComplexity } from './lib/complexity.js';
 import { OWASP_2021, owaspCodesForCategory, type OwaspCode } from './lib/owasp-map.js';
 import {
@@ -1197,11 +1198,12 @@ export interface SupplyChainReport {
   findings: Finding[];
 }
 
-export function runSupplyChainAudit(
+export async function runSupplyChainAudit(
   dependencies: string[],
   devDependencies: string[],
-  projectPath?: string
-): SupplyChainReport {
+  projectPath?: string,
+  opts: { osv?: boolean } = {}
+): Promise<SupplyChainReport> {
   const findings: Finding[] = [];
   const allDirect = [...dependencies, ...devDependencies];
 
@@ -1253,6 +1255,7 @@ export function runSupplyChainAudit(
       if (reportedDirect.has(lowerName)) continue; // already surfaced as direct
       const vuln = vulnerablePatterns[lowerName];
       if (!vuln) continue;
+      reportedDirect.add(lowerName); // so the OSV pass doesn't double-report it
       knownVulnerable++;
       if (vuln.severity === 'critical' || vuln.severity === 'high') criticalVulns++;
       findings.push({
@@ -1316,6 +1319,40 @@ export function runSupplyChainAudit(
       fixSuggestion: 'Commit a `package-lock.json` (npm), `pnpm-lock.yaml` (pnpm), or `yarn.lock` (yarn). Treat lockfile changes as security-sensitive in code review.',
       category: 'Supply Chain',
     });
+  }
+
+  // ── 3. Live OSV across npm / PyPI / Go (opt-in; offline-safe). ──
+  // Replaces the frozen hardcoded list with the real vuln DB and extends
+  // coverage to the Python + Go ecosystems the hardcoded list never saw.
+  if (opts.osv) {
+    const osvPkgs: OsvPkg[] = [];
+    for (const e of graph.entries) {
+      if (e.name && e.version) osvPkgs.push({ ecosystem: 'npm', name: e.name, version: e.version });
+    }
+    if (projectPath) osvPkgs.push(...await collectEcosystemPackages(projectPath));
+    if (osvPkgs.length > 0) {
+      const vulnMap = await queryOsvBatch(osvPkgs);
+      const reportedOsv = new Set<string>();
+      let osvFindings = 0;
+      for (const p of osvPkgs) {
+        if (osvFindings >= 25) break; // don't flood the report
+        const vulns = vulnMap.get(osvKey(p));
+        if (!vulns || vulns.length === 0) continue;
+        if (reportedDirect.has(p.name.toLowerCase())) continue; // already flagged by the hardcoded pass
+        if (reportedOsv.has(osvKey(p))) continue;
+        reportedOsv.add(osvKey(p));
+        knownVulnerable++; criticalVulns++; // a live OSV hit on an exact version is treated high
+        osvFindings++;
+        const ids = vulns.map((v) => v.id).slice(0, 3).join(', ');
+        findings.push({
+          severity: 'high',
+          title: `${p.name}@${p.version} — ${vulns.length} known vulnerabilit${vulns.length === 1 ? 'y' : 'ies'} (OSV, ${p.ecosystem})`,
+          description: `OSV reports ${vulns.length} advisory/advisories affecting this exact version: ${ids}${vulns.length > 3 ? ', …' : ''}.`,
+          fixSuggestion: `Upgrade ${p.name} past the affected range; details at https://osv.dev/vulnerability/${vulns[0].id}.`,
+          category: 'Supply Chain',
+        });
+      }
+    }
   }
 
   const score = Math.max(0,

@@ -562,7 +562,7 @@ async function main() {
       const predictiveReport = await runPredictiveAnalysis(codebase.fileContents, codebase.dependencies, codebase.devDependencies);
 
       // ── Phase 2 Deep Enhancements ────────────────────────────────────
-      const supplyChainReport = runSupplyChainAudit(codebase.dependencies, codebase.devDependencies, projectPath);
+      const supplyChainReport = await runSupplyChainAudit(codebase.dependencies, codebase.devDependencies, projectPath, { osv: true });
       const nPlusOneReport = runNPlusOneDetection(codebase.fileContents);
       const deadCodeReport = runDeadCodeAnalysis(codebase.fileContents, codebase.dependencies);
       const licenseReport = runLicenseCheck(codebase.dependencies, projectPath);

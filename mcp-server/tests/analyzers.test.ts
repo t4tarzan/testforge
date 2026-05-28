@@ -1493,7 +1493,7 @@ describe('advanced-analyzer — Phase 5 pass 7: OWASP coverage (honest analyzer-
 describe('advanced-analyzer — Phase 5 pass 8: supply-chain lockfile audit', () => {
   it('parses package-lock.json and counts transitive entries', async () => {
     const info = await scanCodebase(SUPPLY_DIRTY);
-    const report = runSupplyChainAudit(info.dependencies, info.devDependencies, SUPPLY_DIRTY);
+    const report = await runSupplyChainAudit(info.dependencies, info.devDependencies, SUPPLY_DIRTY);
     // dirty lock has 7 distinct entries (express, lodash, some-fork, local-helper, needs-integrity, minimist, dup-pkg x2)
     expect(report.totalTransitive).toBeGreaterThanOrEqual(7);
     expect(report.totalDeps).toBe(2); // direct: express + lodash
@@ -1501,7 +1501,7 @@ describe('advanced-analyzer — Phase 5 pass 8: supply-chain lockfile audit', ()
 
   it('flags transitive CVE matches (minimist installed via lockfile but not in package.json)', async () => {
     const info = await scanCodebase(SUPPLY_DIRTY);
-    const report = runSupplyChainAudit(info.dependencies, info.devDependencies, SUPPLY_DIRTY);
+    const report = await runSupplyChainAudit(info.dependencies, info.devDependencies, SUPPLY_DIRTY);
     const minimist = report.findings.find((f) => /Transitive: minimist/i.test(f.title));
     expect(minimist).toBeTruthy();
     expect(minimist!.severity).toBe('high');
@@ -1509,7 +1509,7 @@ describe('advanced-analyzer — Phase 5 pass 8: supply-chain lockfile audit', ()
 
   it('flags non-registry sources (git URLs, file:)', async () => {
     const info = await scanCodebase(SUPPLY_DIRTY);
-    const report = runSupplyChainAudit(info.dependencies, info.devDependencies, SUPPLY_DIRTY);
+    const report = await runSupplyChainAudit(info.dependencies, info.devDependencies, SUPPLY_DIRTY);
     expect(report.nonRegistrySources).toBeGreaterThanOrEqual(2); // some-fork (git+) + local-helper (file:)
     const finding = report.findings.find((f) => /non-registry/i.test(f.title));
     expect(finding).toBeTruthy();
@@ -1518,7 +1518,7 @@ describe('advanced-analyzer — Phase 5 pass 8: supply-chain lockfile audit', ()
 
   it('flags missing integrity hashes', async () => {
     const info = await scanCodebase(SUPPLY_DIRTY);
-    const report = runSupplyChainAudit(info.dependencies, info.devDependencies, SUPPLY_DIRTY);
+    const report = await runSupplyChainAudit(info.dependencies, info.devDependencies, SUPPLY_DIRTY);
     expect(report.missingIntegrity).toBeGreaterThanOrEqual(1); // needs-integrity entry
     const finding = report.findings.find((f) => /integrity hashes/i.test(f.title));
     expect(finding).toBeTruthy();
@@ -1526,7 +1526,7 @@ describe('advanced-analyzer — Phase 5 pass 8: supply-chain lockfile audit', ()
 
   it('flags duplicate-version drift', async () => {
     const info = await scanCodebase(SUPPLY_DIRTY);
-    const report = runSupplyChainAudit(info.dependencies, info.devDependencies, SUPPLY_DIRTY);
+    const report = await runSupplyChainAudit(info.dependencies, info.devDependencies, SUPPLY_DIRTY);
     expect(report.duplicateVersions).toBeGreaterThanOrEqual(1); // dup-pkg @ {1.0.0, 2.0.0}
     const finding = report.findings.find((f) => /multiple versions/i.test(f.title));
     expect(finding).toBeTruthy();
@@ -1535,7 +1535,7 @@ describe('advanced-analyzer — Phase 5 pass 8: supply-chain lockfile audit', ()
 
   it('does NOT false-flag the clean fixture', async () => {
     const info = await scanCodebase(SUPPLY_CLEAN);
-    const report = runSupplyChainAudit(info.dependencies, info.devDependencies, SUPPLY_CLEAN);
+    const report = await runSupplyChainAudit(info.dependencies, info.devDependencies, SUPPLY_CLEAN);
     expect(report.nonRegistrySources).toBe(0);
     expect(report.missingIntegrity).toBe(0);
     expect(report.duplicateVersions).toBe(0);
@@ -1547,14 +1547,14 @@ describe('advanced-analyzer — Phase 5 pass 8: supply-chain lockfile audit', ()
   it('emits "no lockfile" finding when projectPath has no package-lock.json', async () => {
     // Use vulnerable-app fixture (no package-lock.json in it).
     const info = await scanCodebase(VULNERABLE);
-    const report = runSupplyChainAudit(info.dependencies, info.devDependencies, VULNERABLE);
+    const report = await runSupplyChainAudit(info.dependencies, info.devDependencies, VULNERABLE);
     expect(report.totalTransitive).toBe(0);
     const noLock = report.findings.find((f) => /No package-lock\.json/i.test(f.title));
     expect(noLock).toBeTruthy();
   });
 
   it('still works with no projectPath (backward compat — direct-deps only)', async () => {
-    const report = runSupplyChainAudit(['lodash', 'express'], []);
+    const report = await runSupplyChainAudit(['lodash', 'express'], []);
     expect(report.totalTransitive).toBe(0);
     // Direct lodash CVE should still fire.
     const lodash = report.findings.find((f) => /lodash/i.test(f.title));
