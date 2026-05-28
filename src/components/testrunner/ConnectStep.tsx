@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { GitBranch, Play, Loader2, AlertCircle } from 'lucide-react';
 
-const MCP_URL = 'https://testforge-mcp.fly.dev';
+const MCP_URL = 'https://mcp.testforge.run';
 
 interface ConnectStepProps {
   // Receives the analyzer's full result object — dynamic shape, see ReportStep.

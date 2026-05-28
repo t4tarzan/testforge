@@ -6,7 +6,7 @@ import {
   ArrowRight, Loader2, AlertCircle, BarChart3, Container
 } from 'lucide-react';
 
-const MCP_URL = 'https://testforge-mcp.fly.dev';
+const MCP_URL = 'https://mcp.testforge.run';
 
 function SeverityBadge({ severity }: { severity: string }) {
   const config: Record<string, string> = {
