@@ -31,8 +31,15 @@ import * as t from '@babel/types';
 import type { File } from '@babel/types';
 import { walk } from './visitors.js';
 
-const traverse = (traverseModule as unknown as { default?: typeof traverseModule }).default
+const _rawTraverse = (traverseModule as unknown as { default?: typeof traverseModule }).default
   ?? traverseModule;
+// Crash-proof wrapper: @babel/traverse builds scope and throws on some
+// valid-but-exotic TS (declaration merging, e.g. microsoft/TypeScript →
+// "Duplicate declaration"). One pathological file must not 500 the whole
+// analysis — skip it and move on.
+const traverse = ((ast: Parameters<typeof _rawTraverse>[0], opts: Parameters<typeof _rawTraverse>[1]) => {
+  try { _rawTraverse(ast, opts); } catch { /* skip file Babel can't scope */ }
+}) as typeof _rawTraverse;
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                       */

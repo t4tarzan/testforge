@@ -107,9 +107,16 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
   // minified / data blobs — not analyzable source), and (b) stop reading once
   // the total content budget is hit, marking the analysis truncated rather
   // than crashing. statSync first so we never read a huge file just to drop it.
-  const MAX_FILE_BYTES = 1_000_000;     // 1 MB per file
-  const MAX_TOTAL_BYTES = 120_000_000;  // ~120 MB of source held in memory
+  // Total source held in memory is what drives the V8 heap (every stored file
+  // is also AST'd and the ASTs are held together for cross-file analysis).
+  // 50 MB / 8000 files fits a 2 GB host's default heap. A bigger box raises
+  // these via env (the managed VPS sets a higher cap + --max-old-space-size).
+  // Hitting any cap → honest truncation, never an OOM crash.
+  const MAX_FILE_BYTES = Number(process.env.TESTFORGE_MAX_FILE_BYTES) || 1_000_000;
+  const MAX_TOTAL_BYTES = Number(process.env.TESTFORGE_MAX_TOTAL_BYTES) || 50_000_000;
+  const MAX_FILES = Number(process.env.TESTFORGE_MAX_FILES) || 8_000;
   let totalBytes = 0;
+  let storedFiles = 0;
   let skippedLargeFiles = 0;
   let analysisTruncated = false;
 
@@ -123,9 +130,10 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
       let size = 0;
       try { size = statSync(fullPath).size; } catch { continue; }
       if (size > MAX_FILE_BYTES) { skippedLargeFiles++; continue; }
-      if (totalBytes + size > MAX_TOTAL_BYTES) { analysisTruncated = true; continue; }
+      if (totalBytes + size > MAX_TOTAL_BYTES || storedFiles >= MAX_FILES) { analysisTruncated = true; continue; }
       const content = readFileSync(fullPath, 'utf-8');
       totalBytes += size;
+      storedFiles++;
       const lines = content.split('\n').length;
       fileInfos.push({ path: f, lines });
       fileContents[f] = content;
