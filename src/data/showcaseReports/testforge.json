@@ -3,11 +3,11 @@
   "repoUrl": "https://github.com/t4tarzan/testforge",
   "repoName": "testforge",
   "tagline": "TestForge auditing TestForge. Self-audit shipping fixes for what it finds, in public.",
-  "analyzedAt": "2026-05-28T11:44:14.011Z",
-  "analyzeMs": 2234,
+  "analyzedAt": "2026-05-28T17:09:46.828Z",
+  "analyzeMs": 2740,
   "codebase": {
-    "totalFiles": 361,
-    "totalLines": 73765,
+    "totalFiles": 371,
+    "totalLines": 75111,
     "endpoints": 206,
     "dependencies": 62,
     "techStack": [
@@ -21,18 +21,21 @@
       "Playwright"
     ],
     "languageCoverage": {
-      "nativelyAnalyzedFiles": 266,
+      "nativelyAnalyzedFiles": 275,
       "unsupportedFiles": 0,
       "coveragePercent": 100,
-      "unsupportedLanguages": []
+      "unsupportedLanguages": [],
+      "skippedLargeFiles": 0,
+      "analysisTruncated": false
     }
   },
   "unit": {
     "coverage": 76,
-    "testFiles": 17,
-    "totalTests": 288,
+    "testFiles": 18,
+    "totalTests": 293,
     "frameworks": [
       "Vitest",
+      "go test",
       "pytest"
     ]
   },
@@ -78,7 +81,7 @@
     {
       "key": "chaos",
       "label": "Chaos / Resilience",
-      "score": 46
+      "score": 54
     },
     {
       "key": "mutation",
@@ -106,5 +109,5 @@
       "score": 85
     }
   ],
-  "overall": 59
+  "overall": 60
 }

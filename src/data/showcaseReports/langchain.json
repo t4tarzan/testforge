@@ -3,11 +3,11 @@
   "repoUrl": "https://github.com/langchain-ai/langchain",
   "repoName": "langchain",
   "tagline": "100k-star Python AI framework \u2014 libs/* monorepo recursion in action",
-  "analyzedAt": "2026-05-28T11:44:23.392Z",
-  "analyzeMs": 1126,
+  "analyzedAt": "2026-05-28T17:09:48.974Z",
+  "analyzeMs": 988,
   "codebase": {
     "totalFiles": 2638,
-    "totalLines": 387441,
+    "totalLines": 387420,
     "endpoints": 6,
     "dependencies": 27,
     "techStack": [
@@ -21,7 +21,9 @@
       "nativelyAnalyzedFiles": 2488,
       "unsupportedFiles": 0,
       "coveragePercent": 100,
-      "unsupportedLanguages": []
+      "unsupportedLanguages": [],
+      "skippedLargeFiles": 0,
+      "analysisTruncated": false
     }
   },
   "unit": {

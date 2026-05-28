@@ -3,12 +3,12 @@
   "repoUrl": "https://github.com/supabase/supabase",
   "repoName": "supabase",
   "tagline": "78k-star OSS Firebase alt \u2014 TypeScript monorepo + test-path security suppression",
-  "analyzedAt": "2026-05-28T11:44:10.515Z",
-  "analyzeMs": 46880,
+  "analyzedAt": "2026-05-28T17:10:38.041Z",
+  "analyzeMs": 47575,
   "codebase": {
-    "totalFiles": 7662,
-    "totalLines": 2161969,
-    "endpoints": 632,
+    "totalFiles": 7651,
+    "totalLines": 1205414,
+    "endpoints": 579,
     "dependencies": 252,
     "techStack": [
       "Next.js",
@@ -20,7 +20,7 @@
       "Playwright"
     ],
     "languageCoverage": {
-      "nativelyAnalyzedFiles": 6864,
+      "nativelyAnalyzedFiles": 6867,
       "unsupportedFiles": 107,
       "coveragePercent": 98,
       "unsupportedLanguages": [
@@ -48,13 +48,15 @@
           "language": "Rust",
           "files": 1
         }
-      ]
+      ],
+      "skippedLargeFiles": 16,
+      "analysisTruncated": false
     }
   },
   "unit": {
     "coverage": 90,
-    "testFiles": 423,
-    "totalTests": 4283,
+    "testFiles": 427,
+    "totalTests": 4320,
     "frameworks": [
       "Testing Library",
       "Vitest",
@@ -78,19 +80,19 @@
       },
       {
         "severity": "low",
-        "title": "dangerouslySetInnerHTML from a non-literal value",
-        "description": "__html is built from a variable. Verify it's sanitized.",
-        "filePath": "apps/design-system/app/layout.tsx",
-        "lineNumber": 128,
-        "fixSuggestion": "Render the value as text (default React escaping) or run it through DOMPurify.sanitize() first."
-      },
-      {
-        "severity": "low",
         "title": "Path Traversal Risk",
         "description": "fs.writeFile() path was built from a variable. Verify it can't escape the intended directory.",
         "filePath": "apps/docs/scripts/llms.ts",
         "lineNumber": 131,
         "fixSuggestion": "Resolve to an absolute path, then verify the result starts with the expected base directory. Allowlist file ids \u2192 server-resolved paths, never echo user paths back."
+      },
+      {
+        "severity": "low",
+        "title": "dangerouslySetInnerHTML from a non-literal value",
+        "description": "__html is built from a variable. Verify it's sanitized.",
+        "filePath": "apps/design-system/app/layout.tsx",
+        "lineNumber": 128,
+        "fixSuggestion": "Render the value as text (default React escaping) or run it through DOMPurify.sanitize() first."
       },
       {
         "severity": "high",
