@@ -39,6 +39,11 @@ import { runAgenticScalePrediction } from './analyzers/agentic-scale.js';
 import { generateTestsForFindings, type InputFinding } from './generator/generate-tests.js';
 import { hasLLMKey, PRIMARY_MODEL, FALLBACK_MODEL } from './generator/llm-client.js';
 import { runGeneratedTests } from './runner/docker-runner.js';
+import { detectRunnable } from './simulation/runnable-detect.js';
+import { runLoadSimulation } from './simulation/load-sim.js';
+import { createJob, getJob, listJobs, updateJob, type SimPhase } from './simulation/job-store.js';
+import { discoverEndpoints } from './analyzers/lib/endpoint-discovery.js';
+import { parseFile, isParseable } from './analyzers/lib/parse.js';
 import { readFileSync } from 'fs';
 
 // Single source of truth for the version string — read from package.json at
@@ -58,8 +63,112 @@ const PKG_VERSION: string = (() => {
 const PORT = Number(process.env.TESTFORGE_MCP_PORT) || 33221;
 const TMP_DIR = process.env.TMP_DIR || '/tmp/testforge-repos';
 
+// Pick GET endpoints worth driving load against. We can only hit *literal*
+// paths (autocannon can't fill `:id` / `*` params), so parameterized routes are
+// skipped. '/' is always included as the baseline target and listed first.
+function discoverGetPaths(fileContents: Record<string, string>): string[] {
+  const paths = new Set<string>(['/']);
+  for (const [filePath, content] of Object.entries(fileContents)) {
+    if (filePath.includes('node_modules') || filePath.includes('test')) continue;
+    if (!isParseable(filePath)) continue;
+    const parsed = parseFile(filePath, content);
+    if (!parsed.ast) continue;
+    for (const ep of discoverEndpoints(filePath, parsed.ast)) {
+      if (ep.method !== 'get') continue;
+      if (/[:*]/.test(ep.path)) continue; // can't synthesize path params
+      paths.add(ep.path);
+    }
+  }
+  // '/' first, then a few discovered routes — keep the ramp bounded.
+  return ['/', ...[...paths].filter((p) => p !== '/')].slice(0, 4);
+}
+
+interface SimJobBody {
+  repoUrl: string;
+  branch?: string;
+  paths?: string[];
+  concurrencyLevels?: number[];
+  durationPerLevelSec?: number;
+}
+
+// Background runner for an async simulation job. Clones → scans → detects →
+// (real sim | static fallback), updating the job's phase as it goes so the
+// client's GET /simulate/:jobId poll can show live progress. Runs detached from
+// the POST request, so a multi-minute sim never hits the nginx 300s ceiling.
+async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promise<void> {
+  const { repoUrl } = body;
+  const repoName = repoUrl.split('/').pop()?.replace('.git', '') || 'repo';
+  const projectPath = join(TMP_DIR, `sim-${repoName}-${runId}`);
+  updateJob(jobId, { status: 'running', phase: 'cloning', detail: 'Cloning repository', startedAt: new Date().toISOString() });
+
+  try {
+    mkdirSync(TMP_DIR, { recursive: true });
+    const branchFlag = body.branch ? `--branch ${body.branch} ` : '';
+    execSync(`git clone --depth 1 ${branchFlag}${repoUrl} ${projectPath}`, {
+      timeout: 30000, stdio: 'pipe', env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+    });
+
+    updateJob(jobId, { phase: 'detecting', detail: 'Scanning codebase and detecting how to boot it' });
+    const codebase = await scanCodebase(projectPath);
+    const runnable = detectRunnable(projectPath);
+
+    // Static load analysis — always computed; the fallback body whenever we
+    // can't (or don't) drive real traffic.
+    const staticLoad = await runLoadAnalysis({
+      projectPath, fileContents: codebase.fileContents, dependencies: codebase.dependencies,
+    }).catch(() => null);
+    const staticBlock = staticLoad ? {
+      maxUsers: staticLoad.estimatedMaxConcurrentUsers || 0,
+      rateLimiting: staticLoad.hasRateLimiting || false,
+      caching: staticLoad.hasCaching || false,
+      recommendations: staticLoad.recommendations || [],
+      findings: staticLoad.findings || [],
+    } : null;
+
+    let load: Record<string, unknown>;
+    if (runnable.runnable && runnable.method === 'dockerfile' && runnable.dockerfilePath && runnable.contextPath) {
+      const paths = body.paths?.length ? body.paths : discoverGetPaths(codebase.fileContents);
+      const sim = await runLoadSimulation({
+        contextPath: runnable.contextPath,
+        dockerfilePath: runnable.dockerfilePath,
+        exposedPorts: runnable.exposedPorts,
+        paths,
+        concurrencyLevels: body.concurrencyLevels,
+        durationPerLevelSec: body.durationPerLevelSec,
+        runId,
+        onProgress: (phase, detail) => updateJob(jobId, { phase: phase as SimPhase, detail }),
+      });
+      load = sim.ranReal ? { ...sim } : { ...sim, static: staticBlock };
+    } else {
+      load = { ranReal: false, reason: runnable.reason, static: staticBlock };
+    }
+
+    try { rmSync(projectPath, { recursive: true, force: true }); } catch { /* best-effort */ }
+
+    updateJob(jobId, {
+      status: 'done', phase: 'done', detail: 'Simulation complete', finishedAt: new Date().toISOString(),
+      result: {
+        repo: repoUrl,
+        branch: body.branch,
+        runId,
+        simulatedAt: new Date().toISOString(),
+        runnable: {
+          runnable: runnable.runnable,
+          method: runnable.method,
+          reason: runnable.reason,
+          exposedPorts: runnable.exposedPorts,
+        },
+        load,
+      },
+    });
+  } catch (err) {
+    try { if (existsSync(projectPath)) rmSync(projectPath, { recursive: true, force: true }); } catch { /* best-effort */ }
+    updateJob(jobId, { status: 'error', phase: 'error', error: (err as Error).message, finishedAt: new Date().toISOString() });
+  }
+}
+
 async function main() {
-  const app = Fastify({ 
+  const app = Fastify({
     logger: { level: process.env.LOG_LEVEL || 'info' }
   });
 
@@ -211,6 +320,66 @@ async function main() {
     const row = getGeneration(id);
     if (!row) return reply.status(404).send({ error: 'generation not found', id });
     return reply.send(row);
+  });
+
+  // ── Simulate — REAL load/stress simulation (Phase 1: Dockerfile repos) ──
+  //
+  // ASYNC by design: a real sim boots the app and drives a multi-level load
+  // ramp over minutes, which would blow past nginx's ~300s proxy_read_timeout
+  // in one request. So POST kicks off a background job and returns a jobId
+  // instantly; the client polls GET /simulate/:jobId for phased progress and
+  // the final result. Same secret-gate as Tier-2 (it builds + runs UNTRUSTED
+  // repo code). When the app can be auto-booted (Dockerfile) the result carries
+  // REAL metrics (ranReal:true); otherwise it falls back to static load
+  // analysis with an honest "couldn't auto-run" reason.
+  const checkRunSecret = (request: import('fastify').FastifyRequest): boolean => {
+    const runSecret = process.env.TESTFORGE_RUN_SECRET;
+    if (!runSecret) return true; // self-host (localhost only) sets no secret
+    const auth = (request.headers['authorization'] as string | undefined) || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+    return token === runSecret;
+  };
+
+  app.post('/simulate', async (request, reply) => {
+    if (!checkRunSecret(request)) return reply.status(401).send({ error: 'Unauthorized' });
+
+    const body = request.body as Partial<SimJobBody> | undefined;
+    const repoUrl = body?.repoUrl;
+    if (!repoUrl) return reply.status(400).send({ error: 'repoUrl required' });
+
+    const runId = Date.now().toString(36);
+    const jobId = `sim_${runId}`;
+    createJob(jobId, repoUrl, body?.branch);
+
+    // Fire-and-forget: the job runs on the event loop, detached from this
+    // request. Any throw is caught inside runSimJob and recorded on the job.
+    void runSimJob(jobId, runId, { ...body, repoUrl } as SimJobBody)
+      .catch((err) => updateJob(jobId, { status: 'error', phase: 'error', error: (err as Error).message }));
+
+    return reply.status(202).send({
+      jobId,
+      status: 'queued',
+      statusUrl: `/simulate/${jobId}`,
+      message: 'Simulation started. Poll statusUrl for phased progress and the final result.',
+    });
+  });
+
+  // Poll a simulation job. Returns the current phase while running and the full
+  // result payload once status=done (or the error once status=error).
+  app.get('/simulate/:jobId', async (request, reply) => {
+    if (!checkRunSecret(request)) return reply.status(401).send({ error: 'Unauthorized' });
+    const { jobId } = request.params as { jobId: string };
+    const job = getJob(jobId);
+    if (!job) return reply.status(404).send({ error: 'simulation job not found', jobId });
+    return reply.send(job);
+  });
+
+  // List recent simulation jobs (most-recent first; result blobs omitted).
+  app.get('/api/simulations', async (request, reply) => {
+    if (!checkRunSecret(request)) return reply.status(401).send({ error: 'Unauthorized' });
+    const { limit } = request.query as { limit?: string };
+    const n = Math.min(Math.max(Number(limit) || 20, 1), 100);
+    return reply.send(listJobs(n));
   });
 
   app.get('/reports', async (request, reply) => {

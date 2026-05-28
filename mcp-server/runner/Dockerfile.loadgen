@@ -1,0 +1,48 @@
+# TestForge simulation load-generator — drives REAL HTTP load against a
+# booted target app from a sibling container on the per-sim docker network.
+# Phase 1 of the simulation engine (see SIMULATION_ENGINE_PLAN.md).
+#
+# No ENTRYPOINT: the MCP passes the explicit command per invocation so this
+# one image serves two jobs on the sim network —
+#   • health probe   → `node /loadgen/probe.mjs http://app:P1/ http://app:P2/ …`
+#   • load ramp       → `autocannon -j -c <conc> -d <dur> http://app:PORT<path>`
+#
+# Build: docker build -t testforge-loadgen:local -f runner/Dockerfile.loadgen runner
+FROM node:22-slim
+
+LABEL org.opencontainers.image.source="https://github.com/t4tarzan/testforge"
+LABEL org.opencontainers.image.description="TestForge simulation load-generator — node 22 + autocannon. Drives real HTTP load against a booted app on an isolated per-sim docker network."
+LABEL org.opencontainers.image.licenses="MIT"
+
+WORKDIR /loadgen
+
+# autocannon is the HTTP load driver; -j emits a machine-readable JSON result
+# (latency percentiles, req/s, error/non-2xx/timeout counts) on stdout.
+# No BuildKit cache mount — the managed box builds with the legacy builder.
+RUN npm install -g autocannon@^8
+
+# Tiny health probe: takes one or more candidate URLs, prints the FIRST that
+# answers (ANY HTTP status counts as "up" — a 404 still proves the app booted)
+# to stdout and exits 0; exits 1 if none respond. One container call probes all
+# candidate ports at once, so the MCP loops this until success or boot deadline.
+RUN cat > /loadgen/probe.mjs <<'JS'
+const urls = process.argv.slice(2);
+let found = null;
+for (const url of urls) {
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), 2000);
+  try {
+    await fetch(url, { signal: ac.signal });
+    clearTimeout(t);
+    found = url;
+    break;
+  } catch {
+    clearTimeout(t);
+  }
+}
+// IMPORTANT: stdout is a pipe here, so calling process.exit() right after a
+// console.log races the async flush and loses the output. Write with a
+// completion callback and only THEN exit, so the caller reliably sees the URL.
+if (found) process.stdout.write(found + '\n', () => process.exit(0));
+else process.exit(1);
+JS
