@@ -13,8 +13,13 @@ import { createOpenAI } from '@ai-sdk/openai';
 //
 // Env overrides let ops swap models without a rebuild — also makes the
 // fallback path testable by temporarily pointing PRIMARY at a bogus id.
-export const PRIMARY_MODEL = process.env.TESTFORGE_PRIMARY_MODEL || 'qwen/qwen3.7-max';
-export const FALLBACK_MODEL = process.env.TESTFORGE_FALLBACK_MODEL || 'deepseek/deepseek-v4-flash';
+// Defaults chosen for reasonable cost (per-M tokens, OpenRouter):
+//   deepseek-v4-flash  $0.10 in / $0.20 out  (primary — cheapest capable coder)
+//   kimi-k2.6          $0.73 in / $3.49 out  (fallback — different provider; only
+//                                             hit when deepseek rate-limits/fails)
+// vs the old qwen3.7-max at $1.25 / $3.75. Override either with env.
+export const PRIMARY_MODEL = process.env.TESTFORGE_PRIMARY_MODEL || 'deepseek/deepseek-v4-flash';
+export const FALLBACK_MODEL = process.env.TESTFORGE_FALLBACK_MODEL || 'moonshotai/kimi-k2.6';
 
 const apiKey = process.env.OPENROUTER_API_KEY;
 
