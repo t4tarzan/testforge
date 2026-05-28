@@ -40,8 +40,10 @@ import { generateTestsForFindings, type InputFinding } from './generator/generat
 import { hasLLMKey, PRIMARY_MODEL, FALLBACK_MODEL } from './generator/llm-client.js';
 import { runGeneratedTests } from './runner/docker-runner.js';
 import { detectRunnable } from './simulation/runnable-detect.js';
-import { runLoadSimulation } from './simulation/load-sim.js';
-import { createJob, getJob, listJobs, updateJob, type SimPhase } from './simulation/job-store.js';
+import { prepareSandbox, teardownSandbox } from './simulation/sandbox.js';
+import { runLoadRamp, type LoadSimResult } from './simulation/load-sim.js';
+import { runChaos, type FaultType } from './simulation/chaos-sim.js';
+import { createJob, getJob, listJobs, updateJob } from './simulation/job-store.js';
 import { discoverEndpoints } from './analyzers/lib/endpoint-discovery.js';
 import { parseFile, isParseable } from './analyzers/lib/parse.js';
 import { readFileSync } from 'fs';
@@ -83,20 +85,38 @@ function discoverGetPaths(fileContents: Record<string, string>): string[] {
   return ['/', ...[...paths].filter((p) => p !== '/')].slice(0, 4);
 }
 
+type SimDimension = 'load' | 'chaos';
+
 interface SimJobBody {
   repoUrl: string;
   branch?: string;
+  /** Which simulations to run. Default ['load']; chaos is opt-in (it's slower). */
+  dimensions?: SimDimension[];
   paths?: string[];
   concurrencyLevels?: number[];
   durationPerLevelSec?: number;
+  /** Chaos fault to inject (default 'restart' = crash-recovery). */
+  faultType?: FaultType;
+}
+
+// Pick a chaos load level the app can actually sustain: the highest concurrency
+// the load ramp ran without breaking. Without load results, fall back to a low
+// default so the baseline isn't already saturated.
+function pickChaosConcurrency(load: LoadSimResult | null): number {
+  if (!load) return 10;
+  const healthy = load.levels.filter((l) => l.errorRate <= 0.05).map((l) => l.concurrency);
+  return healthy.length ? Math.max(...healthy) : 5;
 }
 
 // Background runner for an async simulation job. Clones → scans → detects →
-// (real sim | static fallback), updating the job's phase as it goes so the
-// client's GET /simulate/:jobId poll can show live progress. Runs detached from
-// the POST request, so a multi-minute sim never hits the nginx 300s ceiling.
+// builds+boots the app ONCE (shared sandbox) → runs the requested dimensions
+// (load ramp, chaos) → tears down. Updates the job's phase throughout so the
+// client's GET /simulate/:jobId poll shows live progress. Detached from the POST
+// request, so a multi-minute sim never hits the nginx 300s ceiling. When the app
+// can't be auto-booted, every requested dimension gets an honest static fallback.
 async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promise<void> {
   const { repoUrl } = body;
+  const dims: SimDimension[] = body.dimensions?.length ? body.dimensions : ['load'];
   const repoName = repoUrl.split('/').pop()?.replace('.git', '') || 'repo';
   const projectPath = join(TMP_DIR, `sim-${repoName}-${runId}`);
   updateJob(jobId, { status: 'running', phase: 'cloning', detail: 'Cloning repository', startedAt: new Date().toISOString() });
@@ -112,35 +132,76 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
     const codebase = await scanCodebase(projectPath);
     const runnable = detectRunnable(projectPath);
 
-    // Static load analysis — always computed; the fallback body whenever we
-    // can't (or don't) drive real traffic.
+    // Static fallbacks — always computed; used whenever a dimension can't drive
+    // real traffic (not runnable, or the app failed to boot).
     const staticLoad = await runLoadAnalysis({
       projectPath, fileContents: codebase.fileContents, dependencies: codebase.dependencies,
     }).catch(() => null);
-    const staticBlock = staticLoad ? {
+    const staticLoadBlock = staticLoad ? {
       maxUsers: staticLoad.estimatedMaxConcurrentUsers || 0,
       rateLimiting: staticLoad.hasRateLimiting || false,
       caching: staticLoad.hasCaching || false,
       recommendations: staticLoad.recommendations || [],
       findings: staticLoad.findings || [],
     } : null;
+    const staticChaos = await Promise.resolve(
+      runChaosAnalysis(codebase.fileContents, codebase.dependencies, codebase.techStack),
+    ).catch(() => null);
+    const staticChaosBlock = staticChaos ? {
+      score: staticChaos.score, resilienceLevel: staticChaos.resilienceLevel, findings: staticChaos.findings,
+    } : null;
 
-    let load: Record<string, unknown>;
-    if (runnable.runnable && runnable.method === 'dockerfile' && runnable.dockerfilePath && runnable.contextPath) {
-      const paths = body.paths?.length ? body.paths : discoverGetPaths(codebase.fileContents);
-      const sim = await runLoadSimulation({
-        contextPath: runnable.contextPath,
-        dockerfilePath: runnable.dockerfilePath,
+    const out: { load?: Record<string, unknown>; chaos?: Record<string, unknown> } = {};
+
+    const canBoot = runnable.runnable && runnable.method === 'dockerfile' && runnable.dockerfilePath && runnable.contextPath;
+    if (canBoot) {
+      updateJob(jobId, { phase: 'building', detail: 'Building app image from Dockerfile' });
+      const prep = await prepareSandbox({
+        contextPath: runnable.contextPath!,
+        dockerfilePath: runnable.dockerfilePath!,
         exposedPorts: runnable.exposedPorts,
-        paths,
-        concurrencyLevels: body.concurrencyLevels,
-        durationPerLevelSec: body.durationPerLevelSec,
         runId,
-        onProgress: (phase, detail) => updateJob(jobId, { phase: phase as SimPhase, detail }),
+        onProgress: (phase, detail) => updateJob(jobId, { phase, detail }),
       });
-      load = sim.ranReal ? { ...sim } : { ...sim, static: staticBlock };
+
+      if (!prep.ok || !prep.sandbox) {
+        // Booted nothing → honest static fallback for each requested dimension.
+        const fail = { ranReal: false, reason: prep.reason, buildLogTail: prep.buildLogTail, appLogTail: prep.appLogTail };
+        if (dims.includes('load')) out.load = { ...fail, static: staticLoadBlock };
+        if (dims.includes('chaos')) out.chaos = { ...fail, static: staticChaosBlock };
+      } else {
+        const sb = prep.sandbox;
+        const paths = body.paths?.length ? body.paths : discoverGetPaths(codebase.fileContents);
+        let loadResult: LoadSimResult | null = null;
+        try {
+          if (dims.includes('load')) {
+            updateJob(jobId, { phase: 'load', detail: 'Starting load ramp' });
+            loadResult = await runLoadRamp(sb, {
+              paths,
+              concurrencyLevels: body.concurrencyLevels,
+              durationPerLevelSec: body.durationPerLevelSec,
+              onProgress: (detail) => updateJob(jobId, { phase: 'load', detail }),
+            });
+            out.load = { ...loadResult };
+          }
+          if (dims.includes('chaos')) {
+            updateJob(jobId, { phase: 'chaos', detail: 'Starting chaos' });
+            const chaos = await runChaos(sb, {
+              paths,
+              concurrency: pickChaosConcurrency(loadResult),
+              faultType: body.faultType,
+              onProgress: (detail) => updateJob(jobId, { phase: 'chaos', detail }),
+            });
+            out.chaos = { ...chaos };
+          }
+        } finally {
+          await teardownSandbox(sb);
+        }
+      }
     } else {
-      load = { ranReal: false, reason: runnable.reason, static: staticBlock };
+      const fail = { ranReal: false, reason: runnable.reason };
+      if (dims.includes('load')) out.load = { ...fail, static: staticLoadBlock };
+      if (dims.includes('chaos')) out.chaos = { ...fail, static: staticChaosBlock };
     }
 
     try { rmSync(projectPath, { recursive: true, force: true }); } catch { /* best-effort */ }
@@ -151,6 +212,7 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
         repo: repoUrl,
         branch: body.branch,
         runId,
+        dimensions: dims,
         simulatedAt: new Date().toISOString(),
         runnable: {
           runnable: runnable.runnable,
@@ -158,7 +220,7 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
           reason: runnable.reason,
           exposedPorts: runnable.exposedPorts,
         },
-        load,
+        ...out,
       },
     });
   } catch (err) {

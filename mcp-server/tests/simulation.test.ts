@@ -7,7 +7,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { detectRunnable, parseExposedPorts, DEFAULT_PORT_CANDIDATES } from '../src/simulation/runnable-detect.js';
-import { parseAutocannon } from '../src/simulation/load-sim.js';
+import { parseAutocannon } from '../src/simulation/sandbox.js';
+import { isRecovered } from '../src/simulation/chaos-sim.js';
 
 function tmpRepo(files: Record<string, string>): string {
   const dir = mkdtempSync(join(tmpdir(), 'tf-sim-'));
@@ -97,5 +98,17 @@ describe('parseAutocannon', () => {
   it('returns null on unparseable output', () => {
     expect(parseAutocannon('connection refused', 10, 5)).toBeNull();
     expect(parseAutocannon('', 10, 5)).toBeNull();
+  });
+});
+
+describe('chaos isRecovered', () => {
+  it('treats a return to within the margin of a healthy baseline as recovered', () => {
+    expect(isRecovered(0.0, 0.0)).toBe(true);   // clean again
+    expect(isRecovered(0.1, 0.0)).toBe(true);   // within 0.15 margin
+    expect(isRecovered(0.5, 0.0)).toBe(false);  // still failing
+  });
+  it('lets a fragile app recover back to its own imperfect baseline', () => {
+    expect(isRecovered(0.75, 0.70)).toBe(true);   // back to ~baseline
+    expect(isRecovered(1.0, 0.70)).toBe(false);   // still fully broken (>0.85)
   });
 });
