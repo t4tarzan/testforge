@@ -37,6 +37,14 @@ const bearerHeaders = () => ({
   ...(process.env.TESTFORGE_RUN_SECRET ? { Authorization: `Bearer ${process.env.TESTFORGE_RUN_SECRET}` } : {}),
 });
 
+// Pass an upstream JSON response through. Vercel's res lacks Express's .type(),
+// so set the header explicitly and use .json()/.end().
+function sendUpstream(res, status, text) {
+  res.setHeader('Content-Type', 'application/json');
+  try { return res.status(status).json(JSON.parse(text)); }
+  catch { return res.status(status).end(text); }
+}
+
 async function startSim(req, res) {
   const ip =
     (req.headers['x-forwarded-for'] || '').split(',')[0].trim() ||
@@ -69,7 +77,7 @@ async function startSim(req, res) {
     });
     clearTimeout(timeout);
     const text = await upstream.text();
-    if (!upstream.ok) return res.status(upstream.status).type('application/json').send(text);
+    if (!upstream.ok) return sendUpstream(res, upstream.status, text);
     const payload = JSON.parse(text);
     // Hand back our own poll URL, not the upstream path.
     return res.status(202).json({ jobId: payload.jobId, slug, statusUrl: `/api/simulate?jobId=${payload.jobId}` });
@@ -97,7 +105,7 @@ async function pollSim(req, res) {
     });
     clearTimeout(timeout);
     const text = await upstream.text();
-    return res.status(upstream.status).type('application/json').send(text);
+    return sendUpstream(res, upstream.status, text);
   } catch (e) {
     clearTimeout(timeout);
     return res.status(e.name === 'AbortError' ? 504 : 502).json({ error: 'MCP unreachable', detail: e.message });
