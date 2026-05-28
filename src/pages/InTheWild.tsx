@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import { ArrowRight, FileText, GitBranch, AlertOctagon, BookOpen } from 'lucide-react';
 import { showcaseReports, type ShowcaseReport } from '@/data/showcaseReports';
+import NewsletterSignup from '@/components/NewsletterSignup';
 
 // Visual "hero" for each card. Per-tech-stack gradient picked from the
 // repo's primary detected framework so each card has its own identity
@@ -127,7 +128,7 @@ export default function InTheWild() {
             animate={{ opacity: 1 }}
             className="font-mono text-xs text-[#a99bff] uppercase tracking-[0.15em] mb-6"
           >
-            // IN THE WILD · PUBLIC TESTFORGE REPORTS
+            // THE TESTFORGE JOURNEY · IN THE WILD
           </motion.p>
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
@@ -143,12 +144,39 @@ export default function InTheWild() {
             transition={{ delay: 0.2 }}
             className="text-[#a99bff]/70 text-lg max-w-[760px] mx-auto"
           >
-            Every report on this page is a verbatim TestForge analysis of a public repo —
-            cloned at depth 1, scanned with{' '}
+            Not a leaderboard, and definitely not gotchas. Each report is a verbatim
+            TestForge run on a public repo — cloned at depth 1, scanned with{' '}
             <code className="font-mono text-[16px] text-[#a99bff]">@whitenoisenpm/testforge-mcp@latest</code>,
-            and saved as JSON. No cherry-picking, no human edits. Run any of them
-            against your own repo with one command.
+            saved as JSON, no human edits. When one of these runs flags something that
+            turns out to be a false positive, that becomes the{' '}
+            <Link to="/changelog" className="text-[#a99bff] underline hover:text-white transition-colors">next analyzer release</Link>.
+            This page is the record of that journey.
           </motion.p>
+        </div>
+      </section>
+
+      {/* How to read these — transparency over boasting */}
+      <section className="max-w-[1100px] mx-auto px-6 lg:px-16 pt-14">
+        <div className="grid sm:grid-cols-3 gap-4">
+          {[
+            {
+              k: 'Reproducible',
+              v: 'Cloned at depth 1, scanned with the published npm package, distilled to JSON by a script in the repo. Re-run it and you get the same numbers.',
+            },
+            {
+              k: 'Production-focused',
+              v: 'Scores reflect shipping code. Tests, examples/demos, and vendored bundles are suppressed; dimensions that don’t apply (a11y on a Python lib) report N/A, not a fake zero.',
+            },
+            {
+              k: 'Self-correcting',
+              v: 'A flagged finding isn’t a verdict. When a report over-fires, the fix ships as a release — often the same day. Honesty beats a higher number.',
+            },
+          ].map((c) => (
+            <div key={c.k} className="bg-white border border-[#D9D9D3] rounded-xl p-5">
+              <div className="font-mono text-[11px] uppercase tracking-[0.1em] text-[#574a7d] mb-2">{c.k}</div>
+              <p className="text-[13px] text-[#6B6B6B] leading-relaxed">{c.v}</p>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -166,8 +194,13 @@ export default function InTheWild() {
           </div>
         )}
 
+        {/* Newsletter */}
+        <div className="mt-12">
+          <NewsletterSignup source="in-the-wild" />
+        </div>
+
         {/* CTA */}
-        <div className="mt-16 bg-white border border-[#D9D9D3] rounded-2xl p-8 text-center">
+        <div className="mt-12 bg-white border border-[#D9D9D3] rounded-2xl p-8 text-center">
           <FileText className="text-[#574a7d] mx-auto mb-4" size={36} />
           <h2 className="font-heading font-semibold text-[24px] text-[#12101A] mb-2">
             Run this on your own repo

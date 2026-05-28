@@ -362,3 +362,21 @@ export const enterpriseTasks = pgTable(
     index('enterprise_tasks_stage_idx').on(table.stage),
   ]
 );
+
+// ─── Newsletter subscribers ─────────────────────────────────────────────
+// Opt-in list for the "TestForge Findings" digest — a periodic random bag of
+// public-repo findings. The /api/newsletter route lazily ensures this table
+// (CREATE TABLE IF NOT EXISTS) so it works without a separate migration
+// deploy; this definition is the canonical record of its shape.
+
+export const newsletterSubscribers = pgTable(
+  'newsletter_subscribers',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    email: varchar('email', { length: 320 }).notNull(),
+    source: varchar('source', { length: 60 }).default('in-the-wild').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    unsubscribedAt: timestamp('unsubscribed_at', { withTimezone: true }),
+  },
+  (table) => [uniqueIndex('newsletter_subscribers_email_idx').on(table.email)]
+);
