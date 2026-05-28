@@ -1,8 +1,11 @@
 # Fly.io Dockerfile for TestForge MCP Server
 FROM node:22-slim
 
-# Install git for repo cloning
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+# git: repo cloning for /clone-and-analyze.
+# python3/make/g++: native build toolchain for better-sqlite3 (history.db),
+# in case a prebuilt binary isn't available for this platform/ABI.
+RUN apt-get update && apt-get install -y git python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -14,7 +17,13 @@ RUN npm install --omit=dev && npm install -g tsx
 COPY src/ ./src/
 COPY tsconfig.json ./
 
-# Expose MCP server port
+# The server defaults to :33221 (since v0.2.18); Fly routes to internal_port
+# 3001, so pin the listen port. GIT_TERMINAL_PROMPT=0 makes clones of missing/
+# private repos fail fast instead of hanging on a credential prompt.
+ENV PORT=3001
+ENV GIT_TERMINAL_PROMPT=0
+ENV NODE_ENV=production
+
 EXPOSE 3001
 
 # Run with tsx (TypeScript execution)
