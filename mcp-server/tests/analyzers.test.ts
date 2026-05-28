@@ -10,7 +10,9 @@
 
 import { describe, it, expect, beforeAll } from 'vitest';
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { dirname, resolve, join } from 'node:path';
+import { writeFileSync, mkdtempSync, rmSync, mkdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 
 import { scanCodebase, type CodebaseInfo } from '../src/analyzers/code-scanner.js';
 import { runSecurityAnalysis, isTestPath } from '../src/analyzers/security-analyzer.js';
@@ -38,6 +40,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const VULNERABLE = resolve(__dirname, 'fixtures/vulnerable-app');
 const CLEAN = resolve(__dirname, 'fixtures/clean-app');
 const TRUE_POS = resolve(__dirname, 'fixtures/true-positives');
+const GO_APP = resolve(__dirname, 'fixtures/go-app');
 const FALSE_POS = resolve(__dirname, 'fixtures/false-positives');
 const USER_RULES = resolve(__dirname, 'fixtures/user-rules');
 const N_PLUS_ONE = resolve(__dirname, 'fixtures/n-plus-one');
@@ -2762,5 +2765,32 @@ describe('security-analyzer — false-positive guards (v0.28.6)', () => {
     const r = titled(f, 'Route Without Inline Auth');
     expect(r.length).toBeGreaterThan(0);
     expect(r.every((x) => x.severity === 'medium')).toBe(true);
+  });
+});
+
+// v0.28.7 — bugs the VPS test-bed surfaced on real monorepos.
+describe('analyzer fixes from the VPS test-bed (v0.28.7)', () => {
+  it('detects Go tests (go_test.go) — was 0 testFiles / no framework before', async () => {
+    const info = await scanCodebase(GO_APP);
+    const u = await runUnitAnalysis({ projectPath: GO_APP, fileContents: info.fileContents });
+    expect(u.frameworks).toContain('go test');
+    expect(Array.isArray(u.testFiles) ? u.testFiles.length : 0).toBeGreaterThan(0);
+    expect(u.totalTests).toBeGreaterThanOrEqual(2); // TestAdd, TestAddZero (+ Benchmark)
+  });
+
+  it('skips oversized files instead of OOMing, and reports it honestly', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'tf-scan-'));
+    try {
+      mkdirSync(join(dir, 'src'));
+      writeFileSync(join(dir, 'src', 'small.ts'), 'export const a = 1;\n');
+      // 1.2 MB single file — over the 1 MB per-file cap (generated/minified blob).
+      writeFileSync(join(dir, 'src', 'huge.js'), 'x'.repeat(1_200_000));
+      const info = await scanCodebase(dir);
+      expect(info.languageCoverage.skippedLargeFiles).toBeGreaterThanOrEqual(1);
+      expect(info.fileContents['src/huge.js']).toBeUndefined();   // not held in memory
+      expect(info.fileContents['src/small.ts']).toBeDefined();    // normal file still analyzed
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

@@ -1,5 +1,5 @@
 import { glob } from 'glob';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, statSync } from 'fs';
 import { join } from 'path';
 
 export interface CodebaseInfo {
@@ -31,6 +31,12 @@ export interface CodebaseInfo {
     coveragePercent: number;
     /** Languages we noticed but can't parse, with file counts. */
     unsupportedLanguages: Array<{ language: string; files: number }>;
+    /** Files skipped because they exceeded the per-file size cap (generated/
+     *  minified/data blobs). They aren't analyzable source. */
+    skippedLargeFiles?: number;
+    /** True if the total source budget was hit and later files were not read
+     *  into memory — the analysis is partial-but-honest, not a crash. */
+    analysisTruncated?: boolean;
   };
 }
 
@@ -92,7 +98,21 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
   ];
   const files = await glob(patterns, { cwd: projectPath, absolute: false, dot: true });
 
-  // 2. Read each file, count lines, extract function names
+  // 2. Read each file, count lines, extract function names.
+  //
+  // Memory guards (added after microsoft/TypeScript OOM-crashed a 2 GB host):
+  // every file's content is held in `fileContents` AND later parsed into an
+  // AST that's held simultaneously, so an unbounded read on a mega-repo blows
+  // the heap. We (a) skip individual files over MAX_FILE_BYTES (generated /
+  // minified / data blobs — not analyzable source), and (b) stop reading once
+  // the total content budget is hit, marking the analysis truncated rather
+  // than crashing. statSync first so we never read a huge file just to drop it.
+  const MAX_FILE_BYTES = 1_000_000;     // 1 MB per file
+  const MAX_TOTAL_BYTES = 120_000_000;  // ~120 MB of source held in memory
+  let totalBytes = 0;
+  let skippedLargeFiles = 0;
+  let analysisTruncated = false;
+
   const fileInfos: Array<{ path: string; lines: number }> = [];
   const fileContents: Record<string, string> = {};
   const functions: Record<string, string[]> = {};
@@ -100,7 +120,12 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
   for (const f of files) {
     const fullPath = join(projectPath, f);
     try {
+      let size = 0;
+      try { size = statSync(fullPath).size; } catch { continue; }
+      if (size > MAX_FILE_BYTES) { skippedLargeFiles++; continue; }
+      if (totalBytes + size > MAX_TOTAL_BYTES) { analysisTruncated = true; continue; }
       const content = readFileSync(fullPath, 'utf-8');
+      totalBytes += size;
       const lines = content.split('\n').length;
       fileInfos.push({ path: f, lines });
       fileContents[f] = content;
@@ -422,6 +447,8 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
       unsupportedFiles,
       coveragePercent,
       unsupportedLanguages,
+      skippedLargeFiles,
+      analysisTruncated,
     },
   };
 }

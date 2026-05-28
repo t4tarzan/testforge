@@ -61,8 +61,10 @@ export async function runUnitAnalysis(config: {
     '**/test_*.py',
     '**/*_test.py',
     '**/tests/**/*.py',
+    '**/*_test.go', // Go: convention is foo_test.go next to foo.go
     '!**/node_modules/**', '!**/dist/**', '!**/__pycache__/**',
     '!**/.venv/**', '!**/venv/**', '!**/.tox/**', '!**/.pytest_cache/**',
+    '!**/vendor/**',
   ];
   const testFiles = await glob(testPatterns, { cwd: projectPath, absolute: false });
 
@@ -70,11 +72,12 @@ export async function runUnitAnalysis(config: {
   //    is counted as source. Excludes any path matched as a test above so
   //    pytest files don't double-count.
   const sourcePatterns = [
-    '**/*.{ts,js,tsx,jsx,py}',
+    '**/*.{ts,js,tsx,jsx,py,go}',
     '!**/node_modules/**', '!**/.git/**', '!**/dist/**', '!**/build/**',
-    '!**/__pycache__/**', '!**/.venv/**', '!**/venv/**',
+    '!**/__pycache__/**', '!**/.venv/**', '!**/venv/**', '!**/vendor/**',
     '!**/*.{test,spec}.{ts,js,tsx,jsx}',
     '!**/test_*.py', '!**/*_test.py', '!**/tests/**/*.py',
+    '!**/*_test.go',
   ];
   const sourceFiles = await glob(sourcePatterns, { cwd: projectPath, absolute: false });
 
@@ -90,6 +93,7 @@ export async function runUnitAnalysis(config: {
       const content = readFileSync(fullPath, 'utf-8');
       let testCount = 0;
       const isPy = tf.endsWith('.py');
+      const isGo = tf.endsWith('.go');
 
       if (isPy) {
         // pytest: each `def test_…` at any indent is one test case. Class-
@@ -99,6 +103,13 @@ export async function runUnitAnalysis(config: {
         const matches = content.match(pyTestRe);
         testCount = matches ? matches.length : 0;
         testFrameworks.add('pytest');
+      } else if (isGo) {
+        // go test: each top-level `func Test…/Benchmark…/Example…/Fuzz…`
+        // is a case. The stdlib `testing` package is the framework.
+        const goTestRe = /^func\s+(?:Test|Benchmark|Example|Fuzz)\w*\s*\(/gm;
+        const matches = content.match(goTestRe);
+        testCount = matches ? matches.length : 0;
+        if (testCount > 0) testFrameworks.add('go test');
       } else if (isParseable(tf)) {
         const parsed = parseFile(tf, content);
         if (parsed.ast) {
