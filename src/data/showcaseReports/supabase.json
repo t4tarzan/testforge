@@ -3,11 +3,11 @@
   "repoUrl": "https://github.com/supabase/supabase",
   "repoName": "supabase",
   "tagline": "78k-star OSS Firebase alt \u2014 TypeScript monorepo + test-path security suppression",
-  "analyzedAt": "2026-05-28T00:21:05.910Z",
-  "analyzeMs": 48648,
+  "analyzedAt": "2026-05-28T10:40:45.574Z",
+  "analyzeMs": 46059,
   "codebase": {
-    "totalFiles": 7658,
-    "totalLines": 2161325,
+    "totalFiles": 7662,
+    "totalLines": 2161917,
     "endpoints": 632,
     "dependencies": 252,
     "techStack": [
@@ -20,7 +20,7 @@
       "Playwright"
     ],
     "languageCoverage": {
-      "nativelyAnalyzedFiles": 6860,
+      "nativelyAnalyzedFiles": 6864,
       "unsupportedFiles": 107,
       "coveragePercent": 98,
       "unsupportedLanguages": [
@@ -53,29 +53,21 @@
   },
   "unit": {
     "coverage": 90,
-    "testFiles": 422,
-    "totalTests": 4275,
+    "testFiles": 423,
+    "totalTests": 4283,
     "frameworks": [
-      "Testing Library",
       "Vitest",
+      "Testing Library",
       "pytest"
     ]
   },
   "security": {
-    "findings": 56,
-    "critical": 14,
+    "findings": 41,
+    "critical": 1,
     "high": 28,
     "medium": 12,
     "low": 0,
     "topItems": [
-      {
-        "severity": "critical",
-        "title": "Potential SQL/NoSQL Injection",
-        "description": "url.searchParams.get() is called with a string built from variables. Verify the inputs are bound, not concatenated.",
-        "filePath": "supabase/functions/og-images/handler.tsx",
-        "lineNumber": 36,
-        "fixSuggestion": "Use parameterized queries (placeholders like $1, $2) or an ORM. If you must build dynamic SQL, allowlist the variable parts and pass user values via bound parameters."
-      },
       {
         "severity": "high",
         "title": "Route Without Inline Auth",
@@ -93,20 +85,28 @@
         "fixSuggestion": "Either pass an auth middleware function in the args list, or annotate the file with `// testforge-disable-file authentication-bypass` if a global middleware is intentional."
       },
       {
-        "severity": "critical",
-        "title": "Potential SQL/NoSQL Injection",
-        "description": "get() is called with a string built from variables. Verify the inputs are bound, not concatenated.",
-        "filePath": "apps/www/data/organizations.ts",
-        "lineNumber": 17,
-        "fixSuggestion": "Use parameterized queries (placeholders like $1, $2) or an ORM. If you must build dynamic SQL, allowlist the variable parts and pass user values via bound parameters."
-      },
-      {
         "severity": "high",
         "title": "dangerouslySetInnerHTML with user input",
         "description": "__html is built from a variable. Verify it's sanitized.",
         "filePath": "apps/studio/pages/_app.tsx",
         "lineNumber": 192,
         "fixSuggestion": "Render the value as text (default React escaping) or run it through DOMPurify.sanitize() first."
+      },
+      {
+        "severity": "high",
+        "title": "Path Traversal Risk",
+        "description": "window.open() path was built from a variable. Verify it can't escape the intended directory.",
+        "filePath": "apps/studio/lib/navigation.ts",
+        "lineNumber": 45,
+        "fixSuggestion": "Resolve to an absolute path, then verify the result starts with the expected base directory. Allowlist file ids \u2192 server-resolved paths, never echo user paths back."
+      },
+      {
+        "severity": "high",
+        "title": "Path Traversal Risk",
+        "description": "window.open() path was built from a variable. Verify it can't escape the intended directory.",
+        "filePath": "apps/studio/lib/navigation.ts",
+        "lineNumber": 58,
+        "fixSuggestion": "Resolve to an absolute path, then verify the result starts with the expected base directory. Allowlist file ids \u2192 server-resolved paths, never echo user paths back."
       }
     ]
   },

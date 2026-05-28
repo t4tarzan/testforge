@@ -3,12 +3,12 @@
   "repoUrl": "https://github.com/t4tarzan/testforge",
   "repoName": "testforge",
   "tagline": "TestForge auditing TestForge. Self-audit shipping fixes for what it finds, in public.",
-  "analyzedAt": "2026-05-28T00:20:14.141Z",
-  "analyzeMs": 2577,
+  "analyzedAt": "2026-05-28T10:39:55.900Z",
+  "analyzeMs": 2595,
   "codebase": {
     "totalFiles": 361,
-    "totalLines": 73110,
-    "endpoints": 202,
+    "totalLines": 73339,
+    "endpoints": 204,
     "dependencies": 62,
     "techStack": [
       "Express",
@@ -30,7 +30,7 @@
   "unit": {
     "coverage": 74,
     "testFiles": 17,
-    "totalTests": 261,
+    "totalTests": 271,
     "frameworks": [
       "Vitest",
       "pytest"
