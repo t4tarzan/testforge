@@ -9,6 +9,8 @@ import { join } from 'node:path';
 import { detectRunnable, parseExposedPorts, DEFAULT_PORT_CANDIDATES } from '../src/simulation/runnable-detect.js';
 import { parseAutocannon } from '../src/simulation/sandbox.js';
 import { isRecovered } from '../src/simulation/chaos-sim.js';
+import { pickWebService, sanitizeComposeConfig } from '../src/simulation/compose-sandbox.js';
+import * as yaml from 'js-yaml';
 
 function tmpRepo(files: Record<string, string>): string {
   const dir = mkdtempSync(join(tmpdir(), 'tf-sim-'));
@@ -52,12 +54,21 @@ describe('detectRunnable', () => {
     } finally { rmSync(dir, { recursive: true, force: true }); }
   });
 
-  it('flags compose-only repos as not-yet-runnable with a clear reason', () => {
-    const dir = tmpRepo({ 'docker-compose.yml': 'services:\n  web:\n    image: x' });
+  it('detects a compose repo and takes precedence over a lone Dockerfile', () => {
+    const dir = tmpRepo({ 'docker-compose.yml': 'services:\n  web:\n    image: x', Dockerfile: 'FROM nginx' });
     try {
       const d = detectRunnable(dir);
-      expect(d.runnable).toBe(false);
-      expect(d.reason).toMatch(/compose/i);
+      expect(d.runnable).toBe(true);
+      expect(d.method).toBe('compose');
+      expect(d.composePath).toBe(join(dir, 'docker-compose.yml'));
+      expect(d.contextPath).toBe(dir);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  it('also recognizes compose.yaml (compose v2 name)', () => {
+    const dir = tmpRepo({ 'compose.yaml': 'services:\n  app:\n    image: x' });
+    try {
+      expect(detectRunnable(dir).method).toBe('compose');
     } finally { rmSync(dir, { recursive: true, force: true }); }
   });
 
@@ -67,7 +78,7 @@ describe('detectRunnable', () => {
       const d = detectRunnable(dir);
       expect(d.runnable).toBe(false);
       expect(d.method).toBeNull();
-      expect(d.reason).toMatch(/No root Dockerfile/i);
+      expect(d.reason).toMatch(/no docker-compose file or root dockerfile/i);
     } finally { rmSync(dir, { recursive: true, force: true }); }
   });
 });
@@ -98,6 +109,50 @@ describe('parseAutocannon', () => {
   it('returns null on unparseable output', () => {
     expect(parseAutocannon('connection refused', 10, 5)).toBeNull();
     expect(parseAutocannon('', 10, 5)).toBeNull();
+  });
+});
+
+describe('compose pickWebService', () => {
+  it('prefers a web-named service that publishes a port', () => {
+    const w = pickWebService({
+      db: { image: 'postgres', expose: [5432] },
+      web: { build: '.', ports: [{ target: 8000, published: '8000' }] },
+      redis: { image: 'redis' },
+    })!;
+    expect(w.name).toBe('web');
+    expect(w.port).toBe(8000);
+  });
+  it('falls back to exposed port, then web-ish name, then build, then first', () => {
+    expect(pickWebService({ db: { image: 'postgres' }, api: { build: '.', expose: ['3000/tcp'] } })!).toEqual({ name: 'api', port: 3000 });
+    expect(pickWebService({ cache: { image: 'redis' }, frontend: { image: 'x' } })!.name).toBe('frontend');
+    expect(pickWebService({ worker: { image: 'x' }, builder: { build: './b' } })!.name).toBe('builder');
+    expect(pickWebService({})).toBeNull();
+  });
+});
+
+describe('compose sanitizeComposeConfig', () => {
+  it('strips named volumes, host ports, networks, and depends_on conditions', () => {
+    const out = yaml.load(sanitizeComposeConfig({
+      version: '3', name: 'x',
+      volumes: { dbdata: {} },
+      networks: { custom: {} },
+      services: {
+        web: { image: 'nginx', platform: '', ports: [{ target: 80, published: '8080' }], networks: ['custom'], restart: 'always',
+               environment: {}, depends_on: { db: { condition: 'service_healthy' } } },
+        db: { image: 'postgres', volumes: ['dbdata:/var/lib/postgresql/data'] },
+      },
+    })) as any;
+    expect(out.volumes).toBeUndefined();
+    expect(out.networks).toBeUndefined();
+    expect(out.version).toBeUndefined();
+    expect(out.services.web.ports).toBeUndefined();
+    expect(out.services.web.networks).toBeUndefined();
+    expect(out.services.web.restart).toBeUndefined();
+    expect(out.services.db.volumes).toBeUndefined();
+    expect(out.services.web.depends_on).toEqual(['db']); // condition flattened
+    expect(out.services.web.platform).toBeUndefined(); // empty platform pruned (re-parse killer)
+    expect(out.services.web.environment).toBeUndefined(); // empty {} pruned
+    expect(out.services.web.image).toBe('nginx'); // preserved
   });
 });
 

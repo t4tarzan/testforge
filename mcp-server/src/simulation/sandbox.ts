@@ -107,11 +107,20 @@ export function parseAutocannon(raw: string, concurrency: number, durationSec: n
 /** A live, health-checked app under test. Caller MUST teardownSandbox() it. */
 export interface Sandbox {
   runId: string;
-  image: string;
+  /** How it was booted — determines teardown strategy. */
+  kind: 'single' | 'compose';
+  /** Container name for docker ops (logs, pause/unpause/restart). */
   appName: string;
+  /** DNS host the load driver hits over HTTP (network alias). For single = appName. */
+  appHost: string;
   netName: string;
   /** Port the app actually answered on. */
   targetPort: number;
+  /** single-container only: the built image tag to remove on teardown. */
+  image?: string;
+  /** compose only: project name + sanitized compose file path (for teardown). */
+  composeProject?: string;
+  composeFile?: string;
 }
 
 export interface PrepareOptions {
@@ -191,23 +200,44 @@ export async function prepareSandbox(opts: PrepareOptions): Promise<PrepareResul
     progress('booting', `Waiting for app to answer on port(s) ${candidatePorts.join(', ')}`);
     const targetPort = await waitForHealthyPort(netName, appName, candidatePorts, Date.now() + BOOT_TIMEOUT_MS);
     if (targetPort === null) {
-      const logs = await getAppLogs({ runId, image, appName, netName, targetPort: 0 }, 40);
+      const logs = await getAppLogs({ runId, kind: 'single', image, appName, appHost: appName, netName, targetPort: 0 }, 40);
       await cleanup();
       return { ok: false, reason: `App did not answer on any candidate port (${candidatePorts.join(', ')}) within ${BOOT_TIMEOUT_MS / 1000}s.`, appLogTail: logs };
     }
 
-    return { ok: true, sandbox: { runId, image, appName, netName, targetPort } };
+    return { ok: true, sandbox: { runId, kind: 'single', image, appName, appHost: appName, netName, targetPort } };
   } catch (err) {
     await cleanup();
     return { ok: false, reason: `Sandbox preparation error: ${(err as Error).message}` };
   }
 }
 
-/** Tear EVERYTHING down — container, then network, then image. Best-effort. */
+/** Tear EVERYTHING down. Best-effort throughout. Branches on how it was booted. */
 export async function teardownSandbox(sb: Sandbox): Promise<void> {
+  if (sb.kind === 'compose') {
+    // `compose down` can 403 on the volume endpoint under the locked-down proxy,
+    // so we follow it with a force-clean by the compose project label (container
+    // + network removal go through CONTAINERS/NETWORKS, which are allowed).
+    if (sb.composeFile && sb.composeProject) {
+      await dockerExec(['compose', '-p', sb.composeProject, '-f', sb.composeFile, 'down', '--remove-orphans', '-t', '3'], 60_000).catch(() => undefined);
+    }
+    if (sb.composeProject) {
+      const ps = await dockerExec(['ps', '-aq', '--filter', `label=com.docker.compose.project=${sb.composeProject}`], 15_000).catch(() => null);
+      for (const id of (ps?.stdout ?? '').split('\n').map((s) => s.trim()).filter(Boolean)) {
+        await dockerExec(['rm', '-f', id], 15_000).catch(() => undefined);
+      }
+      await dockerExec(['network', 'rm', `${sb.composeProject}_default`], 15_000).catch(() => undefined);
+      // Remove images compose built for this project (named `<proj>-<svc>` / `<proj>_<svc>`).
+      const imgs = await dockerExec(['images', '--format', '{{.Repository}}:{{.Tag}}'], 15_000).catch(() => null);
+      for (const ref of (imgs?.stdout ?? '').split('\n').map((s) => s.trim()).filter((r) => r.startsWith(`${sb.composeProject}-`) || r.startsWith(`${sb.composeProject}_`))) {
+        await dockerExec(['rmi', '-f', ref], 20_000).catch(() => undefined);
+      }
+    }
+    return;
+  }
   await dockerExec(['rm', '-f', sb.appName], 20_000).catch(() => undefined);
   await dockerExec(['network', 'rm', sb.netName], 20_000).catch(() => undefined);
-  await dockerExec(['rmi', '-f', sb.image], 30_000).catch(() => undefined);
+  if (sb.image) await dockerExec(['rmi', '-f', sb.image], 30_000).catch(() => undefined);
 }
 
 /**
@@ -240,7 +270,7 @@ export async function waitForHealthyPort(
 export async function runAutocannon(
   sb: Sandbox, path: string, concurrency: number, durationSec: number,
 ): Promise<LoadLevelResult | null> {
-  const target = `http://${sb.appName}:${sb.targetPort}${path}`;
+  const target = `http://${sb.appHost}:${sb.targetPort}${path}`;
   const ac = await dockerExec(
     ['run', '--rm', '--network', sb.netName, LOADGEN_IMAGE,
       'autocannon', '-j', '-c', String(concurrency), '-d', String(durationSec), '--renderStatusCodes', target],

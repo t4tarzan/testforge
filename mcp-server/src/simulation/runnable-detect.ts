@@ -23,6 +23,8 @@ export interface RunnableDetection {
   dockerfilePath?: string;
   /** Build context directory passed to `docker build` (repo root for Phase 1). */
   contextPath?: string;
+  /** Absolute path to the docker-compose file, when method=compose. */
+  composePath?: string;
   /** Ports the app declares via EXPOSE — our first guesses for the health probe. */
   exposedPorts: number[];
   /** Human-readable explanation, surfaced in the report when not runnable. */
@@ -71,13 +73,37 @@ function findRootDockerfile(projectPath: string): string | null {
   return null;
 }
 
+/** Root-level docker-compose file (v2 also accepts `compose.yaml`). */
+function findComposeFile(projectPath: string): string | null {
+  for (const name of ['docker-compose.yml', 'docker-compose.yaml', 'compose.yml', 'compose.yaml']) {
+    const p = join(projectPath, name);
+    if (existsSync(p)) return p;
+  }
+  return null;
+}
+
 /**
- * Determine if `projectPath` is auto-runnable. Phase 1: Dockerfile only.
- * The compose / start-command branches return `runnable:false` with a reason
- * that names the not-yet-implemented path, so the report stays honest while
- * those phases land.
+ * Determine if `projectPath` is auto-runnable.
+ *   compose  — a docker-compose file boots the full multi-service stack (takes
+ *              precedence: it captures the app AND its dependencies).
+ *   dockerfile — a lone root Dockerfile boots the single app (Phase-1 wedge).
+ * The start-command branch is still future work; everything else → not runnable.
  */
 export function detectRunnable(projectPath: string): RunnableDetection {
+  // compose first — a multi-service repo's Dockerfile alone usually can't boot
+  // (it needs its DB/cache), so the compose file is the complete "run me" signal.
+  const composePath = findComposeFile(projectPath);
+  if (composePath) {
+    return {
+      runnable: true,
+      method: 'compose',
+      composePath,
+      contextPath: projectPath,
+      exposedPorts: [],
+      reason: 'docker-compose file found — will boot the full stack (web service + dependencies).',
+    };
+  }
+
   const dockerfilePath = findRootDockerfile(projectPath);
   if (dockerfilePath) {
     let exposedPorts: number[] = [];
@@ -95,21 +121,10 @@ export function detectRunnable(projectPath: string): RunnableDetection {
     };
   }
 
-  // Signals we recognize but don't yet boot (kept explicit so the "couldn't
-  // auto-run" banner can say *why* and point at the upcoming phase).
-  if (existsSync(join(projectPath, 'docker-compose.yml')) || existsSync(join(projectPath, 'docker-compose.yaml'))) {
-    return {
-      runnable: false,
-      method: null,
-      exposedPorts: [],
-      reason: 'docker-compose.yml present, but compose-based boot is not yet supported (Phase 2).',
-    };
-  }
-
   return {
     runnable: false,
     method: null,
     exposedPorts: [],
-    reason: 'No root Dockerfile found — cannot reliably auto-boot this app. Add a Dockerfile to unlock real load simulation.',
+    reason: 'No docker-compose file or root Dockerfile found — cannot reliably auto-boot this app. Add a Dockerfile (or compose file) to unlock real load/chaos simulation.',
   };
 }

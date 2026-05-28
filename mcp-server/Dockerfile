@@ -16,6 +16,17 @@ RUN ARCH="$(uname -m)" \
        | tar xz --strip-components=1 -C /usr/local/bin docker/docker \
     && docker --version
 
+# docker compose v2 plugin — compose-aware simulations boot multi-service stacks
+# (FastAPI+Postgres+Redis etc.) so real load/chaos can run on apps the single-
+# Dockerfile wedge can't. Just the CLI plugin; it talks to the same daemon
+# (the socket-proxy on the managed box).
+RUN case "$(uname -m)" in x86_64) CARCH=x86_64;; aarch64|arm64) CARCH=aarch64;; *) CARCH="$(uname -m)";; esac \
+    && mkdir -p /usr/local/lib/docker/cli-plugins \
+    && curl -fsSL "https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-linux-${CARCH}" \
+       -o /usr/local/lib/docker/cli-plugins/docker-compose \
+    && chmod +x /usr/local/lib/docker/cli-plugins/docker-compose \
+    && docker compose version
+
 WORKDIR /app
 
 # Install dependencies

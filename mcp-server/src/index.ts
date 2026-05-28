@@ -41,6 +41,7 @@ import { hasLLMKey, PRIMARY_MODEL, FALLBACK_MODEL } from './generator/llm-client
 import { runGeneratedTests } from './runner/docker-runner.js';
 import { detectRunnable } from './simulation/runnable-detect.js';
 import { prepareSandbox, teardownSandbox } from './simulation/sandbox.js';
+import { prepareComposeSandbox } from './simulation/compose-sandbox.js';
 import { runLoadRamp, type LoadSimResult } from './simulation/load-sim.js';
 import { runChaos, type FaultType } from './simulation/chaos-sim.js';
 import { createJob, getJob, listJobs, updateJob } from './simulation/job-store.js';
@@ -153,16 +154,26 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
 
     const out: { load?: Record<string, unknown>; chaos?: Record<string, unknown> } = {};
 
-    const canBoot = runnable.runnable && runnable.method === 'dockerfile' && runnable.dockerfilePath && runnable.contextPath;
+    const canBoot = !!(runnable.runnable && runnable.contextPath && (
+      (runnable.method === 'dockerfile' && runnable.dockerfilePath) ||
+      (runnable.method === 'compose' && runnable.composePath)
+    ));
     if (canBoot) {
-      updateJob(jobId, { phase: 'building', detail: 'Building app image from Dockerfile' });
-      const prep = await prepareSandbox({
-        contextPath: runnable.contextPath!,
-        dockerfilePath: runnable.dockerfilePath!,
-        exposedPorts: runnable.exposedPorts,
-        runId,
-        onProgress: (phase, detail) => updateJob(jobId, { phase, detail }),
-      });
+      updateJob(jobId, { phase: 'building', detail: runnable.method === 'compose' ? 'Booting compose stack' : 'Building app image from Dockerfile' });
+      const prep = runnable.method === 'compose'
+        ? await prepareComposeSandbox({
+            composePath: runnable.composePath!,
+            contextPath: runnable.contextPath!,
+            runId,
+            onProgress: (phase, detail) => updateJob(jobId, { phase, detail }),
+          })
+        : await prepareSandbox({
+            contextPath: runnable.contextPath!,
+            dockerfilePath: runnable.dockerfilePath!,
+            exposedPorts: runnable.exposedPorts,
+            runId,
+            onProgress: (phase, detail) => updateJob(jobId, { phase, detail }),
+          });
 
       if (!prep.ok || !prep.sandbox) {
         // Booted nothing → honest static fallback for each requested dimension.

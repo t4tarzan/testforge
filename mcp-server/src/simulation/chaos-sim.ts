@@ -94,50 +94,58 @@ export async function runChaos(sb: Sandbox, opts: ChaosOptions = {}): Promise<Ch
   const baselineRps = baseline?.rps ?? 0;
 
   // 2. Inject the fault while traffic is flowing, so we capture the error spike.
+  // The load driver runs in a sibling container with ~1-2s startup latency, so
+  // we start it and let it WARM UP before injecting — otherwise a fast-restarting
+  // service (e.g. nginx) recovers before the driver lands a single request and
+  // the spike reads as zero.
   progress(`Injecting ${faultType} fault under load`);
   const loadDuringFault = runAutocannon(sb, path, concurrency, faultSec); // not awaited yet
+  await sleep(2000); // let the driver warm up and actually be hitting the app
+
   let faultCleared = false;
-  let tCleared = Date.now();
   try {
     if (faultType === 'pause') {
       await pauseApp(sb);
-      // Hold the freeze for most of the load window, then thaw.
-      await sleep(Math.max(1000, (faultSec - 2) * 1000));
+      await sleep(Math.max(1000, (faultSec - 4) * 1000)); // hold the freeze inside the load window
       faultCleared = await unpauseApp(sb);
-      tCleared = Date.now();
     } else {
-      // restart blocks until the container is back (app may still be booting).
-      faultCleared = await restartApp(sb);
-      tCleared = Date.now();
+      faultCleared = await restartApp(sb); // blocks until the container is back (app may still be booting)
     }
   } catch { /* fall through: faultCleared stays false → reported honestly */ }
-
-  const faultLoad = await loadDuringFault;
-  const errorRateDuringFault = faultLoad?.errorRate ?? 1;
+  const tCleared = Date.now(); // recovery is measured from the moment the fault was lifted
 
   if (!faultCleared) {
+    const faultLoad = await loadDuringFault;
     return result({
-      baselineErrorRate, baselineRps, errorRateDuringFault,
+      baselineErrorRate, baselineRps, errorRateDuringFault: faultLoad?.errorRate ?? 1,
       reason: `Could not clear the ${faultType} fault (docker command failed).`,
       appLogTail: await getAppLogs(sb),
     });
   }
 
-  // 3. Recovery — poll a quick load probe until the app is back to ~baseline.
+  // 3. Recovery — poll until the app is back to ~baseline, measured from tCleared.
+  // Runs CONCURRENTLY with the tail of the fault-load window so its remaining
+  // seconds don't get counted as recovery time (which was inflating the number).
   progress('Measuring recovery');
   const probeC = Math.min(concurrency, 10);
-  const recDeadline = Date.now() + recoveryTimeoutSec * 1000;
   let recoverySeconds: number | null = null;
   let recovered = false;
-  while (Date.now() < recDeadline) {
-    const check = await runAutocannon(sb, path, probeC, 1);
-    if (check && isRecovered(check.errorRate, baselineErrorRate)) {
-      recovered = true;
-      recoverySeconds = Math.max(0, (Date.now() - tCleared) / 1000);
-      break;
+  const recovery = (async () => {
+    const recDeadline = Date.now() + recoveryTimeoutSec * 1000;
+    while (Date.now() < recDeadline) {
+      const check = await runAutocannon(sb, path, probeC, 1);
+      if (check && isRecovered(check.errorRate, baselineErrorRate)) {
+        recovered = true;
+        recoverySeconds = Math.max(0, (Date.now() - tCleared) / 1000);
+        return;
+      }
+      await sleep(500);
     }
-    await sleep(500);
-  }
+  })();
+
+  const faultLoad = await loadDuringFault;
+  await recovery;
+  const errorRateDuringFault = faultLoad?.errorRate ?? 1;
 
   return result({
     baselineErrorRate, baselineRps, errorRateDuringFault,
