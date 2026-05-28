@@ -190,6 +190,20 @@ function safeName(f: GeneratedTestFile): string {
   return base.endsWith(ext) ? base : `${base}${ext}`;
 }
 
+// Defense-in-depth against the filename-collision bug: even though the generator
+// now produces unique names, a duplicate must NEVER silently overwrite a sibling
+// test on disk. If `name` is already taken, append a language-appropriate suffix
+// (`-2`/`_2`, …) before the extension. Pure → unit-tested.
+export function dedupeName(name: string, used: Set<string>, language: TestLanguage): string {
+  if (!used.has(name)) return name;
+  const ext = EXT[language];
+  const sep = language === 'js' ? '-' : '_';
+  const stem = name.endsWith(ext) ? name.slice(0, -ext.length) : name;
+  let i = 2;
+  while (used.has(`${stem}${sep}${i}${ext}`)) i++;
+  return `${stem}${sep}${i}${ext}`;
+}
+
 export async function runGeneratedTests(files: GeneratedTestFile[]): Promise<RunResult> {
   const runId = 'run_' + Date.now().toString(36);
   const t0 = Date.now();
@@ -216,7 +230,12 @@ export async function runGeneratedTests(files: GeneratedTestFile[]): Promise<Run
     const mountDir = join(RUNS_DIR, `${runId}_${lang}`);
     mkdirSync(mountDir, { recursive: true });
     try {
-      for (const f of groupFiles) writeFileSync(join(mountDir, safeName(f)), f.content, 'utf8');
+      const usedNames = new Set<string>();
+      for (const f of groupFiles) {
+        const name = dedupeName(safeName(f), usedNames, f.language);
+        usedNames.add(name);
+        writeFileSync(join(mountDir, name), f.content, 'utf8');
+      }
       const { stdout, stderr, code } = await dockerRun(image, mountDir);
       let parsed: ParsedGroup;
       if (code !== 0 && !stdout.trim()) parsed = erroredGroup(groupFiles, stderr.trim() || `${lang} runner exited ${code}`);

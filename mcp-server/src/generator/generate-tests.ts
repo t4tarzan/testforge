@@ -112,6 +112,32 @@ export interface GeneratedTestFile {
   language: TestLanguage;
 }
 
+/**
+ * Build a deterministic, collision-free filename for a finding's test.
+ *
+ * The model is asked to slug the name from "rule + line", but in practice it
+ * routinely drops the line — so N findings of the same rule (e.g. eight
+ * `new-date-on-string`) all land on one filename and overwrite each other in
+ * the run dir, silently dropping most of the tests. We derive the name
+ * ourselves from rule + source-file + line so every finding gets its own file.
+ * Language conventions: js → kebab-case + .test.ts; python/go → snake_case +
+ * _test.{py,go}.
+ */
+export function uniqueTestFilename(finding: InputFinding, cfg: Pick<LangConfig, 'language' | 'ext'>, llmName?: string): string {
+  const sep = cfg.language === 'js' ? '-' : '_';
+  const ruleSlug = (finding.rule || llmName || finding.title || 'test')
+    .replace(/\.test\.tsx?$/i, '')
+    .replace(/_test\.(py|go)$/i, '');
+  const src = (finding.filePath.split(/[/\\]/).pop() || 'src').replace(/\.[^.]+$/, '');
+  const line = Number.isFinite(Number(finding.lineNumber)) ? Number(finding.lineNumber) : 0;
+  const escSep = sep === '-' ? '\\-' : sep;
+  const slug = `${ruleSlug}${sep}${src}${sep}l${line}`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, sep)
+    .replace(new RegExp(`^${escSep}+|${escSep}+$`, 'g'), '') || 'test';
+  return slug + cfg.ext;
+}
+
 export interface GenerateResult {
   finding: InputFinding;
   file: GeneratedTestFile | null;
@@ -143,7 +169,9 @@ Write the ${cfg.language === 'js' ? 'Vitest' : cfg.language === 'python' ? 'pyte
       maxRetries: 1,
     });
     attempts.push({ model, ok: true, durationMs: Date.now() - started });
-    return { ...object, language: cfg.language };
+    // Override the model-chosen filename with a deterministic, unique one so
+    // same-rule findings can't overwrite each other in the run dir.
+    return { ...object, filename: uniqueTestFilename(finding, cfg, object.filename), language: cfg.language };
   } catch (err) {
     attempts.push({ model, ok: false, error: (err as Error).message, durationMs: Date.now() - started });
     return null;
