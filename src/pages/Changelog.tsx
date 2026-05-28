@@ -83,7 +83,7 @@ export default function Changelog() {
   const toggle = (v: string) =>
     setOpenSet((prev) => {
       const next = new Set(prev);
-      next.has(v) ? next.delete(v) : next.add(v);
+      if (next.has(v)) next.delete(v); else next.add(v);
       return next;
     });
 
