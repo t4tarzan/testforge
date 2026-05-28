@@ -36,10 +36,10 @@ const resourceLinks = [
 ]
 
 const companyLinks = [
-  { label: 'GitHub', path: 'https://github.com/t4tarzan/testforge' },
-  { label: 'MCP server', path: 'https://testforge-mcp.fly.dev' },
-  { label: 'Contact', path: 'https://github.com/t4tarzan/testforge/issues' },
-  { label: 'Changelog', path: '/docs' },
+  { label: 'GitHub', path: 'https://github.com/t4tarzan/testforge', external: true },
+  { label: 'MCP server', path: 'https://testforge-mcp.fly.dev', external: true },
+  { label: 'Contact', path: 'https://github.com/t4tarzan/testforge/issues', external: true },
+  { label: 'Changelog', path: '/changelog', external: false },
 ]
 
 export default function Footer() {
@@ -140,14 +140,23 @@ export default function Footer() {
             <ul className="space-y-3">
               {companyLinks.map((link) => (
                 <li key={link.label}>
-                  <a
-                    href={link.path}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#9A9A9A] text-sm hover:text-[#7a6fad] transition-all duration-200 inline-block hover:translate-x-0.5"
-                  >
-                    {link.label}
-                  </a>
+                  {link.external ? (
+                    <a
+                      href={link.path}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#9A9A9A] text-sm hover:text-[#7a6fad] transition-all duration-200 inline-block hover:translate-x-0.5"
+                    >
+                      {link.label}
+                    </a>
+                  ) : (
+                    <Link
+                      to={link.path}
+                      className="text-[#9A9A9A] text-sm hover:text-[#7a6fad] transition-all duration-200 inline-block hover:translate-x-0.5"
+                    >
+                      {link.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

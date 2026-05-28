@@ -1,0 +1,351 @@
+// TestForge changelog — every published @whitenoisenpm/testforge-mcp release,
+// in the open. Dates are the npm publish timestamps; summaries trace to the
+// commit that shipped each version. Newest first.
+//
+// This page exists for one reason: to show the work is continuous and dated.
+// The "precision" entries (0.27.x, 0.28.x) are the flywheel in action — public
+// In-the-Wild reports surfaced false positives, and each fix shipped as a
+// release within hours.
+
+export type ChangelogTag =
+  | 'foundation'
+  | 'security'
+  | 'accessibility'
+  | 'analyzer'
+  | 'polyglot'
+  | 'platform'
+  | 'precision'
+  | 'site';
+
+export interface ChangelogEntry {
+  version: string;
+  date: string; // ISO yyyy-mm-dd (npm publish date)
+  tag: ChangelogTag;
+  title: string;
+  summary: string;
+}
+
+export const TAG_LABELS: Record<ChangelogTag, string> = {
+  foundation: 'Foundation',
+  security: 'Security',
+  accessibility: 'Accessibility',
+  analyzer: 'Analyzer',
+  polyglot: 'Polyglot',
+  platform: 'Platform',
+  precision: 'Precision',
+  site: 'Site',
+};
+
+// Tailwind-friendly hex per tag (used for the chip + the row accent).
+export const TAG_COLORS: Record<ChangelogTag, string> = {
+  foundation: '#6B6B6B',
+  security: '#D4524A',
+  accessibility: '#0d9488',
+  analyzer: '#574a7d',
+  polyglot: '#0891b2',
+  platform: '#7a6fad',
+  precision: '#C2410C',
+  site: '#9333EA',
+};
+
+export const changelog: ChangelogEntry[] = [
+  {
+    version: '0.28.6',
+    date: '2026-05-28',
+    tag: 'precision',
+    title: 'Security analyzer precision pass',
+    summary:
+      'Hand-verified the Supabase report’s 41 findings (1 critical, 28 high) — almost all cry-wolf. Now: example/demo paths are skipped, window.open is no longer misread as filesystem path traversal, injection-sink severity tracks confidence (unproven taint → low instead of a score-tanking high), internal redirects aren’t flagged as open redirects, and the low-confidence “route without auth” heuristic is medium. Supabase security score 0 → 95.',
+  },
+  {
+    version: '0.28.5',
+    date: '2026-05-28',
+    tag: 'precision',
+    title: 'Accessibility analyzer precision pass',
+    summary:
+      'Self-audit surfaced an a11y false-positive cluster. Fixed: contrast no longer matches backgroundColor/borderColor or light-text-on-dark config; tables scan their body for <th> instead of just the opening line; conditional button labels count as accessible names; {...props} primitives and <label htmlFor>/<input id> pairs are recognized; structural-role and aria-hidden clickables are exempt; and inline // testforge-disable now works for a11y too.',
+  },
+  {
+    version: '0.28.4',
+    date: '2026-05-28',
+    tag: 'accessibility',
+    title: 'Accessibility analyzer skips test paths',
+    summary:
+      'Test fixtures intentionally contain broken markup to exercise the analyzer. The a11y pass now skips test paths the same way the security analyzer does, so deliberately-broken fixtures stop counting against a real score.',
+  },
+  {
+    version: '0.28.3',
+    date: '2026-05-28',
+    tag: 'precision',
+    title: 'Security + a11y precision pass',
+    summary:
+      'First broad false-positive cleanup driven by the public reports: the SQL-injection receiver heuristic split into strong vs. weak query methods (killing ~10 Supabase false criticals), and contrast became luminance-aware instead of flagging every hex color.',
+  },
+  {
+    version: '0.28.2',
+    date: '2026-05-28',
+    tag: 'analyzer',
+    title: 'Coverage + mutation correctness fixes',
+    summary:
+      'Coverage gained a ratio fallback for library-style repos where function-name matching under-reports, and mutation analysis now gates on actual test-file count and recognizes pytest / Go test files.',
+  },
+  {
+    version: '0.28.1',
+    date: '2026-05-28',
+    tag: 'security',
+    title: 'Version-aware vulnerable-deps + self-audit closed',
+    summary:
+      'The vulnerable-dependency check short-circuits when the declared version’s major is above the CVE’s upper bound (express ^5 no longer flagged for a <4.17.3 CVE). Shipped alongside TestForge’s own self-audit going 27 findings → 0.',
+  },
+  {
+    version: '0.28.0',
+    date: '2026-05-27',
+    tag: 'polyglot',
+    title: 'Go native support',
+    summary:
+      'Added Go to the native-parse set: go.mod parsing, Gin/Echo/Chi/Fiber endpoint detection, and Go test-file recognition — completing the JS/TS + Python + Go polyglot story.',
+  },
+  {
+    version: '0.27.2',
+    date: '2026-05-28',
+    tag: 'accessibility',
+    title: 'Accessibility N/A on non-UI repos',
+    summary:
+      'The a11y dimension now hard-filters to UI files and reports applicable:false for backend/CLI/data repos — LangChain stopped scoring 10/100 for “empty links” found in its README.',
+  },
+  {
+    version: '0.27.1',
+    date: '2026-05-28',
+    tag: 'security',
+    title: 'Rate-limit check only fires on web apps',
+    summary:
+      'Missing Rate Limiting is gated on the presence of a web framework dependency, so libraries and CLIs aren’t penalized for lacking something they don’t need.',
+  },
+  {
+    version: '0.27.0',
+    date: '2026-05-28',
+    tag: 'security',
+    title: 'Suppress security findings in test paths',
+    summary:
+      'Per-file security emission now skips test paths. The same patterns that flag real vulnerabilities (string-built SQL, eval, hardcoded creds) are usually intentional inside tests — this removed a huge swath of Supabase “criticals” that lived in e2e/ files.',
+  },
+  {
+    version: '0.26.2',
+    date: '2026-05-27',
+    tag: 'polyglot',
+    title: 'Conventional monorepo recursion',
+    summary:
+      'Recurses into conventional workspace folders (libs/, packages/, apps/, services/) so monorepos are analyzed whole rather than just at the root.',
+  },
+  {
+    version: '0.26.1',
+    date: '2026-05-27',
+    tag: 'polyglot',
+    title: 'Workspace recursion + [extras] regex fix',
+    summary:
+      'npm/yarn/pnpm/bun + uv workspace member discovery, plus a fix to the Python [extras] dependency regex.',
+  },
+  {
+    version: '0.26.0',
+    date: '2026-05-27',
+    tag: 'polyglot',
+    title: 'Python support — close the polyglot blind spot',
+    summary:
+      'The analyzer was JS/TS-only. Added native Python: requirements.txt / pyproject.toml parsing, FastAPI/Flask/Django endpoint detection, and a languageCoverage honesty banner so reports state what was and wasn’t parsed natively.',
+  },
+  {
+    version: '0.25.2',
+    date: '2026-05-27',
+    tag: 'platform',
+    title: 'Runner image to GHCR + auto-pull',
+    summary: 'The Tier-2 Docker runner image is published to GHCR and auto-pulled on demand.',
+  },
+  {
+    version: '0.25.1',
+    date: '2026-05-27',
+    tag: 'platform',
+    title: '/health reports the correct version',
+    summary: 'Health endpoint now returns the actual package version instead of a stale constant.',
+  },
+  {
+    version: '0.25.0',
+    date: '2026-05-27',
+    tag: 'platform',
+    title: 'Tier-2 managed runner groundwork',
+    summary: 'Plumbing for the managed test-runner tier ahead of the GHCR image publish.',
+  },
+  {
+    version: '0.24.0',
+    date: '2026-05-27',
+    tag: 'analyzer',
+    title: 'Stack polish — strict dependency sets',
+    summary: 'Dimension-deepening pass 16: tighter dependency classification and new stack-quality signals.',
+  },
+  {
+    version: '0.23.0',
+    date: '2026-05-27',
+    tag: 'analyzer',
+    title: 'Visual regression + property-based detection',
+    summary: 'Pass 15: recognizes visual-regression and property-based testing setups.',
+  },
+  {
+    version: '0.22.0',
+    date: '2026-05-27',
+    tag: 'analyzer',
+    title: 'AST edge-case detection',
+    summary: 'Pass 14: AST-driven detection of unhandled edge cases.',
+  },
+  {
+    version: '0.21.0',
+    date: '2026-05-27',
+    tag: 'analyzer',
+    title: 'Vision + scope precise matching',
+    summary: 'Pass 13: more precise matching of stated product vision and feature scope against the code.',
+  },
+  {
+    version: '0.20.0',
+    date: '2026-05-27',
+    tag: 'analyzer',
+    title: 'DORA capability framing',
+    summary: 'Pass 12: frames findings against the four DORA delivery-performance capabilities.',
+  },
+  {
+    version: '0.19.0',
+    date: '2026-05-27',
+    tag: 'analyzer',
+    title: 'Mutation testing — assertion quality',
+    summary: 'Pass 11: assesses whether tests actually assert behavior or just execute code.',
+  },
+  {
+    version: '0.18.0',
+    date: '2026-05-27',
+    tag: 'analyzer',
+    title: 'Chaos / resilience patterns',
+    summary: 'Pass 10: AST detection of timeouts, retries, circuit breakers, and graceful-degradation patterns.',
+  },
+  {
+    version: '0.17.0',
+    date: '2026-05-26',
+    tag: 'analyzer',
+    title: 'License audit (SPDX-categorized)',
+    summary: 'Pass 9: SPDX-categorized license audit across dependencies.',
+  },
+  {
+    version: '0.16.0',
+    date: '2026-05-26',
+    tag: 'security',
+    title: 'Lockfile-aware supply-chain audit',
+    summary: 'Pass 8: supply-chain analysis that reads lockfiles for resolved versions.',
+  },
+  {
+    version: '0.15.0',
+    date: '2026-05-26',
+    tag: 'security',
+    title: 'Honest OWASP coverage',
+    summary: 'Pass 7: maps findings to OWASP categories and is explicit about what is and isn’t covered.',
+  },
+  {
+    version: '0.14.0',
+    date: '2026-05-26',
+    tag: 'analyzer',
+    title: 'AST load patterns + sync I/O',
+    summary: 'Pass 6: detects blocking sync I/O and load-sensitive patterns via AST.',
+  },
+  {
+    version: '0.13.0',
+    date: '2026-05-26',
+    tag: 'accessibility',
+    title: 'AST-based JSX accessibility',
+    summary: 'Pass 5: the first AST-based accessibility checks for JSX/TSX (the foundation the 0.28.x precision passes built on).',
+  },
+  {
+    version: '0.12.0',
+    date: '2026-05-26',
+    tag: 'analyzer',
+    title: 'Predictive cross-signal risk',
+    summary: 'Pass 4: combines signals across dimensions into a predictive risk score.',
+  },
+  {
+    version: '0.11.0',
+    date: '2026-05-26',
+    tag: 'analyzer',
+    title: 'Contract analysis (OpenAPI + AST)',
+    summary: 'Pass 3: checks code against OpenAPI contracts using the AST.',
+  },
+  {
+    version: '0.10.0',
+    date: '2026-05-26',
+    tag: 'analyzer',
+    title: 'AST-aware unit test quality',
+    summary: 'Pass 2: evaluates unit-test quality structurally rather than by file count.',
+  },
+  {
+    version: '0.9.0',
+    date: '2026-05-26',
+    tag: 'analyzer',
+    title: 'AST-aware N+1 + dead-code',
+    summary: 'Pass 1 of the dimension-deepening series: AST detection of N+1 query patterns and dead code.',
+  },
+  {
+    version: '0.8.1',
+    date: '2026-05-26',
+    tag: 'analyzer',
+    title: 'Internal type tightening',
+    summary: 'Lint cleanup and internal type tightening publish.',
+  },
+  {
+    version: '0.8.0',
+    date: '2026-05-26',
+    tag: 'security',
+    title: 'User-authored rules DSL',
+    summary: 'Phase 4c of the security engine: a DSL for project-specific rules loaded from .testforge/rules.yaml.',
+  },
+  {
+    version: '0.7.0',
+    date: '2026-05-26',
+    tag: 'security',
+    title: 'Cross-file taint propagation',
+    summary: 'Phase 4b: taint flows tracked across file boundaries.',
+  },
+  {
+    version: '0.6.0',
+    date: '2026-05-26',
+    tag: 'security',
+    title: 'Cross-function taint propagation',
+    summary: 'Phase 4a: taint tracked across function calls within a file.',
+  },
+  {
+    version: '0.5.0',
+    date: '2026-05-26',
+    tag: 'security',
+    title: 'Structured fix suggestions',
+    summary: 'Phase 3: findings carry before/after fix suggestions with an applicability flag.',
+  },
+  {
+    version: '0.4.0',
+    date: '2026-05-26',
+    tag: 'security',
+    title: 'Generalized taint engine + sanitizer registry',
+    summary: 'Phase 2: a general taint engine with a registry of recognized sanitizers.',
+  },
+  {
+    version: '0.3.0',
+    date: '2026-05-26',
+    tag: 'security',
+    title: 'AST-based security analyzer',
+    summary: 'Phase 1: replaced regex scanning with a real Babel-AST security analyzer — confidence levels, column-accurate locations, inline suppressions, and taint tracking.',
+  },
+  {
+    version: '0.2.0–0.2.19',
+    date: '2026-05-24',
+    tag: 'foundation',
+    title: 'Initial MCP server bring-up (19 rapid iterations)',
+    summary:
+      'The first two days: stand up the MCP server, full report rendering, default port → 33221, and persist /test and /quick-scan runs to a local ~/.testforge/history.db. Foundational, fast, and public from day one.',
+  },
+];
+
+// Headline stat for the page hero.
+export const RELEASE_COUNT = 57; // published versions on npm (0.2.0 → 0.28.6)
+export const FIRST_RELEASE_DATE = '2026-05-24';
+export const LATEST_VERSION = '0.28.6';
