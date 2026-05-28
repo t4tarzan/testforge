@@ -5,7 +5,7 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { simulationShowcase } from '@/data/simulationShowcase';
-import SimulationReport from '@/components/simulation/SimulationReport';
+import LiveSimRunner from '@/components/simulation/LiveSimRunner';
 import NewsletterSignup from '@/components/NewsletterSignup';
 
 export default function Simulations() {
@@ -24,7 +24,7 @@ export default function Simulations() {
             Load, agent-traffic and chaos here aren't static guesses — TestForge builds each repo, boots it in an
             isolated sandbox, and drives live traffic with autocannon: ramping concurrency to find the breaking point,
             scaling a fleet of think-time agents, and crashing the app mid-load to measure recovery. Every number below
-            is a measurement.
+            is a measurement — and you can <span className="text-white">run any of them live</span> right now.
           </p>
         </div>
       </div>
@@ -41,7 +41,7 @@ export default function Simulations() {
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: i * 0.05 }}
             >
-              <SimulationReport sim={sim} />
+              <LiveSimRunner sim={sim} />
             </motion.div>
           ))
         )}

@@ -47,8 +47,8 @@ function NotRun({ what }: { what: string }) {
 
 export default function SimulationReport({ sim }: { sim: SimulationShowcase }) {
   const { load, agent, chaos } = sim;
-  const faultPct = Math.round((chaos.errorRateDuringFault ?? 0) * 100);
-  const basePct = Math.round((chaos.baselineErrorRate ?? 0) * 100);
+  const faultPct = Math.round((chaos?.errorRateDuringFault ?? 0) * 100);
+  const basePct = Math.round((chaos?.baselineErrorRate ?? 0) * 100);
 
   return (
     <section className="bg-white border border-[#D9D9D3] rounded-2xl p-6 md:p-8">
@@ -67,15 +67,15 @@ export default function SimulationReport({ sim }: { sim: SimulationShowcase }) {
 
       {/* ── Load ── */}
       <div className="mb-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          <Stat label="Peak throughput" value={`${Math.round(load.rps).toLocaleString()} rps`} accent={C.primary} />
-          <Stat label="p99 @ max load" value={`${load.p99} ms`} accent={C.p99} />
-          <Stat label="Breaking point"
-            value={load.breakingPointConcurrency ? `${load.breakingPointConcurrency} conc.` : 'none ≤ max'}
-            accent={load.breakingPointConcurrency ? C.danger : C.ok} />
-          <Stat label="Error rate" value={`${(load.errorRate * 100).toFixed(1)}%`} accent={load.errorRate > 0.05 ? C.danger : C.ok} />
-        </div>
-        {load.ranReal ? (
+        {load?.ranReal ? (<>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <Stat label="Peak throughput" value={`${Math.round(load.rps).toLocaleString()} rps`} accent={C.primary} />
+            <Stat label="p99 @ max load" value={`${load.p99} ms`} accent={C.p99} />
+            <Stat label="Breaking point"
+              value={load.breakingPointConcurrency ? `${load.breakingPointConcurrency} conc.` : 'none ≤ max'}
+              accent={load.breakingPointConcurrency ? C.danger : C.ok} />
+            <Stat label="Error rate" value={`${(load.errorRate * 100).toFixed(1)}%`} accent={load.errorRate > 0.05 ? C.danger : C.ok} />
+          </div>
           <ChartFrame title="Load ramp — latency & throughput vs concurrency"
             sub={`autocannon against :${load.targetPort}${load.path}, ramping concurrent connections`}>
             <ResponsiveContainer width="100%" height={260}>
@@ -92,18 +92,18 @@ export default function SimulationReport({ sim }: { sim: SimulationShowcase }) {
               </LineChart>
             </ResponsiveContainer>
           </ChartFrame>
-        ) : <NotRun what="load test" />}
+        </>) : <NotRun what="load test" />}
       </div>
 
       {/* ── Agent fleet ── */}
       <div className="mb-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          <Stat label="Max healthy agents" value={agent.maxHealthyAgents ? `${agent.maxHealthyAgents}` : '—'} accent={C.primary} />
-          <Stat label="Think-time / agent" value={`${agent.thinkTimeMs} ms`} />
-          <Stat label="Degraded at" value={agent.degradedAtAgents ? `${agent.degradedAtAgents}` : 'never'} accent={agent.degradedAtAgents ? C.danger : C.ok} />
-          <Stat label="Peak agent throughput" value={`${Math.round(agent.levels.at(-1)?.rps ?? 0).toLocaleString()} rps`} accent={C.rps} />
-        </div>
-        {agent.ranReal ? (
+        {agent?.ranReal ? (<>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <Stat label="Max healthy agents" value={agent.maxHealthyAgents ? `${agent.maxHealthyAgents}` : '—'} accent={C.primary} />
+            <Stat label="Think-time / agent" value={`${agent.thinkTimeMs} ms`} />
+            <Stat label="Degraded at" value={agent.degradedAtAgents ? `${agent.degradedAtAgents}` : 'never'} accent={agent.degradedAtAgents ? C.danger : C.ok} />
+            <Stat label="Peak agent throughput" value={`${Math.round(agent.levels.at(-1)?.rps ?? 0).toLocaleString()} rps`} accent={C.rps} />
+          </div>
           <ChartFrame title="Agent fleet — throughput & latency vs concurrent agents"
             sub={`each agent issues ~${agent.reqsPerAgent} req/s with ${agent.thinkTimeMs}ms think-time`}>
             <ResponsiveContainer width="100%" height={260}>
@@ -119,18 +119,18 @@ export default function SimulationReport({ sim }: { sim: SimulationShowcase }) {
               </LineChart>
             </ResponsiveContainer>
           </ChartFrame>
-        ) : <NotRun what="agent simulation" />}
+        </>) : <NotRun what="agent simulation" />}
       </div>
 
       {/* ── Chaos ── */}
       <div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          <Stat label="Fault injected" value={chaos.faultType} accent={C.danger} />
-          <Stat label="Errors during fault" value={`${faultPct}%`} accent={C.danger} />
-          <Stat label="Recovery time" value={chaos.recoverySeconds != null ? `${chaos.recoverySeconds.toFixed(1)} s` : '—'} accent={C.primary} />
-          <Stat label="Recovered" value={chaos.recovered ? 'yes' : 'no'} accent={chaos.recovered ? C.ok : C.danger} />
-        </div>
-        {chaos.ranReal ? (
+        {chaos?.ranReal ? (<>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <Stat label="Fault injected" value={chaos.faultType} accent={C.danger} />
+            <Stat label="Errors during fault" value={`${faultPct}%`} accent={C.danger} />
+            <Stat label="Recovery time" value={chaos.recoverySeconds != null ? `${chaos.recoverySeconds.toFixed(1)} s` : '—'} accent={C.primary} />
+            <Stat label="Recovered" value={chaos.recovered ? 'yes' : 'no'} accent={chaos.recovered ? C.ok : C.danger} />
+          </div>
           <ChartFrame title="Chaos — error spike under fault & recovery"
             sub={`held ${Math.round(chaos.baselineRps).toLocaleString()} rps at ${chaos.concurrency} concurrency, then injected a ${chaos.faultType}`}>
             <div className="space-y-3">
@@ -153,7 +153,7 @@ export default function SimulationReport({ sim }: { sim: SimulationShowcase }) {
               </p>
             </div>
           </ChartFrame>
-        ) : <NotRun what="chaos test" />}
+        </>) : <NotRun what="chaos test" />}
       </div>
     </section>
   );
