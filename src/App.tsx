@@ -23,6 +23,7 @@ import Terms from '@/pages/Terms';
 import InTheWild from '@/pages/InTheWild';
 import InTheWildReport from '@/pages/InTheWildReport';
 import InTheWildReportFull from '@/pages/InTheWildReportFull';
+import Simulations from '@/pages/Simulations';
 import Changelog from '@/pages/Changelog';
 import OnboardingModal from '@/components/OnboardingModal';
 
@@ -108,6 +109,7 @@ export default function App() {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/in-the-wild" element={<InTheWild />} />
+                <Route path="/simulations" element={<Simulations />} />
                 <Route path="/in-the-wild/:slug" element={<InTheWildReport />} />
                 <Route path="/changelog" element={<Changelog />} />
                 <Route path="/privacy" element={<Privacy />} />

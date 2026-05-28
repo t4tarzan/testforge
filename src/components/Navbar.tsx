@@ -8,6 +8,7 @@ const navLinks = [
   { label: 'Managed', path: '/managed' },
   { label: 'Pipeline', path: '/pipeline' },
   { label: 'In the Wild', path: '/in-the-wild' },
+  { label: 'Simulations', path: '/simulations' },
   { label: 'Testing', path: '/testing-dimensions' },
   { label: 'Dashboard', path: '/dashboard' },
   { label: 'Pricing', path: '/pricing' },

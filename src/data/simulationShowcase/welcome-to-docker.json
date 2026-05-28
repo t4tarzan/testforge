@@ -1,0 +1,50 @@
+{
+  "slug": "welcome-to-docker",
+  "repoUrl": "https://github.com/docker/welcome-to-docker",
+  "repoName": "docker/welcome-to-docker",
+  "tagline": "Docker's official getting-started app (React + serve). A real load/agent/chaos simulation — booted in an isolated sandbox and driven with live traffic.",
+  "method": "dockerfile",
+  "simulatedAt": "2026-05-28T20:43:37.704Z",
+  "load": {
+    "ranReal": true,
+    "targetPort": 3000,
+    "path": "/",
+    "p50": 387,
+    "p90": 419,
+    "p99": 467,
+    "rps": 1330,
+    "errorRate": 0,
+    "breakingPointConcurrency": null,
+    "levels": [
+      { "concurrency": 10, "rps": 1337, "latencyP50": 4, "latencyP90": 12, "latencyP99": 59, "errorRate": 0, "totalRequests": 6683 },
+      { "concurrency": 50, "rps": 2287, "latencyP50": 15, "latencyP90": 43, "latencyP99": 66, "errorRate": 0, "totalRequests": 11436 },
+      { "concurrency": 100, "rps": 1953, "latencyP50": 47, "latencyP90": 79, "latencyP99": 126, "errorRate": 0, "totalRequests": 9765 },
+      { "concurrency": 250, "rps": 2043, "latencyP50": 105, "latencyP90": 154, "latencyP99": 240, "errorRate": 0, "totalRequests": 10216 },
+      { "concurrency": 500, "rps": 1330, "latencyP50": 387, "latencyP90": 419, "latencyP99": 467, "errorRate": 0, "totalRequests": 6651 }
+    ]
+  },
+  "agent": {
+    "ranReal": true,
+    "reqsPerAgent": 2,
+    "thinkTimeMs": 500,
+    "maxHealthyAgents": 400,
+    "degradedAtAgents": null,
+    "levels": [
+      { "agents": 25, "rps": 51, "latencyP50": 5, "latencyP90": 11, "latencyP99": 19, "errorRate": 0, "totalRequests": 255 },
+      { "agents": 50, "rps": 102, "latencyP50": 11, "latencyP90": 23, "latencyP99": 37, "errorRate": 0, "totalRequests": 510 },
+      { "agents": 100, "rps": 205, "latencyP50": 18, "latencyP90": 46, "latencyP99": 68, "errorRate": 0, "totalRequests": 1024 },
+      { "agents": 200, "rps": 406, "latencyP50": 39, "latencyP90": 86, "latencyP99": 132, "errorRate": 0, "totalRequests": 2031 },
+      { "agents": 400, "rps": 810, "latencyP50": 110, "latencyP90": 236, "latencyP99": 320, "errorRate": 0, "totalRequests": 4049 }
+    ]
+  },
+  "chaos": {
+    "ranReal": true,
+    "faultType": "restart",
+    "concurrency": 500,
+    "baselineRps": 1501,
+    "baselineErrorRate": 0,
+    "errorRateDuringFault": 0.817,
+    "recoverySeconds": 4.0,
+    "recovered": true
+  }
+}
