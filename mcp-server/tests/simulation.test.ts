@@ -141,7 +141,7 @@ describe('compose sanitizeComposeConfig', () => {
                environment: {}, depends_on: { db: { condition: 'service_healthy' } } },
         db: { image: 'postgres', volumes: ['dbdata:/var/lib/postgresql/data'] },
       },
-    })) as any;
+    })) as { services: Record<string, Record<string, unknown>>; [k: string]: unknown };
     expect(out.volumes).toBeUndefined();
     expect(out.networks).toBeUndefined();
     expect(out.version).toBeUndefined();

@@ -6,7 +6,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { Play, Loader2, RotateCw, AlertTriangle } from 'lucide-react';
 import SimulationReport from './SimulationReport';
-import type { SimulationShowcase } from '@/data/simulationShowcase';
+import type { SimulationShowcase, SimLoad, SimAgent, SimChaos } from '@/data/simulationShowcase';
+
+// Shape of the /simulate result payload we read (a superset; only these fields
+// are rendered).
+interface LiveResult {
+  runnable?: { method?: 'dockerfile' | 'compose' };
+  simulatedAt?: string;
+  load?: SimLoad;
+  agent?: SimAgent;
+  chaos?: SimChaos;
+}
 
 type Phase = 'idle' | 'running' | 'done' | 'error';
 
@@ -24,7 +34,7 @@ const PHASE_LABEL: Record<string, string> = {
 };
 
 // Map the raw /simulate result onto the showcase shape SimulationReport renders.
-function mapLive(snapshot: SimulationShowcase, result: any): SimulationShowcase {
+function mapLive(snapshot: SimulationShowcase, result: LiveResult | undefined): SimulationShowcase {
   return {
     ...snapshot,
     method: result?.runnable?.method ?? snapshot.method,

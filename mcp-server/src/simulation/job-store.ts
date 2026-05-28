@@ -73,9 +73,13 @@ export function getJob(jobId: string): SimJob | undefined {
   return jobs.get(jobId);
 }
 
-export function listJobs(limit = 20): SimJob[] {
+export function listJobs(limit = 20): Omit<SimJob, 'result'>[] {
   // Most-recent first; omit the bulky `result` blob from the list view.
-  return [...jobs.values()].reverse().slice(0, limit).map(({ result, ...rest }) => rest);
+  return [...jobs.values()].reverse().slice(0, limit).map((job) => {
+    const copy: SimJob = { ...job };
+    delete copy.result;
+    return copy;
+  });
 }
 
 /** Patch a job in place. No-op if the job was already evicted. */
