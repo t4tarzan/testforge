@@ -101,7 +101,9 @@ async function ensureMcp() {
     if (h.ok) return;
   } catch { /* not running */ }
   console.log('[digest] starting local MCP…');
-  const child = spawn('node', ['mcp-server/dist/index.js'], {
+  // process.execPath (not "node") so this works under launchd, where PATH is
+  // not the login shell's.
+  const child = spawn(process.execPath, ['mcp-server/dist/index.js'], {
     cwd: REPO_ROOT,
     env: { ...process.env, PORT: '33221' },
     detached: true,
