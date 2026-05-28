@@ -166,9 +166,34 @@ export async function runUnitAnalysis(config: {
     }
   }
 
-  // 6. Calculate estimated coverage
+  // 6. Calculate estimated coverage. Two signals, take the more honest one:
+  //
+  //   a) Function-name matching — tests named after the functions they
+  //      exercise (e.g. `it('formatDate handles UTC', ...)` ↔ source
+  //      `function formatDate()`). Precise for app code where this
+  //      convention holds; collapses to ~0 on library code where test
+  //      descriptions don't echo function names (LangChain showed 0%
+  //      despite 4,849 test cases — the heuristic just couldn't see
+  //      them).
+  //
+  //   b) Test-to-source-file ratio — N test files / M source files,
+  //      capped at 95%. Less precise but resists the library-code
+  //      blind spot of (a).
+  //
+  // Decision rule: use (a) when it returns a meaningful signal; fall
+  // back to (b) when (a) is near-zero on a project with a substantial
+  // test footprint (≥10 test files AND test:source ratio ≥ 0.1).
+  // Together they keep app-code precision AND give library-code an
+  // honest non-zero number.
   const totalFunctions = testedList.length + untestedList.length;
-  const coverageEstimate = totalFunctions > 0 ? Math.round((testedList.length / totalFunctions) * 100) : 0;
+  const fnMatchEstimate = totalFunctions > 0 ? Math.round((testedList.length / totalFunctions) * 100) : 0;
+  const testToSourceRatio = parsedSourceFiles.length > 0
+    ? Math.min(95, Math.round((parsedTestFiles.length / parsedSourceFiles.length) * 100))
+    : 0;
+  const fnMatchClearlyFailed = fnMatchEstimate < 10
+    && parsedTestFiles.length >= 10
+    && parsedTestFiles.length / Math.max(1, parsedSourceFiles.length) >= 0.1;
+  const coverageEstimate = fnMatchClearlyFailed ? testToSourceRatio : fnMatchEstimate;
 
   // 7. Generate findings
   const findings: UnitTestReport['findings'] = [];

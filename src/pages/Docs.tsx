@@ -705,7 +705,7 @@ function CliInstallationPage() {
         Verify installation:
       </p>
       <DocCodeBlock
-        code={"testforge-mcp --version\n# @whitenoisenpm/testforge-mcp/0.28.1 darwin-arm64 node-v22.0.0"}
+        code={"testforge-mcp --version\n# @whitenoisenpm/testforge-mcp/0.28.2 darwin-arm64 node-v22.0.0"}
         language="bash"
       />
 
@@ -1477,7 +1477,7 @@ function ApiReferencePage() {
       <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">🔬 Analysis</h2>
       <div className="space-y-6">
         {[
-          { method: 'GET', path: '/health', desc: 'Health check — pings Neon and reports version. No auth. No rate limit.', example: '{"status":"ok","version":"0.28.1","database":"connected"}' },
+          { method: 'GET', path: '/health', desc: 'Health check — pings Neon and reports version. No auth. No rate limit.', example: '{"status":"ok","version":"0.28.2","database":"connected"}' },
           { method: 'GET', path: '/status', desc: 'Public services rollup — Web, MCP server, DB, npm package. 30s cache. No auth.', example: '{"status":"all_systems_operational","services":[{"name":"Web Platform","status":"operational"},…]}' },
           { method: 'POST', path: '/analyze', desc: 'Proxies a clone-and-analyze request to the Fly.io MCP server. Returns the full 21-dimension report verbatim. 504 on upstream timeout, 502 on connection failure — never fabricated data. No auth required to analyze public repos.', body: '{"repoUrl":"https://github.com/owner/repo","branch":"main"}', example: '{"codebase":{"totalFiles":402,…},"security":{"findings":29,…},"mutation":{"score":47,…},…}' },
           { method: 'GET', path: '/analyze', desc: 'Returns the configured MCP server URL + endpoints (for clients that prefer to call it directly).', example: '{"mcpServer":"https://testforge-mcp.fly.dev","endpoints":{…}}' },
@@ -1703,13 +1703,40 @@ function ChangelogPage() {
         <div>
           <div className="flex items-center gap-3 mb-3">
             <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
-              mcp 0.28.1 — vulnerable-dep check is version-aware
+              mcp 0.28.2 — Coverage + Mutation dimension-correctness
             </h2>
             <span className="font-mono text-[12px] text-[#9A9A9A]">
               2026-05-28
             </span>
             <span className="font-mono font-medium text-[11px] uppercase px-2 py-0.5 rounded bg-[#E8E5FF] text-[#574a7d]">
               Latest
+            </span>
+          </div>
+          <p className="font-body text-[16px] text-[#333333] leading-[1.7] ml-2 mb-3">
+            Both dimensions produced 0% on perfectly testable repos for reasons that turned out to be bugs in their signals &mdash; caught by the <a href="#/in-the-wild/langchain" className="text-[#574a7d] underline">LangChain in-the-wild report</a> (4,849 test cases but coverage 0%) and the <a href="#/in-the-wild/testforge" className="text-[#574a7d] underline">TestForge self-audit</a> (mutation always 0). Two narrow heuristic fixes; no false-positive risk.
+          </p>
+          <ul className="list-disc list-inside space-y-2 font-body text-[15px] text-[#333333] leading-[1.7] ml-2 mb-2">
+            <li><strong>Coverage:</strong> function-name matching collapses to ~0 on libraries because test descriptions don&rsquo;t echo source names (<code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">it(&apos;chain handles long context&apos;)</code> can&rsquo;t match <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">function formatDate()</code>). New rule: when the precise heuristic returns &lt;10% on a project with &ge;10 test files AND test:source ratio &ge; 0.1, fall back to the test-to-source-file ratio. App code keeps its precise score; libraries get an honest non-zero one.</li>
+            <li><strong>Mutation:</strong> the early-return checked the ROOT package.json devDeps for jest/vitest/mocha/ava. TestForge has vitest in <code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">mcp-server/package.json</code> (not root) &mdash; so root devDeps:[] &rarr; &ldquo;no test framework&rdquo; &rarr; score 0, even though the unit-analyzer correctly detected 17 vitest files via AST. Replaced the devDeps signal with the actual test-file count. Also extended the test-file regex to recognize pytest (<code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">test_*.py</code>) and Go (<code className="bg-[#E8E5FF] px-1 rounded font-mono text-[13px] text-[#574a7d]">*_test.go</code>) conventions.</li>
+            <li><strong>Real-world impact:</strong>
+              <ul className="list-disc list-inside ml-6 mt-1">
+                <li>LangChain Coverage: <strong>0% &rarr; 31%</strong>, Mutation: <strong>0 &rarr; 54</strong></li>
+                <li>TestForge Coverage: 72% &rarr; 72% (no regression on app code), Mutation: <strong>0 &rarr; 35</strong></li>
+              </ul>
+            </li>
+          </ul>
+          <p className="font-body text-[15px] text-[#333333] leading-[1.7] ml-2 mt-3">
+            Tests: <strong>208 &rarr; 211</strong>. This is the 5th dimension-correctness fix in two days following the &ldquo;applicability guard&rdquo; pattern (rate-limit, a11y, vulnerable-deps, now coverage + mutation). The pattern is now exhausted across the obvious problem dimensions; further analyzer improvements will be in narrower analyzer logic.
+          </p>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <h2 className="font-heading font-semibold text-[22px] text-[#12101A]">
+              mcp 0.28.1 — vulnerable-dep check is version-aware
+            </h2>
+            <span className="font-mono text-[12px] text-[#9A9A9A]">
+              2026-05-28
             </span>
           </div>
           <p className="font-body text-[16px] text-[#333333] leading-[1.7] ml-2 mb-3">
@@ -2315,7 +2342,7 @@ function McpUsageGuidePage() {
       </div>
 
       <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#12101A] mb-4">🖥️ Local Dashboard (v0.28.1)</h2>
+        <h2 className="text-heading-sm text-[#12101A] mb-4">🖥️ Local Dashboard (v0.28.2)</h2>
         <p className="text-body-md text-[#6B6B6B] mb-4">
           The MCP server ships with a local dashboard at <code className="bg-[#E8E5FF] px-1.5 py-0.5 rounded text-[#574a7d] font-mono text-sm">http://localhost:33221</code>. No cloud, no sign-in, no hosting needed.
         </p>

@@ -46,7 +46,7 @@ Tier-1 analyzers are deterministic — same input always produces the same outpu
 
 ### 🆕 Recent work (2026-05-28)
 
-Shipped **27 npm releases** (`0.6.0 → 0.28.1`) covering:
+Shipped **28 npm releases** (`0.6.0 → 0.28.2`) covering:
 
 - **Spine (phases 4a/4b/4c)** — intra-file → cross-file taint propagation + user-authored rules DSL (`.testforge/rules.yaml`)
 - **16 deepening passes** across all 21 dimensions: substring-matching → AST analysis. Substring traps fixed across the board (e.g. `dep.includes('vite')` no longer matches `vitest`)

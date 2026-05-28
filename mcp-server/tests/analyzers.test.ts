@@ -2275,6 +2275,84 @@ describe('accessibility-analyzer — non-UI repos report applicable=false (v0.27
   });
 });
 
+// Regression for the LangChain in-the-wild report (2026-05-28): 4,849
+// test cases but Coverage scored 0%. The function-name matching
+// heuristic doesn't fire on library-shaped repos where test
+// descriptions don't echo source function names. 0.28.2 falls back to
+// test-to-source-file ratio when the precise heuristic clearly fails.
+describe('unit-analyzer — coverage falls back to test:source ratio when func-name match fails (v0.28.2)', () => {
+  it('uses ratio fallback when there are many tests but zero name matches', async () => {
+    // 20 test files exercise 100 source functions, but the test names
+    // are abstract ("it(\"chain handles long context\", ...)") — none
+    // contain a source function name. The precise heuristic returns 0;
+    // the ratio fallback should kick in: 20 tests / 50 source files = 40%.
+    const fileContents: Record<string, string> = {};
+    for (let i = 0; i < 50; i++) {
+      fileContents[`src/mod${i}.ts`] = `export function helper_${i}() { return ${i}; }\n`;
+    }
+    for (let i = 0; i < 20; i++) {
+      fileContents[`tests/abstract${i}.test.ts`] =
+        `import { describe, it, expect } from 'vitest';\n` +
+        `describe('chain', () => { it('handles long context ${i}', () => { expect(true).toBe(true); }); });\n`;
+    }
+    // Write fixture to temp dir so unit-analyzer can run on it.
+    const fs = await import('fs');
+    const path = await import('path');
+    const os = await import('os');
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tf-cov-'));
+    for (const [p, c] of Object.entries(fileContents)) {
+      const full = path.join(root, p);
+      fs.mkdirSync(path.dirname(full), { recursive: true });
+      fs.writeFileSync(full, c);
+    }
+    const r = await runUnitAnalysis({ projectPath: root });
+    // Pre-v0.28.2 this would have been 0% (function-name match found
+    // nothing). With the ratio fallback, it's a non-zero honest signal
+    // — typically 25-45% depending on how the analyzer counts source
+    // (the test files themselves get counted in source too, which
+    // depresses the ratio but keeps it honest).
+    expect(r.testCoverage).toBeGreaterThan(0);
+    expect(r.testCoverage).toBeLessThanOrEqual(60);
+    expect(r.totalTestFiles).toBe(20);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+});
+
+// Regression for the TestForge self-audit (2026-05-28): mutation always
+// scored 0 because `hasTestFramework` checked the ROOT package.json
+// devDeps only — TestForge's vitest lives in mcp-server/package.json,
+// not root, so devDeps:[] from root → "no test framework" → score 0,
+// even though unit-analyzer correctly detected 17 vitest files. 0.28.2
+// uses the actual test-file count as the signal instead.
+describe('advanced-analyzer — mutation uses test-file count, not root devDeps (v0.28.2)', () => {
+  it('scores >0 when test files exist even if devDeps is empty', async () => {
+    const fileContents: Record<string, string> = {
+      'src/util.ts': 'export function add(a: number, b: number) { return a + b; }\n',
+      'src/util.test.ts':
+        `import { describe, it, expect } from 'vitest';\n` +
+        `import { add } from './util';\n` +
+        `describe('add', () => {\n` +
+        `  it('sums two numbers', () => { expect(add(2, 3)).toBe(5); });\n` +
+        `  it('handles negatives', () => { expect(add(-2, 1)).toBe(-1); });\n` +
+        `});\n`,
+    };
+    const r = await runMutationAnalysis(fileContents, /* devDependencies */ [], 2, 10);
+    // Test framework "isn't in root devDeps" but tests are clearly there.
+    // Score should be >0 (the pre-v0.28.2 behavior would have returned 0).
+    expect(r.score).toBeGreaterThan(0);
+    expect(r.assertionTotals.total).toBeGreaterThan(0);
+  });
+
+  it('returns 0 only when there are actually no test files', async () => {
+    const fileContents = {
+      'src/util.ts': 'export function add(a: number, b: number) { return a + b; }\n',
+    };
+    const r = await runMutationAnalysis(fileContents, [], 1, 5);
+    expect(r.score).toBe(0);
+    expect(r.findings[0].title).toBe('Mutation testing requires tests');
+  });
+});
+
 // Regression for the TestForge self-audit (2026-05-28): express ^5.2.1
 // fired "Potentially Vulnerable Dependency" even though the CVE is on
 // <4.17.3. Pre-v0.28.1 the check matched by package name alone; now it

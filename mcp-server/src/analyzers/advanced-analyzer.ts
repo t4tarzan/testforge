@@ -732,31 +732,18 @@ export async function runMutationAnalysis(
   totalLines: number
 ): Promise<MutationReport> {
   const findings: Finding[] = [];
-  const hasTestFramework = devDependencies.some(d =>
-    d.includes('jest') || d.includes('vitest') || d.includes('mocha') || d.includes('ava')
-  );
   const hasMutationTool = devDependencies.some(d =>
     d.includes('stryker') || d.includes('mutant')
   );
 
-  if (!hasTestFramework) {
-    return {
-      score: 0, estimatedMutationScore: 0, totalMutants: 0, killedMutants: 0,
-      assertionStats: [],
-      assertionTotals: {
-        total: 0, strong: 0, weak: 0, snapshot: 0, other: 0,
-        weakRatio: 0, snapshotRatio: 0, overallVariety: 0,
-      },
-      findings: [{
-        severity: 'high', title: 'Mutation testing requires tests',
-        description: 'No test framework found. Mutation testing measures test quality by injecting bugs.',
-        fixSuggestion: 'Set up Jest or Vitest. Write unit tests. Then run Stryker for mutation testing.',
-        category: 'Mutation Testing',
-      }],
-    };
-  }
-
   // ── Per-test-file AST analysis: assertion quality. ─────────────────
+  // We do this BEFORE the "no tests" early-return because the actual
+  // signal is "are there test files," not "is jest/vitest in the root
+  // devDeps." Pre-v0.28.2 the analyzer checked devDeps only, which
+  // dropped mutation to 0 on any project where the test framework lived
+  // in a workspace member's package.json (e.g. testforge's mcp-server/
+  // had vitest but root didn't — so mutation = 0 even though the
+  // unit-analyzer found 17 vitest files + 255 cases).
   const assertionStats: TestFileAssertionStats[] = [];
   const allDistinctMatchers = new Set<string>();
   let testFiles = 0;
@@ -764,9 +751,15 @@ export async function runMutationAnalysis(
 
   for (const [fp, content] of Object.entries(fileContents)) {
     if (fp.includes('node_modules')) continue;
-    const isTest = /\.(test|spec)\.[jt]sx?$/.test(fp) || fp.includes('/__tests__/');
+    // pytest + Go test files contribute to the count too — they're real
+    // tests even if Babel can't parse them for assertion quality.
+    const isTest = /\.(test|spec)\.[jt]sx?$/.test(fp)
+      || fp.includes('/__tests__/')
+      || /(?:^|\/)test_[^/]+\.py$/.test(fp)
+      || /_test\.py$/.test(fp)
+      || /_test\.go$/.test(fp);
     if (isTest) testFiles++;
-    else if (/\.[jt]sx?$/.test(fp)) sourceFiles++;
+    else if (/\.[jt]sx?$/.test(fp) || /\.py$/.test(fp) || /\.go$/.test(fp)) sourceFiles++;
     if (!isTest) continue;
     if (!isParseable(fp)) continue;
     const parsed = parseFile(fp, content);
@@ -778,6 +771,25 @@ export async function runMutationAnalysis(
         if (h.class === 'strong') allDistinctMatchers.add(h.matcher);
       }
     }
+  }
+
+  // If the project has zero test files at all, mutation testing
+  // really doesn't apply yet — return a no-op report.
+  if (testFiles === 0) {
+    return {
+      score: 0, estimatedMutationScore: 0, totalMutants: 0, killedMutants: 0,
+      assertionStats: [],
+      assertionTotals: {
+        total: 0, strong: 0, weak: 0, snapshot: 0, other: 0,
+        weakRatio: 0, snapshotRatio: 0, overallVariety: 0,
+      },
+      findings: [{
+        severity: 'high', title: 'Mutation testing requires tests',
+        description: 'No test files detected. Mutation testing measures test quality by injecting bugs.',
+        fixSuggestion: 'Set up Jest or Vitest (or pytest for Python). Write unit tests. Then run Stryker for mutation testing.',
+        category: 'Mutation Testing',
+      }],
+    };
   }
 
   // Aggregate.
