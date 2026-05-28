@@ -3,11 +3,11 @@
   "repoUrl": "https://github.com/supabase/supabase",
   "repoName": "supabase",
   "tagline": "78k-star OSS Firebase alt \u2014 TypeScript monorepo + test-path security suppression",
-  "analyzedAt": "2026-05-28T11:18:11.901Z",
-  "analyzeMs": 46622,
+  "analyzedAt": "2026-05-28T11:44:10.515Z",
+  "analyzeMs": 46880,
   "codebase": {
     "totalFiles": 7662,
-    "totalLines": 2161917,
+    "totalLines": 2161969,
     "endpoints": 632,
     "dependencies": 252,
     "techStack": [
@@ -62,51 +62,51 @@
     ]
   },
   "security": {
-    "findings": 41,
-    "critical": 1,
-    "high": 28,
-    "medium": 12,
-    "low": 0,
+    "findings": 15,
+    "critical": 0,
+    "high": 1,
+    "medium": 4,
+    "low": 10,
     "topItems": [
       {
-        "severity": "high",
-        "title": "Route Without Inline Auth",
-        "description": "app.get() declares a route with no visible auth middleware. If your app uses a global auth middleware, suppress this with a comment.",
-        "filePath": "examples/oauth-app-authorization-flow/src/index.ts",
-        "lineNumber": 17,
-        "fixSuggestion": "Either pass an auth middleware function in the args list, or annotate the file with `// testforge-disable-file authentication-bypass` if a global middleware is intentional."
-      },
-      {
-        "severity": "high",
-        "title": "Route Without Inline Auth",
-        "description": "app.get() declares a route with no visible auth middleware. If your app uses a global auth middleware, suppress this with a comment.",
-        "filePath": "examples/oauth-app-authorization-flow/src/index.ts",
-        "lineNumber": 34,
-        "fixSuggestion": "Either pass an auth middleware function in the args list, or annotate the file with `// testforge-disable-file authentication-bypass` if a global middleware is intentional."
-      },
-      {
-        "severity": "high",
-        "title": "dangerouslySetInnerHTML with user input",
+        "severity": "low",
+        "title": "dangerouslySetInnerHTML from a non-literal value",
         "description": "__html is built from a variable. Verify it's sanitized.",
         "filePath": "apps/studio/pages/_app.tsx",
         "lineNumber": 192,
         "fixSuggestion": "Render the value as text (default React escaping) or run it through DOMPurify.sanitize() first."
       },
       {
-        "severity": "high",
+        "severity": "low",
+        "title": "dangerouslySetInnerHTML from a non-literal value",
+        "description": "__html is built from a variable. Verify it's sanitized.",
+        "filePath": "apps/design-system/app/layout.tsx",
+        "lineNumber": 128,
+        "fixSuggestion": "Render the value as text (default React escaping) or run it through DOMPurify.sanitize() first."
+      },
+      {
+        "severity": "low",
         "title": "Path Traversal Risk",
-        "description": "window.open() path was built from a variable. Verify it can't escape the intended directory.",
-        "filePath": "apps/studio/lib/navigation.ts",
-        "lineNumber": 45,
+        "description": "fs.writeFile() path was built from a variable. Verify it can't escape the intended directory.",
+        "filePath": "apps/docs/scripts/llms.ts",
+        "lineNumber": 131,
         "fixSuggestion": "Resolve to an absolute path, then verify the result starts with the expected base directory. Allowlist file ids \u2192 server-resolved paths, never echo user paths back."
       },
       {
         "severity": "high",
-        "title": "Path Traversal Risk",
-        "description": "window.open() path was built from a variable. Verify it can't escape the intended directory.",
-        "filePath": "apps/studio/lib/navigation.ts",
-        "lineNumber": 58,
-        "fixSuggestion": "Resolve to an absolute path, then verify the result starts with the expected base directory. Allowlist file ids \u2192 server-resolved paths, never echo user paths back."
+        "title": "dangerouslySetInnerHTML with user input",
+        "description": "__html flows from a derived tainted value with no sanitizer in between \u2014 XSS.",
+        "filePath": "apps/www/pages/events/[slug].tsx",
+        "lineNumber": 230,
+        "fixSuggestion": "Render the value as text (default React escaping) or run it through DOMPurify.sanitize() first."
+      },
+      {
+        "severity": "low",
+        "title": "Unvalidated Redirect",
+        "description": "redirect() target was built from a variable. Confirm it's checked against an allowlist.",
+        "filePath": "apps/docs/features/docs/Reference.utils.ts",
+        "lineNumber": 209,
+        "fixSuggestion": "Validate the redirect against an explicit allowlist of paths or domains. Prefer internal route names over URL parameters."
       }
     ]
   },
@@ -114,7 +114,7 @@
     {
       "key": "security",
       "label": "Security",
-      "score": 0
+      "score": 95
     },
     {
       "key": "unit",
@@ -172,5 +172,5 @@
       "score": 85
     }
   ],
-  "overall": 62
+  "overall": 70
 }
