@@ -85,6 +85,15 @@ async function main() {
   // one Vitest file per finding. Provider rotation: DeepSeek primary,
   // Kimi fallback, both via OpenRouter.
   app.post('/generate-and-run', async (request, reply) => {
+    // Managed Tier-2 runs untrusted code in a docker sandbox — gate it behind a
+    // shared secret so only our own caller (the Vercel proxy / frontend) can
+    // trigger it. Self-host sets no secret → open on the user's own localhost.
+    const runSecret = process.env.TESTFORGE_RUN_SECRET;
+    if (runSecret) {
+      const auth = (request.headers['authorization'] as string | undefined) || '';
+      const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+      if (token !== runSecret) return reply.status(401).send({ error: 'Unauthorized' });
+    }
     const body = request.body as {
       findings?: InputFinding[];
       maxFindings?: number;

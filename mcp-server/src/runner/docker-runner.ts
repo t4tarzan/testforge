@@ -12,7 +12,12 @@ import { join } from 'path';
 import { homedir } from 'os';
 import type { GeneratedTestFile, TestLanguage } from '../generator/generate-tests.js';
 
-const RUNS_DIR = join(homedir(), '.testforge', 'runs');
+// Where generated test files are written before being bind-mounted into the
+// runner. Env-overridable because managed Tier-2 runs the MCP in a container
+// talking to the HOST docker (via socket-proxy): the mount source must be a
+// path the host daemon can see, so the VPS sets TESTFORGE_RUNS_DIR to a dir
+// that's bind-mounted into the MCP container at the SAME path.
+const RUNS_DIR = process.env.TESTFORGE_RUNS_DIR || join(homedir(), '.testforge', 'runs');
 const RUNNER_TIMEOUT_MS = 120_000;
 
 // Per-language sandbox images. Defaults are the public GHCR images so a fresh
@@ -70,7 +75,22 @@ async function ensureImage(image: string): Promise<string | null> {
 
 async function dockerRun(image: string, hostMountDir: string): Promise<{ stdout: string; stderr: string; code: number }> {
   return new Promise((resolve) => {
-    const args = ['run', '--rm', '--network', 'none', '-v', `${hostMountDir}:/runner/tests:ro`, image];
+    // Hardened sandbox for untrusted LLM-generated code: no network, all caps
+    // dropped, no privilege escalation, bounded pids/memory/cpu, ephemeral
+    // (--rm), and the only writable space is a tmpfs /tmp (exec for go/vitest
+    // build artifacts). The test files come in read-only.
+    const args = [
+      'run', '--rm',
+      '--network', 'none',
+      '--cap-drop', 'ALL',
+      '--security-opt', 'no-new-privileges',
+      '--pids-limit', '512',
+      '--memory', '512m',
+      '--cpus', '1',
+      '--tmpfs', '/tmp:rw,exec,size=512m',
+      '-v', `${hostMountDir}:/runner/tests:ro`,
+      image,
+    ];
     const proc = spawn('docker', args, { stdio: ['ignore', 'pipe', 'pipe'] });
     let out = '', err = '';
     const killer = setTimeout(() => { try { proc.kill('SIGKILL'); } catch { /* ignore */ } }, RUNNER_TIMEOUT_MS);

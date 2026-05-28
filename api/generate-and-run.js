@@ -52,7 +52,12 @@ async function handler(req, res) {
   try {
     const upstream = await fetch(`${MCP_SERVER}/generate-and-run`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        // Managed MCP gates Tier-2 behind this shared secret; self-host MCP
+        // ignores it. Set TESTFORGE_RUN_SECRET in Vercel + on the VPS.
+        ...(process.env.TESTFORGE_RUN_SECRET ? { Authorization: `Bearer ${process.env.TESTFORGE_RUN_SECRET}` } : {}),
+      },
       body: JSON.stringify(body),
       signal: controller.signal,
     });
