@@ -243,7 +243,7 @@ const PY_SCRIPT = [
 // `undefined` = not probed yet; true/false = probed result.
 let _pythonAvailable: boolean | undefined;
 
-function pythonAvailable(): boolean {
+export function pythonAvailable(): boolean {
   if (_pythonAvailable !== undefined) return _pythonAvailable;
   try {
     const probe = spawnSync('python3', ['--version'], { encoding: 'utf8', timeout: 5000 });

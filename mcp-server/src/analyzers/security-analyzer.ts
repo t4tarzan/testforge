@@ -23,6 +23,7 @@ import traverseModule from '@babel/traverse';
 import * as t from '@babel/types';
 
 import { parseFile, isParseable, type ParseResult } from './lib/parse.js';
+import { findPythonTaint } from './lib/py-taint.js';
 import { collectSuppressions, isSuppressed } from './lib/suppressions.js';
 import {
   getCalleeName,
@@ -242,6 +243,28 @@ export async function runSecurityAnalysis(
     findings.push(
       ...analyzeFile(filePath, content, parsed, crossFileTable, imports, compiledUserRules)
     );
+  }
+
+  // Python intra-procedural taint (FastAPI/Flask/Starlette backends). The JS/TS
+  // engine above can't parse .py, so this runs the stdlib-ast taint engine and
+  // feeds its source->sink findings into the same Security dimension.
+  for (const [filePath, content] of Object.entries(fileContents)) {
+    if (!filePath.endsWith('.py')) continue;
+    if (isTestPath(filePath) || isExampleOrDemoPath(filePath)) continue;
+    const lines = content.split('\n');
+    for (const hit of findPythonTaint(filePath, content)) {
+      findings.push({
+        severity: hit.severity,
+        confidence: 'high', // taint engine only emits source->sink with no sanitizer
+        title: hit.vulnType,
+        description: hit.description,
+        filePath,
+        lineNumber: hit.line,
+        codeSnippet: (lines[hit.line - 1] ?? '').trim().slice(0, 200),
+        fixSuggestion: hit.fixSuggestion,
+        category: hit.vulnType,
+      });
+    }
   }
 
   checkMissingRateLimit(allDeps, findings, config.projectPath);
