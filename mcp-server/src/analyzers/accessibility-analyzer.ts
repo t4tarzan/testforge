@@ -3,6 +3,7 @@ import { join } from 'path';
 import { glob } from 'glob';
 import { parseFile, isParseable } from './lib/parse.js';
 import { checkJsxAccessibility } from './lib/a11y-jsx.js';
+import { isTestPath } from './security-analyzer.js';
 
 export interface A11yFinding {
   severity: 'critical' | 'high' | 'medium' | 'low';
@@ -80,10 +81,15 @@ export async function runAccessibilityAnalysis(config: {
   let imagesWithoutAlt = 0;
   let formsWithoutLabels = 0;
   let missingAriaCount = 0;
-  const htmlFiles = Object.keys(fileContents).filter(isUiFile);
+  const htmlFiles = Object.keys(fileContents).filter((f) => isUiFile(f) && !isTestPath(f));
 
   for (const [filePath, content] of Object.entries(fileContents)) {
     if (filePath.includes('node_modules')) continue;
+    // v0.28.4 — skip test paths. Fixtures and component tests routinely
+    // contain intentional a11y violations (our own a11y-jsx fixture is
+    // deliberately broken to test the analyzer). Same rationale as the
+    // security analyzer's test-path suppression.
+    if (isTestPath(filePath)) continue;
     // v0.27.2: the per-file loop now hard-filters to UI files only.
     // Before this, calling runAccessibilityAnalysis with a full
     // fileContents (which includes .md / .py / .ts / etc.) caused

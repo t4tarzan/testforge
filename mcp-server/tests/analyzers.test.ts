@@ -2407,6 +2407,26 @@ describe('security-analyzer — SQL/NoSQL sink precision (v0.28.3)', () => {
   });
 });
 
+describe('accessibility-analyzer — skips test paths (v0.28.4)', () => {
+  it('does NOT flag a11y violations inside test fixtures', async () => {
+    const r = await runAccessibilityAnalysis({
+      projectPath: VULNERABLE,
+      fileContents: {
+        // Same broken markup in a prod path vs a fixture path.
+        'src/Real.tsx': `<button></button><img src="x.png" />`,
+        'tests/fixtures/Bad.tsx': `<button></button><img src="x.png" />`,
+        'src/__tests__/Also.tsx': `<button></button>`,
+      },
+    });
+    const fromFixtures = r.findings.filter(
+      (f) => f.filePath.includes('tests/') || f.filePath.includes('__tests__'),
+    );
+    expect(fromFixtures).toHaveLength(0);
+    // The prod file's violations still surface.
+    expect(r.findings.filter((f) => f.filePath === 'src/Real.tsx').length).toBeGreaterThan(0);
+  });
+});
+
 describe('accessibility-analyzer — contrast is luminance-aware (v0.28.3)', () => {
   // runAccessibilityAnalysis requires projectPath to exist on disk even
   // when fileContents is supplied — use the repo root as a harmless
