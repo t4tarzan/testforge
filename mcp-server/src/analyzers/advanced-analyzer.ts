@@ -19,6 +19,12 @@ import { findChaosPatterns, type ChaosPatternHit } from './lib/chaos-patterns.js
 import { analyzeAssertionQuality, type TestFileAssertionStats } from './lib/mutation-quality.js';
 import { extractDoraSignals, type DoraSignals } from './lib/dora-signals.js';
 import { findEdgeCases, type EdgeCaseHit } from './lib/edge-cases.js';
+import {
+  findPythonEdgeCases,
+  PY_RULE_SEVERITY,
+  PY_RULE_FIX,
+  type PyEdgeRule,
+} from './lib/py-edge-cases.js';
 import { findVisualSignals, type VisualSignalHit } from './lib/visual-regression.js';
 import { findPropertyBasedSignals } from './lib/property-based.js';
 import {
@@ -326,8 +332,8 @@ export async function runVisualRegressionAnalysis(
 export interface EdgeCaseReport {
   score: number;
   potentialCases: number;
-  /** AST-derived hits grouped per rule. */
-  byRule: Record<EdgeCaseHit['rule'], number>;
+  /** AST-derived hits grouped per rule (JS/TS via Babel + Python via the ast subprocess). */
+  byRule: Record<EdgeCaseHit['rule'] | PyEdgeRule, number>;
   findings: Finding[];
 }
 
@@ -359,17 +365,48 @@ export async function runEdgeCaseAnalysis(
   fileContents: Record<string, string>
 ): Promise<EdgeCaseReport> {
   const findings: Finding[] = [];
-  const byRule: Record<EdgeCaseHit['rule'], number> = {
+  const byRule: Record<EdgeCaseHit['rule'] | PyEdgeRule, number> = {
     'parseInt-no-radix': 0,
     'JSON-parse-untrycaught': 0,
     'new-Date-on-string': 0,
     'loose-equality': 0,
     'switch-no-default': 0,
     'Number-coercion-unchecked': 0,
+    // Python (lib/py-edge-cases.ts, via the python3 ast subprocess).
+    'mutable-default-arg': 0,
+    'bare-except': 0,
+    'eq-none': 0,
+    'assert-for-validation': 0,
+    'sql-string-interpolation': 0,
+    'int-coercion-unchecked': 0,
+    'requests-no-timeout': 0,
   };
 
   for (const [filePath, content] of Object.entries(fileContents)) {
     if (filePath.includes('node_modules') || filePath.includes('test')) continue;
+
+    // ── Python files: deep per-line analysis via the stdlib `ast` module.
+    // `isParseable()` (Babel) only matches JS/TS, so without this branch
+    // Python/FastAPI backends get no per-line edge-case detection at all.
+    // findPythonEdgeCases degrades to [] if python3 is unavailable.
+    if (/\.py$/.test(filePath)) {
+      const pyHits = findPythonEdgeCases(filePath, content);
+      for (const hit of pyHits) {
+        byRule[hit.rule]++;
+        if (findings.length >= 25) continue; // surface count, cap the visible findings list
+        findings.push({
+          severity: PY_RULE_SEVERITY[hit.rule],
+          title: `${hit.rule.replace(/-/g, ' ')} (${filePath}:${hit.line})`,
+          description: hit.description,
+          filePath,
+          lineNumber: hit.line,
+          fixSuggestion: PY_RULE_FIX[hit.rule],
+          category: 'Edge Cases',
+        });
+      }
+      continue;
+    }
+
     if (!isParseable(filePath)) continue;
     const parsed = parseFile(filePath, content);
     if (!parsed.ast) continue;
@@ -399,7 +436,15 @@ export async function runEdgeCaseAnalysis(
     byRule['Number-coercion-unchecked'] * 2 +
     byRule['new-Date-on-string'] * 2 +
     byRule['switch-no-default'] * 1 +
-    byRule['loose-equality'] * 1;
+    byRule['loose-equality'] * 1 +
+    // Python rules — weighted by severity to mirror the JS weighting above.
+    byRule['sql-string-interpolation'] * 4 +
+    byRule['mutable-default-arg'] * 2 +
+    byRule['int-coercion-unchecked'] * 2 +
+    byRule['requests-no-timeout'] * 2 +
+    byRule['bare-except'] * 1 +
+    byRule['eq-none'] * 1 +
+    byRule['assert-for-validation'] * 1;
   const score = Math.max(0, Math.min(100, 100 - cost));
 
   return {
