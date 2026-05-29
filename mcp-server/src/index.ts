@@ -526,7 +526,7 @@ async function main() {
         projectPath,
         fileContents: codebase.fileContents,
         dependencies: codebase.dependencies,
-      }).catch(() => ({ estimatedMaxConcurrentUsers: 0, hasRateLimiting: false, hasCaching: false, hasConnectionPooling: false, findings: [], recommendations: [] }));
+      }).catch(() => ({ score: 50, estimatedMaxConcurrentUsers: 0, hasRateLimiting: false, hasCaching: false, hasConnectionPooling: false, findings: [], recommendations: [] }));
 
       const a11yReport = await runAccessibilityAnalysis({
         projectPath,
@@ -564,7 +564,10 @@ async function main() {
       // ── Phase 2 Deep Enhancements ────────────────────────────────────
       const supplyChainReport = await runSupplyChainAudit(codebase.dependencies, codebase.devDependencies, projectPath, { osv: true });
       const nPlusOneReport = runNPlusOneDetection(codebase.fileContents);
-      const deadCodeReport = runDeadCodeAnalysis(codebase.fileContents, codebase.dependencies);
+      // Dead-code dep check only matches JS/TS imports, so feed it npm-only
+      // deps — never the Python/Go packages (which it can't trace and would
+      // always flag "unused", falsely cliffing the score on polyglot repos).
+      const deadCodeReport = runDeadCodeAnalysis(codebase.fileContents, codebase.npmDependencies);
       const licenseReport = runLicenseCheck(codebase.dependencies, projectPath);
       const doraReport = runDoraEstimation(codebase.fileContents, codebase.devDependencies);
       const owaspReport = runOwaspCoverage(securityFindings.filter(f => f.severity !== 'info') as Parameters<typeof runOwaspCoverage>[0]);
@@ -612,6 +615,7 @@ async function main() {
           findings: unitReport.findings?.length || 0,
         },
         load: {
+          score: loadReport.score,
           maxUsers: loadReport.estimatedMaxConcurrentUsers || 0,
           rateLimiting: loadReport.hasRateLimiting || false,
           caching: loadReport.hasCaching || false,

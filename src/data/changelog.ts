@@ -50,6 +50,14 @@ export const TAG_COLORS: Record<ChangelogTag, string> = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '0.32.0',
+    date: '2026-05-29',
+    tag: 'precision',
+    title: 'Principled scoring — no more 0/100 or null cliffs',
+    summary:
+      'Scores are what people fixate on, so every dimension now scores on solid logic. A new shared scorer (lib/score.ts) replaces the old linear "100 − Σcost" formulas that cliffed to 0 once a repo accumulated enough findings — even all low-severity ones. It uses diminishing returns: the score degrades smoothly from 100 toward a non-zero floor, severity-weighted and monotonic, so 0 is reserved for the genuinely catastrophic and N/A is rendered separately (never as a number). Three concrete fixes: Kubernetes no longer reads 0/100 for a running platform with hardening gaps; Dead Code no longer cliffs to 0 from false-positive "unused" Python/Go packages (the JS import-matcher is now fed npm-only deps, since it can\'t trace non-JS imports); and Load now returns a real readiness capability score instead of null (credit for rate-limiting/caching/pooling/health-probes/timeouts/circuit-breakers/compression/LB/CDN, penalty for blocking sync I/O). Backed by new tests asserting monotonicity, severity-weighting, and no-cliff behavior.',
+  },
+  {
     version: '0.31.0',
     date: '2026-05-29',
     tag: 'analyzer',

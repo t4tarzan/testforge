@@ -565,7 +565,7 @@ export async function setupMCPServer(app: FastifyInstance) {
       const predictiveReport = await runPredictiveAnalysis(codebase.fileContents, codebase.dependencies, codebase.devDependencies);
       const supplyReport = await runSupplyChainAudit(codebase.dependencies, codebase.devDependencies, projectPath, { osv: true });
       const nPlusOneReport = runNPlusOneDetection(codebase.fileContents);
-      const deadReport = runDeadCodeAnalysis(codebase.fileContents, codebase.dependencies);
+      const deadReport = runDeadCodeAnalysis(codebase.fileContents, codebase.npmDependencies);
       const licenseReport = runLicenseCheck(codebase.dependencies, projectPath);
       const doraReport = runDoraEstimation(codebase.fileContents, codebase.devDependencies);
       // SecurityFinding includes 'info' severity; runOwaspCoverage only

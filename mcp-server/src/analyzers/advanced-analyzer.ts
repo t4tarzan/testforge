@@ -8,6 +8,7 @@ import { extractOpenApi, canonicalPath } from './lib/openapi-parse.js';
 import { discoverEndpoints, endpointSet, type DiscoveredEndpoint } from './lib/endpoint-discovery.js';
 import { findPythonEndpoints, type PyEndpoint } from './lib/py-endpoints.js';
 import { collectEcosystemPackages, queryOsvBatch, osvKey, type OsvPkg } from './lib/osv.js';
+import { countScore } from './lib/score.js';
 import { computeFileComplexity } from './lib/complexity.js';
 import { OWASP_2021, owaspCodesForCategory, type OwaspCode } from './lib/owasp-map.js';
 import {
@@ -1494,9 +1495,12 @@ export function runDeadCodeAnalysis(fileContents: Record<string, string>, depend
     });
   }
 
-  const score = Math.max(0, 100 - report.unusedDeps.length * 8 - Math.min(deadFunctions, 20) * 2);
+  // Diminishing returns: dead-code detection is heuristic (and unused-dep
+  // detection over-reports on monorepos), so a pile of findings shouldn't cliff
+  // the score to 0. Weight unused deps heavier than dead functions.
+  const score = countScore(report.unusedDeps.length * 0.5 + Math.min(deadFunctions, 30) * 0.15, 6);
   return {
-    score: Math.min(100, score),
+    score,
     unusedDeps: report.unusedDeps,
     deadFunctions,
     findings,

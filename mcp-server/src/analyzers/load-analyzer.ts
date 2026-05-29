@@ -5,6 +5,14 @@ import { parseFile, isParseable } from './lib/parse.js';
 import { findLoadPatterns, type LoadPatternsHit } from './lib/load-patterns.js';
 
 export interface LoadTestReport {
+  /**
+   * Static load-readiness score (0–100). Reflects which scalability capabilities
+   * the codebase demonstrably has (rate limiting, caching, pooling, health
+   * probes, timeouts, compression/LB/CDN) minus penalties for blocking I/O in
+   * request handlers. This is a capability score, not a benchmark — actual
+   * throughput comes from the live /simulate engine.
+   */
+  score: number;
   hasRateLimiting: boolean;
   hasCaching: boolean;
   hasConnectionPooling: boolean;
@@ -258,7 +266,26 @@ export async function runLoadAnalysis(config: {
     });
   }
 
+  // Static load-readiness: start from a baseline (a running HTTP service) and
+  // add credit for each demonstrated scalability capability; subtract for
+  // blocking sync I/O in request handlers. Bounded so it never reads as a hard
+  // 0 (which would imply the dimension failed) — capped at 95 because static
+  // analysis can't confirm real-world throughput, only the presence of patterns.
+  let score = 45;
+  if (hasRateLimiting) score += 12;
+  if (hasCaching) score += 12;
+  if (hasConnectionPooling) score += 10;
+  if (patterns.healthEndpoints.length > 0) score += 8;
+  if (patterns.timeout.length > 0) score += 8;
+  if (patterns.circuitBreaker.length > 0) score += 5;
+  if (hasCompression) score += 5;
+  if (hasLoadBalancing) score += 5;
+  if (hasCDNConfig) score += 5;
+  score -= Math.min(patterns.syncIoInHandlers.length, 4) * 6;
+  score = Math.max(15, Math.min(95, score));
+
   return {
+    score,
     hasRateLimiting,
     hasCaching,
     hasConnectionPooling,

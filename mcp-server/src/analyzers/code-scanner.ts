@@ -10,6 +10,14 @@ export interface CodebaseInfo {
   middleware: number;
   dependencies: string[];
   devDependencies: string[];
+  /**
+   * npm-only deps (from package.json: dependencies + devDependencies +
+   * peerDependencies). Kept separate from the unioned `dependencies` so the
+   * dead-code analyzer — which only matches JS/TS import statements — never
+   * flags Python/Go packages as "unused" (a systematic false positive that
+   * used to cliff the dead-code score to 0 on polyglot repos).
+   */
+  npmDependencies: string[];
   techStack: string[];
   /** Map of filename -> array of function names found */
   functions: Record<string, string[]>;
@@ -235,6 +243,7 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
   //    backend/pyproject.toml and frontend/package.json.
   let dependencies: string[] = [];
   let devDependencies: string[] = [];
+  let npmDependencies: string[] = []; // package.json only — for dead-code dep check
   const techStack: string[] = [];
 
   // Discover workspace members (paths relative to projectPath). Always
@@ -264,12 +273,18 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
     try {
       const pkgPath = join(projectPath, subdir, 'package.json');
       const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
-      dependencies.push(...Object.keys(pkg.dependencies || {}));
-      devDependencies.push(...Object.keys(pkg.devDependencies || {}));
+      const npmRuntime = Object.keys(pkg.dependencies || {});
+      const npmDev = Object.keys(pkg.devDependencies || {});
+      const npmPeer = Object.keys(pkg.peerDependencies || {});
+      dependencies.push(...npmRuntime);
+      devDependencies.push(...npmDev);
       // peerDependencies often signal the framework being targeted
       // (React/Vue/Svelte) — count them as runtime so techStack tagging
       // catches them.
-      dependencies.push(...Object.keys(pkg.peerDependencies || {}));
+      dependencies.push(...npmPeer);
+      // Track npm deps separately so dead-code's import-matching only ever
+      // considers packages that COULD appear in a JS/TS import.
+      npmDependencies.push(...npmRuntime, ...npmDev, ...npmPeer);
     } catch {
       // file absent / malformed — fine
     }
@@ -339,6 +354,7 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
   // Dedupe across sources.
   dependencies = [...new Set(dependencies)];
   devDependencies = [...new Set(devDependencies)];
+  npmDependencies = [...new Set(npmDependencies)];
 
   // 5. Tech-stack detection — checks unioned deps for known names.
   const all = [...dependencies, ...devDependencies];
@@ -447,6 +463,7 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
     middleware: middlewareCount,
     dependencies,
     devDependencies,
+    npmDependencies,
     techStack,
     functions,
     fileContents,

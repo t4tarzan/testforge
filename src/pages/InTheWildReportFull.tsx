@@ -259,7 +259,7 @@ export default function InTheWildReportFull() {
                 </p>
                 {report.dimensionFindings.map((dim) => {
                   const meta = dimensionMeta[dim.key];
-                  const na = !dim.applicable;
+                  const na = !dim.applicable || dim.score === null || dim.score === undefined;
                   return (
                     <div key={dim.key} className="dimblock">
                       <div className="dimblock-head">

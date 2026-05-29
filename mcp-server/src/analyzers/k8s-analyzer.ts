@@ -11,6 +11,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { glob } from 'glob';
 import * as yaml from 'js-yaml';
+import { severityScore } from './lib/score.js';
 
 export interface K8sFinding {
   severity: 'critical' | 'high' | 'medium' | 'low';
@@ -33,7 +34,6 @@ export interface K8sReport {
 }
 
 type Doc = Record<string, unknown>;
-const SEV_COST: Record<K8sFinding['severity'], number> = { critical: 30, high: 18, medium: 9, low: 3 };
 
 const MANIFEST_GLOBS = ['**/*.yaml', '**/*.yml', '!**/node_modules/**', '!**/.git/**', '!**/dist/**', '!**/build/**'];
 const WORKLOAD_KINDS = new Set(['Deployment', 'StatefulSet', 'DaemonSet', 'Job', 'CronJob', 'ReplicaSet', 'Pod']);
@@ -181,6 +181,9 @@ export async function runKubernetesAnalysis(projectPath: string): Promise<K8sRep
     findings.push({ severity: 'medium', title: 'No NetworkPolicy defined', description: `${documents} manifest document(s) define workloads but no NetworkPolicy exists — by default all pods can talk to all pods (flat network), so one compromised pod can reach everything.`, filePath: '(cluster)', fixSuggestion: 'Add a default-deny NetworkPolicy and explicitly allow required flows.', category: 'Kubernetes' });
   }
 
-  const score = Math.max(0, Math.min(100, 100 - findings.reduce((a, f) => a + SEV_COST[f.severity], 0)));
+  // Diminishing-returns scoring: many low-severity hardening gaps lower the
+  // score but never cliff it to 0 (a running platform with missing probes /
+  // limits isn't "0/100"). Reserve very low scores for critical findings.
+  const score = severityScore(findings, 6);
   return { applicable: true, score, manifestsParsed, documents, kinds, findings };
 }
