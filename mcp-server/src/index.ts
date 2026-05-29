@@ -2,6 +2,12 @@
 // MCP server bootstrap. Same rationale as mcp-server.ts: this server is a
 // LOCAL-machine tool (binds to localhost, single user, no auth surface).
 // The managed Vercel side gates these endpoints separately in api/*.js.
+
+// MUST be the first import: loads ~/.testforge/.env (written by
+// `testforge-mcp setup`) into process.env before any other module reads it.
+// Real env / Docker `-e` always wins over the file.
+import './boot-env.js';
+
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
@@ -38,7 +44,7 @@ import {
 import { runAgenticScalePrediction } from './analyzers/agentic-scale.js';
 import { runKubernetesAnalysis } from './analyzers/k8s-analyzer.js';
 import { generateTestsForFindings, type InputFinding } from './generator/generate-tests.js';
-import { hasLLMKey, PRIMARY_MODEL, FALLBACK_MODEL } from './generator/llm-client.js';
+import { hasLLMKey, PRIMARY_MODEL, FALLBACK_MODEL, LLM_BASE_URL, LLM_IS_LOCAL } from './generator/llm-client.js';
 import { runGeneratedTests } from './runner/docker-runner.js';
 import { detectRunnable } from './simulation/runnable-detect.js';
 import { prepareSandbox, teardownSandbox } from './simulation/sandbox.js';
@@ -66,6 +72,11 @@ const PKG_VERSION: string = (() => {
 // (3001/3000/5173/8080) and conflicts on developer machines that run a lot
 // of services. Override with TESTFORGE_MCP_PORT=… if needed.
 const PORT = Number(process.env.TESTFORGE_MCP_PORT) || 33221;
+
+// Git-clone timeout. Default 120s (was a hard 30s, which timed out on large
+// monorepos like supabase — ~1.3 GB even at depth 1). Override for very large
+// repos or slow links with TESTFORGE_CLONE_TIMEOUT_MS.
+const CLONE_TIMEOUT_MS = Number(process.env.TESTFORGE_CLONE_TIMEOUT_MS) || 120000;
 const TMP_DIR = process.env.TMP_DIR || '/tmp/testforge-repos';
 
 // Pick GET endpoints worth driving load against. We can only hit *literal*
@@ -131,7 +142,7 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
     mkdirSync(TMP_DIR, { recursive: true });
     const branchFlag = body.branch ? `--branch ${body.branch} ` : '';
     execSync(`git clone --depth 1 ${branchFlag}${repoUrl} ${projectPath}`, {
-      timeout: 30000, stdio: 'pipe', env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+      timeout: CLONE_TIMEOUT_MS, stdio: 'pipe', env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
     });
 
     updateJob(jobId, { phase: 'detecting', detail: 'Scanning codebase and detecting how to boot it' });
@@ -302,8 +313,8 @@ async function main() {
 
     if (!hasLLMKey()) {
       return reply.status(503).send({
-        error: 'OPENROUTER_API_KEY not configured on the MCP server',
-        hint: 'Set OPENROUTER_API_KEY before starting. Both DeepSeek and Kimi are routed through OpenRouter.',
+        error: 'No AI provider configured for Tier-2 test generation',
+        hint: 'Run `npx @whitenoisenpm/testforge-mcp setup` to configure an AI provider — an OPENROUTER_API_KEY (cloud) or TESTFORGE_LLM_BASE_URL pointing at a local model server (Ollama/LM Studio).',
       });
     }
 
@@ -353,7 +364,7 @@ async function main() {
     const responsePayload = {
       generationId,
       cluster,
-      provider: { primary: PRIMARY_MODEL, fallback: FALLBACK_MODEL, base: 'openrouter' },
+      provider: { primary: PRIMARY_MODEL, fallback: FALLBACK_MODEL, base: LLM_BASE_URL, local: LLM_IS_LOCAL },
       generatedAt: new Date().toISOString(),
       durationMs: generationMs + (run?.durationMs ?? 0),
       generationMs,
@@ -502,8 +513,9 @@ async function main() {
       console.log(`Cloning ${repoUrl} into ${projectPath}...`);
       const branchFlag = branch ? `--branch ${branch} ` : '';
       execSync(`git clone --depth 1 ${branchFlag}${repoUrl} ${projectPath}`, {
-        timeout: 30000,
+        timeout: CLONE_TIMEOUT_MS,
         stdio: 'pipe',
+        env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
       });
 
       // Scan codebase

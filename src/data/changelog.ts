@@ -50,6 +50,14 @@ export const TAG_COLORS: Record<ChangelogTag, string> = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '0.34.0',
+    date: '2026-05-29',
+    tag: 'platform',
+    title: 'Setup wizard, local-AI support, and big-repo fixes',
+    summary:
+      'Self-hosting is now a guided experience. `npx @whitenoisenpm/testforge-mcp setup` launches a small interactive configuration menu — pick your AI provider, port, and Tier-2 run secret, and it writes ~/.testforge/.env (chmod 600), which the server loads on startup (real environment variables always override it). The big addition: Tier-2 test generation now works with ANY OpenAI-compatible endpoint, not just OpenRouter — point TESTFORGE_LLM_BASE_URL at a local model server (Ollama http://localhost:11434/v1, LM Studio, vLLM) for free, fully-private generation with no cloud key. There is no database to install — run history auto-stores in local SQLite (~/.testforge/history.db). Also fixed: the git-clone timeout was a hard 30s that failed on large monorepos (Supabase is ~1.3 GB even at depth 1) — now configurable via TESTFORGE_CLONE_TIMEOUT_MS, default raised to 120s. `--help` documents every variable. Docs rewritten around the real self-host flow.',
+  },
+  {
     version: '0.33.0',
     date: '2026-05-29',
     tag: 'precision',

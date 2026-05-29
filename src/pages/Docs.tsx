@@ -752,69 +752,111 @@ function McpServerPage() {
   return (
     <div>
       <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">
-        MCP Server Installation
+        Self-Hosted MCP Server
       </h1>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
-        The TestForge MCP server integrates with AI-powered IDEs for natural
-        language test generation.
+        Run TestForge entirely on your own machine. <strong>Tier-1 analysis</strong>{' '}
+        (all 22 dimensions — security, Kubernetes, supply chain, edge cases, …)
+        needs no AI and no configuration. <strong>Tier-2</strong> (LLM test
+        generation &amp; run, plus simulations) needs an AI provider — either a
+        cloud key or a local model server. Your code never leaves the box.
       </p>
 
       <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
-        One-Line Install
+        1. Run it
       </h2>
-      <DocCodeBlock code="npx @whitenoisenpm/testforge-mcp@latest" language="bash" />
+      <DocCodeBlock code="npx -y @whitenoisenpm/testforge-mcp@latest" language="bash" />
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
-        This installs the MCP server and guides you through IDE configuration.
+        Starts the server on <Code>localhost:33221</Code>. Verify with{' '}
+        <Code>curl localhost:33221/health</Code>. That&rsquo;s all you need for
+        Tier-1.
       </p>
 
       <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
-        Manual Install
+        2. Configure (setup wizard)
       </h2>
-      <DocCodeBlock code="npm install -g @whitenoisenpm/testforge-mcp" language="bash" />
-      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
-        Then configure your IDE (see the{' '}
-        <a href="#/mcp" className="text-[#574a7d] hover:underline">
-          MCP Integration page
-        </a>{' '}
-        for IDE-specific configs).
+      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
+        A small interactive menu walks you through the AI provider, port, and the
+        Tier-2 run secret, then writes <Code>~/.testforge/.env</Code> (chmod 600),
+        which the server loads on startup:
       </p>
+      <DocCodeBlock code="npx -y @whitenoisenpm/testforge-mcp setup" language="bash" />
+      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
+        It offers two AI provider paths:
+      </p>
+      <ul className="list-disc list-inside space-y-2 font-body text-[16px] text-[#333333] leading-[1.7] mb-4 ml-2">
+        <li>
+          <strong>OpenRouter (cloud)</strong> — one key for DeepSeek/Kimi/etc.
+          Get a key at{' '}
+          <a href="https://openrouter.ai/keys" className="text-[#574a7d] hover:underline">openrouter.ai/keys</a>.
+        </li>
+        <li>
+          <strong>Local model server</strong> — point Tier-2 at any
+          OpenAI-compatible endpoint (Ollama, LM Studio, vLLM). Free, private, no
+          key needed. The wizard pre-fills the common URLs.
+        </li>
+      </ul>
+      <InfoCallout title="No database to set up">
+        TestForge stores run history in a local SQLite file
+        (<Code>~/.testforge/history.db</Code>) that is created automatically. There
+        is nothing to install or configure.
+      </InfoCallout>
 
       <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
-        Verify Installation
+        Local AI (Ollama example)
       </h2>
-      <DocCodeBlock code="testforge-mcp --version" language="bash" />
-
-      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
-        Start the Server
-      </h2>
+      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
+        Run a coder model locally and point TestForge at it — no cloud, no key:
+      </p>
       <DocCodeBlock
-        code={`# Start with auto-detect\ntestforge-mcp start\n\n# Start with specific project\ntestforge-mcp start --project ./my-api\n\n# Start with verbose logging\ntestforge-mcp start --verbose`}
+        code={`ollama pull qwen2.5-coder:14b\n\n# in the setup wizard pick "Local model server" → Ollama, or set:\nTESTFORGE_LLM_BASE_URL=http://localhost:11434/v1\nTESTFORGE_PRIMARY_MODEL=qwen2.5-coder:14b`}
         language="bash"
+      />
+      <p className="font-body text-[14px] text-[#666] leading-[1.7] mb-6">
+        Running the MCP in Docker? Reach a host model server with{' '}
+        <Code>http://host.docker.internal:11434/v1</Code>.
+      </p>
+
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
+        Add to an MCP client
+      </h2>
+      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
+        Claude Desktop / Cursor / Claude Code — add an <Code>mcpServers</Code> entry:
+      </p>
+      <DocCodeBlock
+        code={`{\n  "mcpServers": {\n    "testforge": {\n      "command": "npx",\n      "args": ["-y", "@whitenoisenpm/testforge-mcp"]\n    }\n  }\n}`}
+        language="json"
       />
 
       <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
         Environment Variables
       </h2>
+      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
+        The wizard writes these for you; you can also set them directly (real env
+        always overrides <Code>~/.testforge/.env</Code>). Full list:{' '}
+        <Code>npx @whitenoisenpm/testforge-mcp --help</Code>.
+      </p>
       <DocTable
-        headers={['Variable', 'Required', 'Description']}
+        headers={['Variable', 'Default', 'Description']}
         rows={[
-          [
-            <Code>TESTFORGE_API_KEY</Code>,
-            'Yes',
-            'Your API key from the dashboard',
-          ],
-          [
-            <Code>TESTFORGE_PROJECT_PATH</Code>,
-            'No',
-            'Default project path',
-          ],
-          [
-            <Code>TESTFORGE_LOG_LEVEL</Code>,
-            'No',
-            'debug, info, warn (default: info)',
-          ],
+          [<Code>OPENROUTER_API_KEY</Code>, '—', 'Cloud AI key (OpenRouter). Tier-2 only.'],
+          [<Code>TESTFORGE_LLM_BASE_URL</Code>, 'openrouter.ai', 'OpenAI-compatible endpoint for a local model server (Ollama/LM Studio/vLLM).'],
+          [<Code>TESTFORGE_LLM_API_KEY</Code>, '—', 'Key for the above (blank for most local servers).'],
+          [<Code>TESTFORGE_PRIMARY_MODEL</Code>, 'deepseek-v4-flash', 'Model used for generation.'],
+          [<Code>TESTFORGE_FALLBACK_MODEL</Code>, 'kimi-k2.6', 'Used if the primary fails.'],
+          [<Code>TESTFORGE_MCP_PORT</Code>, '33221', 'Port to bind.'],
+          [<Code>TESTFORGE_RUN_SECRET</Code>, '—', 'Bearer that gates Tier-2 endpoints.'],
+          [<Code>TESTFORGE_CLONE_TIMEOUT_MS</Code>, '120000', 'Git-clone timeout. Raise for very large monorepos.'],
+          [<Code>TESTFORGE_MAX_FILES</Code>, '8000', 'File cap. Raise for large monorepos.'],
+          [<Code>TESTFORGE_MAX_TOTAL_BYTES</Code>, '50000000', 'Total-bytes cap for analysis.'],
         ]}
       />
+      <InfoCallout title="Large monorepos">
+        Repos like Supabase (&gt;1&nbsp;GB even at depth&nbsp;1) can exceed the
+        defaults. Raise <Code>TESTFORGE_CLONE_TIMEOUT_MS</Code>,{' '}
+        <Code>TESTFORGE_MAX_FILES</Code>, and <Code>TESTFORGE_MAX_TOTAL_BYTES</Code>{' '}
+        for full coverage.
+      </InfoCallout>
     </div>
   );
 }

@@ -3,9 +3,12 @@
 **AI-powered testing in your IDE.** The TestForge MCP server integrates with Cursor, VS Code, Windsurf, Claude Code, and any MCP-compatible editor to provide real-time code analysis — entirely on your machine.
 
 ```bash
-npx @whitenoisenpm/testforge-mcp@latest serve
-# → http://localhost:33221
+npx -y @whitenoisenpm/testforge-mcp@latest        # start the server → http://localhost:33221
+npx -y @whitenoisenpm/testforge-mcp setup         # interactive config wizard (AI provider, port, secret)
+npx -y @whitenoisenpm/testforge-mcp --help        # full env-var reference
 ```
+
+**Tier-1 (22 dimensions) needs no config.** For Tier-2 (LLM test generation + sims), run `setup` once — it configures an AI provider (OpenRouter cloud **or** a local model server like Ollama / LM Studio) and writes `~/.testforge/.env`. No database to install — run history is auto-stored in SQLite at `~/.testforge/history.db`.
 
 ## What it does
 
@@ -33,11 +36,19 @@ The dashboard lets you paste a local project path **or** a public GitHub URL, ru
 
 ## Tier 2 — Generate & Run (LLM tests + sandbox)
 
-> Added in **v0.25.0**. Tier 1 keeps working without any extra setup. Tier 2 needs an OpenRouter API key and a one-time Docker image build.
+> Added in **v0.25.0**. Tier 1 keeps working without any extra setup. Tier 2 needs an AI provider (cloud key **or** a local model server) and Docker running.
+
+**Easiest:** `npx @whitenoisenpm/testforge-mcp setup` — pick OpenRouter or a local server (Ollama/LM Studio), and it writes the config for you. Or set env vars manually:
 
 ```bash
-# 1. Get a free OpenRouter API key — https://openrouter.ai/
+# Option A — OpenRouter (cloud). Free key at https://openrouter.ai/keys
 export OPENROUTER_API_KEY=sk-or-v1-...
+
+# Option B — local model server (Ollama/LM Studio/vLLM), free + private, no key:
+#   ollama pull qwen2.5-coder:14b
+export TESTFORGE_LLM_BASE_URL=http://localhost:11434/v1
+export TESTFORGE_PRIMARY_MODEL=qwen2.5-coder:14b
+#   (from Docker, use http://host.docker.internal:11434/v1)
 
 # 2. Make sure Docker is running (Docker Desktop on macOS / Windows;
 #    docker daemon on Linux). No image build step needed — the runner
