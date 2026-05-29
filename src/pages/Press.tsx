@@ -82,7 +82,7 @@ export default function Press() {
               ['GitHub', 'https://github.com/t4tarzan/testforge'],
               ['npm', 'https://www.npmjs.com/package/@whitenoisenpm/testforge-mcp'],
               ['Dev.to', 'https://dev.to/t4tarzan'],
-              ['MCP Server', 'https://testforge-mcp.fly.dev/health'],
+              ['MCP Server', 'https://mcp.testforge.run/health'],
             ].map(([label, url]) => (
               <div key={label} className="flex items-center gap-3">
                 <span className="text-[#9A9A9A] w-24">{label}:</span>
@@ -97,7 +97,7 @@ export default function Press() {
         <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
           <h2 className="font-semibold text-[#12101A] mb-2">Tech Stack</h2>
           <div className="flex flex-wrap gap-2">
-            {['React 19','TypeScript','Vite','Tailwind','Fastify','Neon PostgreSQL','Drizzle ORM','Fly.io','Vercel','Stripe','Playwright','Vitest'].map(t => (
+            {['React 19','TypeScript','Vite','Tailwind','Fastify','Neon PostgreSQL','Drizzle ORM','Docker','Hetzner','Vercel','Stripe','Playwright','Vitest'].map(t => (
               <span key={t} className="px-3 py-1 bg-[#E8E5FF] text-[#574a7d] rounded text-xs font-mono">{t}</span>
             ))}
           </div>

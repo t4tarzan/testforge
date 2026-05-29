@@ -64,7 +64,7 @@ export default function Privacy() {
               <li><strong>Vercel</strong> — hosting and edge serving.</li>
               <li><strong>Neon</strong> — Postgres database for account + report metadata.</li>
               <li><strong>Stripe</strong> — billing.</li>
-              <li><strong>Fly.io</strong> — running the MCP completion endpoint for managed scans.</li>
+              <li><strong>Hetzner</strong> — VPS running the MCP analysis endpoint (mcp.testforge.run) for managed scans.</li>
               <li><strong>Anthropic / OpenAI</strong> — LLM providers for analysis steps you opt into (only the prompts you send).</li>
             </ul>
           </Section>

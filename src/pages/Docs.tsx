@@ -20,7 +20,7 @@ const navGroups = [
   },
   {
     header: 'INSTALLATION',
-    items: ['Web Platform', 'CLI Installation', 'MCP IDE Setup', 'Self-Hosted (Fly.io)', 'MCP Server', 'Docker'],
+    items: ['Web Platform', 'CLI Installation', 'MCP IDE Setup', 'MCP Server', 'Docker'],
   },
   {
     header: 'CONFIGURATION',
@@ -292,8 +292,6 @@ function DocContent({ pageId }: { pageId: string }) {
       return <ChangelogPage />;
     case 'mcp-ide-setup':
       return <McpIdeSetupPage />;
-    case 'self-hosted-flyio':
-      return <SelfHostedFlyioPage />;
     case 'mcp-usage-guide':
       return <McpUsageGuidePage />;
     case 'container-deployment':
@@ -2300,113 +2298,6 @@ function McpIdeSetupPage() {
 }
 
 /* ────────────────────────────────────────────
-   PAGE CONTENT: SELF-HOSTED (FLY.IO)
-   ──────────────────────────────────────────── */
-function SelfHostedFlyioPage() {
-  return (
-    <div className="space-y-10">
-      <div>
-        <p className="text-label-mono text-[#574a7d] mb-3">// INSTALLATION</p>
-        <h1 className="text-display-md text-[#12101A] mb-2">Self-Hosted on Fly.io</h1>
-        <p className="text-body-lg text-[#6B6B6B]">
-          Deploy your own TestForge MCP server on Fly.io — your code never leaves your infrastructure.
-        </p>
-      </div>
-
-      <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#12101A] mb-4">Why Self-Host?</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          {[
-            { icon: '🔒', title: 'Privacy First', desc: 'Your source code never leaves your machine. All analysis happens in your container.' },
-            { icon: '⚡', title: 'Low Latency', desc: 'Deploy in your preferred region for sub-50ms response times.' },
-            { icon: '💰', title: 'Cost Control', desc: 'Fly.io offers $5/month free credits. Scale as needed, pay only for what you use.' },
-            { icon: '🎛️', title: 'Full Control', desc: 'Customize analyzers, set your own resource limits, manage your own data.' },
-          ].map(f => (
-            <div key={f.title} className="border border-[#D9D9D3] rounded-lg p-4">
-              <div className="text-2xl mb-2">{f.icon}</div>
-              <h3 className="font-medium text-[#12101A] mb-1">{f.title}</h3>
-              <p className="text-sm text-[#6B6B6B]">{f.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#12101A] mb-4">Quick Deploy (5 minutes)</h2>
-        <div className="space-y-6">
-          <div>
-            <p className="font-mono text-xs text-[#574a7d] uppercase tracking-wider mb-2">Step 1: Clone the Repository</p>
-            <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm text-[#a39fd4] overflow-x-auto">
-              git clone https://github.com/t4tarzan/testforge.git<br/>
-              cd testforge/mcp-server
-            </div>
-          </div>
-          <div>
-            <p className="font-mono text-xs text-[#574a7d] uppercase tracking-wider mb-2">Step 2: Install Fly.io CLI</p>
-            <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm text-[#a39fd4] overflow-x-auto">
-              curl -L https://fly.io/install.sh | sh
-            </div>
-          </div>
-          <div>
-            <p className="font-mono text-xs text-[#574a7d] uppercase tracking-wider mb-2">Step 3: Login & Deploy</p>
-            <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm text-[#a39fd4] overflow-x-auto">
-              flyctl auth login<br/>
-              flyctl launch --now
-            </div>
-          </div>
-          <div>
-            <p className="font-mono text-xs text-[#574a7d] uppercase tracking-wider mb-2">Step 4: Verify</p>
-            <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm text-[#a39fd4] overflow-x-auto">
-              curl https://your-app.fly.dev/health
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#12101A] mb-4">Configuration</h2>
-        <p className="text-body-md text-[#6B6B6B] mb-4">Set these environment variables in your Fly.io app:</p>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#D9D9D3]">
-                <th className="text-left py-2 px-3 font-mono text-[#574a7d]">Variable</th>
-                <th className="text-left py-2 px-3 font-mono text-[#574a7d]">Default</th>
-                <th className="text-left py-2 px-3 font-mono text-[#574a7d]">Description</th>
-              </tr>
-            </thead>
-            <tbody className="text-[#6B6B6B]">
-              <tr className="border-b border-[#D9D9D3]"><td className="py-2 px-3 font-mono">TESTFORGE_MCP_PORT</td><td className="py-2 px-3">3001</td><td className="py-2 px-3">Server port</td></tr>
-              <tr className="border-b border-[#D9D9D3]"><td className="py-2 px-3 font-mono">DATABASE_URL</td><td className="py-2 px-3">-</td><td className="py-2 px-3">Neon PostgreSQL connection string</td></tr>
-              <tr className="border-b border-[#D9D9D3]"><td className="py-2 px-3 font-mono">TMP_DIR</td><td className="py-2 px-3">/tmp/testforge-repos</td><td className="py-2 px-3">Temp directory for cloned repos</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="bg-white border border-[#D9D9D3] rounded-xl p-6">
-        <h2 className="text-heading-sm text-[#12101A] mb-4">Your Server Endpoints</h2>
-        <div className="space-y-3">
-          {[
-            { method: 'GET', path: '/health', desc: 'Health check — verify your server is running' },
-            { method: 'POST', path: '/clone-and-analyze', desc: 'Clone a git repo and run full analysis' },
-            { method: 'POST', path: '/analyze', desc: 'Analyze a local project path' },
-            { method: 'POST', path: '/test', desc: 'Start a test suite run' },
-            { method: 'GET', path: '/test/:id/progress', desc: 'Get test run progress/status' },
-            { method: 'GET', path: '/report/:id', desc: 'Get a generated test report' },
-          ].map(e => (
-            <div key={e.path} className="flex items-start gap-3 border border-[#D9D9D3] rounded-lg p-3">
-              <span className="font-mono text-xs px-2 py-0.5 rounded bg-[#E8E5FF] text-[#574a7d] font-medium flex-shrink-0">{e.method}</span>
-              <div><code className="font-mono text-sm text-[#12101A]">{e.path}</code><p className="text-sm text-[#6B6B6B]">{e.desc}</p></div>
-            </div>
-          ))}
-        </div>
-      </section>
-    </div>
-  );
-}
-
-/* ────────────────────────────────────────────
    PAGE CONTENT: MCP USAGE GUIDE
    ──────────────────────────────────────────── */
 function McpUsageGuidePage() {
@@ -2499,7 +2390,7 @@ function McpUsageGuidePage() {
         <h2 className="text-heading-sm text-[#12101A] mb-4">CI/CD Integration via MCP</h2>
         <p className="text-body-md text-[#6B6B6B] mb-4">Call TestForge MCP tools from your CI/CD pipeline:</p>
         <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm text-[#a39fd4] overflow-x-auto">
-          {`- name: TestForge Security Scan\n  run: |\n    curl -X POST https://your-server.fly.dev/analyze \\\\\\n      -H "Content-Type: application/json" \\\\\\n      -d '{"projectPath": "."}'`}
+          {`- name: TestForge Security Scan\n  run: |\n    curl -X POST http://localhost:33221/clone-and-analyze \\\\\\n      -H "Content-Type: application/json" \\\\\\n      -d '{"repoUrl": "https://github.com/your-org/your-repo"}'`}
         </div>
       </section>
     </div>
@@ -2516,7 +2407,7 @@ function ContainerDeploymentPage() {
         <p className="text-label-mono text-[#574a7d] mb-3">// GUIDES</p>
         <h1 className="text-display-md text-[#12101A] mb-2">Container Deployment</h1>
         <p className="text-body-lg text-[#6B6B6B]">
-          Deploy TestForge MCP server as a container — works with Fly.io, Docker, Railway, Render, or any container platform.
+          Deploy TestForge MCP server as a container — works with Docker, Railway, Render, or any container platform.
         </p>
       </div>
 

@@ -37,7 +37,7 @@ const resourceLinks = [
 
 const companyLinks = [
   { label: 'GitHub', path: 'https://github.com/t4tarzan/testforge', external: true },
-  { label: 'MCP server', path: 'https://testforge-mcp.fly.dev', external: true },
+  { label: 'MCP server', path: 'https://mcp.testforge.run/health', external: true },
   { label: 'Contact', path: 'https://github.com/t4tarzan/testforge/issues', external: true },
   { label: 'Changelog', path: '/changelog', external: false },
 ]

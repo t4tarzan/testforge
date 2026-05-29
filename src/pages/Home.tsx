@@ -1000,7 +1000,7 @@ export default function Home() {
         <div className="max-w-[1280px] mx-auto text-center">
           <p className="font-mono text-xs text-[#a99bff] uppercase tracking-[0.15em] mb-6">// PLUGS INTO YOUR STACK</p>
           <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-4">
-            {['GitHub','Slack','Discord','CLI','Vercel','Fly.io','Cursor','VS Code','Neon'].map(i => (
+            {['GitHub','Slack','Discord','CLI','Vercel','Ollama','Cursor','VS Code','Neon'].map(i => (
               <div key={i} className="text-white/80 hover:text-white text-sm font-medium transition-colors">{i}</div>
             ))}
           </div>
