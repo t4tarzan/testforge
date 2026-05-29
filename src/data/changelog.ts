@@ -50,6 +50,14 @@ export const TAG_COLORS: Record<ChangelogTag, string> = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '0.33.0',
+    date: '2026-05-29',
+    tag: 'precision',
+    title: 'No more crying wolf — scoring hardened across every dimension',
+    summary:
+      'Re-running the In-the-Wild showcase repos against 0.32.0 exposed that the cliff-to-0 bug class lived in more dimensions than the first pass caught (langchain Edge Cases 0/100 with 25 findings; TestForge\'s own Supply Chain 0/100 with 26). This pass routes EVERY finding/count-based scorer — Edge Cases, Supply Chain, Contract, Visual Regression, Chaos, N+1, License, Vision, Agentic, Accessibility, Predictive — through the shared diminishing-returns curve, so no dimension can bottom out from low-severity pile-ups. Three deeper "cry-wolf" fixes: (1) Predictive risk is now size-independent — it scores off surfaced hotspot severity, not an unbounded repo-wide sum, so large mature codebases stop flooring to 10; (2) generated/vendored files (codegen clients like schemas.gen.ts, .d.ts, protobuf stubs, minified bundles, vendored trees) are excluded from risk-hotspot and dead-code reporting — you regenerate them, not refactor them; (3) Dead Code only checks runtime deps (devDependencies are build/lint/test tooling that\'s config- or CLI-invoked, never imported, so flagging them "unused" was noise), and Accessibility scores on issue DENSITY (per √UI-file) instead of raw volume so a large clean app isn\'t tanked by absolute count. Verified across a Python monorepo, a polyglot template, a 78k-star TS monorepo, and TestForge itself.',
+  },
+  {
     version: '0.32.0',
     date: '2026-05-29',
     tag: 'precision',

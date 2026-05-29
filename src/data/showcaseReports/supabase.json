@@ -1,13 +1,13 @@
 {
   "slug": "supabase",
   "repoUrl": "https://github.com/supabase/supabase",
-  "repoName": "supabase",
-  "tagline": "78k-star OSS Firebase alt \u2014 TypeScript monorepo + test-path security suppression",
-  "analyzedAt": "2026-05-28T17:10:38.041Z",
-  "analyzeMs": 47575,
+  "repoName": "supabase/supabase",
+  "tagline": "78k-star OSS Firebase alt — TypeScript monorepo + test-path security suppression",
+  "analyzedAt": "2026-05-29T04:09:20.860Z",
+  "analyzeMs": 0,
   "codebase": {
     "totalFiles": 7651,
-    "totalLines": 1205414,
+    "totalLines": 1205431,
     "endpoints": 579,
     "dependencies": 252,
     "techStack": [
@@ -64,7 +64,7 @@
     ]
   },
   "security": {
-    "findings": 15,
+    "findings": 10,
     "critical": 0,
     "high": 1,
     "medium": 4,
@@ -80,14 +80,6 @@
       },
       {
         "severity": "low",
-        "title": "Path Traversal Risk",
-        "description": "fs.writeFile() path was built from a variable. Verify it can't escape the intended directory.",
-        "filePath": "apps/docs/scripts/llms.ts",
-        "lineNumber": 131,
-        "fixSuggestion": "Resolve to an absolute path, then verify the result starts with the expected base directory. Allowlist file ids \u2192 server-resolved paths, never echo user paths back."
-      },
-      {
-        "severity": "low",
         "title": "dangerouslySetInnerHTML from a non-literal value",
         "description": "__html is built from a variable. Verify it's sanitized.",
         "filePath": "apps/design-system/app/layout.tsx",
@@ -95,9 +87,17 @@
         "fixSuggestion": "Render the value as text (default React escaping) or run it through DOMPurify.sanitize() first."
       },
       {
+        "severity": "low",
+        "title": "Path Traversal Risk",
+        "description": "fs.writeFile() path was built from a variable. Verify it can't escape the intended directory.",
+        "filePath": "apps/docs/scripts/llms.ts",
+        "lineNumber": 131,
+        "fixSuggestion": "Resolve to an absolute path, then verify the result starts with the expected base directory. Allowlist file ids → server-resolved paths, never echo user paths back."
+      },
+      {
         "severity": "high",
         "title": "dangerouslySetInnerHTML with user input",
-        "description": "__html flows from a derived tainted value with no sanitizer in between \u2014 XSS.",
+        "description": "__html flows from a derived tainted value with no sanitizer in between — XSS.",
         "filePath": "apps/www/pages/events/[slug].tsx",
         "lineNumber": 230,
         "fixSuggestion": "Render the value as text (default React escaping) or run it through DOMPurify.sanitize() first."
@@ -109,6 +109,46 @@
         "filePath": "apps/docs/features/docs/Reference.utils.ts",
         "lineNumber": 209,
         "fixSuggestion": "Validate the redirect against an explicit allowlist of paths or domains. Prefer internal route names over URL parameters."
+      },
+      {
+        "severity": "low",
+        "title": "Unvalidated Redirect",
+        "description": "NextResponse.redirect() target was built from a variable. Confirm it's checked against an allowlist.",
+        "filePath": "apps/ui-library/registry/default/blocks/social-auth-nextjs/app/auth/oauth/route.ts",
+        "lineNumber": 24,
+        "fixSuggestion": "Validate the redirect against an explicit allowlist of paths or domains. Prefer internal route names over URL parameters."
+      },
+      {
+        "severity": "medium",
+        "title": "Unvalidated Redirect",
+        "description": "NextResponse.redirect() target flows from request with no sanitizer in between. Open-redirect / phishing vector.",
+        "filePath": "apps/ui-library/registry/default/blocks/social-auth-nextjs/app/auth/oauth/route.ts",
+        "lineNumber": 26,
+        "fixSuggestion": "Validate the redirect against an explicit allowlist of paths or domains. Prefer internal route names over URL parameters."
+      },
+      {
+        "severity": "low",
+        "title": "Unvalidated Redirect",
+        "description": "NextResponse.redirect() target was built from a variable. Confirm it's checked against an allowlist.",
+        "filePath": "apps/ui-library/registry/default/blocks/social-auth-nextjs/app/auth/oauth/route.ts",
+        "lineNumber": 28,
+        "fixSuggestion": "Validate the redirect against an explicit allowlist of paths or domains. Prefer internal route names over URL parameters."
+      },
+      {
+        "severity": "low",
+        "title": "Unvalidated Redirect",
+        "description": "NextResponse.redirect() target was built from a variable. Confirm it's checked against an allowlist.",
+        "filePath": "apps/ui-library/registry/default/blocks/social-auth-nextjs/app/auth/oauth/route.ts",
+        "lineNumber": 34,
+        "fixSuggestion": "Validate the redirect against an explicit allowlist of paths or domains. Prefer internal route names over URL parameters."
+      },
+      {
+        "severity": "low",
+        "title": "Response built from a non-literal value",
+        "description": "res.write() echoes a value built from variables.",
+        "filePath": "apps/studio/pages/api/v1/projects/[ref]/functions/[slug]/body.ts",
+        "lineNumber": 52,
+        "fixSuggestion": "Escape with a templating engine, or use res.json() with a strict Content-Type. For HTML, sanitize with DOMPurify or sanitize-html before responding."
       }
     ]
   },
@@ -116,7 +156,27 @@
     {
       "key": "security",
       "label": "Security",
-      "score": 95
+      "score": 80
+    },
+    {
+      "key": "kubernetes",
+      "label": "Kubernetes",
+      "score": null
+    },
+    {
+      "key": "owasp",
+      "label": "OWASP",
+      "score": 80
+    },
+    {
+      "key": "supplyChain",
+      "label": "Supply Chain",
+      "score": 45
+    },
+    {
+      "key": "license",
+      "label": "License",
+      "score": 89
     },
     {
       "key": "unit",
@@ -124,9 +184,64 @@
       "score": 90
     },
     {
+      "key": "mutation",
+      "label": "Mutation",
+      "score": 37
+    },
+    {
+      "key": "propertyBased",
+      "label": "Property-Based",
+      "score": 70
+    },
+    {
+      "key": "edgeCases",
+      "label": "Edge Cases",
+      "score": 54
+    },
+    {
+      "key": "contract",
+      "label": "Contract",
+      "score": 100
+    },
+    {
+      "key": "predictive",
+      "label": "Predictive Risk",
+      "score": 61
+    },
+    {
+      "key": "nPlusOne",
+      "label": "N+1 Queries",
+      "score": 50
+    },
+    {
+      "key": "deadCode",
+      "label": "Dead Code",
+      "score": 24
+    },
+    {
+      "key": "load",
+      "label": "Load",
+      "score": 85
+    },
+    {
+      "key": "chaos",
+      "label": "Chaos / Resilience",
+      "score": 100
+    },
+    {
+      "key": "agentic",
+      "label": "Agentic Scale",
+      "score": 91
+    },
+    {
       "key": "accessibility",
       "label": "Accessibility",
-      "score": 10
+      "score": 70
+    },
+    {
+      "key": "visualRegression",
+      "label": "Visual Regression",
+      "score": 93
     },
     {
       "key": "vision",
@@ -144,35 +259,628 @@
       "score": 100
     },
     {
-      "key": "chaos",
-      "label": "Chaos / Resilience",
-      "score": 100
+      "key": "dora",
+      "label": "DORA",
+      "score": 65
+    }
+  ],
+  "overall": 75,
+  "totalFindings": 469,
+  "dimensionFindings": [
+    {
+      "key": "security",
+      "label": "Security",
+      "score": 80,
+      "applicable": true,
+      "findingCount": 10,
+      "findings": [
+        {
+          "severity": "low",
+          "title": "dangerouslySetInnerHTML from a non-literal value",
+          "description": "__html is built from a variable. Verify it's sanitized.",
+          "filePath": "apps/studio/pages/_app.tsx",
+          "lineNumber": 192,
+          "fixSuggestion": "Render the value as text (default React escaping) or run it through DOMPurify.sanitize() first."
+        },
+        {
+          "severity": "low",
+          "title": "dangerouslySetInnerHTML from a non-literal value",
+          "description": "__html is built from a variable. Verify it's sanitized.",
+          "filePath": "apps/design-system/app/layout.tsx",
+          "lineNumber": 128,
+          "fixSuggestion": "Render the value as text (default React escaping) or run it through DOMPurify.sanitize() first."
+        },
+        {
+          "severity": "low",
+          "title": "Path Traversal Risk",
+          "description": "fs.writeFile() path was built from a variable. Verify it can't escape the intended directory.",
+          "filePath": "apps/docs/scripts/llms.ts",
+          "lineNumber": 131,
+          "fixSuggestion": "Resolve to an absolute path, then verify the result starts with the expected base directory. Allowlist file ids → server-resolved paths, never echo user paths back."
+        },
+        {
+          "severity": "high",
+          "title": "dangerouslySetInnerHTML with user input",
+          "description": "__html flows from a derived tainted value with no sanitizer in between — XSS.",
+          "filePath": "apps/www/pages/events/[slug].tsx",
+          "lineNumber": 230,
+          "fixSuggestion": "Render the value as text (default React escaping) or run it through DOMPurify.sanitize() first."
+        },
+        {
+          "severity": "low",
+          "title": "Unvalidated Redirect",
+          "description": "redirect() target was built from a variable. Confirm it's checked against an allowlist.",
+          "filePath": "apps/docs/features/docs/Reference.utils.ts",
+          "lineNumber": 209,
+          "fixSuggestion": "Validate the redirect against an explicit allowlist of paths or domains. Prefer internal route names over URL parameters."
+        },
+        {
+          "severity": "low",
+          "title": "Unvalidated Redirect",
+          "description": "NextResponse.redirect() target was built from a variable. Confirm it's checked against an allowlist.",
+          "filePath": "apps/ui-library/registry/default/blocks/social-auth-nextjs/app/auth/oauth/route.ts",
+          "lineNumber": 24,
+          "fixSuggestion": "Validate the redirect against an explicit allowlist of paths or domains. Prefer internal route names over URL parameters."
+        },
+        {
+          "severity": "medium",
+          "title": "Unvalidated Redirect",
+          "description": "NextResponse.redirect() target flows from request with no sanitizer in between. Open-redirect / phishing vector.",
+          "filePath": "apps/ui-library/registry/default/blocks/social-auth-nextjs/app/auth/oauth/route.ts",
+          "lineNumber": 26,
+          "fixSuggestion": "Validate the redirect against an explicit allowlist of paths or domains. Prefer internal route names over URL parameters."
+        },
+        {
+          "severity": "low",
+          "title": "Unvalidated Redirect",
+          "description": "NextResponse.redirect() target was built from a variable. Confirm it's checked against an allowlist.",
+          "filePath": "apps/ui-library/registry/default/blocks/social-auth-nextjs/app/auth/oauth/route.ts",
+          "lineNumber": 28,
+          "fixSuggestion": "Validate the redirect against an explicit allowlist of paths or domains. Prefer internal route names over URL parameters."
+        },
+        {
+          "severity": "low",
+          "title": "Unvalidated Redirect",
+          "description": "NextResponse.redirect() target was built from a variable. Confirm it's checked against an allowlist.",
+          "filePath": "apps/ui-library/registry/default/blocks/social-auth-nextjs/app/auth/oauth/route.ts",
+          "lineNumber": 34,
+          "fixSuggestion": "Validate the redirect against an explicit allowlist of paths or domains. Prefer internal route names over URL parameters."
+        },
+        {
+          "severity": "low",
+          "title": "Response built from a non-literal value",
+          "description": "res.write() echoes a value built from variables.",
+          "filePath": "apps/studio/pages/api/v1/projects/[ref]/functions/[slug]/body.ts",
+          "lineNumber": 52,
+          "fixSuggestion": "Escape with a templating engine, or use res.json() with a strict Content-Type. For HTML, sanitize with DOMPurify or sanitize-html before responding."
+        }
+      ]
     },
     {
-      "key": "mutation",
-      "label": "Mutation",
-      "score": 37
+      "key": "kubernetes",
+      "label": "Kubernetes",
+      "score": 0,
+      "applicable": false,
+      "findingCount": 0,
+      "findings": [],
+      "naReason": "No Kubernetes manifests or Helm charts found in the repo."
     },
     {
-      "key": "predictive",
-      "label": "Predictive Risk",
-      "score": 10
+      "key": "owasp",
+      "label": "OWASP",
+      "score": 80,
+      "applicable": true,
+      "findingCount": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "title": "OWASP Top 10 analyzer coverage: 80% (8/10)",
+          "description": "TestForge ships rules for 8 of the 10 OWASP 2021 categories. Categories without dedicated rules yet: A08:2021 — Software and Data Integrity Failures, A10:2021 — Server-Side Request Forgery. These are gaps in the analyzer itself — your project may still have issues in these areas that this report won't surface.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "For the un-covered categories, complement TestForge with: dependency-track for A08 (software integrity), an SSRF-focused fuzzer or proxy-based runtime scan for A10. Track the gap in your threat model."
+        }
+      ]
     },
     {
       "key": "supplyChain",
       "label": "Supply Chain",
-      "score": 49
+      "score": 45,
+      "applicable": true,
+      "findingCount": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "title": "axios: CVE-2023-45857",
+          "description": "Direct dependency `axios` matches a known vulnerable version range. Recommended fix: >= 1.6.0.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "npm install axios@1.6.0"
+        },
+        {
+          "severity": "high",
+          "title": "lodash: CVE-2021-23337",
+          "description": "Direct dependency `lodash` matches a known vulnerable version range. Recommended fix: >= 4.17.21.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "npm install lodash@4.17.21"
+        },
+        {
+          "severity": "high",
+          "title": "lodash: CVE-2021-23337",
+          "description": "Direct dependency `lodash` matches a known vulnerable version range. Recommended fix: >= 4.17.21.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "npm install lodash@4.17.21"
+        },
+        {
+          "severity": "high",
+          "title": "minimist: CVE-2021-44906",
+          "description": "Direct dependency `minimist` matches a known vulnerable version range. Recommended fix: >= 1.2.6.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "npm install minimist@1.2.6"
+        },
+        {
+          "severity": "low",
+          "title": "No package-lock.json found",
+          "description": "Without a lockfile, every install can pull different transitive versions. Only direct-dep CVEs were checked.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Commit a `package-lock.json` (npm), `pnpm-lock.yaml` (pnpm), or `yarn.lock` (yarn). Treat lockfile changes as security-sensitive in code review."
+        }
+      ]
     },
     {
-      "key": "dora",
-      "label": "DORA",
-      "score": 65
+      "key": "license",
+      "label": "License",
+      "score": 89,
+      "applicable": true,
+      "findingCount": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "title": "License audit could not run — no node_modules/ found",
+          "description": "License compliance requires reading each installed package's `license` field, but no `node_modules/` directory was present.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Run `npm install` (or your package manager's equivalent) before the analysis, or supply pre-installed dependencies. Without this, 252 declared deps are unchecked for license compatibility."
+        }
+      ]
+    },
+    {
+      "key": "unit",
+      "label": "Unit Tests",
+      "score": 90,
+      "applicable": true,
+      "findingCount": 68,
+      "findings": []
+    },
+    {
+      "key": "mutation",
+      "label": "Mutation",
+      "score": 37,
+      "applicable": true,
+      "findingCount": 4,
+      "findings": [
+        {
+          "severity": "high",
+          "title": "Estimated mutation score: ~37% (heuristic)",
+          "description": "Inputs: 426 test files / 6393 source files (ratio 0.07), 8625 assertions (6122 strong, 742 weak, 156 snapshot), 18 distinct strong-matcher type(s). ~12952/35007 candidate mutants likely killed. Run Stryker for the exact number.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Boost the kill rate: replace `toBeTruthy()` with `toBe(specificValue)`, add boundary-condition tests, vary the matcher types you use."
+        },
+        {
+          "severity": "medium",
+          "title": "8 test file(s) dominated by weak assertions",
+          "description": "Files where >50% of assertions are toBeTruthy / toBeFalsy / toBeDefined / toBeNull. Examples: apps/studio/lib/navigation.test.ts (20/32 weak); apps/studio/lib/error-reporting.test.ts (10/18 weak); apps/studio/components/layouts/OrganizationLayout.test.tsx (16/28 weak).",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "A mutation that changes `42` to `41` still satisfies `toBeTruthy()`. Replace with `toBe(42)` or `toEqual({…})` to actually catch behaviour changes."
+        },
+        {
+          "severity": "low",
+          "title": "6 test file(s) dominated by snapshot assertions",
+          "description": "Files where ≥90% of assertions are toMatchSnapshot / toMatchInlineSnapshot. Examples: packages/pg-meta/test/views.test.ts (4/4); packages/pg-meta/test/table-privileges.test.ts (5/5); packages/pg-meta/test/schemas.test.ts (7/7).",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Snapshots catch SOME mutants but are brittle (changes in unrelated fields cause failures). Mix in concrete assertions on the values that actually matter."
+        },
+        {
+          "severity": "low",
+          "title": "Mutation testing tool not configured",
+          "description": "Stryker Mutator or similar not found in devDependencies. Install to get real mutation scores.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "npm install -D @stryker-mutator/core && npx stryker init"
+        }
+      ]
+    },
+    {
+      "key": "propertyBased",
+      "label": "Property-Based",
+      "score": 70,
+      "applicable": true,
+      "findingCount": 1,
+      "findings": [
+        {
+          "severity": "medium",
+          "title": "No property-based testing framework detected",
+          "description": "No `fast-check` / `jsverify` / `@fast-check/vitest` import found. Property-based testing generates inputs over a domain and asserts invariants — strong fit for parsers, encoders, math, and stateful reducers.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Install `fast-check` and write a few `fc.assert(fc.property(fc.integer(), n => sortRoundTrip([n]) === [n]))`-style tests against your most invariant-heavy code."
+        }
+      ]
+    },
+    {
+      "key": "edgeCases",
+      "label": "Edge Cases",
+      "score": 54,
+      "applicable": true,
+      "findingCount": 25,
+      "findings": [
+        {
+          "severity": "high",
+          "title": "JSON parse untrycaught (scripts/fix-audit-vulnerability.ts:49)",
+          "description": "JSON.parse() outside a try/catch — throws on malformed input.",
+          "filePath": "scripts/fix-audit-vulnerability.ts",
+          "lineNumber": 49,
+          "fixSuggestion": "Wrap in try/catch (or a `safeParse` helper that returns `{ ok, value, error }`). JSON.parse throws SyntaxError on bad input."
+        },
+        {
+          "severity": "high",
+          "title": "JSON parse untrycaught (scripts/actions/send-slack-pr-notification.ts:128)",
+          "description": "JSON.parse() outside a try/catch — throws on malformed input.",
+          "filePath": "scripts/actions/send-slack-pr-notification.ts",
+          "lineNumber": 128,
+          "fixSuggestion": "Wrap in try/catch (or a `safeParse` helper that returns `{ ok, value, error }`). JSON.parse throws SyntaxError on bad input."
+        },
+        {
+          "severity": "medium",
+          "title": "new Date on string (scripts/actions/find-stale-dashboard-prs.ts:1)",
+          "description": "new Date(arg) with a non-literal / non-ISO argument — bad input produces \"Invalid Date\".",
+          "filePath": "scripts/actions/find-stale-dashboard-prs.ts",
+          "lineNumber": 1,
+          "fixSuggestion": "Validate the string first (Zod / a regex) or use date-fns / Luxon parsers that surface errors cleanly. Otherwise `new Date(\"not a date\")` returns \"Invalid Date\" silently."
+        },
+        {
+          "severity": "medium",
+          "title": "new Date on string (scripts/actions/find-stale-dashboard-prs.ts:32)",
+          "description": "new Date(arg) with a non-literal / non-ISO argument — bad input produces \"Invalid Date\".",
+          "filePath": "scripts/actions/find-stale-dashboard-prs.ts",
+          "lineNumber": 32,
+          "fixSuggestion": "Validate the string first (Zod / a regex) or use date-fns / Luxon parsers that surface errors cleanly. Otherwise `new Date(\"not a date\")` returns \"Invalid Date\" silently."
+        },
+        {
+          "severity": "medium",
+          "title": "new Date on string (scripts/actions/find-stale-dashboard-prs.ts:112)",
+          "description": "new Date(arg) with a non-literal / non-ISO argument — bad input produces \"Invalid Date\".",
+          "filePath": "scripts/actions/find-stale-dashboard-prs.ts",
+          "lineNumber": 112,
+          "fixSuggestion": "Validate the string first (Zod / a regex) or use date-fns / Luxon parsers that surface errors cleanly. Otherwise `new Date(\"not a date\")` returns \"Invalid Date\" silently."
+        },
+        {
+          "severity": "medium",
+          "title": "new Date on string (scripts/actions/find-stale-dashboard-prs.ts:150)",
+          "description": "new Date(arg) with a non-literal / non-ISO argument — bad input produces \"Invalid Date\".",
+          "filePath": "scripts/actions/find-stale-dashboard-prs.ts",
+          "lineNumber": 150,
+          "fixSuggestion": "Validate the string first (Zod / a regex) or use date-fns / Luxon parsers that surface errors cleanly. Otherwise `new Date(\"not a date\")` returns \"Invalid Date\" silently."
+        },
+        {
+          "severity": "medium",
+          "title": "new Date on string (scripts/actions/find-stale-dashboard-prs.ts:151)",
+          "description": "new Date(arg) with a non-literal / non-ISO argument — bad input produces \"Invalid Date\".",
+          "filePath": "scripts/actions/find-stale-dashboard-prs.ts",
+          "lineNumber": 151,
+          "fixSuggestion": "Validate the string first (Zod / a regex) or use date-fns / Luxon parsers that surface errors cleanly. Otherwise `new Date(\"not a date\")` returns \"Invalid Date\" silently."
+        },
+        {
+          "severity": "medium",
+          "title": "Number coercion unchecked (scripts/actions/find-stale-dashboard-prs.ts:32)",
+          "description": "Number(x) used inline (no var assignment) — bad input produces NaN that propagates silently.",
+          "filePath": "scripts/actions/find-stale-dashboard-prs.ts",
+          "lineNumber": 32,
+          "fixSuggestion": "Wrap with `Number.isNaN(Number(x))` guard, or use Zod `.number()` / a typed parser. `Number(\"foo\")` returns NaN, which then propagates through any arithmetic without erroring."
+        },
+        {
+          "severity": "high",
+          "title": "JSON parse untrycaught (packages/generator/tsdoc.ts:32)",
+          "description": "JSON.parse() outside a try/catch — throws on malformed input.",
+          "filePath": "packages/generator/tsdoc.ts",
+          "lineNumber": 32,
+          "fixSuggestion": "Wrap in try/catch (or a `safeParse` helper that returns `{ ok, value, error }`). JSON.parse throws SyntaxError on bad input."
+        },
+        {
+          "severity": "medium",
+          "title": "new Date on string (packages/dev-tools/DevToolbar.tsx:61)",
+          "description": "new Date(arg) with a non-literal / non-ISO argument — bad input produces \"Invalid Date\".",
+          "filePath": "packages/dev-tools/DevToolbar.tsx",
+          "lineNumber": 61,
+          "fixSuggestion": "Validate the string first (Zod / a regex) or use date-fns / Luxon parsers that surface errors cleanly. Otherwise `new Date(\"not a date\")` returns \"Invalid Date\" silently."
+        }
+      ]
+    },
+    {
+      "key": "contract",
+      "label": "Contract",
+      "score": 100,
+      "applicable": true,
+      "findingCount": 0,
+      "findings": []
+    },
+    {
+      "key": "predictive",
+      "label": "Predictive Risk",
+      "score": 61,
+      "applicable": true,
+      "findingCount": 6,
+      "findings": [
+        {
+          "severity": "high",
+          "title": "Risk hotspot: apps/studio/public/monaco-editor/base/worker/workerMain.js (score 595.4)",
+          "description": "Aggregated signals: 1 N+1 hit · hot function (cc=40 in `<anonymous>`) · large file (11607 loc).",
+          "filePath": "apps/studio/public/monaco-editor/base/worker/workerMain.js",
+          "lineNumber": 1,
+          "fixSuggestion": "Triage the contributing signals in order: critical-security first, then N+1 hits, then refactor the hottest function (extract guard clauses, split into smaller fns). Add tests around the hottest function before refactoring."
+        },
+        {
+          "severity": "high",
+          "title": "Risk hotspot: packages/common/telemetry-constants.ts (score 244.5)",
+          "description": "Aggregated signals: large file (3489 loc) · 180 unused exports.",
+          "filePath": "packages/common/telemetry-constants.ts",
+          "lineNumber": 1,
+          "fixSuggestion": "Triage the contributing signals in order: critical-security first, then N+1 hits, then refactor the hottest function (extract guard clauses, split into smaller fns). Add tests around the hottest function before refactoring."
+        },
+        {
+          "severity": "high",
+          "title": "Risk hotspot: apps/studio/components/interfaces/Integrations/Wrappers/Wrappers.constants.ts (score 211.9)",
+          "description": "Aggregated signals: large file (4637 loc).",
+          "filePath": "apps/studio/components/interfaces/Integrations/Wrappers/Wrappers.constants.ts",
+          "lineNumber": 1,
+          "fixSuggestion": "Triage the contributing signals in order: critical-security first, then N+1 hits, then refactor the hottest function (extract guard clauses, split into smaller fns). Add tests around the hottest function before refactoring."
+        },
+        {
+          "severity": "high",
+          "title": "Risk hotspot: apps/docs/components/Navigation/NavigationMenu/NavigationMenu.constants.ts (score 157.2)",
+          "description": "Aggregated signals: large file (3513 loc) · 3 unused exports.",
+          "filePath": "apps/docs/components/Navigation/NavigationMenu/NavigationMenu.constants.ts",
+          "lineNumber": 1,
+          "fixSuggestion": "Triage the contributing signals in order: critical-security first, then N+1 hits, then refactor the hottest function (extract guard clauses, split into smaller fns). Add tests around the hottest function before refactoring."
+        },
+        {
+          "severity": "high",
+          "title": "Risk hotspot: apps/design-system/__registry__/index.tsx (score 156.5)",
+          "description": "Aggregated signals: large file (3530 loc).",
+          "filePath": "apps/design-system/__registry__/index.tsx",
+          "lineNumber": 1,
+          "fixSuggestion": "Triage the contributing signals in order: critical-security first, then N+1 hits, then refactor the hottest function (extract guard clauses, split into smaller fns). Add tests around the hottest function before refactoring."
+        },
+        {
+          "severity": "low",
+          "title": "No automated dependency updates",
+          "description": "No Renovate / Dependabot detected. Dependencies will drift, accumulating CVEs.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Enable Dependabot via `.github/dependabot.yml`, or Renovate via the GitHub App. Schedule a weekly security sprint to land the PRs."
+        }
+      ]
+    },
+    {
+      "key": "nPlusOne",
+      "label": "N+1 Queries",
+      "score": 50,
+      "applicable": true,
+      "findingCount": 5,
+      "findings": [
+        {
+          "severity": "high",
+          "title": "Potential N+1 Query in for-of",
+          "description": "`query()` is invoked inside a `for-of` loop at e2e/studio/features/database.spec.ts:1111. Each iteration issues its own DB round-trip.\nLine: await query(`drop type if exists ${typeName};`)",
+          "filePath": "e2e/studio/features/database.spec.ts",
+          "lineNumber": 1111,
+          "fixSuggestion": "Batch the query: pre-build the id list, fire one query with `WHERE id IN (...)`, or use eager-loading (`.include()` / `.populate()` / `JOIN`). For parallelisation only, wrap in `Promise.all([...].map(...))` so the round-trips overlap."
+        },
+        {
+          "severity": "high",
+          "title": "Potential N+1 Query in for-of",
+          "description": "`query()` is invoked inside a `for-of` loop at e2e/studio/features/database.spec.ts:1116. Each iteration issues its own DB round-trip.\nLine: await query(`drop type if exists ${typeName};`)",
+          "filePath": "e2e/studio/features/database.spec.ts",
+          "lineNumber": 1116,
+          "fixSuggestion": "Batch the query: pre-build the id list, fire one query with `WHERE id IN (...)`, or use eager-loading (`.include()` / `.populate()` / `JOIN`). For parallelisation only, wrap in `Promise.all([...].map(...))` so the round-trips overlap."
+        },
+        {
+          "severity": "high",
+          "title": "Potential N+1 Query in for-of",
+          "description": "`exec()` is invoked inside a `for-of` loop at apps/www/lib/toc.ts:26. Each iteration issues its own DB round-trip.\nLine: const m = /^(#{1,6})\\s+(.*)$/.exec(line)",
+          "filePath": "apps/www/lib/toc.ts",
+          "lineNumber": 26,
+          "fixSuggestion": "Batch the query: pre-build the id list, fire one query with `WHERE id IN (...)`, or use eager-loading (`.include()` / `.populate()` / `JOIN`). For parallelisation only, wrap in `Promise.all([...].map(...))` so the round-trips overlap."
+        },
+        {
+          "severity": "high",
+          "title": "Potential N+1 Query in for-of",
+          "description": "`pg.exec()` is invoked inside a `for-of` loop at apps/studio/state/postgres-sandbox/sandbox.core.ts:37. Each iteration issues its own DB round-trip.\nLine: await pg.exec(sql)",
+          "filePath": "apps/studio/state/postgres-sandbox/sandbox.core.ts",
+          "lineNumber": 37,
+          "fixSuggestion": "Batch the query: pre-build the id list, fire one query with `WHERE id IN (...)`, or use eager-loading (`.include()` / `.populate()` / `JOIN`). For parallelisation only, wrap in `Promise.all([...].map(...))` so the round-trips overlap."
+        },
+        {
+          "severity": "high",
+          "title": "Potential N+1 Query in do-while",
+          "description": "`this._searchRegex.exec()` is invoked inside a `do-while` loop at apps/studio/public/monaco-editor/base/worker/workerMain.js:7873. Each iteration issues its own DB round-trip.\nLine: ((d = this._searchRegex.exec(y)), !d)",
+          "filePath": "apps/studio/public/monaco-editor/base/worker/workerMain.js",
+          "lineNumber": 7873,
+          "fixSuggestion": "Batch the query: pre-build the id list, fire one query with `WHERE id IN (...)`, or use eager-loading (`.include()` / `.populate()` / `JOIN`). For parallelisation only, wrap in `Promise.all([...].map(...))` so the round-trips overlap."
+        }
+      ]
+    },
+    {
+      "key": "deadCode",
+      "label": "Dead Code",
+      "score": 24,
+      "applicable": true,
+      "findingCount": 2,
+      "findings": [
+        {
+          "severity": "medium",
+          "title": "29 Unused Dependencies",
+          "description": "Dependencies not imported anywhere: @octokit/graphql, @octokit/rest, gsap, typescript, @supabase/supa-mdx-lint, …. These increase bundle size, install time, and supply-chain attack surface.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Remove with: `npm uninstall @octokit/graphql @octokit/rest gsap`. Confirm with `npx depcheck` before removing — some packages are loaded by side-effect (Babel plugins, polyfills) without explicit imports."
+        },
+        {
+          "severity": "medium",
+          "title": "2675 Exported Symbols Not Referenced Anywhere",
+          "description": "Exports that no other file imports:\n  packages/shared-data/tweets.ts: getWeightedTweets\n  packages/shared-data/products.ts: ProductProps\n  packages/shared-data/compute-disk-limits.ts: ComputeDiskLimit, ComputeDiskKey\n  packages/common/telemetry.tsx: handlePageLeaveTelemetry, sendTelemetryIdentify, useTelemetryIdentify, handleResetTelemetry\n  packages/common/telemetry-constants.ts: TABLE_EVENT_VALU",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Either remove the export, narrow it to `@internal` / non-exported, or use it from another module. For dual-purpose exports (used by external consumers via the package surface), add them to the package's main entry index file so they're reachable."
+        }
+      ]
+    },
+    {
+      "key": "load",
+      "label": "Load",
+      "score": 85,
+      "applicable": true,
+      "findingCount": 0,
+      "findings": []
+    },
+    {
+      "key": "chaos",
+      "label": "Chaos / Resilience",
+      "score": 100,
+      "applicable": true,
+      "findingCount": 0,
+      "findings": []
     },
     {
       "key": "agentic",
       "label": "Agentic Scale",
-      "score": 85
+      "score": 91,
+      "applicable": true,
+      "findingCount": 1,
+      "findings": [
+        {
+          "severity": "high",
+          "title": "Auth Endpoints Not Rate Limited",
+          "description": "AI agents frequently re-authenticate (token refresh, retry on 401). Without auth rate limiting, agents can brute-force or DoS your auth system.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Rate limit auth endpoints separately: 5 attempts/min per IP. Add account locking after 10 failures. Monitor for unusual auth patterns."
+        }
+      ]
+    },
+    {
+      "key": "accessibility",
+      "label": "Accessibility",
+      "score": 70,
+      "applicable": true,
+      "findingCount": 333,
+      "findings": []
+    },
+    {
+      "key": "visualRegression",
+      "label": "Visual Regression",
+      "score": 93,
+      "applicable": true,
+      "findingCount": 3,
+      "findings": [
+        {
+          "severity": "medium",
+          "title": "Heavy inline styles in 292 file(s) without CSS Modules",
+          "description": "579 inline `style={{…}}` JSX props across 292 files; no CSS Modules detected. Example file: packages/dev-tools/DevToolbarTrigger.tsx.",
+          "filePath": "packages/dev-tools/DevToolbarTrigger.tsx",
+          "lineNumber": 1,
+          "fixSuggestion": "Adopt CSS Modules / Tailwind / styled-components / vanilla-extract. Inline styles defeat selector caching and make visual-diff testing unstable."
+        },
+        {
+          "severity": "low",
+          "title": "123 hardcoded pixel value(s) in inline styles",
+          "description": "Pixel values inside JSX `style={{…}}` props. These don't scale to user font-size preferences and break visual-regression snapshots across viewports.",
+          "filePath": "supabase/functions/og-images/component/Events.tsx",
+          "lineNumber": 1,
+          "fixSuggestion": "Use rem/em or design tokens. Pull from a shared theme so the snapshot baseline can move atomically."
+        },
+        {
+          "severity": "low",
+          "title": "49 inline color literal(s) in JSX styles",
+          "description": "Hex colors (#abc / #abcdef) embedded directly in `style={{…}}` props. Visual themes can't roll out (dark mode, brand changes) without grepping every file.",
+          "filePath": "supabase/functions/og-images/component/Events.tsx",
+          "lineNumber": 1,
+          "fixSuggestion": "Pull colors from a theme object (`theme.colors.primary`) or CSS variables."
+        }
+      ]
+    },
+    {
+      "key": "vision",
+      "label": "Vision",
+      "score": 100,
+      "applicable": true,
+      "findingCount": 0,
+      "findings": []
+    },
+    {
+      "key": "scope",
+      "label": "Scope",
+      "score": 100,
+      "applicable": true,
+      "findingCount": 0,
+      "findings": []
+    },
+    {
+      "key": "stack",
+      "label": "Stack",
+      "score": 100,
+      "applicable": true,
+      "findingCount": 2,
+      "findings": [
+        {
+          "severity": "low",
+          "title": "TypeScript without strict mode",
+          "description": "tsconfig.json found but `compilerOptions.strict` is not true. The default loose mode lets `any`-typed values flow freely; null/undefined errors slip past the compiler.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Set `\"strict\": true` in tsconfig (turns on strictNullChecks, noImplicitAny, strictFunctionTypes, etc.). For an existing codebase, use `tsc --noEmit` to see what breaks, then file by file."
+        },
+        {
+          "severity": "low",
+          "title": "No caching layer for growing app",
+          "description": "252 direct deps, no Redis / ioredis / memcached / LRU-cache. Even an in-process LRU pays off for hot paths.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Cache layer for queries + sessions + rate-limit counters. Redis for cross-instance share, LRU-cache for in-process hot data."
+        }
+      ]
+    },
+    {
+      "key": "dora",
+      "label": "DORA",
+      "score": 65,
+      "applicable": true,
+      "findingCount": 2,
+      "findings": [
+        {
+          "severity": "medium",
+          "title": "No observability dependency detected",
+          "description": "No Sentry / Datadog / NewRelic / OpenTelemetry / Honeycomb / Rollbar / Bugsnag dep. MTTR depends on knowing something broke before customers report it.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Add error-tracking (Sentry is the easiest) and ideally a tracing stack (OpenTelemetry → Honeycomb / Datadog / Jaeger). Wire up alerts to a notification channel that humans actually read."
+        },
+        {
+          "severity": "low",
+          "title": "No feature-flag platform detected",
+          "description": "A test framework is in place, but no LaunchDarkly / Statsig / Unleash / Flagsmith / Growthbook / Posthog SDK was found. Feature flags decouple deploy from release, enabling kill-switches and staged rollouts — proven CFR reducer.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "For early-stage projects: Posthog has a free tier and is JS-SDK-only. For larger teams: LaunchDarkly / Statsig. Even a homegrown flags table beats no kill-switch."
+        }
+      ]
     }
-  ],
-  "overall": 70
+  ]
 }

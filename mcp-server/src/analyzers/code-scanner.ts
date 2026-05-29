@@ -11,11 +11,11 @@ export interface CodebaseInfo {
   dependencies: string[];
   devDependencies: string[];
   /**
-   * npm-only deps (from package.json: dependencies + devDependencies +
-   * peerDependencies). Kept separate from the unioned `dependencies` so the
-   * dead-code analyzer — which only matches JS/TS import statements — never
-   * flags Python/Go packages as "unused" (a systematic false positive that
-   * used to cliff the dead-code score to 0 on polyglot repos).
+   * Runtime npm deps only (package.json dependencies + peerDependencies; NOT
+   * devDependencies). Used by the dead-code analyzer's unused-dep check, which
+   * only matches JS/TS imports — so it must never see Python/Go packages (always
+   * "unused") nor devDependencies (build/lint/test tooling that's config- or
+   * CLI-invoked, never imported). Both were cry-wolf sources.
    */
   npmDependencies: string[];
   techStack: string[];
@@ -282,9 +282,13 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
       // (React/Vue/Svelte) — count them as runtime so techStack tagging
       // catches them.
       dependencies.push(...npmPeer);
-      // Track npm deps separately so dead-code's import-matching only ever
-      // considers packages that COULD appear in a JS/TS import.
-      npmDependencies.push(...npmRuntime, ...npmDev, ...npmPeer);
+      // Track RUNTIME npm deps (dependencies + peerDependencies) separately for
+      // dead-code's unused check. devDependencies are deliberately EXCLUDED:
+      // they're build/test/lint tooling (prettier plugins, turbo, tsx, @types/*,
+      // eslint configs) that are config- or CLI-invoked, never `import`ed in
+      // source — so the import-matcher would always flag them "unused" and cry
+      // wolf (102 false unused-deps on the supabase monorepo).
+      npmDependencies.push(...npmRuntime, ...npmPeer);
     } catch {
       // file absent / malformed — fine
     }

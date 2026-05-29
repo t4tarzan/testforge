@@ -1,14 +1,14 @@
 {
   "slug": "testforge",
   "repoUrl": "https://github.com/t4tarzan/testforge",
-  "repoName": "testforge",
+  "repoName": "t4tarzan/testforge",
   "tagline": "TestForge auditing TestForge. Self-audit shipping fixes for what it finds, in public.",
-  "analyzedAt": "2026-05-28T17:09:46.828Z",
-  "analyzeMs": 2740,
+  "analyzedAt": "2026-05-29T04:09:07.194Z",
+  "analyzeMs": 0,
   "codebase": {
-    "totalFiles": 371,
-    "totalLines": 75111,
-    "endpoints": 206,
+    "totalFiles": 404,
+    "totalLines": 79939,
+    "endpoints": 230,
     "dependencies": 62,
     "techStack": [
       "Express",
@@ -21,7 +21,7 @@
       "Playwright"
     ],
     "languageCoverage": {
-      "nativelyAnalyzedFiles": 275,
+      "nativelyAnalyzedFiles": 307,
       "unsupportedFiles": 0,
       "coveragePercent": 100,
       "unsupportedLanguages": [],
@@ -30,9 +30,9 @@
     }
   },
   "unit": {
-    "coverage": 76,
-    "testFiles": 18,
-    "totalTests": 293,
+    "coverage": 79,
+    "testFiles": 28,
+    "totalTests": 356,
     "frameworks": [
       "Vitest",
       "go test",
@@ -54,9 +54,79 @@
       "score": 100
     },
     {
+      "key": "kubernetes",
+      "label": "Kubernetes",
+      "score": null
+    },
+    {
+      "key": "owasp",
+      "label": "OWASP",
+      "score": 80
+    },
+    {
+      "key": "supplyChain",
+      "label": "Supply Chain",
+      "score": 35
+    },
+    {
+      "key": "license",
+      "label": "License",
+      "score": 89
+    },
+    {
       "key": "unit",
       "label": "Unit Tests",
-      "score": 76
+      "score": 79
+    },
+    {
+      "key": "mutation",
+      "label": "Mutation",
+      "score": 39
+    },
+    {
+      "key": "propertyBased",
+      "label": "Property-Based",
+      "score": 82
+    },
+    {
+      "key": "edgeCases",
+      "label": "Edge Cases",
+      "score": 55
+    },
+    {
+      "key": "contract",
+      "label": "Contract",
+      "score": 93
+    },
+    {
+      "key": "predictive",
+      "label": "Predictive Risk",
+      "score": 61
+    },
+    {
+      "key": "nPlusOne",
+      "label": "N+1 Queries",
+      "score": 45
+    },
+    {
+      "key": "deadCode",
+      "label": "Dead Code",
+      "score": 40
+    },
+    {
+      "key": "load",
+      "label": "Load",
+      "score": 69
+    },
+    {
+      "key": "chaos",
+      "label": "Chaos / Resilience",
+      "score": 78
+    },
+    {
+      "key": "agentic",
+      "label": "Agentic Scale",
+      "score": 91
     },
     {
       "key": "accessibility",
@@ -64,9 +134,14 @@
       "score": 100
     },
     {
+      "key": "visualRegression",
+      "label": "Visual Regression",
+      "score": 93
+    },
+    {
       "key": "vision",
       "label": "Vision",
-      "score": 50
+      "score": 81
     },
     {
       "key": "scope",
@@ -79,35 +154,661 @@
       "score": 79
     },
     {
-      "key": "chaos",
-      "label": "Chaos / Resilience",
-      "score": 54
+      "key": "dora",
+      "label": "DORA",
+      "score": 25
+    }
+  ],
+  "overall": 72,
+  "totalFindings": 81,
+  "dimensionFindings": [
+    {
+      "key": "security",
+      "label": "Security",
+      "score": 100,
+      "applicable": true,
+      "findingCount": 0,
+      "findings": []
     },
     {
-      "key": "mutation",
-      "label": "Mutation",
-      "score": 35
+      "key": "kubernetes",
+      "label": "Kubernetes",
+      "score": 0,
+      "applicable": false,
+      "findingCount": 0,
+      "findings": [],
+      "naReason": "No Kubernetes manifests or Helm charts found in the repo."
     },
     {
-      "key": "predictive",
-      "label": "Predictive Risk",
-      "score": 10
+      "key": "owasp",
+      "label": "OWASP",
+      "score": 80,
+      "applicable": true,
+      "findingCount": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "title": "OWASP Top 10 analyzer coverage: 80% (8/10)",
+          "description": "TestForge ships rules for 8 of the 10 OWASP 2021 categories. Categories without dedicated rules yet: A08:2021 — Software and Data Integrity Failures, A10:2021 — Server-Side Request Forgery. These are gaps in the analyzer itself — your project may still have issues in these areas that this report won't surface.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "For the un-covered categories, complement TestForge with: dependency-track for A08 (software integrity), an SSRF-focused fuzzer or proxy-based runtime scan for A10. Track the gap in your threat model."
+        }
+      ]
     },
     {
       "key": "supplyChain",
       "label": "Supply Chain",
-      "score": 0
+      "score": 35,
+      "applicable": true,
+      "findingCount": 8,
+      "findings": [
+        {
+          "severity": "medium",
+          "title": "express: CVE-2024-29041",
+          "description": "Direct dependency `express` matches a known vulnerable version range. Recommended fix: >= 4.19.0.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "npm install express@4.19.0"
+        },
+        {
+          "severity": "medium",
+          "title": "Transitive: semver@7.8.1 — CVE-2022-25883",
+          "description": "Transitive dependency (installed via a top-level dep) matches a known CVE. Resolved from: https://registry.npmjs.org/semver/-/semver-7.8.1.tgz.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Run `npm audit fix`, or add an override in package.json: { \"overrides\": { \"semver\": \">=7.5.2\" } }"
+        },
+        {
+          "severity": "high",
+          "title": "Transitive: glob-parent@5.1.2 — CVE-2020-28469",
+          "description": "Transitive dependency (installed via a top-level dep) matches a known CVE. Resolved from: https://registry.npmjs.org/glob-parent/-/glob-parent-5.1.2.tgz.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Run `npm audit fix`, or add an override in package.json: { \"overrides\": { \"glob-parent\": \">=5.1.2\" } }"
+        },
+        {
+          "severity": "high",
+          "title": "Transitive: json5@2.2.3 — CVE-2022-46175",
+          "description": "Transitive dependency (installed via a top-level dep) matches a known CVE. Resolved from: https://registry.npmjs.org/json5/-/json5-2.2.3.tgz.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Run `npm audit fix`, or add an override in package.json: { \"overrides\": { \"json5\": \">=2.2.2\" } }"
+        },
+        {
+          "severity": "high",
+          "title": "Transitive: lodash@4.17.21 — CVE-2021-23337",
+          "description": "Transitive dependency (installed via a top-level dep) matches a known CVE. Resolved from: https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Run `npm audit fix`, or add an override in package.json: { \"overrides\": { \"lodash\": \">=4.17.21\" } }"
+        },
+        {
+          "severity": "medium",
+          "title": "Transitive: node-fetch@2.6.9 — CVE-2022-0235",
+          "description": "Transitive dependency (installed via a top-level dep) matches a known CVE. Resolved from: https://registry.npmjs.org/node-fetch/-/node-fetch-2.6.9.tgz.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Run `npm audit fix`, or add an override in package.json: { \"overrides\": { \"node-fetch\": \">=3.2.10\" } }"
+        },
+        {
+          "severity": "medium",
+          "title": "Transitive: word-wrap@1.2.5 — CVE-2023-26115",
+          "description": "Transitive dependency (installed via a top-level dep) matches a known CVE. Resolved from: https://registry.npmjs.org/word-wrap/-/word-wrap-1.2.5.tgz.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Run `npm audit fix`, or add an override in package.json: { \"overrides\": { \"word-wrap\": \">=1.2.4\" } }"
+        },
+        {
+          "severity": "low",
+          "title": "59 package(s) installed at multiple versions",
+          "description": "Version drift inflates bundle size and is a red flag for transitive-dep replacement attacks. Examples: @esbuild/android-arm @ {0.18.20, 0.25.12, 0.27.0, 0.27.2, 0.28.0}; @esbuild/android-arm64 @ {0.18.20, 0.25.12, 0.27.0, 0.27.2, 0.28.0}; @esbuild/android-x64 @ {0.18.20, 0.25.12, 0.27.0, 0.27.2, 0.28.0}.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Use `npm ls <name>` to find which deps pin the older version. Add an `overrides` entry to deduplicate, or upgrade the parent dep."
+        }
+      ]
     },
     {
-      "key": "dora",
-      "label": "DORA",
-      "score": 25
+      "key": "license",
+      "label": "License",
+      "score": 89,
+      "applicable": true,
+      "findingCount": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "title": "License audit could not run — no node_modules/ found",
+          "description": "License compliance requires reading each installed package's `license` field, but no `node_modules/` directory was present.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Run `npm install` (or your package manager's equivalent) before the analysis, or supply pre-installed dependencies. Without this, 62 declared deps are unchecked for license compatibility."
+        }
+      ]
+    },
+    {
+      "key": "unit",
+      "label": "Unit Tests",
+      "score": 79,
+      "applicable": true,
+      "findingCount": 8,
+      "findings": []
+    },
+    {
+      "key": "mutation",
+      "label": "Mutation",
+      "score": 39,
+      "applicable": true,
+      "findingCount": 4,
+      "findings": [
+        {
+          "severity": "high",
+          "title": "Estimated mutation score: ~39% (heuristic)",
+          "description": "Inputs: 24 test files / 282 source files (ratio 0.09), 749 assertions (601 strong, 132 weak, 3 snapshot), 14 distinct strong-matcher type(s). ~784/2011 candidate mutants likely killed. Run Stryker for the exact number.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Boost the kill rate: replace `toBeTruthy()` with `toBe(specificValue)`, add boundary-condition tests, vary the matcher types you use."
+        },
+        {
+          "severity": "medium",
+          "title": "1 test file(s) dominated by weak assertions",
+          "description": "Files where >50% of assertions are toBeTruthy / toBeFalsy / toBeDefined / toBeNull. Examples: mcp-server/tests/fixtures/mutation-quality/tests/weak.test.js (5/5 weak).",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "A mutation that changes `42` to `41` still satisfies `toBeTruthy()`. Replace with `toBe(42)` or `toEqual({…})` to actually catch behaviour changes."
+        },
+        {
+          "severity": "low",
+          "title": "1 test file(s) dominated by snapshot assertions",
+          "description": "Files where ≥90% of assertions are toMatchSnapshot / toMatchInlineSnapshot. Examples: mcp-server/tests/fixtures/mutation-quality/tests/snapshot.test.js (3/3).",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Snapshots catch SOME mutants but are brittle (changes in unrelated fields cause failures). Mix in concrete assertions on the values that actually matter."
+        },
+        {
+          "severity": "low",
+          "title": "Mutation testing tool not configured",
+          "description": "Stryker Mutator or similar not found in devDependencies. Install to get real mutation scores.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "npm install -D @stryker-mutator/core && npx stryker init"
+        }
+      ]
+    },
+    {
+      "key": "propertyBased",
+      "label": "Property-Based",
+      "score": 82,
+      "applicable": true,
+      "findingCount": 0,
+      "findings": []
+    },
+    {
+      "key": "edgeCases",
+      "label": "Edge Cases",
+      "score": 55,
+      "applicable": true,
+      "findingCount": 25,
+      "findings": [
+        {
+          "severity": "high",
+          "title": "JSON parse untrycaught (scripts/send-digest.mjs:281)",
+          "description": "JSON.parse() outside a try/catch — throws on malformed input.",
+          "filePath": "scripts/send-digest.mjs",
+          "lineNumber": 281,
+          "fixSuggestion": "Wrap in try/catch (or a `safeParse` helper that returns `{ ok, value, error }`). JSON.parse throws SyntaxError on bad input."
+        },
+        {
+          "severity": "high",
+          "title": "JSON parse untrycaught (api/webhook.js:26)",
+          "description": "JSON.parse() outside a try/catch — throws on malformed input.",
+          "filePath": "api/webhook.js",
+          "lineNumber": 26,
+          "fixSuggestion": "Wrap in try/catch (or a `safeParse` helper that returns `{ ok, value, error }`). JSON.parse throws SyntaxError on bad input."
+        },
+        {
+          "severity": "high",
+          "title": "JSON parse untrycaught (api/webhook.js:59)",
+          "description": "JSON.parse() outside a try/catch — throws on malformed input.",
+          "filePath": "api/webhook.js",
+          "lineNumber": 59,
+          "fixSuggestion": "Wrap in try/catch (or a `safeParse` helper that returns `{ ok, value, error }`). JSON.parse throws SyntaxError on bad input."
+        },
+        {
+          "severity": "medium",
+          "title": "parseInt no radix (api/badge.js:9)",
+          "description": "parseInt() called without an explicit radix argument.",
+          "filePath": "api/badge.js",
+          "lineNumber": 9,
+          "fixSuggestion": "Pass an explicit radix: `parseInt(x, 10)`. MDN recommends always specifying it; old browsers parsed `08` as 0."
+        },
+        {
+          "severity": "medium",
+          "title": "new Date on string (api/_gate.js:26)",
+          "description": "new Date(arg) with a non-literal / non-ISO argument — bad input produces \"Invalid Date\".",
+          "filePath": "api/_gate.js",
+          "lineNumber": 26,
+          "fixSuggestion": "Validate the string first (Zod / a regex) or use date-fns / Luxon parsers that surface errors cleanly. Otherwise `new Date(\"not a date\")` returns \"Invalid Date\" silently."
+        },
+        {
+          "severity": "medium",
+          "title": "new Date on string (src/pages/InTheWildReportFull.tsx:52)",
+          "description": "new Date(arg) with a non-literal / non-ISO argument — bad input produces \"Invalid Date\".",
+          "filePath": "src/pages/InTheWildReportFull.tsx",
+          "lineNumber": 52,
+          "fixSuggestion": "Validate the string first (Zod / a regex) or use date-fns / Luxon parsers that surface errors cleanly. Otherwise `new Date(\"not a date\")` returns \"Invalid Date\" silently."
+        },
+        {
+          "severity": "medium",
+          "title": "new Date on string (src/pages/InTheWildReport.tsx:124)",
+          "description": "new Date(arg) with a non-literal / non-ISO argument — bad input produces \"Invalid Date\".",
+          "filePath": "src/pages/InTheWildReport.tsx",
+          "lineNumber": 124,
+          "fixSuggestion": "Validate the string first (Zod / a regex) or use date-fns / Luxon parsers that surface errors cleanly. Otherwise `new Date(\"not a date\")` returns \"Invalid Date\" silently."
+        },
+        {
+          "severity": "medium",
+          "title": "new Date on string (src/pages/Dashboard.tsx:888)",
+          "description": "new Date(arg) with a non-literal / non-ISO argument — bad input produces \"Invalid Date\".",
+          "filePath": "src/pages/Dashboard.tsx",
+          "lineNumber": 888,
+          "fixSuggestion": "Validate the string first (Zod / a regex) or use date-fns / Luxon parsers that surface errors cleanly. Otherwise `new Date(\"not a date\")` returns \"Invalid Date\" silently."
+        },
+        {
+          "severity": "medium",
+          "title": "Number coercion unchecked (src/pages/Dashboard.tsx:878)",
+          "description": "Number(x) used inline (no var assignment) — bad input produces NaN that propagates silently.",
+          "filePath": "src/pages/Dashboard.tsx",
+          "lineNumber": 878,
+          "fixSuggestion": "Wrap with `Number.isNaN(Number(x))` guard, or use Zod `.number()` / a typed parser. `Number(\"foo\")` returns NaN, which then propagates through any arithmetic without erroring."
+        },
+        {
+          "severity": "medium",
+          "title": "Number coercion unchecked (src/pages/Dashboard.tsx:879)",
+          "description": "Number(x) used inline (no var assignment) — bad input produces NaN that propagates silently.",
+          "filePath": "src/pages/Dashboard.tsx",
+          "lineNumber": 879,
+          "fixSuggestion": "Wrap with `Number.isNaN(Number(x))` guard, or use Zod `.number()` / a typed parser. `Number(\"foo\")` returns NaN, which then propagates through any arithmetic without erroring."
+        }
+      ]
+    },
+    {
+      "key": "contract",
+      "label": "Contract",
+      "score": 93,
+      "applicable": true,
+      "findingCount": 2,
+      "findings": [
+        {
+          "severity": "medium",
+          "title": "26 undocumented endpoint(s) — present in code, absent from spec",
+          "description": "Examples: GET /api/health (server.js:35), POST /api/auth/login (server.js:47), GET /api/projects (server.js:64), GET /api/test-runs (server.js:65), GET /api/reports/:id (server.js:66), ….",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Add each path under `paths:` in the spec. For express + JSDoc: `swagger-jsdoc` auto-generates entries from `@openapi` JSDoc comments above each route handler."
+        },
+        {
+          "severity": "medium",
+          "title": "3 spec-only endpoint(s) — documented but no handler found in code",
+          "description": "Examples: GET /v1/users, GET /v1/users/{id}, DELETE /v1/orphan-route. Either the implementation is missing, the path moved, or the route is registered via a pattern we don't recognize.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Implement the missing handler, remove the orphan from the spec, or annotate it as `deprecated: true` if it's an intentional sunset path."
+        }
+      ]
+    },
+    {
+      "key": "predictive",
+      "label": "Predictive Risk",
+      "score": 61,
+      "applicable": true,
+      "findingCount": 6,
+      "findings": [
+        {
+          "severity": "high",
+          "title": "Risk hotspot: mcp-server/src/analyzers/code-scanner.ts (score 132.9)",
+          "description": "Aggregated signals: hot function (cc=123 in `scanCodebase`) · large file (897 loc).",
+          "filePath": "mcp-server/src/analyzers/code-scanner.ts",
+          "lineNumber": 1,
+          "fixSuggestion": "Triage the contributing signals in order: critical-security first, then N+1 hits, then refactor the hottest function (extract guard clauses, split into smaller fns). Add tests around the hottest function before refactoring."
+        },
+        {
+          "severity": "high",
+          "title": "Risk hotspot: src/pages/Docs.tsx (score 125.2)",
+          "description": "Aggregated signals: hot function (cc=24 in `DocContent`) · large file (2724 loc).",
+          "filePath": "src/pages/Docs.tsx",
+          "lineNumber": 1,
+          "fixSuggestion": "Triage the contributing signals in order: critical-security first, then N+1 hits, then refactor the hottest function (extract guard clauses, split into smaller fns). Add tests around the hottest function before refactoring."
+        },
+        {
+          "severity": "high",
+          "title": "Risk hotspot: mcp-server/src/analyzers/advanced-analyzer.ts (score 114.1)",
+          "description": "Aggregated signals: hot function (cc=45 in `runContractAnalysis`) · large file (1942 loc) · 14 unused exports.",
+          "filePath": "mcp-server/src/analyzers/advanced-analyzer.ts",
+          "lineNumber": 1,
+          "fixSuggestion": "Triage the contributing signals in order: critical-security first, then N+1 hits, then refactor the hottest function (extract guard clauses, split into smaller fns). Add tests around the hottest function before refactoring."
+        },
+        {
+          "severity": "high",
+          "title": "Risk hotspot: mcp-server/src/analyzers/security-analyzer.ts (score 67)",
+          "description": "Aggregated signals: hot function (cc=32 in `checkRceSinks`) · large file (1380 loc) · 2 unused exports.",
+          "filePath": "mcp-server/src/analyzers/security-analyzer.ts",
+          "lineNumber": 1,
+          "fixSuggestion": "Triage the contributing signals in order: critical-security first, then N+1 hits, then refactor the hottest function (extract guard clauses, split into smaller fns). Add tests around the hottest function before refactoring."
+        },
+        {
+          "severity": "high",
+          "title": "Risk hotspot: mcp-server/src/analyzers/lib/load-patterns.ts (score 58.5)",
+          "description": "Aggregated signals: hot function (cc=73 in `<anonymous>`) · 1 unused export.",
+          "filePath": "mcp-server/src/analyzers/lib/load-patterns.ts",
+          "lineNumber": 1,
+          "fixSuggestion": "Triage the contributing signals in order: critical-security first, then N+1 hits, then refactor the hottest function (extract guard clauses, split into smaller fns). Add tests around the hottest function before refactoring."
+        },
+        {
+          "severity": "low",
+          "title": "No automated dependency updates",
+          "description": "No Renovate / Dependabot detected. Dependencies will drift, accumulating CVEs.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Enable Dependabot via `.github/dependabot.yml`, or Renovate via the GitHub App. Schedule a weekly security sprint to land the PRs."
+        }
+      ]
+    },
+    {
+      "key": "nPlusOne",
+      "label": "N+1 Queries",
+      "score": 45,
+      "applicable": true,
+      "findingCount": 6,
+      "findings": [
+        {
+          "severity": "high",
+          "title": "Potential N+1 Query in for-of",
+          "description": "`db.execute()` is invoked inside a `for-of` loop at scripts/seed.js:70. Each iteration issues its own DB round-trip.\nLine: await db.execute(sql`",
+          "filePath": "scripts/seed.js",
+          "lineNumber": 70,
+          "fixSuggestion": "Batch the query: pre-build the id list, fire one query with `WHERE id IN (...)`, or use eager-loading (`.include()` / `.populate()` / `JOIN`). For parallelisation only, wrap in `Promise.all([...].map(...))` so the round-trips overlap."
+        },
+        {
+          "severity": "high",
+          "title": "Potential N+1 Query in for",
+          "description": "`HEX_COLOR_RE.exec()` is invoked inside a `for` loop at mcp-server/src/analyzers/accessibility-analyzer.ts:447. Each iteration issues its own DB round-trip.\nLine: const hexMatch = HEX_COLOR_RE.exec(line);",
+          "filePath": "mcp-server/src/analyzers/accessibility-analyzer.ts",
+          "lineNumber": 447,
+          "fixSuggestion": "Batch the query: pre-build the id list, fire one query with `WHERE id IN (...)`, or use eager-loading (`.include()` / `.populate()` / `JOIN`). For parallelisation only, wrap in `Promise.all([...].map(...))` so the round-trips overlap."
+        },
+        {
+          "severity": "high",
+          "title": "Potential N+1 Query in for-of",
+          "description": "`NEXT_LINE.exec()` is invoked inside a `for-of` loop at mcp-server/src/analyzers/lib/suppressions.ts:43. Each iteration issues its own DB round-trip.\nLine: const m1 = NEXT_LINE.exec(value);",
+          "filePath": "mcp-server/src/analyzers/lib/suppressions.ts",
+          "lineNumber": 43,
+          "fixSuggestion": "Batch the query: pre-build the id list, fire one query with `WHERE id IN (...)`, or use eager-loading (`.include()` / `.populate()` / `JOIN`). For parallelisation only, wrap in `Promise.all([...].map(...))` so the round-trips overlap."
+        },
+        {
+          "severity": "high",
+          "title": "Potential N+1 Query in for-of",
+          "description": "`FILE_WIDE.exec()` is invoked inside a `for-of` loop at mcp-server/src/analyzers/lib/suppressions.ts:50. Each iteration issues its own DB round-trip.\nLine: const m2 = FILE_WIDE.exec(value);",
+          "filePath": "mcp-server/src/analyzers/lib/suppressions.ts",
+          "lineNumber": 50,
+          "fixSuggestion": "Batch the query: pre-build the id list, fire one query with `WHERE id IN (...)`, or use eager-loading (`.include()` / `.populate()` / `JOIN`). For parallelisation only, wrap in `Promise.all([...].map(...))` so the round-trips overlap."
+        },
+        {
+          "severity": "high",
+          "title": "Potential N+1 Query in for",
+          "description": "`NEXT_LINE.exec()` is invoked inside a `for` loop at mcp-server/src/analyzers/lib/suppressions.ts:73. Each iteration issues its own DB round-trip.\nLine: const m1 = NEXT_LINE.exec(raw);",
+          "filePath": "mcp-server/src/analyzers/lib/suppressions.ts",
+          "lineNumber": 73,
+          "fixSuggestion": "Batch the query: pre-build the id list, fire one query with `WHERE id IN (...)`, or use eager-loading (`.include()` / `.populate()` / `JOIN`). For parallelisation only, wrap in `Promise.all([...].map(...))` so the round-trips overlap."
+        },
+        {
+          "severity": "high",
+          "title": "Potential N+1 Query in for",
+          "description": "`FILE_WIDE.exec()` is invoked inside a `for` loop at mcp-server/src/analyzers/lib/suppressions.ts:80. Each iteration issues its own DB round-trip.\nLine: const m2 = FILE_WIDE.exec(raw);",
+          "filePath": "mcp-server/src/analyzers/lib/suppressions.ts",
+          "lineNumber": 80,
+          "fixSuggestion": "Batch the query: pre-build the id list, fire one query with `WHERE id IN (...)`, or use eager-loading (`.include()` / `.populate()` / `JOIN`). For parallelisation only, wrap in `Promise.all([...].map(...))` so the round-trips overlap."
+        }
+      ]
+    },
+    {
+      "key": "deadCode",
+      "label": "Dead Code",
+      "score": 40,
+      "applicable": true,
+      "findingCount": 2,
+      "findings": [
+        {
+          "severity": "medium",
+          "title": "9 Unused Dependencies",
+          "description": "Dependencies not imported anywhere: @hookform/resolvers, @neondatabase/serverless, @upstash/ratelimit, @upstash/redis, @xyflow/react, …. These increase bundle size, install time, and supply-chain attack surface.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Remove with: `npm uninstall @hookform/resolvers @neondatabase/serverless @upstash/ratelimit`. Confirm with `npx depcheck` before removing — some packages are loaded by side-effect (Babel plugins, polyfills) without explicit imports."
+        },
+        {
+          "severity": "medium",
+          "title": "441 Exported Symbols Not Referenced Anywhere",
+          "description": "Exports that no other file imports:\n  api/_session.js: verifySession\n  api/_security.js: applySecurityHeaders\n  api/_gate.js: monthStartIso, getPlanForUser\n  api/_env.js: optionalEnv\n  src/lib/api.ts: HealthResponse, checkHealth, Project, getProjects, getProject…",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Either remove the export, narrow it to `@internal` / non-exported, or use it from another module. For dual-purpose exports (used by external consumers via the package surface), add them to the package's main entry index file so they're reachable."
+        }
+      ]
+    },
+    {
+      "key": "load",
+      "label": "Load",
+      "score": 69,
+      "applicable": true,
+      "findingCount": 0,
+      "findings": []
+    },
+    {
+      "key": "chaos",
+      "label": "Chaos / Resilience",
+      "score": 78,
+      "applicable": true,
+      "findingCount": 4,
+      "findings": [
+        {
+          "severity": "high",
+          "title": "No graceful shutdown handler",
+          "description": "No `process.on('SIGTERM', …)` or `process.on('SIGINT', …)` listener found. Container orchestrators send SIGTERM before SIGKILL; without a handler, in-flight requests are dropped.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Register a SIGTERM listener: `process.on('SIGTERM', async () => { await server.close(); /* drain DB pool, redis, ... */ process.exit(0); });`. Kubernetes sends SIGTERM 30s before SIGKILL."
+        },
+        {
+          "severity": "high",
+          "title": "No global error handler registered",
+          "description": "For Express, no `app.use((err, req, res, next) => …)` 4-arg middleware found. For Fastify, no `setErrorHandler`. Errors propagating to the framework will return generic 500s without structured logging.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Express: `app.use((err, req, res, next) => { logger.error(err); res.status(500).json({ error: err.message }); });`. Fastify: `app.setErrorHandler(...)`. Log + return a stable error shape."
+        },
+        {
+          "severity": "medium",
+          "title": "No `unhandledRejection` / `uncaughtException` guard",
+          "description": "Node's default behavior on unhandled promise rejection is to crash the process. Without a guard, you can't log the rejection or trigger a graceful drain.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "`process.on('unhandledRejection', (reason) => { logger.fatal({ reason }, 'unhandled rejection'); process.exit(1); });` — log it, then exit. Letting the process die after logging is fine; silently swallowing the rejection is not."
+        },
+        {
+          "severity": "medium",
+          "title": "Payment-related code without Idempotency-Key handling",
+          "description": "Payment / billing dependencies detected, but no read of the `Idempotency-Key` header. Network retries can double-charge customers.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Require `Idempotency-Key` on mutating payment endpoints. Cache the result by key + endpoint for ≥24 hours. Stripe's API uses this convention."
+        }
+      ]
     },
     {
       "key": "agentic",
       "label": "Agentic Scale",
-      "score": 85
+      "score": 91,
+      "applicable": true,
+      "findingCount": 1,
+      "findings": [
+        {
+          "severity": "high",
+          "title": "Small Connection Pool (10) — Will Exhaust Under Agentic Load",
+          "description": "Your DB connection pool is limited to 10. AI agents making parallel requests will exhaust this quickly — each agent may hold 2-3 connections for chained queries.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Increase connection pool to 50+. Use PgBouncer for connection multiplexing. Consider read replicas for agentic workloads."
+        }
+      ]
+    },
+    {
+      "key": "accessibility",
+      "label": "Accessibility",
+      "score": 100,
+      "applicable": true,
+      "findingCount": 1,
+      "findings": []
+    },
+    {
+      "key": "visualRegression",
+      "label": "Visual Regression",
+      "score": 93,
+      "applicable": true,
+      "findingCount": 3,
+      "findings": [
+        {
+          "severity": "medium",
+          "title": "Heavy inline styles in 32 file(s) without CSS Modules",
+          "description": "119 inline `style={{…}}` JSX props across 32 files; no CSS Modules detected. Example file: src/pages/Testing.tsx.",
+          "filePath": "src/pages/Testing.tsx",
+          "lineNumber": 1,
+          "fixSuggestion": "Adopt CSS Modules / Tailwind / styled-components / vanilla-extract. Inline styles defeat selector caching and make visual-diff testing unstable."
+        },
+        {
+          "severity": "low",
+          "title": "30 hardcoded pixel value(s) in inline styles",
+          "description": "Pixel values inside JSX `style={{…}}` props. These don't scale to user font-size preferences and break visual-regression snapshots across viewports.",
+          "filePath": "src/pages/McpIntegration.tsx",
+          "lineNumber": 1,
+          "fixSuggestion": "Use rem/em or design tokens. Pull from a shared theme so the snapshot baseline can move atomically."
+        },
+        {
+          "severity": "low",
+          "title": "20 inline color literal(s) in JSX styles",
+          "description": "Hex colors (#abc / #abcdef) embedded directly in `style={{…}}` props. Visual themes can't roll out (dark mode, brand changes) without grepping every file.",
+          "filePath": "src/pages/PrdGenerator.tsx",
+          "lineNumber": 1,
+          "fixSuggestion": "Pull colors from a theme object (`theme.colors.primary`) or CSS variables."
+        }
+      ]
+    },
+    {
+      "key": "vision",
+      "label": "Vision",
+      "score": 81,
+      "applicable": true,
+      "findingCount": 3,
+      "findings": [
+        {
+          "severity": "high",
+          "title": "No observability stack detected",
+          "description": "No APM (OpenTelemetry/Datadog/NewRelic/Honeycomb) and no error tracking (Sentry/Rollbar/Bugsnag) dep detected. Without these, you can't correlate user-impacting issues with code changes.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Start with Sentry — fastest path to crash/error visibility. Add OpenTelemetry if you need full tracing. Wire up alerts to a notification channel humans actually read."
+        },
+        {
+          "severity": "medium",
+          "title": "No feature-flag platform",
+          "description": "Feature flags decouple deploy from release: kill-switch on regressions, staged rollouts to a % of users, A/B test cohorts. Releases without them are all-or-nothing.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "For early-stage: Posthog (free tier, JS-SDK-only). For larger teams: LaunchDarkly / Statsig. Even a homegrown flags table beats no kill-switch."
+        },
+        {
+          "severity": "high",
+          "title": "No product analytics dependency",
+          "description": "No Posthog / Mixpanel / Amplitude / Segment / Heap / Plausible / Fathom dep detected. Without telemetry on feature adoption + user journeys, you can't close the loop between code shipped and value delivered.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "PostHog (open source, generous free tier) is the lowest-friction start. Track 3-5 key events: signup, activation, first-value-moment, retention, churn signal."
+        }
+      ]
+    },
+    {
+      "key": "scope",
+      "label": "Scope",
+      "score": 100,
+      "applicable": true,
+      "findingCount": 0,
+      "findings": []
+    },
+    {
+      "key": "stack",
+      "label": "Stack",
+      "score": 79,
+      "applicable": true,
+      "findingCount": 3,
+      "findings": [
+        {
+          "severity": "low",
+          "title": "TypeScript without strict mode",
+          "description": "tsconfig.json found but `compilerOptions.strict` is not true. The default loose mode lets `any`-typed values flow freely; null/undefined errors slip past the compiler.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Set `\"strict\": true` in tsconfig (turns on strictNullChecks, noImplicitAny, strictFunctionTypes, etc.). For an existing codebase, use `tsc --noEmit` to see what breaks, then file by file."
+        },
+        {
+          "severity": "high",
+          "title": "No testing framework detected",
+          "description": "No jest / vitest / mocha / ava / tap dep found. Tests are the #1 predictor of low regression rates.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Vitest is the fast modern default (Vite-native, ESM-first). Start with unit tests for the most-edited modules."
+        },
+        {
+          "severity": "low",
+          "title": "Large app without monorepo tooling",
+          "description": "62 deps without a workspace manager (Turborepo / Nx / pnpm workspaces). Build cache and parallelism are leaving cycles on the table.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Turborepo has the lowest adoption cost (drop-in for existing repos). Nx is heavier but ships codegen + generators."
+        }
+      ]
+    },
+    {
+      "key": "dora",
+      "label": "DORA",
+      "score": 25,
+      "applicable": true,
+      "findingCount": 3,
+      "findings": [
+        {
+          "severity": "low",
+          "title": "CI runs without a type-check step",
+          "description": "Found 3 CI job(s) but none of them runs `tsc --noEmit` / `type-check`. Type errors only surface at build time or in production.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Add a `type-check` step to CI: `run: tsc --noEmit`. Make it a required check on the protected branch."
+        },
+        {
+          "severity": "medium",
+          "title": "No observability dependency detected",
+          "description": "No Sentry / Datadog / NewRelic / OpenTelemetry / Honeycomb / Rollbar / Bugsnag dep. MTTR depends on knowing something broke before customers report it.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Add error-tracking (Sentry is the easiest) and ideally a tracing stack (OpenTelemetry → Honeycomb / Datadog / Jaeger). Wire up alerts to a notification channel that humans actually read."
+        },
+        {
+          "severity": "low",
+          "title": "No CODEOWNERS file detected",
+          "description": "No `.github/CODEOWNERS` (or `CODEOWNERS` / `docs/CODEOWNERS`). Code reviews route by chance; sensitive areas (auth, billing, infra) lack named approvers.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Create `.github/CODEOWNERS` with at minimum: `*.tsx @ui-team`, `src/auth/ @security`, `infra/ @platform`. Make CODEOWNERS-required a branch protection rule."
+        }
+      ]
     }
-  ],
-  "overall": 60
+  ]
 }

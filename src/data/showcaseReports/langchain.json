@@ -1,13 +1,13 @@
 {
   "slug": "langchain",
   "repoUrl": "https://github.com/langchain-ai/langchain",
-  "repoName": "langchain",
-  "tagline": "100k-star Python AI framework \u2014 libs/* monorepo recursion in action",
-  "analyzedAt": "2026-05-28T17:09:48.974Z",
-  "analyzeMs": 988,
+  "repoName": "langchain-ai/langchain",
+  "tagline": "100k-star Python AI framework — libs/* monorepo recursion in action",
+  "analyzedAt": "2026-05-29T04:08:45.160Z",
+  "analyzeMs": 0,
   "codebase": {
     "totalFiles": 2638,
-    "totalLines": 387420,
+    "totalLines": 387634,
     "endpoints": 6,
     "dependencies": 27,
     "techStack": [
@@ -29,7 +29,7 @@
   "unit": {
     "coverage": 31,
     "testFiles": 778,
-    "totalTests": 4849,
+    "totalTests": 4846,
     "frameworks": [
       "pytest"
     ]
@@ -49,9 +49,79 @@
       "score": 100
     },
     {
+      "key": "kubernetes",
+      "label": "Kubernetes",
+      "score": null
+    },
+    {
+      "key": "owasp",
+      "label": "OWASP",
+      "score": 80
+    },
+    {
+      "key": "supplyChain",
+      "label": "Supply Chain",
+      "score": 100
+    },
+    {
+      "key": "license",
+      "label": "License",
+      "score": 89
+    },
+    {
       "key": "unit",
       "label": "Unit Tests",
       "score": 31
+    },
+    {
+      "key": "mutation",
+      "label": "Mutation",
+      "score": 54
+    },
+    {
+      "key": "propertyBased",
+      "label": "Property-Based",
+      "score": 40
+    },
+    {
+      "key": "edgeCases",
+      "label": "Edge Cases",
+      "score": 63
+    },
+    {
+      "key": "contract",
+      "label": "Contract",
+      "score": 100
+    },
+    {
+      "key": "predictive",
+      "label": "Predictive Risk",
+      "score": 98
+    },
+    {
+      "key": "nPlusOne",
+      "label": "N+1 Queries",
+      "score": 100
+    },
+    {
+      "key": "deadCode",
+      "label": "Dead Code",
+      "score": 100
+    },
+    {
+      "key": "load",
+      "label": "Load",
+      "score": 55
+    },
+    {
+      "key": "chaos",
+      "label": "Chaos / Resilience",
+      "score": 100
+    },
+    {
+      "key": "agentic",
+      "label": "Agentic Scale",
+      "score": 83
     },
     {
       "key": "accessibility",
@@ -59,9 +129,14 @@
       "score": null
     },
     {
+      "key": "visualRegression",
+      "label": "Visual Regression",
+      "score": 100
+    },
+    {
       "key": "vision",
       "label": "Vision",
-      "score": 50
+      "score": 81
     },
     {
       "key": "scope",
@@ -74,35 +149,443 @@
       "score": 41
     },
     {
-      "key": "chaos",
-      "label": "Chaos / Resilience",
-      "score": 100
+      "key": "dora",
+      "label": "DORA",
+      "score": 25
+    }
+  ],
+  "overall": 77,
+  "totalFindings": 46,
+  "dimensionFindings": [
+    {
+      "key": "security",
+      "label": "Security",
+      "score": 100,
+      "applicable": true,
+      "findingCount": 0,
+      "findings": []
     },
     {
-      "key": "mutation",
-      "label": "Mutation",
-      "score": 54
+      "key": "kubernetes",
+      "label": "Kubernetes",
+      "score": 0,
+      "applicable": false,
+      "findingCount": 0,
+      "findings": [],
+      "naReason": "No Kubernetes manifests or Helm charts found in the repo."
     },
     {
-      "key": "predictive",
-      "label": "Predictive Risk",
-      "score": 100
+      "key": "owasp",
+      "label": "OWASP",
+      "score": 80,
+      "applicable": true,
+      "findingCount": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "title": "OWASP Top 10 analyzer coverage: 80% (8/10)",
+          "description": "TestForge ships rules for 8 of the 10 OWASP 2021 categories. Categories without dedicated rules yet: A08:2021 — Software and Data Integrity Failures, A10:2021 — Server-Side Request Forgery. These are gaps in the analyzer itself — your project may still have issues in these areas that this report won't surface.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "For the un-covered categories, complement TestForge with: dependency-track for A08 (software integrity), an SSRF-focused fuzzer or proxy-based runtime scan for A10. Track the gap in your threat model."
+        }
+      ]
     },
     {
       "key": "supplyChain",
       "label": "Supply Chain",
-      "score": 100
+      "score": 100,
+      "applicable": true,
+      "findingCount": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "title": "No package-lock.json found",
+          "description": "Without a lockfile, every install can pull different transitive versions. Only direct-dep CVEs were checked.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Commit a `package-lock.json` (npm), `pnpm-lock.yaml` (pnpm), or `yarn.lock` (yarn). Treat lockfile changes as security-sensitive in code review."
+        }
+      ]
     },
     {
-      "key": "dora",
-      "label": "DORA",
-      "score": 25
+      "key": "license",
+      "label": "License",
+      "score": 89,
+      "applicable": true,
+      "findingCount": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "title": "License audit could not run — no node_modules/ found",
+          "description": "License compliance requires reading each installed package's `license` field, but no `node_modules/` directory was present.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Run `npm install` (or your package manager's equivalent) before the analysis, or supply pre-installed dependencies. Without this, 27 declared deps are unchecked for license compatibility."
+        }
+      ]
+    },
+    {
+      "key": "unit",
+      "label": "Unit Tests",
+      "score": 31,
+      "applicable": true,
+      "findingCount": 1,
+      "findings": []
+    },
+    {
+      "key": "mutation",
+      "label": "Mutation",
+      "score": 54,
+      "applicable": true,
+      "findingCount": 2,
+      "findings": [
+        {
+          "severity": "medium",
+          "title": "Estimated mutation score: ~54% (heuristic)",
+          "description": "Inputs: 554 test files / 1934 source files (ratio 0.29), 0 assertions (0 strong, 0 weak, 0 snapshot), 0 distinct strong-matcher type(s). ~6366/11790 candidate mutants likely killed. Run Stryker for the exact number.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Boost the kill rate: replace `toBeTruthy()` with `toBe(specificValue)`, add boundary-condition tests, vary the matcher types you use."
+        },
+        {
+          "severity": "low",
+          "title": "Mutation testing tool not configured",
+          "description": "Stryker Mutator or similar not found in devDependencies. Install to get real mutation scores.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "npm install -D @stryker-mutator/core && npx stryker init"
+        }
+      ]
+    },
+    {
+      "key": "propertyBased",
+      "label": "Property-Based",
+      "score": 40,
+      "applicable": true,
+      "findingCount": 2,
+      "findings": [
+        {
+          "severity": "medium",
+          "title": "No property-based testing framework detected",
+          "description": "No `fast-check` / `jsverify` / `@fast-check/vitest` import found. Property-based testing generates inputs over a domain and asserts invariants — strong fit for parsers, encoders, math, and stateful reducers.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Install `fast-check` and write a few `fc.assert(fc.property(fc.integer(), n => sortRoundTrip([n]) === [n]))`-style tests against your most invariant-heavy code."
+        },
+        {
+          "severity": "medium",
+          "title": "No runtime invariants or type guards detected",
+          "description": "No `assert()`, `invariant()`, `typeof x === '…'`, `Array.isArray(x)`, or `x instanceof Y` patterns found in the source. Without invariants, the code has no contract-enforcement and can't be property-tested meaningfully.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Add runtime invariants at function boundaries: `if (!Array.isArray(input)) throw new Error(…)`. Document the invariants with `@param` JSDoc. They become the properties you can test."
+        }
+      ]
+    },
+    {
+      "key": "edgeCases",
+      "label": "Edge Cases",
+      "score": 63,
+      "applicable": true,
+      "findingCount": 25,
+      "findings": [
+        {
+          "severity": "low",
+          "title": "assert for validation (.github/scripts/get_min_versions.py:194)",
+          "description": "`assert` used outside tests — `python -O` strips asserts, silently removing the check.",
+          "filePath": ".github/scripts/get_min_versions.py",
+          "lineNumber": 194,
+          "fixSuggestion": "Do not use `assert` for runtime validation. Raise an explicit exception (e.g. `raise ValueError(...)` / FastAPI `HTTPException`). Python run with `-O` strips all asserts, silently removing the check."
+        },
+        {
+          "severity": "medium",
+          "title": "int coercion unchecked (.github/scripts/check_diff.py:194)",
+          "description": "int(x) on non-literal input outside try/except — raises ValueError on bad input.",
+          "filePath": ".github/scripts/check_diff.py",
+          "lineNumber": 194,
+          "fixSuggestion": "Wrap `int(x)`/`float(x)` on external input in try/except ValueError, or validate first (Pydantic / explicit check). Bad input raises ValueError and crashes the request."
+        },
+        {
+          "severity": "medium",
+          "title": "int coercion unchecked (.github/scripts/check_diff.py:195)",
+          "description": "int(x) on non-literal input outside try/except — raises ValueError on bad input.",
+          "filePath": ".github/scripts/check_diff.py",
+          "lineNumber": 195,
+          "fixSuggestion": "Wrap `int(x)`/`float(x)` on external input in try/except ValueError, or validate first (Pydantic / explicit check). Bad input raises ValueError and crashes the request."
+        },
+        {
+          "severity": "medium",
+          "title": "int coercion unchecked (.github/scripts/check_diff.py:198)",
+          "description": "int(x) on non-literal input outside try/except — raises ValueError on bad input.",
+          "filePath": ".github/scripts/check_diff.py",
+          "lineNumber": 198,
+          "fixSuggestion": "Wrap `int(x)`/`float(x)` on external input in try/except ValueError, or validate first (Pydantic / explicit check). Bad input raises ValueError and crashes the request."
+        },
+        {
+          "severity": "medium",
+          "title": "int coercion unchecked (.github/scripts/check_diff.py:199)",
+          "description": "int(x) on non-literal input outside try/except — raises ValueError on bad input.",
+          "filePath": ".github/scripts/check_diff.py",
+          "lineNumber": 199,
+          "fixSuggestion": "Wrap `int(x)`/`float(x)` on external input in try/except ValueError, or validate first (Pydantic / explicit check). Bad input raises ValueError and crashes the request."
+        },
+        {
+          "severity": "low",
+          "title": "assert for validation (.github/scripts/check_diff.py:99)",
+          "description": "`assert` used outside tests — `python -O` strips asserts, silently removing the check.",
+          "filePath": ".github/scripts/check_diff.py",
+          "lineNumber": 99,
+          "fixSuggestion": "Do not use `assert` for runtime validation. Raise an explicit exception (e.g. `raise ValueError(...)` / FastAPI `HTTPException`). Python run with `-O` strips all asserts, silently removing the check."
+        },
+        {
+          "severity": "medium",
+          "title": "int coercion unchecked (libs/text-splitters/langchain_text_splitters/html.py:168)",
+          "description": "int(x) on non-literal input outside try/except — raises ValueError on bad input.",
+          "filePath": "libs/text-splitters/langchain_text_splitters/html.py",
+          "lineNumber": 168,
+          "fixSuggestion": "Wrap `int(x)`/`float(x)` on external input in try/except ValueError, or validate first (Pydantic / explicit check). Bad input raises ValueError and crashes the request."
+        },
+        {
+          "severity": "medium",
+          "title": "int coercion unchecked (libs/partners/qdrant/langchain_qdrant/_utils.py:20)",
+          "description": "int(x) on non-literal input outside try/except — raises ValueError on bad input.",
+          "filePath": "libs/partners/qdrant/langchain_qdrant/_utils.py",
+          "lineNumber": 20,
+          "fixSuggestion": "Wrap `int(x)`/`float(x)` on external input in try/except ValueError, or validate first (Pydantic / explicit check). Bad input raises ValueError and crashes the request."
+        },
+        {
+          "severity": "medium",
+          "title": "int coercion unchecked (libs/partners/perplexity/langchain_perplexity/embeddings.py:19)",
+          "description": "float(x) on non-literal input outside try/except — raises ValueError on bad input.",
+          "filePath": "libs/partners/perplexity/langchain_perplexity/embeddings.py",
+          "lineNumber": 19,
+          "fixSuggestion": "Wrap `int(x)`/`float(x)` on external input in try/except ValueError, or validate first (Pydantic / explicit check). Bad input raises ValueError and crashes the request."
+        },
+        {
+          "severity": "medium",
+          "title": "int coercion unchecked (libs/partners/openrouter/langchain_openrouter/chat_models.py:1516)",
+          "description": "int(x) on non-literal input outside try/except — raises ValueError on bad input.",
+          "filePath": "libs/partners/openrouter/langchain_openrouter/chat_models.py",
+          "lineNumber": 1516,
+          "fixSuggestion": "Wrap `int(x)`/`float(x)` on external input in try/except ValueError, or validate first (Pydantic / explicit check). Bad input raises ValueError and crashes the request."
+        }
+      ]
+    },
+    {
+      "key": "contract",
+      "label": "Contract",
+      "score": 100,
+      "applicable": true,
+      "findingCount": 0,
+      "findings": []
+    },
+    {
+      "key": "predictive",
+      "label": "Predictive Risk",
+      "score": 98,
+      "applicable": true,
+      "findingCount": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "title": "No automated dependency updates",
+          "description": "No Renovate / Dependabot detected. Dependencies will drift, accumulating CVEs.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Enable Dependabot via `.github/dependabot.yml`, or Renovate via the GitHub App. Schedule a weekly security sprint to land the PRs."
+        }
+      ]
+    },
+    {
+      "key": "nPlusOne",
+      "label": "N+1 Queries",
+      "score": 100,
+      "applicable": true,
+      "findingCount": 0,
+      "findings": []
+    },
+    {
+      "key": "deadCode",
+      "label": "Dead Code",
+      "score": 100,
+      "applicable": true,
+      "findingCount": 0,
+      "findings": []
+    },
+    {
+      "key": "load",
+      "label": "Load",
+      "score": 55,
+      "applicable": true,
+      "findingCount": 0,
+      "findings": []
+    },
+    {
+      "key": "chaos",
+      "label": "Chaos / Resilience",
+      "score": 100,
+      "applicable": true,
+      "findingCount": 0,
+      "findings": []
     },
     {
       "key": "agentic",
       "label": "Agentic Scale",
-      "score": 70
+      "score": 83,
+      "applicable": true,
+      "findingCount": 2,
+      "findings": [
+        {
+          "severity": "high",
+          "title": "No Caching — Agents Will Repeat-Query Same Endpoints",
+          "description": "AI agents often re-query the same endpoints (list, search, detail). Without caching, every agent request hits the database — exponential load amplification.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Add Redis caching with 30s TTL for list endpoints. Implement ETag/304 responses. Use CDN for static resources."
+        },
+        {
+          "severity": "high",
+          "title": "Auth Endpoints Not Rate Limited",
+          "description": "AI agents frequently re-authenticate (token refresh, retry on 401). Without auth rate limiting, agents can brute-force or DoS your auth system.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Rate limit auth endpoints separately: 5 attempts/min per IP. Add account locking after 10 failures. Monitor for unusual auth patterns."
+        }
+      ]
+    },
+    {
+      "key": "accessibility",
+      "label": "Accessibility",
+      "score": 100,
+      "applicable": false,
+      "findingCount": 0,
+      "findings": [],
+      "naReason": "No HTML/JSX UI files to evaluate."
+    },
+    {
+      "key": "visualRegression",
+      "label": "Visual Regression",
+      "score": 100,
+      "applicable": true,
+      "findingCount": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "title": "No UI files for visual regression",
+          "description": "No HTML/JSX/TSX or CSS files detected. Visual regression testing requires UI components.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Visual regression tests are applicable to frontend applications with UI components."
+        }
+      ]
+    },
+    {
+      "key": "vision",
+      "label": "Vision",
+      "score": 81,
+      "applicable": true,
+      "findingCount": 3,
+      "findings": [
+        {
+          "severity": "high",
+          "title": "No observability stack detected",
+          "description": "No APM (OpenTelemetry/Datadog/NewRelic/Honeycomb) and no error tracking (Sentry/Rollbar/Bugsnag) dep detected. Without these, you can't correlate user-impacting issues with code changes.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Start with Sentry — fastest path to crash/error visibility. Add OpenTelemetry if you need full tracing. Wire up alerts to a notification channel humans actually read."
+        },
+        {
+          "severity": "medium",
+          "title": "No feature-flag platform",
+          "description": "Feature flags decouple deploy from release: kill-switch on regressions, staged rollouts to a % of users, A/B test cohorts. Releases without them are all-or-nothing.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "For early-stage: Posthog (free tier, JS-SDK-only). For larger teams: LaunchDarkly / Statsig. Even a homegrown flags table beats no kill-switch."
+        },
+        {
+          "severity": "high",
+          "title": "No product analytics dependency",
+          "description": "No Posthog / Mixpanel / Amplitude / Segment / Heap / Plausible / Fathom dep detected. Without telemetry on feature adoption + user journeys, you can't close the loop between code shipped and value delivered.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "PostHog (open source, generous free tier) is the lowest-friction start. Track 3-5 key events: signup, activation, first-value-moment, retention, churn signal."
+        }
+      ]
+    },
+    {
+      "key": "scope",
+      "label": "Scope",
+      "score": 100,
+      "applicable": true,
+      "findingCount": 0,
+      "findings": []
+    },
+    {
+      "key": "stack",
+      "label": "Stack",
+      "score": 41,
+      "applicable": true,
+      "findingCount": 4,
+      "findings": [
+        {
+          "severity": "medium",
+          "title": "JavaScript without TypeScript",
+          "description": "27 dependencies in JavaScript. TypeScript would catch a class of runtime errors at compile time, especially across module boundaries.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Migrate incrementally: rename files to .ts one at a time. Start with `\"strict\": false` and tighten over weeks."
+        },
+        {
+          "severity": "high",
+          "title": "No testing framework detected",
+          "description": "No jest / vitest / mocha / ava / tap dep found. Tests are the #1 predictor of low regression rates.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Vitest is the fast modern default (Vite-native, ESM-first). Start with unit tests for the most-edited modules."
+        },
+        {
+          "severity": "low",
+          "title": "No caching layer for growing app",
+          "description": "27 direct deps, no Redis / ioredis / memcached / LRU-cache. Even an in-process LRU pays off for hot paths.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Cache layer for queries + sessions + rate-limit counters. Redis for cross-instance share, LRU-cache for in-process hot data."
+        },
+        {
+          "severity": "low",
+          "title": "Large app without monorepo tooling",
+          "description": "27 deps without a workspace manager (Turborepo / Nx / pnpm workspaces). Build cache and parallelism are leaving cycles on the table.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Turborepo has the lowest adoption cost (drop-in for existing repos). Nx is heavier but ships codegen + generators."
+        }
+      ]
+    },
+    {
+      "key": "dora",
+      "label": "DORA",
+      "score": 25,
+      "applicable": true,
+      "findingCount": 2,
+      "findings": [
+        {
+          "severity": "low",
+          "title": "CI runs without a type-check step",
+          "description": "Found 46 CI job(s) but none of them runs `tsc --noEmit` / `type-check`. Type errors only surface at build time or in production.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Add a `type-check` step to CI: `run: tsc --noEmit`. Make it a required check on the protected branch."
+        },
+        {
+          "severity": "medium",
+          "title": "No observability dependency detected",
+          "description": "No Sentry / Datadog / NewRelic / OpenTelemetry / Honeycomb / Rollbar / Bugsnag dep. MTTR depends on knowing something broke before customers report it.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Add error-tracking (Sentry is the easiest) and ideally a tracing stack (OpenTelemetry → Honeycomb / Datadog / Jaeger). Wire up alerts to a notification channel that humans actually read."
+        }
+      ]
     }
-  ],
-  "overall": 70
+  ]
 }

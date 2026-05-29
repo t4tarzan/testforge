@@ -1,6 +1,7 @@
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { glob } from 'glob';
+import { countScore } from './lib/score.js';
 import { parseFile, isParseable } from './lib/parse.js';
 import { checkJsxAccessibility } from './lib/a11y-jsx.js';
 import { isTestPath } from './security-analyzer.js';
@@ -182,10 +183,14 @@ export async function runAccessibilityAnalysis(config: {
   findings.length = 0;
   findings.push(...visibleFindings);
 
-  // Calculate score (0-100)
+  // Calculate score (0-100). Normalize the issue count by sqrt(UI file count)
+  // so the score reflects a11y-issue DENSITY, not raw volume — otherwise any
+  // large UI accumulates a high absolute count and tanks (supabase: 333 nits
+  // across 3813 files, ~0.09/file, was scoring 15 despite low density). sqrt
+  // dampens size without over-penalizing small apps. Diminishing returns from there.
   const totalIssues = findings.length;
-  let score = Math.max(0, 100 - totalIssues * 3);
-  if (score < 0) score = 0;
+  const density = totalIssues / Math.sqrt(Math.max(htmlFiles.length, 1));
+  let score = countScore(density, 8);
 
   // Bonus for having some a11y-conscious patterns
   const hasA11yPatterns = Object.values(fileContents).some(c =>

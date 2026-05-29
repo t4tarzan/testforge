@@ -1,10 +1,10 @@
 {
   "slug": "full-stack-fastapi-template",
   "repoUrl": "https://github.com/tiangolo/full-stack-fastapi-template",
-  "repoName": "full-stack-fastapi-template",
-  "tagline": "Next.js + FastAPI starter \u2014 exercises polyglot detection end-to-end",
-  "analyzedAt": "2026-05-28T17:10:39.531Z",
-  "analyzeMs": 445,
+  "repoName": "tiangolo/full-stack-fastapi-template",
+  "tagline": "Next.js + FastAPI starter — exercises polyglot detection end-to-end",
+  "analyzedAt": "2026-05-29T04:07:17.558Z",
+  "analyzeMs": 0,
   "codebase": {
     "totalFiles": 183,
     "totalLines": 16626,
@@ -51,7 +51,7 @@
         "severity": "medium",
         "title": "Missing Rate Limiting",
         "description": "No rate-limit package detected. Auth endpoints in particular should be rate-limited.",
-        "filePath": "/tmp/testforge-showcase-full-stack-fastapi-template/package.json",
+        "filePath": "/tmp/testforge-repos/full-stack-fastapi-template-1780027559355/package.json",
         "lineNumber": 1,
         "fixSuggestion": "Install express-rate-limit, @fastify/rate-limit, or roll a Redis-backed limiter."
       }
@@ -64,9 +64,79 @@
       "score": 100
     },
     {
+      "key": "kubernetes",
+      "label": "Kubernetes",
+      "score": null
+    },
+    {
+      "key": "owasp",
+      "label": "OWASP",
+      "score": 80
+    },
+    {
+      "key": "supplyChain",
+      "label": "Supply Chain",
+      "score": 88
+    },
+    {
+      "key": "license",
+      "label": "License",
+      "score": 89
+    },
+    {
       "key": "unit",
       "label": "Unit Tests",
       "score": 74
+    },
+    {
+      "key": "mutation",
+      "label": "Mutation",
+      "score": 35
+    },
+    {
+      "key": "propertyBased",
+      "label": "Property-Based",
+      "score": 47
+    },
+    {
+      "key": "edgeCases",
+      "label": "Edge Cases",
+      "score": 95
+    },
+    {
+      "key": "contract",
+      "label": "Contract",
+      "score": 98
+    },
+    {
+      "key": "predictive",
+      "label": "Predictive Risk",
+      "score": 87
+    },
+    {
+      "key": "nPlusOne",
+      "label": "N+1 Queries",
+      "score": 100
+    },
+    {
+      "key": "deadCode",
+      "label": "Dead Code",
+      "score": 46
+    },
+    {
+      "key": "load",
+      "label": "Load",
+      "score": 55
+    },
+    {
+      "key": "chaos",
+      "label": "Chaos / Resilience",
+      "score": 100
+    },
+    {
+      "key": "agentic",
+      "label": "Agentic Scale",
+      "score": 77
     },
     {
       "key": "accessibility",
@@ -74,9 +144,14 @@
       "score": 100
     },
     {
+      "key": "visualRegression",
+      "label": "Visual Regression",
+      "score": 100
+    },
+    {
       "key": "vision",
       "label": "Vision",
-      "score": 45
+      "score": 80
     },
     {
       "key": "scope",
@@ -89,35 +164,484 @@
       "score": 61
     },
     {
-      "key": "chaos",
-      "label": "Chaos / Resilience",
-      "score": 100
+      "key": "dora",
+      "label": "DORA",
+      "score": 25
+    }
+  ],
+  "overall": 78,
+  "totalFindings": 37,
+  "dimensionFindings": [
+    {
+      "key": "security",
+      "label": "Security",
+      "score": 100,
+      "applicable": true,
+      "findingCount": 1,
+      "findings": [
+        {
+          "severity": "medium",
+          "title": "Missing Rate Limiting",
+          "description": "No rate-limit package detected. Auth endpoints in particular should be rate-limited.",
+          "filePath": "/tmp/testforge-repos/full-stack-fastapi-template-1780027559355/package.json",
+          "lineNumber": 1,
+          "fixSuggestion": "Install express-rate-limit, @fastify/rate-limit, or roll a Redis-backed limiter."
+        }
+      ]
     },
     {
-      "key": "mutation",
-      "label": "Mutation",
-      "score": 35
+      "key": "kubernetes",
+      "label": "Kubernetes",
+      "score": 0,
+      "applicable": false,
+      "findingCount": 0,
+      "findings": [],
+      "naReason": "No Kubernetes manifests or Helm charts found in the repo."
     },
     {
-      "key": "predictive",
-      "label": "Predictive Risk",
-      "score": 84
+      "key": "owasp",
+      "label": "OWASP",
+      "score": 80,
+      "applicable": true,
+      "findingCount": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "title": "OWASP Top 10 analyzer coverage: 80% (8/10)",
+          "description": "TestForge ships rules for 8 of the 10 OWASP 2021 categories. Categories without dedicated rules yet: A08:2021 — Software and Data Integrity Failures, A10:2021 — Server-Side Request Forgery. These are gaps in the analyzer itself — your project may still have issues in these areas that this report won't surface.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "For the un-covered categories, complement TestForge with: dependency-track for A08 (software integrity), an SSRF-focused fuzzer or proxy-based runtime scan for A10. Track the gap in your threat model."
+        }
+      ]
     },
     {
       "key": "supplyChain",
       "label": "Supply Chain",
-      "score": 94
+      "score": 88,
+      "applicable": true,
+      "findingCount": 2,
+      "findings": [
+        {
+          "severity": "medium",
+          "title": "axios: CVE-2023-45857",
+          "description": "Direct dependency `axios` matches a known vulnerable version range. Recommended fix: >= 1.6.0.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "npm install axios@1.6.0"
+        },
+        {
+          "severity": "low",
+          "title": "No package-lock.json found",
+          "description": "Without a lockfile, every install can pull different transitive versions. Only direct-dep CVEs were checked.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Commit a `package-lock.json` (npm), `pnpm-lock.yaml` (pnpm), or `yarn.lock` (yarn). Treat lockfile changes as security-sensitive in code review."
+        }
+      ]
     },
     {
-      "key": "dora",
-      "label": "DORA",
-      "score": 25
+      "key": "license",
+      "label": "License",
+      "score": 89,
+      "applicable": true,
+      "findingCount": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "title": "License audit could not run — no node_modules/ found",
+          "description": "License compliance requires reading each installed package's `license` field, but no `node_modules/` directory was present.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Run `npm install` (or your package manager's equivalent) before the analysis, or supply pre-installed dependencies. Without this, 49 declared deps are unchecked for license compatibility."
+        }
+      ]
+    },
+    {
+      "key": "unit",
+      "label": "Unit Tests",
+      "score": 74,
+      "applicable": true,
+      "findingCount": 2,
+      "findings": []
+    },
+    {
+      "key": "mutation",
+      "label": "Mutation",
+      "score": 35,
+      "applicable": true,
+      "findingCount": 3,
+      "findings": [
+        {
+          "severity": "high",
+          "title": "Estimated mutation score: ~35% (heuristic)",
+          "description": "Inputs: 13 test files / 129 source files (ratio 0.10), 91 assertions (3 strong, 0 weak, 0 snapshot), 1 distinct strong-matcher type(s). ~250/715 candidate mutants likely killed. Run Stryker for the exact number.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Boost the kill rate: replace `toBeTruthy()` with `toBe(specificValue)`, add boundary-condition tests, vary the matcher types you use."
+        },
+        {
+          "severity": "low",
+          "title": "Low matcher variety: only 1 distinct strong-matcher type(s) across all tests",
+          "description": "A test suite that uses only one or two matcher shapes (e.g. all `toBe`) misses categories of mutations that other matchers would catch — `toEqual` for object equality, `toThrow` for error paths, `toHaveLength` for array sizes, etc.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Audit your assertion library — use the right matcher for each property. The Jest docs' \"Expect\" page is a checklist of options."
+        },
+        {
+          "severity": "low",
+          "title": "Mutation testing tool not configured",
+          "description": "Stryker Mutator or similar not found in devDependencies. Install to get real mutation scores.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "npm install -D @stryker-mutator/core && npx stryker init"
+        }
+      ]
+    },
+    {
+      "key": "propertyBased",
+      "label": "Property-Based",
+      "score": 47,
+      "applicable": true,
+      "findingCount": 1,
+      "findings": [
+        {
+          "severity": "medium",
+          "title": "No property-based testing framework detected",
+          "description": "No `fast-check` / `jsverify` / `@fast-check/vitest` import found. Property-based testing generates inputs over a domain and asserts invariants — strong fit for parsers, encoders, math, and stateful reducers.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Install `fast-check` and write a few `fc.assert(fc.property(fc.integer(), n => sortRoundTrip([n]) === [n]))`-style tests against your most invariant-heavy code."
+        }
+      ]
+    },
+    {
+      "key": "edgeCases",
+      "label": "Edge Cases",
+      "score": 95,
+      "applicable": true,
+      "findingCount": 4,
+      "findings": [
+        {
+          "severity": "low",
+          "title": "assert for validation (backend/app/utils.py:39)",
+          "description": "`assert` used outside tests — `python -O` strips asserts, silently removing the check.",
+          "filePath": "backend/app/utils.py",
+          "lineNumber": 39,
+          "fixSuggestion": "Do not use `assert` for runtime validation. Raise an explicit exception (e.g. `raise ValueError(...)` / FastAPI `HTTPException`). Python run with `-O` strips all asserts, silently removing the check."
+        },
+        {
+          "severity": "low",
+          "title": "assert for validation (backend/app/alembic/env.py:13)",
+          "description": "`assert` used outside tests — `python -O` strips asserts, silently removing the check.",
+          "filePath": "backend/app/alembic/env.py",
+          "lineNumber": 13,
+          "fixSuggestion": "Do not use `assert` for runtime validation. Raise an explicit exception (e.g. `raise ValueError(...)` / FastAPI `HTTPException`). Python run with `-O` strips all asserts, silently removing the check."
+        },
+        {
+          "severity": "low",
+          "title": "assert for validation (backend/app/alembic/env.py:66)",
+          "description": "`assert` used outside tests — `python -O` strips asserts, silently removing the check.",
+          "filePath": "backend/app/alembic/env.py",
+          "lineNumber": 66,
+          "fixSuggestion": "Do not use `assert` for runtime validation. Raise an explicit exception (e.g. `raise ValueError(...)` / FastAPI `HTTPException`). Python run with `-O` strips all asserts, silently removing the check."
+        },
+        {
+          "severity": "medium",
+          "title": "Number coercion unchecked (frontend/src/components/Common/DataTable.tsx:116)",
+          "description": "Number(x) used inline (no var assignment) — bad input produces NaN that propagates silently.",
+          "filePath": "frontend/src/components/Common/DataTable.tsx",
+          "lineNumber": 116,
+          "fixSuggestion": "Wrap with `Number.isNaN(Number(x))` guard, or use Zod `.number()` / a typed parser. `Number(\"foo\")` returns NaN, which then propagates through any arithmetic without erroring."
+        }
+      ]
+    },
+    {
+      "key": "contract",
+      "label": "Contract",
+      "score": 98,
+      "applicable": true,
+      "findingCount": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "title": "6 FastAPI endpoint(s) without response_model",
+          "description": "The response shape isn't declared, so it's missing from the generated OpenAPI and clients can't rely on it. Examples: POST /test-email/ (backend/app/api/routes/utils.py:16), GET /health-check/ (backend/app/api/routes/utils.py:30), POST /login/access-token (backend/app/api/routes/login.py:24), POST /password-recovery/{email} (backend/app/api/routes/login.py:54), POST /reset-password/ (backend/app/a",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Add `response_model=YourSchema` (a Pydantic model) to each route decorator so the response is typed, validated, and self-documented."
+        }
+      ]
+    },
+    {
+      "key": "predictive",
+      "label": "Predictive Risk",
+      "score": 87,
+      "applicable": true,
+      "findingCount": 6,
+      "findings": [
+        {
+          "severity": "medium",
+          "title": "Risk hotspot: frontend/src/components/ui/sidebar.tsx (score 22.4)",
+          "description": "Aggregated signals: large file (738 loc) · 11 unused exports.",
+          "filePath": "frontend/src/components/ui/sidebar.tsx",
+          "lineNumber": 1,
+          "fixSuggestion": "Triage the contributing signals in order: critical-security first, then N+1 hits, then refactor the hottest function (extract guard clauses, split into smaller fns). Add tests around the hottest function before refactoring."
+        },
+        {
+          "severity": "low",
+          "title": "Risk hotspot: frontend/src/client/core/request.ts (score 7)",
+          "description": "Aggregated signals: 14 unused exports.",
+          "filePath": "frontend/src/client/core/request.ts",
+          "lineNumber": 1,
+          "fixSuggestion": "Triage the contributing signals in order: critical-security first, then N+1 hits, then refactor the hottest function (extract guard clauses, split into smaller fns). Add tests around the hottest function before refactoring."
+        },
+        {
+          "severity": "low",
+          "title": "Risk hotspot: frontend/src/components/ui/dropdown-menu.tsx (score 4.5)",
+          "description": "Aggregated signals: 9 unused exports.",
+          "filePath": "frontend/src/components/ui/dropdown-menu.tsx",
+          "lineNumber": 1,
+          "fixSuggestion": "Triage the contributing signals in order: critical-security first, then N+1 hits, then refactor the hottest function (extract guard clauses, split into smaller fns). Add tests around the hottest function before refactoring."
+        },
+        {
+          "severity": "low",
+          "title": "Risk hotspot: frontend/src/components/ui/pagination.tsx (score 3.5)",
+          "description": "Aggregated signals: 7 unused exports.",
+          "filePath": "frontend/src/components/ui/pagination.tsx",
+          "lineNumber": 1,
+          "fixSuggestion": "Triage the contributing signals in order: critical-security first, then N+1 hits, then refactor the hottest function (extract guard clauses, split into smaller fns). Add tests around the hottest function before refactoring."
+        },
+        {
+          "severity": "low",
+          "title": "Risk hotspot: frontend/src/components/ui/card.tsx (score 3.5)",
+          "description": "Aggregated signals: 7 unused exports.",
+          "filePath": "frontend/src/components/ui/card.tsx",
+          "lineNumber": 1,
+          "fixSuggestion": "Triage the contributing signals in order: critical-security first, then N+1 hits, then refactor the hottest function (extract guard clauses, split into smaller fns). Add tests around the hottest function before refactoring."
+        },
+        {
+          "severity": "low",
+          "title": "No automated dependency updates",
+          "description": "No Renovate / Dependabot detected. Dependencies will drift, accumulating CVEs.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Enable Dependabot via `.github/dependabot.yml`, or Renovate via the GitHub App. Schedule a weekly security sprint to land the PRs."
+        }
+      ]
+    },
+    {
+      "key": "nPlusOne",
+      "label": "N+1 Queries",
+      "score": 100,
+      "applicable": true,
+      "findingCount": 0,
+      "findings": []
+    },
+    {
+      "key": "deadCode",
+      "label": "Dead Code",
+      "score": 46,
+      "applicable": true,
+      "findingCount": 2,
+      "findings": [
+        {
+          "severity": "medium",
+          "title": "5 Unused Dependencies",
+          "description": "Dependencies not imported anywhere: @radix-ui/react-radio-group, @radix-ui/react-scroll-area, form-data, react-error-boundary, tailwindcss. These increase bundle size, install time, and supply-chain attack surface.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Remove with: `npm uninstall @radix-ui/react-radio-group @radix-ui/react-scroll-area form-data`. Confirm with `npx depcheck` before removing — some packages are loaded by side-effect (Babel plugins, polyfills) without explicit imports."
+        },
+        {
+          "severity": "medium",
+          "title": "73 Exported Symbols Not Referenced Anywhere",
+          "description": "Exports that no other file imports:\n  frontend/src/components/ui/table.tsx: TableFooter, TableCaption\n  frontend/src/components/ui/sidebar.tsx: SidebarGroupAction, SidebarGroupLabel, SidebarInput, SidebarMenuAction, SidebarMenuBadge…\n  frontend/src/components/ui/sheet.tsx: SheetTrigger, SheetClose, SheetFooter\n  frontend/src/components/ui/select.tsx: SelectGroup, SelectLabel, SelectScrollDownButto",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Either remove the export, narrow it to `@internal` / non-exported, or use it from another module. For dual-purpose exports (used by external consumers via the package surface), add them to the package's main entry index file so they're reachable."
+        }
+      ]
+    },
+    {
+      "key": "load",
+      "label": "Load",
+      "score": 55,
+      "applicable": true,
+      "findingCount": 0,
+      "findings": []
+    },
+    {
+      "key": "chaos",
+      "label": "Chaos / Resilience",
+      "score": 100,
+      "applicable": true,
+      "findingCount": 0,
+      "findings": []
     },
     {
       "key": "agentic",
       "label": "Agentic Scale",
-      "score": 55
+      "score": 77,
+      "applicable": true,
+      "findingCount": 2,
+      "findings": [
+        {
+          "severity": "critical",
+          "title": "No Rate Limiting — Critical for Agentic Scale",
+          "description": "AI agents make 10-50x more requests than humans. Without rate limiting, your API will be overwhelmed instantly under agentic load.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Add express-rate-limit with 100 req/min per IP. For agentic scale, implement token bucket algorithm with Redis for distributed rate limiting."
+        },
+        {
+          "severity": "high",
+          "title": "Auth Endpoints Not Rate Limited",
+          "description": "AI agents frequently re-authenticate (token refresh, retry on 401). Without auth rate limiting, agents can brute-force or DoS your auth system.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Rate limit auth endpoints separately: 5 attempts/min per IP. Add account locking after 10 failures. Monitor for unusual auth patterns."
+        }
+      ]
+    },
+    {
+      "key": "accessibility",
+      "label": "Accessibility",
+      "score": 100,
+      "applicable": true,
+      "findingCount": 0,
+      "findings": []
+    },
+    {
+      "key": "visualRegression",
+      "label": "Visual Regression",
+      "score": 100,
+      "applicable": true,
+      "findingCount": 0,
+      "findings": []
+    },
+    {
+      "key": "vision",
+      "label": "Vision",
+      "score": 80,
+      "applicable": true,
+      "findingCount": 4,
+      "findings": [
+        {
+          "severity": "high",
+          "title": "No observability stack detected",
+          "description": "No APM (OpenTelemetry/Datadog/NewRelic/Honeycomb) and no error tracking (Sentry/Rollbar/Bugsnag) dep detected. Without these, you can't correlate user-impacting issues with code changes.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Start with Sentry — fastest path to crash/error visibility. Add OpenTelemetry if you need full tracing. Wire up alerts to a notification channel humans actually read."
+        },
+        {
+          "severity": "medium",
+          "title": "No feature-flag platform",
+          "description": "Feature flags decouple deploy from release: kill-switch on regressions, staged rollouts to a % of users, A/B test cohorts. Releases without them are all-or-nothing.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "For early-stage: Posthog (free tier, JS-SDK-only). For larger teams: LaunchDarkly / Statsig. Even a homegrown flags table beats no kill-switch."
+        },
+        {
+          "severity": "high",
+          "title": "No product analytics dependency",
+          "description": "No Posthog / Mixpanel / Amplitude / Segment / Heap / Plausible / Fathom dep detected. Without telemetry on feature adoption + user journeys, you can't close the loop between code shipped and value delivered.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "PostHog (open source, generous free tier) is the lowest-friction start. Track 3-5 key events: signup, activation, first-value-moment, retention, churn signal."
+        },
+        {
+          "severity": "low",
+          "title": "No API versioning convention",
+          "description": "No `/v1/`, `/v2/` path-prefixed routes detected (as string literals — not comments). Breaking changes will hit every consumer at once.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Adopt URL-based versioning (`/v1/users`). Document the deprecation policy in your README."
+        }
+      ]
+    },
+    {
+      "key": "scope",
+      "label": "Scope",
+      "score": 100,
+      "applicable": true,
+      "findingCount": 0,
+      "findings": []
+    },
+    {
+      "key": "stack",
+      "label": "Stack",
+      "score": 61,
+      "applicable": true,
+      "findingCount": 4,
+      "findings": [
+        {
+          "severity": "high",
+          "title": "No testing framework detected",
+          "description": "No jest / vitest / mocha / ava / tap dep found. Tests are the #1 predictor of low regression rates.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Vitest is the fast modern default (Vite-native, ESM-first). Start with unit tests for the most-edited modules."
+        },
+        {
+          "severity": "medium",
+          "title": "Database without ORM",
+          "description": "A database is in use, but no ORM/query-builder (Prisma / Drizzle / TypeORM / Mongoose / Kysely / Knex) dep is declared.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Drizzle (lightweight, SQL-first) or Prisma (heavier, migrations + Studio) for relational. Mongoose for MongoDB. Direct queries are error-prone."
+        },
+        {
+          "severity": "low",
+          "title": "No caching layer for growing app",
+          "description": "49 direct deps, no Redis / ioredis / memcached / LRU-cache. Even an in-process LRU pays off for hot paths.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Cache layer for queries + sessions + rate-limit counters. Redis for cross-instance share, LRU-cache for in-process hot data."
+        },
+        {
+          "severity": "low",
+          "title": "Large app without monorepo tooling",
+          "description": "49 deps without a workspace manager (Turborepo / Nx / pnpm workspaces). Build cache and parallelism are leaving cycles on the table.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Turborepo has the lowest adoption cost (drop-in for existing repos). Nx is heavier but ships codegen + generators."
+        }
+      ]
+    },
+    {
+      "key": "dora",
+      "label": "DORA",
+      "score": 25,
+      "applicable": true,
+      "findingCount": 3,
+      "findings": [
+        {
+          "severity": "low",
+          "title": "CI runs without a type-check step",
+          "description": "Found 19 CI job(s) but none of them runs `tsc --noEmit` / `type-check`. Type errors only surface at build time or in production.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Add a `type-check` step to CI: `run: tsc --noEmit`. Make it a required check on the protected branch."
+        },
+        {
+          "severity": "medium",
+          "title": "No observability dependency detected",
+          "description": "No Sentry / Datadog / NewRelic / OpenTelemetry / Honeycomb / Rollbar / Bugsnag dep. MTTR depends on knowing something broke before customers report it.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Add error-tracking (Sentry is the easiest) and ideally a tracing stack (OpenTelemetry → Honeycomb / Datadog / Jaeger). Wire up alerts to a notification channel that humans actually read."
+        },
+        {
+          "severity": "low",
+          "title": "No CODEOWNERS file detected",
+          "description": "No `.github/CODEOWNERS` (or `CODEOWNERS` / `docs/CODEOWNERS`). Code reviews route by chance; sensitive areas (auth, billing, infra) lack named approvers.",
+          "filePath": "",
+          "lineNumber": 1,
+          "fixSuggestion": "Create `.github/CODEOWNERS` with at minimum: `*.tsx @ui-team`, `src/auth/ @security`, `infra/ @platform`. Make CODEOWNERS-required a branch protection rule."
+        }
+      ]
     }
-  ],
-  "overall": 73
+  ]
 }

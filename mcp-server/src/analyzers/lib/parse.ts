@@ -76,3 +76,29 @@ export function parseFile(filename: string, content: string): ParseResult {
 export function isParseable(filePath: string): boolean {
   return /\.(?:[mc]?[jt]sx?)$/.test(filePath);
 }
+
+/**
+ * True for machine-generated or vendored files that humans don't hand-maintain
+ * (generated API clients, protobuf stubs, minified bundles, type declarations,
+ * vendored/third-party trees). Such files are large, complex, and export a lot,
+ * so they light up complexity / dead-export / risk signals and "cry wolf" — but
+ * you regenerate them, you don't refactor them. Dimensions that surface
+ * actionable code issues (predictive risk hotspots, dead-code exports) should
+ * skip them. Conservative on purpose: only clearly-generated patterns.
+ */
+export function isGeneratedOrVendored(filePath: string): boolean {
+  const p = filePath.toLowerCase();
+  return (
+    // vendored / generated / build output directories anywhere in the path
+    /(?:^|\/)(?:vendor|vendored|third[_-]?party|generated|__generated__|node_modules|dist|build|out|\.next|\.nuxt|coverage)\//.test(p) ||
+    // generated-client / codegen filename markers: foo.gen.ts, foo.generated.js
+    /\.(?:gen|generated)\.[mc]?[jt]sx?$/.test(p) ||
+    /\.gen\.(?:go|py|rs|kt|swift)$/.test(p) ||
+    // protobuf / grpc stubs: foo_pb2.py, foo_pb2_grpc.py, foo.pb.go
+    /(?:_pb2(?:_grpc)?\.py|\.pb\.go)$/.test(p) ||
+    // minified / bundled JS
+    /\.(?:min|bundle)\.[mc]?js$/.test(p) ||
+    // TypeScript type declarations (almost always generated; never hand-fixed for risk)
+    /\.d\.ts$/.test(p)
+  );
+}

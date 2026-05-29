@@ -10,6 +10,7 @@ import {
   hasAnyKeyword,
   extractFeaturesSection,
 } from './lib/strategic-signals.js';
+import { severityScore } from './lib/score.js';
 
 export interface StrategicReport {
   vision: VisionAnalysis;
@@ -125,10 +126,8 @@ export async function runVisionAnalysis(
   // territory (pass 12, lib/dora-signals.ts) — surfacing it from two
   // dimensions made the dashboard noisy.
 
-  const deductions = findings.reduce((sum, f) =>
-    sum + (f.severity === 'high' ? 20 : f.severity === 'medium' ? 10 : 5), 0
-  );
-  const score = Math.max(0, 100 - deductions);
+  // Diminishing returns: missing vision/observability signals shouldn't cliff to 0.
+  const score = severityScore(findings, 5);
 
   return {
     score,

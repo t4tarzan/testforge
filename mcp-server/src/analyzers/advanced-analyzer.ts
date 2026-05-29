@@ -1,14 +1,14 @@
 // Advanced Analyzers — completing all 13 testing dimensions
 // Contract, Visual Regression, Edge Case, Property-Based, Chaos, Mutation, Predictive
 
-import { parseFile, isParseable } from './lib/parse.js';
+import { parseFile, isParseable, isGeneratedOrVendored } from './lib/parse.js';
 import { findNPlusOneHits } from './lib/n-plus-one.js';
 import { findDeadCode } from './lib/dead-code.js';
 import { extractOpenApi, canonicalPath } from './lib/openapi-parse.js';
 import { discoverEndpoints, endpointSet, type DiscoveredEndpoint } from './lib/endpoint-discovery.js';
 import { findPythonEndpoints, type PyEndpoint } from './lib/py-endpoints.js';
 import { collectEcosystemPackages, queryOsvBatch, osvKey, type OsvPkg } from './lib/osv.js';
-import { countScore } from './lib/score.js';
+import { countScore, severityScore } from './lib/score.js';
 import { computeFileComplexity } from './lib/complexity.js';
 import { OWASP_2021, owaspCodesForCategory, type OwaspCode } from './lib/owasp-map.js';
 import {
@@ -231,9 +231,8 @@ export async function runContractAnalysis(
     });
   }
 
-  const score = Math.max(0, 100 - findings.reduce((s, f) =>
-    s + (f.severity === 'high' ? 25 : f.severity === 'medium' ? 15 : 8), 0
-  ));
+  // Diminishing returns: many missing-contract findings shouldn't cliff to 0.
+  const score = severityScore(findings, 5);
 
   // FastAPI with no static spec: "documented" = endpoints with a response_model
   // (their contract is the generated OpenAPI), not "all undocumented".
@@ -350,9 +349,8 @@ export async function runVisualRegressionAnalysis(
     });
   }
 
-  const score = Math.max(0, 100 - findings.reduce((s, f) =>
-    s + (f.severity === 'high' ? 20 : f.severity === 'medium' ? 12 : 6), 0
-  ));
+  // Diminishing returns: a pile of visual-regression gaps shouldn't cliff to 0.
+  const score = severityScore(findings, 5);
 
   return { score, htmlFiles, cssFiles, findings };
 }
@@ -467,23 +465,12 @@ export async function runEdgeCaseAnalysis(
 
   const potentialCases = Object.values(byRule).reduce((s, n) => s + n, 0);
 
-  // Score: each rule's hits cost a bit; high-severity rules cost more.
-  const cost =
-    byRule['JSON-parse-untrycaught'] * 4 +
-    byRule['parseInt-no-radix'] * 2 +
-    byRule['Number-coercion-unchecked'] * 2 +
-    byRule['new-Date-on-string'] * 2 +
-    byRule['switch-no-default'] * 1 +
-    byRule['loose-equality'] * 1 +
-    // Python rules — weighted by severity to mirror the JS weighting above.
-    byRule['sql-string-interpolation'] * 4 +
-    byRule['mutable-default-arg'] * 2 +
-    byRule['int-coercion-unchecked'] * 2 +
-    byRule['requests-no-timeout'] * 2 +
-    byRule['bare-except'] * 1 +
-    byRule['eq-none'] * 1 +
-    byRule['assert-for-validation'] * 1;
-  const score = Math.max(0, Math.min(100, 100 - cost));
+  // Score off the SEVERITY of the surfaced findings with diminishing returns —
+  // NOT a raw weighted sum of rule hits. Edge-case rules are mostly low/medium
+  // footguns, and the old absolute-cost sum scaled with repo size, so any large
+  // codebase floored to 0 (langchain: 55 cases → 0) — a classic cry-wolf. The
+  // findings stay; the score just stops over-alarming.
+  const score = severityScore(findings, 8);
 
   return {
     score,
@@ -759,11 +746,8 @@ export async function runChaosAnalysis(
     resilienceLevel = 'Low — Critical gaps in error handling. Errors will crash the worker.';
   }
 
-  const score = Math.max(0, 100 -
-    findings.filter((f) => f.severity === 'critical').length * 30 -
-    findings.filter((f) => f.severity === 'high').length * 15 -
-    findings.filter((f) => f.severity === 'medium').length * 8
-  );
+  // Diminishing returns: missing error-handling/retry patterns shouldn't cliff to 0.
+  const score = severityScore(findings, 5);
 
   return { score, resilienceLevel, patterns, findings };
 }
@@ -1038,6 +1022,10 @@ export async function runPredictiveAnalysis(
   for (const [filePath, content] of Object.entries(fileContents)) {
     if (filePath.includes('node_modules')) continue;
     if (filePath.includes('test')) continue;
+    // Generated/vendored files (codegen clients, .d.ts, protobuf) are large and
+    // complex but you regenerate them, not refactor them — flagging them as
+    // "risk hotspots" is a classic false alarm. Skip from risk aggregation.
+    if (isGeneratedOrVendored(filePath)) continue;
     if (!isParseable(filePath)) continue;
     const loc = content.split('\n').length;
     files.push({ path: filePath, loc });
@@ -1135,8 +1123,12 @@ export async function runPredictiveAnalysis(
   // We use the SUM not the max so concentrated risk in one file and
   // spread risk across many both register.
   const projectRiskRaw = risks.reduce((s, r) => s + r.score, 0);
-  // Curve: each 5 risk points knocks off 1 score point, capped at 90 off.
-  const score = Math.max(10, Math.round(100 - Math.min(projectRiskRaw / 5, 90)));
+  // Score off the SEVERITY of the surfaced hotspots (size-independent), not the
+  // raw sum — the old curve summed per-file risk across the whole repo, so any
+  // large codebase floored to 10 regardless of actual hotspot concentration
+  // (a cry-wolf for big mature repos). Diminishing returns keeps a few real
+  // hotspots meaningful without bottoming out.
+  const score = severityScore(findings, 4);
 
   let riskLevel: string;
   if (projectRiskRaw < 10) {
@@ -1356,14 +1348,17 @@ export async function runSupplyChainAudit(
     }
   }
 
-  const score = Math.max(0,
-    100
-    - knownVulnerable * 6
-    - criticalVulns * 9
-    - flags.nonRegistry.length * 4
-    - Math.min(flags.missingIntegrity.length, 10) * 1
-    - Math.min(flags.duplicateVersions.size, 10) * 1
-  );
+  // Diminishing returns over a severity-weighted issue count — a repo with many
+  // (often transitive/dev) advisories shouldn't cliff to 0/100. Criticals weigh
+  // heaviest; integrity/duplicate hygiene weighs least. Preserves the relative
+  // weights of the old linear formula (6 : 9 : 4 : 1 : 1).
+  const supplyWeight =
+    knownVulnerable * 1.0 +
+    criticalVulns * 1.5 +
+    flags.nonRegistry.length * 0.67 +
+    Math.min(flags.missingIntegrity.length, 10) * 0.17 +
+    Math.min(flags.duplicateVersions.size, 10) * 0.17;
+  const score = countScore(supplyWeight, 7);
 
   return {
     score,
@@ -1422,9 +1417,9 @@ export function runNPlusOneDetection(fileContents: Record<string, string>): NPlu
     }
   }
 
-  // Score model: each N+1 detection costs 12 points; cap at 100.
-  const score = Math.max(0, 100 - potentialNPlusOne * 12);
-  return { score: Math.min(100, score), potentialNPlusOne, findings };
+  // Diminishing returns: each N+1 detection penalizes, but many shouldn't cliff to 0.
+  const score = countScore(potentialNPlusOne, 5);
+  return { score, potentialNPlusOne, findings };
 }
 
 // Dead Code & Unused Dependencies (AST-aware as of 0.9.0).
@@ -1456,6 +1451,9 @@ export function runDeadCodeAnalysis(fileContents: Record<string, string>, depend
   const asts = new Map<string, t.File>();
   for (const [filePath, content] of Object.entries(fileContents)) {
     if (filePath.includes('node_modules') || filePath.includes('test')) continue;
+    // Generated/vendored files export a lot that nothing imports → they'd
+    // dominate "dead exports" with noise you'd never hand-remove.
+    if (isGeneratedOrVendored(filePath)) continue;
     if (!isParseable(filePath)) continue;
     const parsed = parseFile(filePath, content);
     if (parsed.ast) asts.set(filePath, parsed.ast);
@@ -1610,14 +1608,14 @@ export function runLicenseCheck(dependencies: string[], projectPath?: string): L
     }
   }
 
-  // Score: 100 minus weighted deductions.
-  const score = Math.max(0,
-    100
-    - strongCopyleft.length * 15
-    - weakCopyleft.length * 5
-    - proprietary.length * 8
-    - (audit.inspected ? 0 : 10)  // honest penalty for not running
-  );
+  // Diminishing returns over weighted license-risk count (strong copyleft is the
+  // real risk; weak copyleft / proprietary less so; small penalty if not audited).
+  const licenseWeight =
+    strongCopyleft.length * 1.0 +
+    weakCopyleft.length * 0.33 +
+    proprietary.length * 0.53 +
+    (audit.inspected ? 0 : 0.5);
+  const score = countScore(licenseWeight, 4);
 
   const copyleftDeps = strongCopyleft.map((p) => `${p.name}@${p.version}`);
 

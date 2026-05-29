@@ -1,6 +1,7 @@
 // Agentic Scale Prediction — 21st Testing Dimension
 // Simulates AI agent behavior at scale against target APIs
 // Predicts what happens when thousands of AI agents hit your system
+import { severityScore } from './lib/score.js';
 
 export interface AgenticScaleReport {
   score: number;
@@ -200,11 +201,8 @@ export function runAgenticScalePrediction(
   // ═══════════════════════════════════════════════════════════
   // Score
   // ═══════════════════════════════════════════════════════════
-  const criticalCount = findings.filter(f => f.severity === 'critical').length;
-  const highCount = findings.filter(f => f.severity === 'high').length;
-  const mediumCount = findings.filter(f => f.severity === 'medium').length;
-  
-  const score = Math.max(0, 100 - criticalCount * 30 - highCount * 15 - mediumCount * 8);
+  // Diminishing returns: scale-resilience gaps shouldn't cliff to 0.
+  const score = severityScore(findings, 5);
 
   let resilienceLevel: string;
   if (score >= 80) {
