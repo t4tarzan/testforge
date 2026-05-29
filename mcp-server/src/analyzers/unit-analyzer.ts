@@ -3,6 +3,8 @@ import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { parseFile, isParseable } from './lib/parse.js';
 import { analyzeTestFile, type TestFileQuality } from './lib/test-quality.js';
+import { findPythonTestQuality, type PyTestQuality } from './lib/py-test-quality.js';
+import { readRealCoverage } from './lib/coverage.js';
 
 export interface UnitTestReport {
   testFiles: Array<{ path: string; testCount: number }>;
@@ -13,7 +15,11 @@ export interface UnitTestReport {
   totalSourceLines: number;
   testedFunctions: string[];
   untestedFunctions: string[];
-  testCoverage: number; // percentage estimate
+  testCoverage: number; // measured % when a coverage artifact exists, else heuristic estimate
+  /** Whether testCoverage is from a real coverage report or the heuristic. */
+  coverageSource?: 'measured' | 'estimated';
+  /** The coverage artifact used (relative path), when measured. */
+  coverageArtifact?: string;
   frameworks: string[];
   /** Phase 5 pass 2: AST-aware quality signals. */
   quality: {
@@ -86,6 +92,9 @@ export async function runUnitAnalysis(config: {
   const testedFunctions = new Set<string>();
   const testFrameworks = new Set<string>();
   const fileQuality: TestFileQuality[] = [];
+  // Python (pytest/unittest) quality accumulator — JS quality comes from
+  // fileQuality below; Python is analyzed via its own AST pass.
+  const pyQ: PyTestQuality = { total: 0, assertionless: 0, skipped: 0, empty: 0 };
 
   for (const tf of testFiles) {
     const fullPath = join(projectPath, tf);
@@ -96,12 +105,13 @@ export async function runUnitAnalysis(config: {
       const isGo = tf.endsWith('.go');
 
       if (isPy) {
-        // pytest: each `def test_…` at any indent is one test case. Class-
-        // scoped tests (`class TestX: def test_y…`) are counted via the
-        // same regex since indentation isn't significant for the match.
-        const pyTestRe = /^\s*(?:async\s+)?def\s+(test_\w+)\s*\(/gm;
-        const matches = content.match(pyTestRe);
-        testCount = matches ? matches.length : 0;
+        // pytest/unittest: AST-classify each test_* (assertion / skip / empty),
+        // not just count. Falls back to a regex count if python3 is unavailable.
+        const pq = findPythonTestQuality(content);
+        pyQ.total += pq.total; pyQ.assertionless += pq.assertionless;
+        pyQ.skipped += pq.skipped; pyQ.empty += pq.empty;
+        const re = content.match(/^\s*(?:async\s+)?def\s+(test_\w+)\s*\(/gm);
+        testCount = pq.total || (re ? re.length : 0);
         testFrameworks.add('pytest');
       } else if (isGo) {
         // go test: each top-level `func Test…/Benchmark…/Example…/Fuzz…`
@@ -206,6 +216,13 @@ export async function runUnitAnalysis(config: {
     && parsedTestFiles.length / Math.max(1, parsedSourceFiles.length) >= 0.1;
   const coverageEstimate = fnMatchClearlyFailed ? testToSourceRatio : fnMatchEstimate;
 
+  // 6b. Prefer a REAL coverage report when the repo ships one (lcov / Cobertura
+  // / Istanbul). Falls back to the heuristic estimate, and records which.
+  const realCov = await readRealCoverage(projectPath);
+  const coverage = realCov ? realCov.overallPct : coverageEstimate;
+  const coverageSource: 'measured' | 'estimated' = realCov ? 'measured' : 'estimated';
+  const measuredNote = realCov ? `Measured ${coverage}% (from ${realCov.source})` : `Estimated function coverage is ${coverage}%`;
+
   // 7. Generate findings
   const findings: UnitTestReport['findings'] = [];
 
@@ -219,19 +236,19 @@ export async function runUnitAnalysis(config: {
     });
   }
 
-  if (coverageEstimate < 30 && parsedTestFiles.length > 0) {
+  if (coverage < 30 && parsedTestFiles.length > 0) {
     findings.push({
       severity: 'high',
       title: 'Low Test Coverage',
-      description: `Estimated function coverage is ${coverageEstimate}%. ${untestedList.length} functions appear untested.`,
+      description: `${measuredNote}. ${untestedList.length} functions appear untested.`,
       filePath: projectPath,
       suggestion: 'Add unit tests for core business logic, utility functions, and API handlers. Aim for at least 70% coverage.',
     });
-  } else if (coverageEstimate < 60) {
+  } else if (coverage < 60) {
     findings.push({
       severity: 'medium',
       title: 'Moderate Test Coverage',
-      description: `Estimated function coverage is ${coverageEstimate}%. ${untestedList.length} functions may lack tests.`,
+      description: `${measuredNote}. ${untestedList.length} functions may lack tests.`,
       filePath: projectPath,
       suggestion: 'Increase test coverage for edge cases and error handling paths.',
     });
@@ -257,6 +274,12 @@ export async function runUnitAnalysis(config: {
   let assertionlessCases = 0;
   let emptyCases = 0;
   let isolatedTestFiles = 0;
+
+  // Python (pytest/unittest) AST-classified quality folds into the same counters.
+  totalCases += pyQ.total;
+  skippedCases += pyQ.skipped;
+  emptyCases += pyQ.empty;
+  assertionlessCases += pyQ.assertionless;
 
   for (const q of fileQuality) {
     totalCases += q.totalCases;
@@ -374,7 +397,9 @@ export async function runUnitAnalysis(config: {
     totalSourceLines: parsedSourceFiles.reduce((sum, f) => sum + f.lines, 0),
     testedFunctions: testedList,
     untestedFunctions: untestedList,
-    testCoverage: coverageEstimate,
+    testCoverage: coverage,
+    coverageSource,
+    coverageArtifact: realCov?.source,
     frameworks: [...testFrameworks],
     quality: {
       totalCases,
