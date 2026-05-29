@@ -9,3 +9,6 @@ dist
 
 # Secrets drop file (belt-and-suspenders; real location is ~/testforge/keys.md outside the repo)
 keys.md
+
+# Private showcase report — dkubex is a PRIVATE repo; keep its audit local only
+src/data/showcaseReports/dkubex.json
