@@ -5,6 +5,8 @@ import {
   RotateCcw, Eye, Target, Layers, Sparkles, TrendingUp
 } from 'lucide-react';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from 'recharts';
+import DimensionBreakdown from '@/components/DimensionBreakdown';
+import { buildDimensionGroups } from '@/lib/buildDimensionGroups';
 
 /** Shape of a finding rendered in the report. Optional fields because
  *  not every analyzer dimension fills every slot. */
@@ -540,6 +542,11 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
             </span>
           ))}
         </div>
+      </div>
+
+      {/* Full per-dimension breakdown — scores, bars, findings + fixes */}
+      <div className="bg-white border border-[#D9D9D3] rounded-[12px] p-6">
+        <DimensionBreakdown groups={buildDimensionGroups(results)} />
       </div>
 
       {/* Tier 2 — Generate & Run (BYOK or paid) */}

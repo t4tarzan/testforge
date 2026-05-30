@@ -6,6 +6,8 @@ import {
   ArrowRight, Loader2, AlertCircle, BarChart3, Container
 } from 'lucide-react';
 import { Tier2Section } from '@/components/testrunner/ReportStep';
+import DimensionBreakdown from '@/components/DimensionBreakdown';
+import { buildDimensionGroups } from '@/lib/buildDimensionGroups';
 
 const MCP_URL = 'https://mcp.testforge.run';
 
@@ -273,6 +275,11 @@ export default function ManagedTesting() {
                 </div>
               </div>
             )}
+
+            {/* Full per-dimension breakdown — scores, bars, findings + fixes */}
+            <div className="bg-white border border-[#D9D9D3] rounded-xl p-6 mt-8">
+              <DimensionBreakdown groups={buildDimensionGroups(results)} />
+            </div>
 
             {/* Tier 2 — Generate & Run (BYOK or paid) */}
             <div className="mt-8">
