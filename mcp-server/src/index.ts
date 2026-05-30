@@ -45,6 +45,7 @@ import { runAgenticScalePrediction } from './analyzers/agentic-scale.js';
 import { runKubernetesAnalysis } from './analyzers/k8s-analyzer.js';
 import { generateTestsForFindings, type InputFinding } from './generator/generate-tests.js';
 import { hasLLMKey, PRIMARY_MODEL, FALLBACK_MODEL, LLM_BASE_URL, LLM_IS_LOCAL } from './generator/llm-client.js';
+import { isFromEnvFile } from './load-env.js';
 import { runGeneratedTests } from './runner/docker-runner.js';
 import { detectRunnable } from './simulation/runnable-detect.js';
 import { prepareSandbox, teardownSandbox } from './simulation/sandbox.js';
@@ -77,6 +78,31 @@ const PORT = Number(process.env.TESTFORGE_MCP_PORT) || 33221;
 // monorepos like supabase — ~1.3 GB even at depth 1). Override for very large
 // repos or slow links with TESTFORGE_CLONE_TIMEOUT_MS.
 const CLONE_TIMEOUT_MS = Number(process.env.TESTFORGE_CLONE_TIMEOUT_MS) || 120000;
+
+function isLoopbackRequest(request: import('fastify').FastifyRequest): boolean {
+  const ip = request.ip || request.socket?.remoteAddress || '';
+  return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1' || ip.startsWith('127.');
+}
+
+/**
+ * Whether a Tier-2 request (generate-and-run / simulate) passes the run-secret
+ * gate.
+ *  - No secret set → open (classic localhost self-host).
+ *  - Secret came from ~/.testforge/.env (the local `setup` wizard) AND the
+ *    request is from loopback → EXEMPT. This is the user's own machine and the
+ *    built-in dashboard sends no bearer, so gating it just locks them out of
+ *    their own Tier-2. A MANAGED deployment's secret comes from real Docker env
+ *    (never file-sourced), so it is never exempt and stays gated.
+ *  - Otherwise require a matching Bearer token.
+ */
+function runSecretOk(request: import('fastify').FastifyRequest): boolean {
+  const runSecret = process.env.TESTFORGE_RUN_SECRET;
+  if (!runSecret) return true;
+  if (isFromEnvFile('TESTFORGE_RUN_SECRET') && isLoopbackRequest(request)) return true;
+  const auth = (request.headers['authorization'] as string | undefined) || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  return token === runSecret;
+}
 const TMP_DIR = process.env.TMP_DIR || '/tmp/testforge-repos';
 
 // Pick GET endpoints worth driving load against. We can only hit *literal*
@@ -299,12 +325,7 @@ async function main() {
     // Managed Tier-2 runs untrusted code in a docker sandbox — gate it behind a
     // shared secret so only our own caller (the Vercel proxy / frontend) can
     // trigger it. Self-host sets no secret → open on the user's own localhost.
-    const runSecret = process.env.TESTFORGE_RUN_SECRET;
-    if (runSecret) {
-      const auth = (request.headers['authorization'] as string | undefined) || '';
-      const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-      if (token !== runSecret) return reply.status(401).send({ error: 'Unauthorized' });
-    }
+    if (!runSecretOk(request)) return reply.status(401).send({ error: 'Unauthorized' });
     const body = request.body as {
       findings?: InputFinding[];
       maxFindings?: number;
@@ -331,7 +352,18 @@ async function main() {
     const skipRun = (body as { skipRun?: boolean } | undefined)?.skipRun === true;
 
     const t0 = Date.now();
-    const results = await generateTestsForFindings(findings, max);
+    let results: Awaited<ReturnType<typeof generateTestsForFindings>>;
+    try {
+      results = await generateTestsForFindings(findings, max);
+    } catch (err) {
+      // Never let one malformed finding 500 the whole request — return a clean,
+      // actionable error instead.
+      return reply.status(422).send({
+        error: 'Test generation failed',
+        detail: (err as Error).message,
+        hint: 'This usually means a finding was missing expected fields. Please report it with the finding payload.',
+      });
+    }
     const generationMs = Date.now() - t0;
 
     // Day 2 — collect the files that the LLM successfully produced and ship
@@ -434,13 +466,7 @@ async function main() {
   // repo code). When the app can be auto-booted (Dockerfile) the result carries
   // REAL metrics (ranReal:true); otherwise it falls back to static load
   // analysis with an honest "couldn't auto-run" reason.
-  const checkRunSecret = (request: import('fastify').FastifyRequest): boolean => {
-    const runSecret = process.env.TESTFORGE_RUN_SECRET;
-    if (!runSecret) return true; // self-host (localhost only) sets no secret
-    const auth = (request.headers['authorization'] as string | undefined) || '';
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-    return token === runSecret;
-  };
+  const checkRunSecret = runSecretOk;
 
   app.post('/simulate', async (request, reply) => {
     if (!checkRunSecret(request)) return reply.status(401).send({ error: 'Unauthorized' });

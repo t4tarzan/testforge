@@ -50,6 +50,14 @@ export const TAG_COLORS: Record<ChangelogTag, string> = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '0.34.1',
+    date: '2026-05-30',
+    tag: 'precision',
+    title: 'Tier-2 fixes: no-filePath 500, local run-secret 401, always-latest npx',
+    summary:
+      'Three fixes for self-hosters running Tier-2. (1) Generate-and-run crashed with a 500 (Cannot read properties of undefined reading toLowerCase) when a finding had no file path — supply-chain, license, and project-level Kubernetes findings (e.g. "No NetworkPolicy") have none. detectLanguage and the filename builder now handle that, and the handler returns a clean 422 instead of a 500 if anything else slips through. (2) The 0.34.0 setup wizard wrote a Tier-2 run secret by default, which locked LOCAL users out of their own dashboard (it sends no bearer) → 401. The wizard now defaults to NO secret for local use and clears a stale one on re-run; additionally the gate auto-exempts loopback requests whose secret came from the local config file, so already-affected users are fixed just by updating — while managed deployments (secret from real env) stay gated. (3) The IDE config snippets (Claude/Cursor/Windsurf) and a few docs commands were missing @latest, so npx relaunched a long-cached old version (some users were stuck on 0.25.2). Every install command now pins @latest. OpenRouter Tier-2 was never broken — verified end-to-end alongside local Ollama.',
+  },
+  {
     version: '0.34.0',
     date: '2026-05-29',
     tag: 'platform',

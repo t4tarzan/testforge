@@ -25,8 +25,10 @@ export interface InputFinding {
 }
 
 /** Map a finding's source file to the test language we should generate. */
-export function detectLanguage(filePath: string): TestLanguage {
-  const f = filePath.toLowerCase();
+export function detectLanguage(filePath: string | undefined | null): TestLanguage {
+  // Some findings have no file (supply-chain, license, project-level k8s like
+  // "No NetworkPolicy"). Default to JS/TS rather than crashing on undefined.
+  const f = (filePath ?? '').toLowerCase();
   if (f.endsWith('.py')) return 'python';
   if (f.endsWith('.go')) return 'go';
   return 'js';
@@ -128,7 +130,7 @@ export function uniqueTestFilename(finding: InputFinding, cfg: Pick<LangConfig, 
   const ruleSlug = (finding.rule || llmName || finding.title || 'test')
     .replace(/\.test\.tsx?$/i, '')
     .replace(/_test\.(py|go)$/i, '');
-  const src = (finding.filePath.split(/[/\\]/).pop() || 'src').replace(/\.[^.]+$/, '');
+  const src = ((finding.filePath ?? '').split(/[/\\]/).pop() || 'src').replace(/\.[^.]+$/, '');
   const line = Number.isFinite(Number(finding.lineNumber)) ? Number(finding.lineNumber) : 0;
   const escSep = sep === '-' ? '\\-' : sep;
   const slug = `${ruleSlug}${sep}${src}${sep}l${line}`

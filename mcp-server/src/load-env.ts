@@ -9,6 +9,17 @@ import { homedir } from 'os';
 export const CONFIG_DIR = join(homedir(), '.testforge');
 export const ENV_FILE = join(CONFIG_DIR, '.env');
 
+// Keys whose values came from ~/.testforge/.env (the local setup wizard) rather
+// than the real environment. Used to distinguish a LOCAL self-host config (file)
+// from a MANAGED/exposed deployment (real Docker env) — e.g. so a file-sourced
+// run secret never locks a local user out of their own dashboard.
+const fileLoadedKeys = new Set<string>();
+
+/** True if `key`'s value was loaded from the config file (not the real env). */
+export function isFromEnvFile(key: string): boolean {
+  return fileLoadedKeys.has(key);
+}
+
 export function loadEnvFile(file: string = ENV_FILE): { loaded: boolean; keys: string[] } {
   if (!existsSync(file)) return { loaded: false, keys: [] };
   const keys: string[] = [];
@@ -33,6 +44,7 @@ export function loadEnvFile(file: string = ENV_FILE): { loaded: boolean; keys: s
     if (process.env[key] === undefined) {
       process.env[key] = val;
       keys.push(key);
+      fileLoadedKeys.add(key);
     }
   }
   return { loaded: true, keys };

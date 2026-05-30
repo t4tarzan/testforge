@@ -243,10 +243,10 @@ function HeroSection() {
                       </p>
                       <div className="mt-2 bg-[#12101A] rounded-lg p-3 flex items-center justify-between">
                         <code className="font-mono text-[13px] text-white">
-                          npm install -g @whitenoisenpm/testforge-mcp
+                          npm install -g @whitenoisenpm/testforge-mcp@latest
                         </code>
                         <CopyButton
-                          text="npm install -g @whitenoisenpm/testforge-mcp"
+                          text="npm install -g @whitenoisenpm/testforge-mcp@latest"
                           size="sm"
                         />
                       </div>

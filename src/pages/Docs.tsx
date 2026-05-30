@@ -778,7 +778,7 @@ function McpServerPage() {
         Tier-2 run secret, then writes <Code>~/.testforge/.env</Code> (chmod 600),
         which the server loads on startup:
       </p>
-      <DocCodeBlock code="npx -y @whitenoisenpm/testforge-mcp setup" language="bash" />
+      <DocCodeBlock code="npx -y @whitenoisenpm/testforge-mcp@latest setup" language="bash" />
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
         It offers two AI provider paths:
       </p>
@@ -822,7 +822,7 @@ function McpServerPage() {
         Claude Desktop / Cursor / Claude Code — add an <Code>mcpServers</Code> entry:
       </p>
       <DocCodeBlock
-        code={`{\n  "mcpServers": {\n    "testforge": {\n      "command": "npx",\n      "args": ["-y", "@whitenoisenpm/testforge-mcp"]\n    }\n  }\n}`}
+        code={`{\n  "mcpServers": {\n    "testforge": {\n      "command": "npx",\n      "args": ["-y", "@whitenoisenpm/testforge-mcp@latest"]\n    }\n  }\n}`}
         language="json"
       />
 
@@ -2261,7 +2261,7 @@ function McpIdeSetupPage() {
           </li>
         </ol>
         <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm mt-4 overflow-x-auto">
-          <pre className="text-[#a39fd4]">{`{\n  "mcpServers": {\n    "testforge": {\n      "command": "npx",\n      "args": ["-y", "@whitenoisenpm/testforge-mcp", "serve"],\n      "env": {\n        "TESTFORGE_MCP_PORT": "3001"\n      }\n    }\n  }\n}`}</pre>
+          <pre className="text-[#a39fd4]">{`{\n  "mcpServers": {\n    "testforge": {\n      "command": "npx",\n      "args": ["-y", "@whitenoisenpm/testforge-mcp@latest"],\n      "env": {\n        "TESTFORGE_MCP_PORT": "33221"\n      }\n    }\n  }\n}`}</pre>
         </div>
       </section>
 
@@ -2317,7 +2317,7 @@ function McpUsageGuidePage() {
           The MCP server ships with a local dashboard at <code className="bg-[#E8E5FF] px-1.5 py-0.5 rounded text-[#574a7d] font-mono text-sm">http://localhost:33221</code>. No cloud, no sign-in, no hosting needed.
         </p>
         <div className="bg-[#12101A] rounded-lg p-4 font-mono text-sm text-[#a99bff] overflow-x-auto mb-4">
-          npx @whitenoisenpm/testforge-mcp@latest serve<br/>
+          npx -y @whitenoisenpm/testforge-mcp@latest<br/>
           open http://localhost:33221
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -5,12 +5,32 @@
 // it: deterministic per-finding names (uniqueTestFilename) and a write-time
 // dedup guard in the runner (dedupeName).
 import { describe, it, expect } from 'vitest';
-import { uniqueTestFilename, type InputFinding } from '../src/generator/generate-tests.js';
+import { uniqueTestFilename, detectLanguage, type InputFinding } from '../src/generator/generate-tests.js';
 import { dedupeName } from '../src/runner/docker-runner.js';
 
 const finding = (over: Partial<InputFinding>): InputFinding => ({
   rule: 'new-date-on-string', title: 'new Date on string', description: '', filePath: 'src/utils/date.ts',
   lineNumber: 142, fixSuggestion: '', severity: 'low', ...over,
+});
+
+// A finding with NO filePath (supply-chain, license, project-level k8s like
+// "No NetworkPolicy") used to crash generation with
+// `Cannot read properties of undefined (reading 'toLowerCase')` → 500.
+describe('findings without a filePath do not crash', () => {
+  it('detectLanguage handles undefined/null/empty → defaults to js', () => {
+    expect(detectLanguage(undefined)).toBe('js');
+    expect(detectLanguage(null)).toBe('js');
+    expect(detectLanguage('')).toBe('js');
+    expect(detectLanguage('app/db.py')).toBe('python');
+  });
+  it('uniqueTestFilename handles a finding with no filePath', () => {
+    const name = uniqueTestFilename(
+      finding({ rule: 'vulnerable-dep', title: 'axios CVE', filePath: undefined as unknown as string, lineNumber: undefined as unknown as number }),
+      { language: 'js', ext: '.test.ts' },
+    );
+    expect(name).toMatch(/\.test\.ts$/);
+    expect(name).not.toContain('undefined');
+  });
 });
 
 describe('uniqueTestFilename', () => {

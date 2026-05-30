@@ -109,18 +109,26 @@ export async function runSetup(): Promise<void> {
     console.log(dim('  Skipping AI — Tier-1 (clone-and-analyze) works without it. Re-run `setup` anytime.'));
   }
 
-  // ── 2. Tier-2 run secret (gates generate-and-run / simulate) ──
+  // ── 2. Tier-2 run secret — OFF by default for local self-host ──
+  // The secret gates the Tier-2 endpoints. On localhost you are the only caller
+  // and the built-in dashboard sends NO bearer, so a secret here just locks you
+  // OUT of your own Tier-2 (the dashboard 401s). It's ONLY for when you expose
+  // the server beyond localhost. Default = none, and re-running setup CLEARS a
+  // stale secret a previous version may have written.
   if (provider !== 3) {
-    console.log(`\n${dim('Tier-2 endpoints are gated by a bearer secret so only you can trigger test runs.')}`);
     const cur = existing.TESTFORGE_RUN_SECRET;
+    console.log(`\n${dim('Run secret (gates Tier-2). Local use on your own machine needs NONE — leave it off')}`);
+    console.log(dim('so the dashboard works. Only set one if you expose this server to a network.'));
     const sec = await choose('Run secret', [
-      cur ? `Keep existing ${dim('(•••' + cur.slice(-4) + ')')}` : `Generate a strong random one ${dim('(recommended)')}`,
+      `None ${dim('— local use (recommended; the dashboard needs this)')}`,
+      cur ? `Keep existing ${dim('(•••' + cur.slice(-4) + ') — only if you expose the port')}` : `Generate one ${dim('(only if you expose the port to a network)')}`,
       'Enter my own',
-      'None (leave Tier-2 ungated — local single-user only)',
     ], 1);
-    if (sec === 1) env.TESTFORGE_RUN_SECRET = cur || randomBytes(24).toString('hex');
-    else if (sec === 2) env.TESTFORGE_RUN_SECRET = await ask('  Secret:', cur || '');
-    else delete env.TESTFORGE_RUN_SECRET;
+    if (sec === 1) delete env.TESTFORGE_RUN_SECRET;
+    else if (sec === 2) env.TESTFORGE_RUN_SECRET = cur || randomBytes(24).toString('hex');
+    else env.TESTFORGE_RUN_SECRET = await ask('  Secret:', cur || '');
+  } else {
+    delete env.TESTFORGE_RUN_SECRET;
   }
 
   // ── 3. Port ──

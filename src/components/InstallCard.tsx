@@ -18,7 +18,7 @@ const TABS: Tab[] = [
     key: 'macos',
     label: 'macOS',
     command: 'npx -y @whitenoisenpm/testforge-mcp@latest',
-    note: 'Then open http://localhost:33221 — 21-dimension analysis, runs locally.',
+    note: 'Then open http://localhost:33221 — 22-dimension analysis, runs locally. Configure with `npx -y @whitenoisenpm/testforge-mcp@latest setup`.',
   },
   {
     key: 'linux',
@@ -35,8 +35,8 @@ const TABS: Tab[] = [
   {
     key: 'claude',
     label: 'Claude Code',
-    command: 'claude mcp add testforge -- npx -y @whitenoisenpm/testforge-mcp',
-    note: 'Registers TestForge as a Claude Code MCP server.',
+    command: 'claude mcp add testforge -- npx -y @whitenoisenpm/testforge-mcp@latest',
+    note: 'Registers TestForge as a Claude Code MCP server (always launches the latest).',
   },
   {
     key: 'cursor',
@@ -45,7 +45,7 @@ const TABS: Tab[] = [
   "mcpServers": {
     "testforge": {
       "command": "npx",
-      "args": ["-y", "@whitenoisenpm/testforge-mcp"]
+      "args": ["-y", "@whitenoisenpm/testforge-mcp@latest"]
     }
   }
 }`,
@@ -58,7 +58,7 @@ const TABS: Tab[] = [
   "mcpServers": {
     "testforge": {
       "command": "npx",
-      "args": ["-y", "@whitenoisenpm/testforge-mcp"]
+      "args": ["-y", "@whitenoisenpm/testforge-mcp@latest"]
     }
   }
 }`,
