@@ -7,9 +7,17 @@
 // Host-path note: Colima/virtiofs only mounts /Users/* by default — runs live
 // under ~/.testforge/runs/ so the bind-mount shows up inside the container.
 import { spawn } from 'child_process';
-import { mkdirSync, writeFileSync, rmSync } from 'fs';
+import { mkdirSync, writeFileSync, rmSync, existsSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
+
+// The runner Dockerfiles ship in the npm package (../../runner relative to this
+// file, in both dist/ and src/). Used for the build-locally fallback so Tier-2
+// works even if the GHCR image can't be pulled (private/offline/rate-limited).
+const RUNNER_SRC_DIR = join(import.meta.dirname, '..', '..', 'runner');
+const RUNNER_DOCKERFILE: Record<TestLanguage, string> = {
+  js: 'Dockerfile', python: 'Dockerfile.python', go: 'Dockerfile.go',
+};
 import type { GeneratedTestFile, TestLanguage } from '../generator/generate-tests.js';
 
 // Where generated test files are written before being bind-mounted into the
@@ -94,27 +102,46 @@ export async function dockerAvailable(): Promise<{ ok: boolean; reason?: string;
 
 const DOCKER_HELP = 'Tier-2 runs the generated tests in a hardened Docker sandbox. Install Docker Desktop (macOS/Windows) or the docker engine (Linux), make sure it is running, then click "Generate Tests" again. Tier-1 analysis and test GENERATION work without Docker — only the sandbox RUN needs it.';
 
+function run(cmd: string, args: string[], timeoutMs = 300_000): Promise<{ code: number; err: string }> {
+  return new Promise((resolve) => {
+    let proc;
+    try { proc = spawn(cmd, args, { stdio: ['ignore', 'ignore', 'pipe'] }); }
+    catch { return resolve({ code: -1, err: `${cmd} not available` }); }
+    let err = '';
+    const killer = setTimeout(() => { try { proc.kill('SIGKILL'); } catch { /* ignore */ } }, timeoutMs);
+    proc.on('error', (e: Error) => { clearTimeout(killer); resolve({ code: -1, err: e.message }); });
+    proc.stderr?.on('data', (b) => { err += b.toString(); });
+    proc.on('close', (c) => { clearTimeout(killer); resolve({ code: c ?? -1, err }); });
+  });
+}
+
 const imagePullAttempted = new Set<string>();
-async function ensureImage(image: string): Promise<string | null> {
-  // Local builds (no registry host or :local tag) are never pulled.
-  if (!image.includes('/') || image.endsWith(':local')) return null;
+async function ensureImage(image: string, lang: TestLanguage): Promise<string | null> {
+  // `:local` images are built/managed externally (e.g. on the VPS) — never touch.
+  if (image.endsWith(':local')) return null;
   if (imagePullAttempted.has(image)) return null;
   imagePullAttempted.add(image);
-  return new Promise((resolve) => {
-    const inspect = spawn('docker', ['image', 'inspect', image], { stdio: 'ignore' });
-    inspect.on('error', () => resolve('Docker is not available'));
-    inspect.on('close', (code) => {
-      if (code === 0) return resolve(null);
-      const pull = spawn('docker', ['pull', image], { stdio: ['ignore', 'pipe', 'pipe'] });
-      let err = '';
-      pull.stderr.on('data', (b) => { err += b.toString(); });
-      pull.on('close', (pc) => {
-        if (pc === 0) return resolve(null);
-        imagePullAttempted.delete(image); // allow retry
-        resolve(err.trim() || `docker pull ${image} exited ${pc}`);
-      });
-    });
-  });
+
+  // 1. Already present locally?
+  if ((await run('docker', ['image', 'inspect', image], 15_000)).code === 0) return null;
+
+  // 2. Pull from the registry.
+  const pull = await run('docker', ['pull', image]);
+  if (pull.code === 0) return null;
+
+  // 3. Fallback: build the image locally from the bundled Dockerfile. Tier-2
+  //    then works even when the GHCR image is private/unreachable/offline. The
+  //    first build takes ~20-40s; the image is cached afterwards.
+  const dockerfile = join(RUNNER_SRC_DIR, RUNNER_DOCKERFILE[lang]);
+  if (existsSync(dockerfile)) {
+    const build = await run('docker', ['build', '-t', image, '-f', dockerfile, RUNNER_SRC_DIR]);
+    if (build.code === 0) return null;
+    imagePullAttempted.delete(image);
+    return `Could not pull ${image} (${pull.err.trim().slice(0, 140)}) and the local build fallback failed: ${build.err.trim().slice(-300)}`;
+  }
+
+  imagePullAttempted.delete(image); // allow retry
+  return pull.err.trim() || `docker pull ${image} exited ${pull.code}`;
 }
 
 async function dockerRun(image: string, hostMountDir: string): Promise<{ stdout: string; stderr: string; code: number }> {
@@ -283,7 +310,7 @@ export async function runGeneratedTests(files: GeneratedTestFile[]): Promise<Run
 
   for (const [lang, groupFiles] of groups) {
     const image = IMAGES[lang];
-    const pullErr = await ensureImage(image);
+    const pullErr = await ensureImage(image, lang);
     if (pullErr) {
       containerError = `Could not pull ${image}: ${pullErr}`;
       allFiles.push(...erroredGroup(groupFiles, containerError).files);

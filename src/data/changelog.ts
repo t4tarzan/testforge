@@ -50,6 +50,14 @@ export const TAG_COLORS: Record<ChangelogTag, string> = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '0.36.2',
+    date: '2026-05-30',
+    tag: 'precision',
+    title: 'Tier-2 sandbox works without the registry — build-locally fallback',
+    summary:
+      'Self-hosted Tier-2 could fail to run generated tests if the sandbox runner image couldn\'t be pulled (private registry, offline, or rate-limited) — surfacing as a confusing "0/0 ERRORED". The runner now falls back to BUILDING the image locally from the Dockerfile bundled in the npm package when the pull fails, so Tier-2 works with nothing but Docker — no registry access required (first run ~20-40s to build, cached after). Combined with 0.36.1\'s clean-JSON fix, generated tests now actually execute and report real pass/fail. The published runner images are also multi-arch now (amd64 + arm64) so they run on Intel/AMD Linux servers, not just Apple Silicon.',
+  },
+  {
     version: '0.36.1',
     date: '2026-05-30',
     tag: 'precision',
