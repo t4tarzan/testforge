@@ -50,6 +50,14 @@ export const TAG_COLORS: Record<ChangelogTag, string> = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '0.36.0',
+    date: '2026-05-30',
+    tag: 'platform',
+    title: 'Managed BYOK — use the hosted Tier-2 with your own OpenRouter key',
+    summary:
+      'You can now run the HOSTED Generate & Run with your OWN OpenRouter key — on any plan, no self-host required. Add your key under Account → API Keys → "Tier-2 AI Key (BYOK)"; it is encrypted at rest (AES-256-GCM, key derived from the session secret), never displayed back, and only decrypted server-side to forward to the sandbox for your generation. The MCP gained a per-request key path: the managed proxy forwards your key as an X-LLM-Key header (honored only behind the run-secret gate, used transiently, never stored or logged), so generation runs on your key and OpenRouter billing while we run the Docker sandbox. A fair monthly cap (max(50, your plan\'s Tier-2 limit)) protects the shared sandbox; self-host the MCP for unlimited runs. Free users with a BYOK key now get hosted Tier-2 instead of a 402. Prefer fully local? The self-hosted MCP settings panel still keeps your key and code entirely on your machine.',
+  },
+  {
     version: '0.35.0',
     date: '2026-05-30',
     tag: 'platform',

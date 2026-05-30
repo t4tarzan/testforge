@@ -10,7 +10,16 @@
 // synthetic inputs); they do NOT import the project under test.
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { openrouter, PRIMARY_MODEL, FALLBACK_MODEL, ProviderAttempt } from './llm-client.js';
+import { providerFor, PRIMARY_MODEL, FALLBACK_MODEL, ProviderAttempt } from './llm-client.js';
+
+/** Per-request LLM override (managed BYOK — the user's own key for one call). */
+export interface LlmOverride {
+  apiKey: string;
+  baseURL?: string;
+  primaryModel?: string;
+  fallbackModel?: string;
+}
+type Provider = ReturnType<typeof providerFor>;
 
 export type TestLanguage = 'js' | 'python' | 'go';
 
@@ -150,13 +159,14 @@ async function generateOne(
   finding: InputFinding,
   cfg: LangConfig,
   model: string,
-  attempts: ProviderAttempt[]
+  attempts: ProviderAttempt[],
+  provider: Provider
 ): Promise<GeneratedTestFile | null> {
   const started = Date.now();
   try {
     const { object } = await generateObject({
       // AI SDK v6: .chat(model) for OpenAI-compatible providers (OpenRouter).
-      model: openrouter.chat(model),
+      model: provider.chat(model),
       schema: schemaFor(cfg),
       system: cfg.system,
       prompt: `Finding: ${finding.title}
@@ -180,21 +190,25 @@ Write the ${cfg.language === 'js' ? 'Vitest' : cfg.language === 'python' ? 'pyte
   }
 }
 
-export async function generateTestForFinding(finding: InputFinding): Promise<GenerateResult> {
+export async function generateTestForFinding(finding: InputFinding, override?: LlmOverride): Promise<GenerateResult> {
   const attempts: ProviderAttempt[] = [];
   const cfg = LANGS[detectLanguage(finding.filePath)];
-  let file = await generateOne(finding, cfg, PRIMARY_MODEL, attempts);
-  if (!file) {
+  const provider = providerFor(override);
+  const primary = override?.primaryModel || PRIMARY_MODEL;
+  const fallback = override?.fallbackModel || FALLBACK_MODEL;
+  let file = await generateOne(finding, cfg, primary, attempts, provider);
+  if (!file && fallback && fallback !== primary) {
     // Provider rotation — Kimi often succeeds when DeepSeek rate-limits.
-    file = await generateOne(finding, cfg, FALLBACK_MODEL, attempts);
+    file = await generateOne(finding, cfg, fallback, attempts, provider);
   }
   return { finding, file, attempts };
 }
 
 export async function generateTestsForFindings(
   findings: InputFinding[],
-  maxFindings = 3
+  maxFindings = 3,
+  override?: LlmOverride,
 ): Promise<GenerateResult[]> {
   const subset = findings.slice(0, maxFindings);
-  return Promise.all(subset.map(generateTestForFinding));
+  return Promise.all(subset.map((f) => generateTestForFinding(f, override)));
 }

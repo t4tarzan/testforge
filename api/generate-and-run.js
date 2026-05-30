@@ -15,9 +15,10 @@
 // directly; we don't meter them.
 import { withSecurity } from './_security.js';
 import { requireSession } from './_session.js';
-import { denyIfOverTier2Quota, recordTier2Iteration, getQuota } from './_gate.js';
+import { denyIfOverTier2Quota, denyIfOverByokQuota, recordTier2Iteration, getQuota } from './_gate.js';
+import { getUserLlmKey } from './_llm-key.js';
 
-const MCP_SERVER = process.env.MCP_SERVER_URL || 'https://testforge-mcp.fly.dev';
+const MCP_SERVER = process.env.MCP_SERVER_URL || 'https://mcp.testforge.run';
 // Tier-2 takes ~45-90s for 3 findings; budget for that plus headroom. Vercel
 // Pro Functions allow up to 5 min — we use a chunk of that here.
 const UPSTREAM_TIMEOUT_MS = 180_000;
@@ -36,9 +37,15 @@ async function handler(req, res) {
   const userId = session.userId;
   const sessionPlan = session.plan || 'free';
 
-  // Plan + quota gate. Forge gets 100/mo, Enterprise unlimited, everyone
-  // else gets a 402 with an upgradeUrl.
-  const deny = await denyIfOverTier2Quota(userId, sessionPlan);
+  // BYOK: has the user stored their own LLM key? If so they may use hosted
+  // Tier-2 on ANY plan (their OpenRouter billing) — gated by a separate cap that
+  // protects our sandbox. Otherwise the plan quota applies (Free = 402).
+  let byok = null;
+  try { byok = await getUserLlmKey(userId); } catch { byok = null; }
+
+  const deny = byok
+    ? await denyIfOverByokQuota(userId, sessionPlan)
+    : await denyIfOverTier2Quota(userId, sessionPlan);
   if (deny) return res.status(deny.status).json(deny.body);
 
   const body = req.body || {};
@@ -57,6 +64,11 @@ async function handler(req, res) {
         // Managed MCP gates Tier-2 behind this shared secret; self-host MCP
         // ignores it. Set TESTFORGE_RUN_SECRET in Vercel + on the VPS.
         ...(process.env.TESTFORGE_RUN_SECRET ? { Authorization: `Bearer ${process.env.TESTFORGE_RUN_SECRET}` } : {}),
+        // Managed BYOK: forward the user's own key so the hosted MCP generates
+        // with THEIR key/billing. Used transiently upstream; never stored there.
+        ...(byok?.apiKey ? { 'X-LLM-Key': byok.apiKey } : {}),
+        ...(byok?.baseUrl ? { 'X-LLM-Base-URL': byok.baseUrl } : {}),
+        ...(byok?.model ? { 'X-LLM-Model': byok.model } : {}),
       },
       body: JSON.stringify(body),
       signal: controller.signal,

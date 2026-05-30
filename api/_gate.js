@@ -139,6 +139,28 @@ export async function denyIfOverTier2Quota(userId, sessionPlan) {
   return null;
 }
 
+// Managed BYOK gate. When a user has stored their OWN LLM key, they may use the
+// hosted Tier-2 on ANY plan (they pay OpenRouter directly) — but we still run
+// the Docker sandbox on our infra, so a monthly cap protects it from abuse.
+// Cap: max(50, the plan's own Tier-2 limit); Enterprise is uncapped.
+const BYOK_MIN_CAP = 50;
+export async function denyIfOverByokQuota(userId, sessionPlan) {
+  const { plan, limits, tier2Used } = await getQuota(userId, sessionPlan);
+  const cap = limits.tier2IterationsPerMonth === Infinity ? Infinity : Math.max(BYOK_MIN_CAP, limits.tier2IterationsPerMonth);
+  if (cap !== Infinity && tier2Used >= cap) {
+    return {
+      status: 402,
+      body: {
+        allowed: false,
+        reason: `Monthly hosted-BYOK limit reached (${tier2Used}/${cap}). This cap protects our sandbox infrastructure — self-host the MCP (npx) for unlimited runs with your key.`,
+        plan,
+        upgradeUrl: '/#/pricing',
+      },
+    };
+  }
+  return null;
+}
+
 // Record one successful Tier-2 iteration for billing/quota. Idempotency is
 // handled by the caller via a unique generationId. Lazy table create so
 // existing deployments don't need a migration step before the first call.

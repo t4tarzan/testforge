@@ -583,6 +583,36 @@ function ApiKeysTab() {
   const [newKey, setNewKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [keyError, setKeyError] = useState<string>('');
+  // Managed BYOK: the user's own OpenRouter key for hosted Tier-2.
+  const [byok, setByok] = useState<{ set: boolean; mask?: string; baseUrl?: string; model?: string } | null>(null);
+  const [byokInput, setByokInput] = useState('');
+  const [byokModel, setByokModel] = useState('');
+  const [byokBusy, setByokBusy] = useState(false);
+  const [byokMsg, setByokMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/user-llm-key').then(r => r.json()).then(d => { if (d && typeof d.set === 'boolean') setByok(d); }).catch(() => {});
+  }, []);
+
+  const saveByok = async () => {
+    setByokBusy(true); setByokMsg(null);
+    try {
+      const res = await fetch('/api/user-llm-key', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: byokInput.trim(), model: byokModel.trim() }) });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.ok) { setByok({ set: true, mask: d.mask, model: byokModel.trim() }); setByokInput(''); setByokMsg({ kind: 'ok', text: 'Saved. Hosted Tier-2 will now use your key.' }); }
+      else setByokMsg({ kind: 'err', text: d.error || `Could not save (HTTP ${res.status}).` });
+    } catch { setByokMsg({ kind: 'err', text: 'Network error — please retry.' }); }
+    setByokBusy(false);
+  };
+  const removeByok = async () => {
+    setByokBusy(true); setByokMsg(null);
+    try {
+      const res = await fetch('/api/user-llm-key', { method: 'DELETE' });
+      if (res.ok) { setByok({ set: false }); setByokMsg({ kind: 'ok', text: 'Removed. Hosted Tier-2 needs the Pro plan again (or self-host).' }); }
+      else setByokMsg({ kind: 'err', text: 'Could not remove the key.' });
+    } catch { setByokMsg({ kind: 'err', text: 'Network error — please retry.' }); }
+    setByokBusy(false);
+  };
 
   useEffect(() => {
     fetch('/api/keys').then(r => r.json()).then(d => { if (Array.isArray(d)) setKeys(d); }).catch(() => {});
@@ -618,14 +648,42 @@ function ApiKeysTab() {
       <h2 className="font-heading font-medium text-[28px] text-[#12101A]">API Keys</h2>
       <p className="text-[16px] text-[#6B6B6B] font-body mt-1">Manage TestForge API keys for programmatic access to the managed API.</p>
 
-      <div className="mt-5 p-4 bg-[rgba(74,144,217,0.06)] border-l-[3px] border-[#4A90D9] rounded-r-lg">
-        <p className="text-[14px] font-body font-semibold text-[#4A90D9] mb-1">Looking to add your own OpenRouter key for Tier-2 (BYOK)?</p>
-        <p className="text-[13px] text-[#333333] font-body leading-[1.6]">
-          That key isn&rsquo;t set here — TestForge API keys above are for our managed API. On the <strong>Free plan, Tier-2 is BYOK via the self-hosted MCP</strong>:
-          run <code className="bg-white border border-[#E8E5FF] px-1.5 py-0.5 rounded font-mono text-[12px]">npx -y @whitenoisenpm/testforge-mcp@latest</code>, open
-          <code className="bg-white border border-[#E8E5FF] px-1.5 py-0.5 rounded font-mono text-[12px]">localhost:33221</code>, click <strong>⚙ Settings</strong>, and paste your OpenRouter key
-          (or point it at a local Ollama / LM Studio model — free, no key). Your code and key never leave your machine.{' '}
-          <a href="#/docs/mcp-server" className="text-[#574a7d] font-medium hover:underline">Self-host setup →</a>
+      {/* Managed BYOK — use your own OpenRouter key with HOSTED Tier-2 */}
+      <div className="mt-6 p-5 bg-white border border-[#a39fd4] rounded-[12px]">
+        <div className="flex items-center gap-2 mb-1">
+          <KeyRound size={18} className="text-[#574a7d]" />
+          <h3 className="font-heading font-medium text-[18px] text-[#12101A]">Tier-2 AI Key (BYOK)</h3>
+        </div>
+        <p className="text-[13px] text-[#6B6B6B] font-body leading-[1.6] mb-4">
+          Use the <strong>hosted</strong> Generate &amp; Run with <strong>your own</strong> OpenRouter key — works on any plan, you pay OpenRouter directly,
+          and we run the sandbox (a fair monthly cap applies). The key is encrypted at rest and only used to generate your tests.
+          Prefer fully local? <a href="#/docs/mcp-server" className="text-[#574a7d] hover:underline">Self-host the MCP</a> instead — no key leaves your machine.
+        </p>
+
+        {byok?.set ? (
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="inline-flex items-center gap-2 text-[13px] font-body bg-[#E8F5EE] text-[#1c7a4d] px-3 py-1.5 rounded-lg border border-[#bfe6d0]">
+              ✓ Key saved <code className="font-mono text-[12px]">{byok.mask}</code>{byok.model ? <span className="text-[#6B6B6B]"> · {byok.model}</span> : null}
+            </span>
+            <button onClick={removeByok} disabled={byokBusy} className="text-[13px] text-[#b91c1c] hover:underline disabled:opacity-50">Remove</button>
+            <button onClick={() => setByok({ set: false })} disabled={byokBusy} className="text-[13px] text-[#574a7d] hover:underline disabled:opacity-50">Replace</button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <input type="password" value={byokInput} onChange={e => setByokInput(e.target.value)} placeholder="sk-or-v1-…  (get one at openrouter.ai/keys)"
+              className="w-full h-10 px-3 rounded-lg border border-[#D9D9D3] font-mono text-[13px] focus:outline-none focus:border-[#a39fd4]" />
+            <input type="text" value={byokModel} onChange={e => setByokModel(e.target.value)} placeholder="Model (optional) — default deepseek/deepseek-v4-flash"
+              className="w-full h-10 px-3 rounded-lg border border-[#D9D9D3] font-mono text-[13px] focus:outline-none focus:border-[#a39fd4]" />
+            <button onClick={saveByok} disabled={byokBusy || !byokInput.trim()} className="h-10 px-5 bg-[#574a7d] text-white rounded-lg font-body font-medium text-[14px] hover:bg-[#4a3d6b] transition-colors disabled:opacity-50">
+              {byokBusy ? 'Saving…' : 'Save key'}
+            </button>
+          </div>
+        )}
+        {byokMsg && (
+          <div className={`mt-3 text-[13px] font-body ${byokMsg.kind === 'ok' ? 'text-[#1c7a4d]' : 'text-[#b91c1c]'}`}>{byokMsg.text}</div>
+        )}
+        <p className="text-[12px] text-[#9A9A9A] font-body mt-3">
+          Get a key at <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer" className="text-[#574a7d] hover:underline">openrouter.ai/keys</a>. We never display it back or share it.
         </p>
       </div>
       <button onClick={handleGenerate} disabled={loading} className="mt-6 h-10 px-5 bg-[#574a7d] text-white rounded-lg font-body font-medium text-[14px] flex items-center gap-2 hover:bg-[#4a3d6b] transition-colors disabled:opacity-50">

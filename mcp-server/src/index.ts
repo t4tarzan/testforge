@@ -43,7 +43,7 @@ import {
 } from './analyzers/advanced-analyzer.js';
 import { runAgenticScalePrediction } from './analyzers/agentic-scale.js';
 import { runKubernetesAnalysis } from './analyzers/k8s-analyzer.js';
-import { generateTestsForFindings, type InputFinding } from './generator/generate-tests.js';
+import { generateTestsForFindings, type InputFinding, type LlmOverride } from './generator/generate-tests.js';
 import { hasLLMKey, PRIMARY_MODEL, FALLBACK_MODEL, LLM_BASE_URL, LLM_IS_LOCAL } from './generator/llm-client.js';
 import { isFromEnvFile, readEnvFile, writeEnvFile } from './load-env.js';
 import { reloadLLM } from './generator/llm-client.js';
@@ -417,7 +417,23 @@ async function main() {
       cluster?: string;
     } | undefined;
 
-    if (!hasLLMKey()) {
+    // Managed BYOK: the Vercel proxy forwards a user's own OpenRouter key per
+    // request (X-LLM-Key) so the hosted Tier-2 uses the USER's key/billing, not
+    // ours. Only honored for requests that pass the run-secret gate above (i.e.
+    // the trusted proxy) — a random caller can't inject a key. The key is used
+    // transiently for this one generation; it is never stored by the MCP.
+    const byokKey = (request.headers['x-llm-key'] as string | undefined)?.trim();
+    const llmOverride: LlmOverride | undefined = byokKey
+      ? {
+          apiKey: byokKey,
+          baseURL: (request.headers['x-llm-base-url'] as string | undefined)?.trim() || undefined,
+          primaryModel: (request.headers['x-llm-model'] as string | undefined)?.trim() || undefined,
+          fallbackModel: (request.headers['x-llm-fallback-model'] as string | undefined)?.trim() || undefined,
+        }
+      : undefined;
+
+    // A BYOK key satisfies the "configured" check even if the server has no key.
+    if (!llmOverride && !hasLLMKey()) {
       return reply.status(503).send({
         error: 'No AI provider configured for Tier-2 test generation',
         hint: 'Run `npx @whitenoisenpm/testforge-mcp setup` to configure an AI provider — an OPENROUTER_API_KEY (cloud) or TESTFORGE_LLM_BASE_URL pointing at a local model server (Ollama/LM Studio).',
@@ -439,7 +455,7 @@ async function main() {
     const t0 = Date.now();
     let results: Awaited<ReturnType<typeof generateTestsForFindings>>;
     try {
-      results = await generateTestsForFindings(findings, max);
+      results = await generateTestsForFindings(findings, max, llmOverride);
     } catch (err) {
       // Never let one malformed finding 500 the whole request — return a clean,
       // actionable error instead.
@@ -481,7 +497,13 @@ async function main() {
     const responsePayload = {
       generationId,
       cluster,
-      provider: { primary: PRIMARY_MODEL, fallback: FALLBACK_MODEL, base: LLM_BASE_URL, local: LLM_IS_LOCAL },
+      provider: {
+        primary: llmOverride?.primaryModel || PRIMARY_MODEL,
+        fallback: llmOverride?.fallbackModel || FALLBACK_MODEL,
+        base: llmOverride?.baseURL || LLM_BASE_URL,
+        local: llmOverride ? false : LLM_IS_LOCAL,
+        byok: Boolean(llmOverride),
+      },
       generatedAt: new Date().toISOString(),
       durationMs: generationMs + (run?.durationMs ?? 0),
       generationMs,

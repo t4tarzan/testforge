@@ -33,21 +33,38 @@ export let LLM_BASE_URL = '';
 export let LLM_IS_LOCAL = false;
 let apiKey: string | undefined;
 
+const COMMON_HEADERS = {
+  // OpenRouter appreciates these for rate-limit accounting (harmless elsewhere).
+  'HTTP-Referer': 'https://testforge.run',
+  'X-Title': 'TestForge MCP - Generate & Run',
+};
+
 function mkProvider() {
   return createOpenAI({
     // Local servers don't need a real key; send a placeholder so the SDK doesn't
     // error on an empty string.
     apiKey: apiKey ?? (LLM_IS_LOCAL ? 'local' : ''),
     baseURL: LLM_BASE_URL,
-    // OpenRouter appreciates these for rate-limit accounting (harmless elsewhere).
-    headers: {
-      'HTTP-Referer': 'https://testforge.run',
-      'X-Title': 'TestForge MCP - Generate & Run',
-    },
+    headers: COMMON_HEADERS,
   });
 }
 
 export let openrouter = mkProvider();
+
+/**
+ * Provider for a SINGLE request that brings its own key — managed BYOK: the
+ * Vercel proxy forwards a user's own OpenRouter key per request so the hosted
+ * Tier-2 uses the USER's key (and their OpenRouter billing), never ours. Falls
+ * back to the server's default provider when no per-request key is given.
+ */
+export function providerFor(override?: { apiKey?: string; baseURL?: string }) {
+  if (!override?.apiKey) return openrouter;
+  return createOpenAI({
+    apiKey: override.apiKey,
+    baseURL: override.baseURL || 'https://openrouter.ai/api/v1',
+    headers: COMMON_HEADERS,
+  });
+}
 
 /** Re-read the LLM config from process.env and rebuild the provider. Called at
  *  startup and after the settings panel (`POST /config`) changes the env. */
