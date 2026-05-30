@@ -1,6 +1,6 @@
 # 🧪 TestForge — AI CODE? Run TestForge!
 
-> **21-dimension AI-powered testing. Drop any repo URL. Get a full report in under 2 seconds.**
+> **22-dimension AI-powered testing. Drop any repo URL. Get a full report in under 2 seconds.**
 
 [![Website](https://img.shields.io/badge/testforge.run-574a7d)](https://testforge.run)
 [![npm](https://img.shields.io/badge/npm-%40whitenoisenpm%2Ftestforge--mcp-574a7d)](https://www.npmjs.com/package/@whitenoisenpm/testforge-mcp)
@@ -11,11 +11,11 @@
 
 ## 🚀 Try It
 
-**Web (managed):** https://testforge.run — drop any public GitHub repo URL, get a 21-dimension report.
+**Web (managed):** https://testforge.run — drop any public GitHub repo URL, get a 22-dimension report.
 
 **Local (MCP) — one command, no cloud, no sign-up:**
 ```bash
-npx @whitenoisenpm/testforge-mcp@latest serve
+npx -y @whitenoisenpm/testforge-mcp@latest
 open http://localhost:33221
 ```
 Dashboard accepts a local project path **or** a GitHub URL. The npm package ships `better-sqlite3` prebuilt for macOS/Linux/Windows, so the SQLite engine that backs `~/.testforge/history.db` installs with zero native-build steps. Your source code never leaves the machine.
@@ -24,42 +24,39 @@ Dashboard accepts a local project path **or** a GitHub URL. The npm package ship
 
 <p align="center">
   <a href="https://github.com/t4tarzan/testforge/raw/main/public/demos/testforge-mcp-demo.mp4">
-    <img src="https://raw.githubusercontent.com/t4tarzan/testforge/main/public/demos/local-mcp-poster.jpg" alt="Local MCP demo — paste a path, click Run, see a 12-dimension report" width="720" />
+    <img src="https://raw.githubusercontent.com/t4tarzan/testforge/main/public/demos/local-mcp-poster.jpg" alt="Local MCP demo — paste a path, click Run, see a 22-dimension report" width="720" />
   </a>
   <br />
-  <em>One <code>npx</code> command installs the package + bundled SQLite engine. Paste a local path or GitHub URL, click <strong>Run Full Analysis</strong>, get a 12-dimension report. Every byte stays on your machine — results persist to <code>~/.testforge/history.db</code>.</em>
+  <em>One <code>npx</code> command installs the package + bundled SQLite engine. Paste a local path or GitHub URL, click <strong>Run Full Analysis</strong>, get a 22-dimension report. Every byte stays on your machine — results persist to <code>~/.testforge/history.db</code>.</em>
 </p>
 
 ---
 
-## 📊 What We Analyze (21 dimensions)
+## 📊 What We Analyze (22 dimensions)
 
 | Category | Dimensions | Detection method |
 |---|---|---|
 | **Code Quality** | Security (SAST), Unit Tests, Load/Perf, Accessibility | Babel AST + taint tracking |
+| **Infrastructure** | Kubernetes (manifests + Helm: securityContext, RBAC, probes, limits, NetworkPolicy) | js-yaml + Helm-template stubbing |
 | **API** | Contract testing (OpenAPI cross-ref), Visual regression | AST + YAML parsing |
 | **Advanced** | Edge cases, Property-based, Chaos, Mutation, Predictive | AST + cross-signal aggregation |
 | **Strategic** | Vision & goals, Scope coverage, Stack analysis | Strict dep-name sets + tsconfig parse |
-| **Enterprise** | Agentic-scale, DORA, Supply chain (lockfile), N+1 queries, Dead code, License (SPDX), OWASP | AST + package-lock parse + node_modules walk |
+| **Enterprise** | Agentic-scale, DORA, Supply chain (live OSV), N+1 queries, Dead code, License (SPDX), OWASP | AST + lockfile→OSV.dev + node_modules walk |
 
 Tier-1 analyzers are deterministic — same input always produces the same output. No LLM calls, no `Math.random()`. Every dimension shipped substantive AST-based depth in v0.6.0 → v0.24.0 (16 deepening passes; see the [mcp-server changelog](./mcp-server/README.md)). **Tier 2 (v0.25.0)** layers LLM-generated Vitest tests + sandbox execution on top — separate path, optional, BYOK on self-host. **v0.26.0** closes the polyglot blind spot: Python (FastAPI / Flask / Django / pytest) is now native alongside JS/TS, and the dashboard surfaces a `languageCoverage` banner instead of pretending "0 endpoints" means "no endpoints" on repos written in languages we don't parse yet.
 
-### 🆕 Recent work (2026-05-28)
+### 🆕 Recent work
 
-Shipped **30 npm releases** (`0.6.0 → 0.28.4`) covering:
+The dated, authoritative history is the **[changelog](https://testforge.run/#/changelog)**
+(`src/data/changelog.ts`). The narrative — the arcs and the *why* — lives in the
+**[knowledge graph](./docs/knowledge/TestForge.md)** (`docs/knowledge/`, open as
+an Obsidian vault). Recent arcs (`0.30 → 0.36.x`):
 
-- **Spine (phases 4a/4b/4c)** — intra-file → cross-file taint propagation + user-authored rules DSL (`.testforge/rules.yaml`)
-- **16 deepening passes** across all 21 dimensions: substring-matching → AST analysis. Substring traps fixed across the board (e.g. `dep.includes('vite')` no longer matches `vitest`)
-- **Tier 2** (`0.25.0 → 0.25.2`) — LLM-generated Vitest + sandboxed Docker execution, runner image auto-pulled from GHCR
-- **Python support** (`0.26.0`) — FastAPI/Flask/Django routes detected, `requirements.txt` + `pyproject.toml` parsed, pytest counted, `languageCoverage` honesty banner for everything else
-- **Monorepo recursion** (`0.26.1`) — uv workspaces + npm/yarn/bun/pnpm workspaces + PEP 735 `[dependency-groups]` + a string-aware TOML array parser that fixes silent truncation on entries like `"fastapi[standard]"`
-- **Conventional-monorepo recursion** (`0.26.2`) — also globs `libs/*`, `packages/*`, `apps/*`, `services/*` for `pyproject.toml` / `package.json` / `requirements.txt`. Caught by the In-the-Wild showcase: LangChain went from `deps: 0` to `27 + 66 dev-deps` once we followed `libs/<pkg>/pyproject.toml` even with no workspace declaration at root.
-- **Test-path security suppression** (`0.27.0`) — per-file SAST findings in `tests/`, `__tests__/`, `e2e/`, `cypress/`, `playwright/`, `*.test.*`, `*.spec.*`, `test_*.py`, `*_test.py`, `.d.ts` paths are dropped (the patterns we flag are usually intentional in tests). Caught by the In-the-Wild showcase: Supabase went from 125 "critical" findings to a trustworthy small number that reflects production code only.
-- **Rate-limit check only fires on web apps** (`0.27.1`) — `checkMissingRateLimit` now gates on a `WEB_FRAMEWORK_DEPS` set (Express/Fastify/Hono/Next/etc. + FastAPI/Flask/Django/Starlette/etc.). Caught by the In-the-Wild LangChain report: pure Python library got pestered about missing rate limiting it can't possibly need.
-- **127 → 0** ESLint errors with CI gate now blocking
-- **30 → 179** vitest tests (6×)
-
-Full per-pass detail in [`mcp-server/README.md` changelog](./mcp-server/README.md#changelog-highlights).
+- **Real simulation engine** (`0.30`) — load / agent / chaos actually run against the booted app (autocannon + docker faults), not static guesses. See [`docs/knowledge/Simulation-Engine.md`](./docs/knowledge/Simulation-Engine.md).
+- **Kubernetes dimension** (`0.31`) — the 22nd dimension: parses manifests + Helm and checks securityContext / RBAC / probes / limits / NetworkPolicy. Reports become grouped-by-dimension with per-dimension method + coverage + N/A.
+- **No cry-wolf scoring** (`0.32 → 0.33`) — diminishing-returns scoring replaces linear cliffs; `0/100` and `null` are gone, generated/vendored files and polyglot deps no longer trigger false flags. See [`docs/knowledge/Scoring.md`](./docs/knowledge/Scoring.md).
+- **Self-host UX** (`0.34 → 0.35`) — setup wizard, local-AI (point Tier-2 at Ollama/LM Studio), in-dashboard Settings panel, Docker preflight, always-`@latest` install.
+- **Managed BYOK + Tier-2 sandbox fixes** (`0.36.x`) — hosted Tier-2 with your own (encrypted) OpenRouter key; the `0/0 ERRORED` sandbox bug fixed; multi-arch + version-pinned runner images + build-locally fallback; full-detail Markdown report download. See [`docs/knowledge/Tier2-Sandbox.md`](./docs/knowledge/Tier2-Sandbox.md).
 
 ---
 
@@ -78,19 +75,22 @@ Full per-pass detail in [`mcp-server/README.md` changelog](./mcp-server/README.m
                              │  /api/analyze passes through
                              ▼
 ┌──────────────────────────────────────────────────────────┐
-│  Fly.io — MCP Server (testforge-mcp.fly.dev)             │
-│  Fastify + TypeScript, 8 analyzer modules                │
-│  Same analyzers as the npm-published @whitenoisenpm/     │
-│  testforge-mcp package.                                  │
+│  Managed MCP — mcp.testforge.run (a VPS, behind nginx)   │
+│  Fastify + TypeScript. Same analyzers as the npm package.│
+│  Tier-2 sandbox via a locked-down docker socket-proxy.   │
+│  /api/* proxies inject the run-secret + forward BYOK keys.│
 └──────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────┐
 │  Local MCP (npm package, default port 33221)             │
-│  npx @whitenoisenpm/testforge-mcp@latest serve           │
-│  SQLite at ~/.testforge/history.db (WAL mode)            │
-│  🔒 No outbound calls except git clone + npm registry    │
+│  npx -y @whitenoisenpm/testforge-mcp@latest              │
+│  SQLite at ~/.testforge/history.db                       │
+│  🔒 No outbound calls except git clone + your AI provider│
 └──────────────────────────────────────────────────────────┘
 ```
+
+See [`docs/knowledge/Architecture.md`](./docs/knowledge/Architecture.md) for the
+full picture (endpoints, request flow, the shared analyzer core).
 
 ---
 
@@ -113,23 +113,21 @@ open https://testforge.run
 ```
 Sign in with GitHub. Click "Managed", paste a repo URL.
 
-### Run the MCP locally
+### Run the MCP locally (self-host)
 ```bash
-# IDE integration (Cursor / VS Code / Windsurf / Claude Desktop)
-npx @whitenoisenpm/testforge-mcp@latest install
+# Start the server — dashboard at http://localhost:33221
+npx -y @whitenoisenpm/testforge-mcp@latest
 
-# Or boot the standalone server
-npx @whitenoisenpm/testforge-mcp@latest serve
-# Dashboard: http://localhost:33221
+# Configure the AI provider for Tier-2 (OpenRouter or local Ollama/LM Studio)
+npx -y @whitenoisenpm/testforge-mcp@latest setup
+
+# Full env-var reference
+npx -y @whitenoisenpm/testforge-mcp@latest --help
 ```
-
-Port override: `TESTFORGE_MCP_PORT=9000 npx ...`. SQLite path: `~/.testforge/history.db`.
-
-### Self-host the analyzer (Fly.io)
-```bash
-git clone https://github.com/t4tarzan/testforge
-cd testforge/mcp-server && flyctl launch --now
-```
+Tier-1 (22 dimensions) needs no config; Tier-2 needs an AI provider + Docker.
+No database to install — history auto-stores in SQLite at `~/.testforge/history.db`.
+For IDE integration (Cursor / Claude / VS Code), add it as an MCP server — see
+[`docs/knowledge/Self-Host-and-BYOK.md`](./docs/knowledge/Self-Host-and-BYOK.md).
 
 ---
 
@@ -152,7 +150,7 @@ Environment variables: copy `.env.example` to `.env`. The required ones to run a
 
 | Plan | Price | Tests/Month | Repos | Key Features |
 |------|-------|-------------|-------|-------------|
-| **Free** | $0 | 5 | 1 | All 21 dimensions, public repos |
+| **Free** | $0 | 5 | 1 | All 22 dimensions, public repos |
 | **Pro** | $29/mo | 100 | 10 | Private repos, CI/CD webhooks, Slack/Discord |
 | **Enterprise** | $199/mo | Unlimited | Unlimited | SSO, SLA, dedicated support, custom integrations |
 
@@ -220,7 +218,7 @@ testforge/
 │   └── ...                 # analyze, projects, history, keys, gate, stripe, …
 ├── mcp-server/             # Fly.io / npm-published MCP server
 │   ├── src/
-│   │   ├── analyzers/      # 8 modules covering 21 dimensions
+│   │   ├── analyzers/      # 8 modules covering 22 dimensions
 │   │   ├── local-db.ts     # SQLite via better-sqlite3
 │   │   ├── mcp-server.ts   # /test, /quick-scan with SQLite persistence
 │   │   └── index.ts        # Fastify app, port 33221

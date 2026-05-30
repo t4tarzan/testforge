@@ -32,7 +32,7 @@ npx @whitenoisenpm/testforge-mcp@latest
 open http://localhost:33221
 ```
 
-The dashboard lets you paste a local project path **or** a public GitHub URL, runs the full 21-dimension analysis, and persists each run to SQLite at `~/.testforge/history.db` so `/reports` shows your history. Everything stays on your machine — no API keys required.
+The dashboard lets you paste a local project path **or** a public GitHub URL, runs the full 22-dimension analysis, and persists each run to SQLite at `~/.testforge/history.db` so `/reports` shows your history. Everything stays on your machine — no API keys required.
 
 ## Tier 2 — Generate & Run (LLM tests + sandbox)
 
@@ -66,12 +66,12 @@ OPENROUTER_API_KEY=$OPENROUTER_API_KEY \
 
 **What it does**: takes the top-3 highest-severity findings from a Tier-1 run, sends each to the LLM with a Zod-enforced schema (filename, content, reasoning), then drops the generated `.test.ts` files into a `node:22-slim` container (`--network=none`, `--rm`) where Vitest runs them with the JSON reporter.
 
-**Provider stack** (both routed through OpenRouter under one key):
+**Provider stack** (default models via OpenRouter; override either, or point at a local server with `TESTFORGE_LLM_BASE_URL`):
 
 | Model | Role | Override |
 |---|---|---|
-| `qwen/qwen3.7-max` | Primary — 1M context, top-tier reasoning | `TESTFORGE_PRIMARY_MODEL` |
-| `deepseek/deepseek-v4-flash` | Fallback — cheap, fast, different lineage | `TESTFORGE_FALLBACK_MODEL` |
+| `deepseek/deepseek-v4-flash` | Primary — cheap, fast, capable coder | `TESTFORGE_PRIMARY_MODEL` |
+| `moonshotai/kimi-k2.6` | Fallback — different provider (hit when primary rate-limits/fails) | `TESTFORGE_FALLBACK_MODEL` |
 
 **Endpoint shape**:
 
@@ -141,7 +141,7 @@ Use the Continue / Cline extension and add the same JSON to its MCP config block
 ```bash
 # Health
 curl http://localhost:33221/health
-# → {"status":"ok","version":"0.2.19"}
+# → {"status":"ok","version":"0.36.4"}
 
 # Public-status check (for badges/uptime)
 curl http://localhost:33221/api/reports/latest
