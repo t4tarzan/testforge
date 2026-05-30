@@ -56,12 +56,16 @@ export default defineConfig({
 });
 TS
 
-# Entrypoint script — captures vitest's JSON reporter output to stdout and
-# exits with the test runner's status code. Stderr is preserved for diagnostics.
+# Entrypoint — write the JSON report to a tmpfs file so STDOUT stays pure JSON
+# (vitest's own progress/error output goes to STDERR, which the host captures
+# for diagnostics instead of discarding it). If vitest crashes during
+# collection (e.g. a bad generated test) the JSON file is empty and the real
+# error is on stderr — surfaced to the user instead of a blank "ERRORED 0/0".
 RUN cat > /runner/entrypoint.sh <<'SH'
 #!/bin/sh
 cd /runner
-exec npx vitest run --reporter=json --no-color 2>/dev/null
+npx vitest run --reporter=json --outputFile=/tmp/result.json --no-color 1>&2
+cat /tmp/result.json 2>/dev/null
 SH
 RUN chmod +x /runner/entrypoint.sh
 

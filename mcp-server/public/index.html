@@ -373,6 +373,10 @@ async function runTier2() {
       } else if (fr) {
         var color = fr.status === 'passed' ? '#22C55E' : '#EF4444';
         h += '<div style="margin-top:6px;font-size:12px;color:'+color+'">→ ' + fr.status.toUpperCase() + ' · ' + fr.numPassed + ' passed, ' + fr.numFailed + ' failed</div>';
+        if ((fr.status === 'errored' || fr.status === 'failed') && fr.failureMessages && fr.failureMessages.length) {
+          var em = String(fr.failureMessages[0]).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+          h += '<pre style="margin-top:6px;font-size:11px;color:#d99;background:#1a0e0e;border-radius:6px;padding:8px;white-space:pre-wrap;overflow-x:auto;max-height:140px">' + em + '</pre>';
+        }
       }
       if (f && f.reasoning) {
         h += '<div style="margin-top:6px;font-size:12px;color:#6B6B6B;line-height:1.5">' + f.reasoning + '</div>';

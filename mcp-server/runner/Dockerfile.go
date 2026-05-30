@@ -20,7 +20,7 @@ RUN printf '%s\n' \
   'mkdir -p /tmp/work && cp /runner/tests/*_test.go /tmp/work/ 2>/dev/null' \
   'cd /tmp/work' \
   '[ -f go.mod ] || go mod init testforge_run >/dev/null 2>&1' \
-  'go test -json . 2>/dev/null' \
+  'go test -json .' \
   > /runner/entrypoint.sh && chmod +x /runner/entrypoint.sh
 
 ENTRYPOINT ["/runner/entrypoint.sh"]

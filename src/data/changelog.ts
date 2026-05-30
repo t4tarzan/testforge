@@ -50,6 +50,14 @@ export const TAG_COLORS: Record<ChangelogTag, string> = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '0.36.1',
+    date: '2026-05-30',
+    tag: 'precision',
+    title: 'Fix Tier-2 "0/0 ERRORED" — sandbox now reports real results',
+    summary:
+      'Some Tier-2 runs showed a baffling "0/0 tests passed, ERRORED" even though generation succeeded and the model was billed. Root cause: the JS sandbox ran vitest with the JSON report going to stdout, and elaborate generated tests printed enough to stdout to corrupt that JSON — so the parser saw garbage and reported a blank error. The runner now writes the JSON report to a file and streams only that to stdout (vitest\'s own output goes to stderr), so results parse cleanly: the same tests now report e.g. 3/4 passed with real assertion messages. When the sandbox genuinely can\'t run a test, the actual error (stderr tail) is surfaced in the report instead of a blank "ERRORED". Runner images are now version-pinned (v0.36.1) so the fix actually reaches self-host users — Docker caches :latest and never re-pulls it, so a new MCP pulls the new tag. The Go runner stopped discarding compile errors too; the Python runner was already correct.',
+  },
+  {
     version: '0.36.0',
     date: '2026-05-30',
     tag: 'platform',

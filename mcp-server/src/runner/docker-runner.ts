@@ -23,10 +23,15 @@ const RUNNER_TIMEOUT_MS = 120_000;
 // Per-language sandbox images. Defaults are the public GHCR images so a fresh
 // `npx` install only needs Docker. Override any with env to point at a local
 // build (e.g. on the managed box).
+// Pinned to a version tag (not :latest) so a runner fix actually reaches
+// self-host users: Docker caches :latest and ensureImage never re-pulls it, so
+// a new :latest is invisible to anyone who already ran once. Bumping this tag
+// per runner change forces a fresh pull. Keep in sync with the pushed GHCR tag.
+const RUNNER_TAG = process.env.TESTFORGE_RUNNER_TAG || 'v0.36.1';
 const IMAGES: Record<TestLanguage, string> = {
-  js: process.env.TESTFORGE_RUNNER_IMAGE || 'ghcr.io/t4tarzan/testforge-runner:latest',
-  python: process.env.TESTFORGE_RUNNER_IMAGE_PYTHON || 'ghcr.io/t4tarzan/testforge-runner-python:latest',
-  go: process.env.TESTFORGE_RUNNER_IMAGE_GO || 'ghcr.io/t4tarzan/testforge-runner-go:latest',
+  js: process.env.TESTFORGE_RUNNER_IMAGE || `ghcr.io/t4tarzan/testforge-runner:${RUNNER_TAG}`,
+  python: process.env.TESTFORGE_RUNNER_IMAGE_PYTHON || `ghcr.io/t4tarzan/testforge-runner-python:${RUNNER_TAG}`,
+  go: process.env.TESTFORGE_RUNNER_IMAGE_GO || `ghcr.io/t4tarzan/testforge-runner-go:${RUNNER_TAG}`,
 };
 
 const EXT: Record<TestLanguage, string> = { js: '.test.ts', python: '_test.py', go: '_test.go' };
@@ -295,8 +300,15 @@ export async function runGeneratedTests(files: GeneratedTestFile[]): Promise<Run
       }
       const { stdout, stderr, code } = await dockerRun(image, mountDir);
       let parsed: ParsedGroup;
-      if (code !== 0 && !stdout.trim()) parsed = erroredGroup(groupFiles, stderr.trim() || `${lang} runner exited ${code}`);
-      else parsed = PARSERS[lang](stdout, groupFiles);
+      if (code !== 0 && !stdout.trim()) {
+        // The runner crashed before emitting a JSON report (e.g. a generated
+        // test threw at collection). Surface the tail of stderr — that's where
+        // the real error is — instead of a useless "exited N".
+        const tail = stderr.trim().split('\n').slice(-12).join('\n').slice(-1200);
+        parsed = erroredGroup(groupFiles, tail || `${lang} runner exited ${code}`);
+      } else {
+        parsed = PARSERS[lang](stdout, groupFiles);
+      }
       total += parsed.total; passed += parsed.passed; failed += parsed.failed;
       allFiles.push(...parsed.files);
     } finally {

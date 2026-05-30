@@ -141,6 +141,9 @@ export function Tier2Section({ results }: { results: AnalysisResults }) {
                   {fr?.status === 'skipped'
                     ? <div className="text-[12px] text-[#E8A838] mt-1">→ GENERATED · not run (Docker required)</div>
                     : fr && <div className={`text-[12px] mt-1 ${fr.status === 'passed' ? 'text-[#1c7a4d]' : 'text-[#b91c1c]'}`}>→ {fr.status.toUpperCase()} · {fr.numPassed} passed, {fr.numFailed} failed</div>}
+                  {fr && (fr.status === 'errored' || fr.status === 'failed') && fr.failureMessages?.[0] && (
+                    <pre className="mt-1.5 text-[11px] text-[#b91c1c] bg-[#fbeaea] rounded p-2 whitespace-pre-wrap overflow-x-auto max-h-[140px]">{fr.failureMessages[0]}</pre>
+                  )}
                 </div>
               );
             })}
