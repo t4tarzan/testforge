@@ -48,6 +48,109 @@ function SeverityBadge({ severity }: { severity: string }) {
   );
 }
 
+// Collect the highest-severity findings across all dimensions for Tier-2.
+function collectFindings(results: AnalysisResults): FindingShape[] {
+  const out: FindingShape[] = [];
+  const push = (f: any, cat: string) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (!f || !f.title) return;
+    out.push({ severity: f.severity || 'medium', title: f.title, description: f.description, filePath: f.filePath, lineNumber: f.lineNumber, fixSuggestion: f.fixSuggestion || f.suggestion, category: f.category || cat });
+  };
+  (results.security?.items || []).forEach((f: FindingShape) => push(f, 'Security'));
+  ['edgeCases', 'predictive', 'contract', 'supplyChain', 'kubernetes', 'nPlusOne', 'agentic', 'vision', 'chaos', 'dora', 'license'].forEach((k) => {
+    (results[k]?.findings || []).forEach((f: FindingShape) => push(f, k));
+  });
+  const order: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
+  return out.sort((a, b) => (order[a.severity] ?? 3) - (order[b.severity] ?? 3));
+}
+
+export function Tier2Section({ results }: { results: AnalysisResults }) {
+  const [busy, setBusy] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [data, setData] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [err, setErr] = useState<any>(null);
+  const findings = collectFindings(results);
+
+  const run = async () => {
+    setBusy(true); setErr(null); setData(null);
+    try {
+      const res = await fetch('/api/generate-and-run', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ findings: findings.slice(0, 3), maxFindings: 3, cluster: 'mixed-top-severity' }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.status === 401) setErr({ type: 'auth' });
+      else if (res.status === 402) setErr({ type: 'quota', reason: d.reason });
+      else if (!res.ok || d.error) setErr({ type: 'error', message: d.error || `HTTP ${res.status}` });
+      else setData(d);
+    } catch { setErr({ type: 'error', message: 'Network error — please retry.' }); }
+    setBusy(false);
+  };
+
+  if (findings.length === 0) return null;
+  const run0 = data?.run;
+  const dockerMissing = run0?.dockerUnavailable;
+
+  return (
+    <div className="bg-white border border-[#a39fd4] rounded-[12px] p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+        <div>
+          <h3 className="font-heading font-medium text-[18px] text-[#12101A]">🤖 Tier 2 — Generate &amp; Run</h3>
+          <p className="text-[13px] text-[#6B6B6B] font-body mt-0.5">An LLM writes real tests for your top findings and runs them in a sandbox.</p>
+        </div>
+        <button onClick={run} disabled={busy} className="h-10 px-5 bg-[#574a7d] text-white rounded-lg font-body font-medium text-[14px] hover:bg-[#4a3d6b] transition-colors disabled:opacity-50">
+          {busy ? 'Generating…' : 'Generate Tests (Tier 2)'}
+        </button>
+      </div>
+
+      {err?.type === 'auth' && (
+        <div className="mt-3 text-[13px] text-[#b91c1c] font-body">Please <a href="#/login" className="underline">sign in</a> to run Tier-2.</div>
+      )}
+      {err?.type === 'quota' && (
+        <div className="mt-3 p-3 bg-[rgba(234,168,56,0.1)] border border-[rgba(234,168,56,0.35)] rounded-lg text-[13px] font-body text-[#9a6b15]">
+          {err.reason || 'Tier-2 requires a key or a paid plan.'}{' '}
+          <a href="#/account" className="text-[#574a7d] font-medium underline">Add your OpenRouter key (BYOK)</a> or <a href="#/pricing" className="text-[#574a7d] font-medium underline">upgrade</a>.
+        </div>
+      )}
+      {err?.type === 'error' && (
+        <div className="mt-3 text-[13px] text-[#b91c1c] font-body">Tier-2 failed: {err.message}</div>
+      )}
+
+      {data && (
+        <div className="mt-4">
+          <p className="text-[12px] text-[#6B6B6B] font-mono mb-3">
+            {data.provider?.byok ? 'your key' : data.provider?.primary} · generation {((data.generationMs || 0) / 1000).toFixed(1)}s{data.runMs ? ` · sandbox ${data.runMs}ms` : ''}
+          </p>
+          {dockerMissing ? (
+            <div className="p-3 bg-[rgba(234,168,56,0.1)] border border-[rgba(234,168,56,0.35)] rounded-lg text-[13px] text-[#9a6b15] mb-3">
+              🐳 {dockerMissing.reason} — tests generated but not run. {dockerMissing.help}
+            </div>
+          ) : run0 && (
+            <div className={`inline-block px-3 py-1.5 rounded-md text-[13px] font-medium mb-3 ${run0.success ? 'bg-[#E8F5EE] text-[#1c7a4d]' : 'bg-[rgba(239,68,68,0.1)] text-[#b91c1c]'}`}>
+              {run0.success ? '✓' : '✗'} {run0.numPassedTests}/{run0.numTotalTests} tests passed{run0.numFailedTests > 0 ? ` · ${run0.numFailedTests} failed` : ''}
+            </div>
+          )}
+          <div className="space-y-2">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {(data.results || []).map((r: any, i: number) => {
+              const fr = run0?.files?.[i];
+              return (
+                <div key={i} className="border border-[#E8E5FF] bg-[rgba(87,74,125,0.04)] rounded-lg p-3">
+                  <div className="font-mono text-[13px] text-[#12101A]">📝 {r.file ? r.file.filename : '(no file produced)'}</div>
+                  <div className="text-[12px] text-[#6B6B6B] mt-0.5">For: {r.finding?.title}</div>
+                  {fr?.status === 'skipped'
+                    ? <div className="text-[12px] text-[#E8A838] mt-1">→ GENERATED · not run (Docker required)</div>
+                    : fr && <div className={`text-[12px] mt-1 ${fr.status === 'passed' ? 'text-[#1c7a4d]' : 'text-[#b91c1c]'}`}>→ {fr.status.toUpperCase()} · {fr.numPassed} passed, {fr.numFailed} failed</div>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ReportStep({ results, onRestart }: ReportStepProps) {
   const [expandedFinding, setExpandedFinding] = useState<number | null>(null);
   const [exportFormat, setExportFormat] = useState<string | null>(null);
@@ -435,6 +538,9 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
           ))}
         </div>
       </div>
+
+      {/* Tier 2 — Generate & Run (BYOK or paid) */}
+      <Tier2Section results={results} />
 
       {/* Export + Restart */}
       <div className="flex flex-wrap items-center justify-between gap-4">

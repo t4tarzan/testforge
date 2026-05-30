@@ -5,6 +5,7 @@ import {
   GitBranch, Play, Shield, Zap, Gauge, Server, Cloud, Check,
   ArrowRight, Loader2, AlertCircle, BarChart3, Container
 } from 'lucide-react';
+import { Tier2Section } from '@/components/testrunner/ReportStep';
 
 const MCP_URL = 'https://mcp.testforge.run';
 
@@ -272,6 +273,11 @@ export default function ManagedTesting() {
                 </div>
               </div>
             )}
+
+            {/* Tier 2 — Generate & Run (BYOK or paid) */}
+            <div className="mt-8">
+              <Tier2Section results={results} />
+            </div>
 
             {/* CTA */}
             <div className="text-center mt-8">
