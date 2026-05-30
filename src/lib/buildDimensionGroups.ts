@@ -5,8 +5,8 @@
 //
 // Mirrors mcp-server's showcase distill so live reports and curated reports look
 // identical.
-import { DIMENSION_ORDER, dimensionMeta } from '@/data/dimensionMeta';
-import type { ShowcaseDimensionGroup, ShowcaseDimensionFinding } from '@/data/showcaseReports';
+import { DIMENSION_ORDER, dimensionMeta } from '../data/dimensionMeta';
+import type { ShowcaseDimensionGroup, ShowcaseDimensionFinding } from '../data/showcaseReports';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Results = Record<string, any>;

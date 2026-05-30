@@ -6,8 +6,8 @@ import {
 } from 'lucide-react';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from 'recharts';
 import DimensionBreakdown from '@/components/DimensionBreakdown';
-import { buildDimensionGroups, overallFromGroups } from '@/lib/buildDimensionGroups';
-import { dimensionMeta } from '@/data/dimensionMeta';
+import { buildDimensionGroups } from '@/lib/buildDimensionGroups';
+import { buildMarkdownReport } from '@/lib/buildMarkdownReport';
 
 /** Shape of a finding rendered in the report. Optional fields because
  *  not every analyzer dimension fills every slot. */
@@ -269,74 +269,7 @@ export default function ReportStep({ results, onRestart }: ReportStepProps) {
       setExportFormat(null);
       return;
     } else if (format === 'markdown') {
-      const groups = buildDimensionGroups(results);
-      const overall = overallFromGroups(groups);
-      content = `# TestForge Report — ${results.repo || 'project'}\n\n`;
-      content += `**Overall:** ${overall}/100  ·  ${codebase.totalFiles || 0} files · ${(codebase.totalLines || 0).toLocaleString()} lines · ${codebase.endpoints || 0} endpoints\n`;
-      content += `**Stack:** ${(codebase.techStack || []).join(', ') || 'n/a'}\n`;
-      content += `**Branch:** ${results.branch || 'main'}  ·  **Analyzed:** ${results.analyzedAt || new Date().toISOString()}\n\n`;
-
-      // Dimension scores table
-      content += `## Dimension scores\n\n| Dimension | Score | Findings |\n|---|---|---|\n`;
-      groups.forEach((g) => { content += `| ${g.label} | ${g.score == null ? 'N/A' : g.score + '/100'} | ${g.findingCount} |\n`; });
-      content += `\n`;
-
-      // Findings by dimension — with Method + Coverage + Why-N/A + fixes
-      content += `## Findings by dimension\n`;
-      groups.forEach((g) => {
-        const m = dimensionMeta[g.key];
-        content += `\n### ${g.label} — ${g.score == null ? 'N/A' : g.score + '/100'}\n`;
-        if (m) {
-          if (m.methodology) content += `*Method:* ${m.methodology}\n`;
-          if (m.languageCoverage) content += `*Coverage:* ${m.languageCoverage}\n`;
-          if (g.score == null && m.naCriteria) content += `*Why N/A:* ${g.naReason || m.naCriteria}\n`;
-        }
-        if (g.findings.length) {
-          content += `\n`;
-          g.findings.forEach((f) => {
-            const loc = f.filePath ? ` — \`${f.filePath}${f.lineNumber ? ':' + f.lineNumber : ''}\`` : '';
-            content += `- **[${(f.severity || 'low').toUpperCase()}]** ${f.title}${loc}\n`;
-            if (f.description) content += `  - ${f.description}\n`;
-            if (f.fixSuggestion) content += `  - _Fix:_ ${f.fixSuggestion}\n`;
-          });
-        } else if (g.score != null) {
-          content += `\n_No issues found in this dimension._\n`;
-        }
-      });
-
-      // Test coverage
-      content += `\n## Test coverage\n\n| Metric | Value |\n|---|---|\n`;
-      content += `| Estimated function coverage | ${unit.coverage != null ? unit.coverage + '%' : 'n/a'} |\n`;
-      content += `| Test files | ${unit.testFiles != null ? unit.testFiles : 'n/a'} |\n`;
-      content += `| Test cases | ${unit.totalTests != null ? unit.totalTests : 'n/a'} |\n`;
-      content += `| Frameworks | ${(unit.frameworks || []).join(', ') || 'none'} |\n\n`;
-
-      // Security findings summary
-      content += `## Security findings\n\n`;
-      content += `${security.findings != null ? security.findings : (security.items || []).length} total · ${security.critical || 0} critical · ${security.high || 0} high · ${security.medium || 0} medium · ${security.low || 0} low\n`;
-      (security.items || []).forEach((f: FindingShape) => {
-        const loc = f.filePath ? ` — \`${f.filePath}${f.lineNumber ? ':' + f.lineNumber : ''}\`` : '';
-        content += `- **[${(f.severity || 'low').toUpperCase()}]** ${f.title}${loc}\n`;
-        if (f.fixSuggestion) content += `  - _Fix:_ ${f.fixSuggestion}\n`;
-      });
-      content += `\n`;
-
-      // Tier-2 generated tests (if a Generate & Run was done this session)
-      if (tier2 && tier2.results) {
-        const run = tier2.run || {};
-        content += `## Tier 2 — Generated tests\n\n`;
-        content += `Model: ${tier2.provider?.byok ? 'your key' : (tier2.provider?.primary || 'n/a')}`;
-        content += run.dockerUnavailable ? ` · sandbox: not run (${run.dockerUnavailable.reason})\n` : (run.numTotalTests != null ? ` · ${run.numPassedTests}/${run.numTotalTests} tests passed\n` : `\n`);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (tier2.results || []).forEach((r: any, i: number) => {
-          const fr = (run.files || [])[i];
-          const status = fr ? (fr.status === 'skipped' ? 'generated (not run)' : `${fr.status} ${fr.numPassed}/${fr.numPassed + fr.numFailed}`) : 'generated';
-          content += `- \`${r.file ? r.file.filename : '(no file)'}\` — ${status}${r.finding?.title ? ' · for: ' + r.finding.title : ''}\n`;
-        });
-        content += `\n`;
-      }
-
-      content += `---\n*Generated by TestForge · testforge.run*`;
+      content = buildMarkdownReport(results, tier2);
     }
 
     const blob = new Blob([content], { type: mimeType });
