@@ -18,37 +18,52 @@ import { createOpenAI } from '@ai-sdk/openai';
 //   kimi-k2.6          $0.73 in / $3.49 out  (fallback — different provider; only
 //                                             hit when deepseek rate-limits/fails)
 // vs the old qwen3.7-max at $1.25 / $3.75. Override either with env.
-export const PRIMARY_MODEL = process.env.TESTFORGE_PRIMARY_MODEL || 'deepseek/deepseek-v4-flash';
-export const FALLBACK_MODEL = process.env.TESTFORGE_FALLBACK_MODEL || 'moonshotai/kimi-k2.6';
-
 // Provider endpoint is configurable so self-hosters can point Tier-2 test
 // generation at ANY OpenAI-compatible API — OpenRouter (default), a local model
 // server (Ollama `http://localhost:11434/v1`, LM Studio `http://localhost:1234/v1`),
 // vLLM, or OpenAI itself. `TESTFORGE_LLM_API_KEY` takes precedence over
 // `OPENROUTER_API_KEY`; local servers usually accept any non-empty key.
-const baseURL = process.env.TESTFORGE_LLM_BASE_URL || 'https://openrouter.ai/api/v1';
-const apiKey = process.env.TESTFORGE_LLM_API_KEY || process.env.OPENROUTER_API_KEY;
-const isLocal = /localhost|127\.0\.0\.1|0\.0\.0\.0|host\.docker\.internal/.test(baseURL);
+//
+// These are `let` exports (live ES bindings) re-derived by reloadLLM(), so the
+// settings panel can change the provider/key at runtime and the next generation
+// picks it up WITHOUT a server restart — importers read the live value.
+export let PRIMARY_MODEL = '';
+export let FALLBACK_MODEL = '';
+export let LLM_BASE_URL = '';
+export let LLM_IS_LOCAL = false;
+let apiKey: string | undefined;
 
-export const LLM_BASE_URL = baseURL;
-export const LLM_IS_LOCAL = isLocal;
+function mkProvider() {
+  return createOpenAI({
+    // Local servers don't need a real key; send a placeholder so the SDK doesn't
+    // error on an empty string.
+    apiKey: apiKey ?? (LLM_IS_LOCAL ? 'local' : ''),
+    baseURL: LLM_BASE_URL,
+    // OpenRouter appreciates these for rate-limit accounting (harmless elsewhere).
+    headers: {
+      'HTTP-Referer': 'https://testforge.run',
+      'X-Title': 'TestForge MCP - Generate & Run',
+    },
+  });
+}
 
-export const openrouter = createOpenAI({
-  // Local servers don't need a real key; send a placeholder so the SDK doesn't
-  // error on an empty string.
-  apiKey: apiKey ?? (isLocal ? 'local' : ''),
-  baseURL,
-  // OpenRouter appreciates these for free-tier rate-limit accounting (harmless
-  // to other OpenAI-compatible providers).
-  headers: {
-    'HTTP-Referer': 'https://testforge.run',
-    'X-Title': 'TestForge MCP - Generate & Run',
-  },
-});
+export let openrouter = mkProvider();
+
+/** Re-read the LLM config from process.env and rebuild the provider. Called at
+ *  startup and after the settings panel (`POST /config`) changes the env. */
+export function reloadLLM(): void {
+  LLM_BASE_URL = process.env.TESTFORGE_LLM_BASE_URL || 'https://openrouter.ai/api/v1';
+  apiKey = process.env.TESTFORGE_LLM_API_KEY || process.env.OPENROUTER_API_KEY;
+  LLM_IS_LOCAL = /localhost|127\.0\.0\.1|0\.0\.0\.0|host\.docker\.internal/.test(LLM_BASE_URL);
+  PRIMARY_MODEL = process.env.TESTFORGE_PRIMARY_MODEL || 'deepseek/deepseek-v4-flash';
+  FALLBACK_MODEL = process.env.TESTFORGE_FALLBACK_MODEL || 'moonshotai/kimi-k2.6';
+  openrouter = mkProvider();
+}
+reloadLLM();
 
 // Tier-2 is usable if we have a real key OR are pointed at a local model server.
 export function hasLLMKey(): boolean {
-  return isLocal || Boolean(apiKey && apiKey.length > 10);
+  return LLM_IS_LOCAL || Boolean(apiKey && apiKey.length > 10);
 }
 
 export interface ProviderAttempt {

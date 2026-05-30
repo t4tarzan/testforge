@@ -33,7 +33,7 @@ const EXT: Record<TestLanguage, string> = { js: '.test.ts', python: '_test.py', 
 
 export interface RunFileResult {
   filename: string;
-  status: 'passed' | 'failed' | 'errored';
+  status: 'passed' | 'failed' | 'errored' | 'skipped';
   numPassed: number;
   numFailed: number;
   failureMessages: string[];
@@ -49,7 +49,45 @@ export interface RunResult {
   files: RunFileResult[];
   rawJson?: string;
   containerError?: string;
+  /** Set when the sandbox couldn't run because Docker isn't available. The
+   *  generated tests are still returned; they just weren't executed. */
+  dockerUnavailable?: { reason: string; help: string };
 }
+
+/**
+ * Fast preflight: is a working Docker available? Distinguishes "not installed"
+ * (the `docker` binary is missing → ENOENT) from "installed but daemon down"
+ * (binary runs but `docker version` reports the server can't be reached), so we
+ * can give the user the right fix instead of a confusing "ERRORED 0/0".
+ */
+export async function dockerAvailable(): Promise<{ ok: boolean; reason?: string; help?: string }> {
+  return new Promise((resolve) => {
+    let proc;
+    try {
+      proc = spawn('docker', ['version', '--format', '{{.Server.Version}}'], { stdio: ['ignore', 'pipe', 'pipe'] });
+    } catch {
+      return resolve({ ok: false, reason: 'Docker is not installed', help: DOCKER_HELP });
+    }
+    let out = '', err = '';
+    const killer = setTimeout(() => { try { proc.kill('SIGKILL'); } catch { /* ignore */ } resolve({ ok: false, reason: 'Docker did not respond', help: DOCKER_HELP }); }, 8000);
+    proc.on('error', (e: NodeJS.ErrnoException) => {
+      clearTimeout(killer);
+      if (e.code === 'ENOENT') return resolve({ ok: false, reason: 'Docker is not installed', help: DOCKER_HELP });
+      resolve({ ok: false, reason: `Could not run docker: ${e.message}`, help: DOCKER_HELP });
+    });
+    proc.stdout?.on('data', (b) => { out += b.toString(); });
+    proc.stderr?.on('data', (b) => { err += b.toString(); });
+    proc.on('close', (code) => {
+      clearTimeout(killer);
+      if (code === 0 && out.trim()) return resolve({ ok: true });
+      // Binary exists but the daemon is unreachable.
+      const daemonDown = /daemon|Cannot connect|pipe|sock/i.test(err);
+      resolve({ ok: false, reason: daemonDown ? 'Docker is installed but the daemon is not running' : (err.trim().split('\n')[0] || 'Docker is not available'), help: DOCKER_HELP });
+    });
+  });
+}
+
+const DOCKER_HELP = 'Tier-2 runs the generated tests in a hardened Docker sandbox. Install Docker Desktop (macOS/Windows) or the docker engine (Linux), make sure it is running, then click "Generate Tests" again. Tier-1 analysis and test GENERATION work without Docker — only the sandbox RUN needs it.';
 
 const imagePullAttempted = new Set<string>();
 async function ensureImage(image: string): Promise<string | null> {
@@ -59,6 +97,7 @@ async function ensureImage(image: string): Promise<string | null> {
   imagePullAttempted.add(image);
   return new Promise((resolve) => {
     const inspect = spawn('docker', ['image', 'inspect', image], { stdio: 'ignore' });
+    inspect.on('error', () => resolve('Docker is not available'));
     inspect.on('close', (code) => {
       if (code === 0) return resolve(null);
       const pull = spawn('docker', ['pull', image], { stdio: ['ignore', 'pipe', 'pipe'] });
@@ -94,6 +133,7 @@ async function dockerRun(image: string, hostMountDir: string): Promise<{ stdout:
     const proc = spawn('docker', args, { stdio: ['ignore', 'pipe', 'pipe'] });
     let out = '', err = '';
     const killer = setTimeout(() => { try { proc.kill('SIGKILL'); } catch { /* ignore */ } }, RUNNER_TIMEOUT_MS);
+    proc.on('error', (e: Error) => { clearTimeout(killer); resolve({ stdout: '', stderr: e.message, code: -1 }); });
     proc.stdout.on('data', (b) => { out += b.toString(); });
     proc.stderr.on('data', (b) => { err += b.toString(); });
     proc.on('close', (code) => { clearTimeout(killer); resolve({ stdout: out, stderr: err, code: code ?? -1 }); });
@@ -207,6 +247,23 @@ export function dedupeName(name: string, used: Set<string>, language: TestLangua
 export async function runGeneratedTests(files: GeneratedTestFile[]): Promise<RunResult> {
   const runId = 'run_' + Date.now().toString(36);
   const t0 = Date.now();
+
+  // Preflight: if Docker isn't available, don't try to run (which would surface
+  // a baffling "ERRORED 0/0"). Return the generated tests as 'skipped' with a
+  // clear, actionable reason so the dashboard can explain what to do.
+  const docker = await dockerAvailable();
+  if (!docker.ok) {
+    return {
+      runId,
+      success: false,
+      numTotalTests: 0,
+      numPassedTests: 0,
+      numFailedTests: 0,
+      durationMs: Date.now() - t0,
+      files: files.map((f) => ({ filename: f.filename, status: 'skipped' as const, numPassed: 0, numFailed: 0, failureMessages: [] })),
+      dockerUnavailable: { reason: docker.reason || 'Docker is not available', help: docker.help || DOCKER_HELP },
+    };
+  }
 
   // Group by language; each language runs in its own sandbox image.
   const groups = new Map<TestLanguage, GeneratedTestFile[]>();

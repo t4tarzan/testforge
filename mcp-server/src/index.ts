@@ -45,8 +45,9 @@ import { runAgenticScalePrediction } from './analyzers/agentic-scale.js';
 import { runKubernetesAnalysis } from './analyzers/k8s-analyzer.js';
 import { generateTestsForFindings, type InputFinding } from './generator/generate-tests.js';
 import { hasLLMKey, PRIMARY_MODEL, FALLBACK_MODEL, LLM_BASE_URL, LLM_IS_LOCAL } from './generator/llm-client.js';
-import { isFromEnvFile } from './load-env.js';
-import { runGeneratedTests } from './runner/docker-runner.js';
+import { isFromEnvFile, readEnvFile, writeEnvFile } from './load-env.js';
+import { reloadLLM } from './generator/llm-client.js';
+import { runGeneratedTests, dockerAvailable } from './runner/docker-runner.js';
 import { detectRunnable } from './simulation/runnable-detect.js';
 import { prepareSandbox, teardownSandbox } from './simulation/sandbox.js';
 import { prepareComposeSandbox } from './simulation/compose-sandbox.js';
@@ -314,6 +315,90 @@ async function main() {
 
   // Health check
   app.get('/health', async () => ({ status: 'ok', version: PKG_VERSION }));
+
+  // Readiness of the two Tier-2 prerequisites — used by the dashboard to warn
+  // BEFORE the user clicks "Generate Tests", and by the settings panel.
+  app.get('/status', async () => {
+    const docker = await dockerAvailable();
+    return {
+      version: PKG_VERSION,
+      ai: {
+        configured: hasLLMKey(),
+        provider: LLM_IS_LOCAL ? 'local' : 'openrouter',
+        base: LLM_BASE_URL,
+        local: LLM_IS_LOCAL,
+        primaryModel: PRIMARY_MODEL,
+      },
+      docker: { ok: docker.ok, reason: docker.reason, help: docker.help },
+    };
+  });
+
+  // ── Local settings API (powers the dashboard settings panel) ──
+  // Writes ~/.testforge/.env and applies the AI provider live (reloadLLM). Only
+  // available to a LOCAL self-host: loopback requests, and never when a MANAGED
+  // deployment is detected (its run secret comes from real Docker env, not the
+  // config file) — you must not be able to rewrite a managed server's AI key.
+  const configApiAllowed = (request: import('fastify').FastifyRequest): boolean => {
+    if (!isLoopbackRequest(request)) return false;
+    if (process.env.TESTFORGE_RUN_SECRET && !isFromEnvFile('TESTFORGE_RUN_SECRET')) return false;
+    return true;
+  };
+  const maskKey = (k?: string): string | null => (k ? (k.length > 8 ? `${k.slice(0, 6)}…${k.slice(-4)}` : '••••') : null);
+
+  app.get('/config', async (request, reply) => {
+    if (!configApiAllowed(request)) return reply.status(403).send({ error: 'Settings API is local-only' });
+    const file = readEnvFile();
+    const orKey = process.env.OPENROUTER_API_KEY;
+    const llmKey = process.env.TESTFORGE_LLM_API_KEY;
+    return {
+      provider: LLM_IS_LOCAL ? 'local' : 'openrouter',
+      openrouter: { keySet: Boolean(orKey), keyMasked: maskKey(orKey) },
+      local: { baseUrl: process.env.TESTFORGE_LLM_BASE_URL || '', model: process.env.TESTFORGE_PRIMARY_MODEL || '', keySet: Boolean(llmKey) },
+      primaryModel: PRIMARY_MODEL,
+      fallbackModel: FALLBACK_MODEL,
+      port: process.env.TESTFORGE_MCP_PORT || String(PORT),
+      configFileKeys: Object.keys(file),
+    };
+  });
+
+  app.post('/config', async (request, reply) => {
+    if (!configApiAllowed(request)) return reply.status(403).send({ error: 'Settings API is local-only' });
+    const b = (request.body ?? {}) as {
+      provider?: 'openrouter' | 'local';
+      openrouterKey?: string;
+      ollamaBaseUrl?: string;
+      model?: string;
+      fallbackModel?: string;
+      apiKey?: string;
+    };
+    const updates: Record<string, string | null> = {};
+    if (b.provider === 'local') {
+      const base = (b.ollamaBaseUrl || '').trim();
+      if (!base) return reply.status(400).send({ error: 'ollamaBaseUrl required for a local provider' });
+      updates.TESTFORGE_LLM_BASE_URL = base;
+      updates.TESTFORGE_PRIMARY_MODEL = (b.model || '').trim() || 'qwen2.5-coder:14b';
+      updates.TESTFORGE_FALLBACK_MODEL = (b.fallbackModel || b.model || '').trim() || updates.TESTFORGE_PRIMARY_MODEL;
+      updates.TESTFORGE_LLM_API_KEY = (b.apiKey || '').trim() || null;
+      updates.OPENROUTER_API_KEY = null; // switch away from cloud
+    } else if (b.provider === 'openrouter') {
+      // Only overwrite the key if a non-empty one was supplied (lets the user
+      // tweak models without re-entering the key).
+      if (typeof b.openrouterKey === 'string' && b.openrouterKey.trim()) updates.OPENROUTER_API_KEY = b.openrouterKey.trim();
+      updates.TESTFORGE_LLM_BASE_URL = null; // back to OpenRouter default
+      updates.TESTFORGE_LLM_API_KEY = null;
+      if (b.model?.trim()) updates.TESTFORGE_PRIMARY_MODEL = b.model.trim();
+      if (b.fallbackModel?.trim()) updates.TESTFORGE_FALLBACK_MODEL = b.fallbackModel.trim();
+    } else {
+      return reply.status(400).send({ error: "provider must be 'openrouter' or 'local'" });
+    }
+    try {
+      writeEnvFile(updates);
+      reloadLLM(); // apply immediately — no restart needed
+    } catch (err) {
+      return reply.status(500).send({ error: 'Could not save config', detail: (err as Error).message });
+    }
+    return { ok: true, provider: LLM_IS_LOCAL ? 'local' : 'openrouter', configured: hasLLMKey(), primaryModel: PRIMARY_MODEL };
+  });
 
   // ── Tier 2 — Generate & Run (Day 1: generate only, no sandbox yet) ──
   //

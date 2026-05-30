@@ -50,6 +50,14 @@ export const TAG_COLORS: Record<ChangelogTag, string> = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '0.35.0',
+    date: '2026-05-30',
+    tag: 'platform',
+    title: 'Docker preflight + in-dashboard settings (no more confusing Tier-2 failures)',
+    summary:
+      'Tier-2 runs generated tests in a Docker sandbox — but when Docker was missing the dashboard showed a baffling "ERRORED 0/0". Now there is a real Docker preflight: if Docker is not installed or its daemon is down, the tests are still GENERATED and shown, clearly marked "generated · not run", with a one-line reason and install help — never a silent error. A new /status endpoint reports Docker + AI-provider readiness, and the dashboard shows a banner up-front if either is missing. Biggest addition: a Settings panel right on the local dashboard (localhost:33221 → ⚙ Settings) to configure the AI provider WITHOUT the CLI — paste an OpenRouter key or point Tier-2 at a local Ollama/LM Studio model, and it applies immediately (no restart). Backed by GET/POST /config, which writes ~/.testforge/.env and is strictly local-only (loopback + never on a managed deployment, whose key comes from real env). On the website, the Account → API Keys page now explains that free-plan Tier-2 is BYOK via the self-hosted MCP (set your key in its Settings panel) — and the "Generate New Key" button now surfaces errors instead of failing silently.',
+  },
+  {
     version: '0.34.1',
     date: '2026-05-30',
     tag: 'precision',

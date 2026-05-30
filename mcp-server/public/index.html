@@ -66,11 +66,48 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 <body>
 <div class="header">
   <div class="logo">🧪 TestForge MCP</div>
-  <div class="tagline">21-dimension analysis — runs entirely on your machine</div>
+  <div class="tagline">22-dimension analysis — runs entirely on your machine</div>
   <div class="lock">🔒 Code never leaves your system</div>
+  <button onclick="openSettings()" id="settingsBtn" style="position:absolute;top:16px;right:20px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px">⚙ Settings</button>
 </div>
 
 <div class="container">
+  <div id="statusBanner" style="display:none;margin-bottom:14px"></div>
+
+  <!-- Settings panel (Tier-2: AI provider + Docker) -->
+  <div class="card" id="settingsCard" style="display:none;border:1px solid #a99bff">
+    <h3>⚙ Tier-2 Settings</h3>
+    <p style="font-size:13px;color:#6B6B6B;margin:-6px 0 12px">Tier-1 analysis needs none of this. Tier-2 (Generate &amp; Run) needs an AI provider for generation and Docker to run the tests in a sandbox.</p>
+
+    <div id="dockerStatus" style="font-size:13px;margin-bottom:14px;padding:8px 10px;border-radius:6px;background:#f4f3fb"></div>
+
+    <label style="font-weight:600">AI provider for test generation</label>
+    <div style="display:flex;gap:16px;margin:6px 0 12px">
+      <label style="font-weight:400;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="prov" value="openrouter" onchange="toggleProv()" checked> OpenRouter (cloud)</label>
+      <label style="font-weight:400;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="prov" value="local" onchange="toggleProv()"> Local (Ollama / LM Studio)</label>
+    </div>
+
+    <div id="provOpenrouter">
+      <label>OpenRouter API key <span style="font-weight:400;color:#6B6B6B">— get one at <a href="https://openrouter.ai/keys" target="_blank" style="color:#574a7d">openrouter.ai/keys</a></span></label>
+      <input type="password" id="orKey" placeholder="sk-or-v1-…">
+      <div id="orKeyState" style="font-size:12px;color:#6B6B6B;margin-top:4px"></div>
+    </div>
+
+    <div id="provLocal" style="display:none">
+      <label>Base URL (OpenAI-compatible)</label>
+      <input type="text" id="localUrl" placeholder="http://localhost:11434/v1">
+      <label style="margin-top:8px">Model</label>
+      <input type="text" id="localModel" placeholder="qwen2.5-coder:14b">
+      <div style="font-size:12px;color:#6B6B6B;margin-top:4px">Ollama: <code>http://localhost:11434/v1</code> · LM Studio: <code>http://localhost:1234/v1</code>. From Docker use <code>host.docker.internal</code>.</div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:14px">
+      <button onclick="saveSettings()" id="saveSettingsBtn">💾 Save</button>
+      <button class="btn-secondary" onclick="closeSettings()">Close</button>
+    </div>
+    <div id="settingsMsg" style="font-size:13px;margin-top:10px"></div>
+  </div>
+
   <div class="card" id="inputCard">
     <h3>📁 Analyze Your Project</h3>
     <label>Project Path (absolute path on your machine)</label>
@@ -309,7 +346,13 @@ async function runTier2() {
     h += '<div style="font-size:12px;color:#6B6B6B;margin-bottom:12px">id <code>' + d.generationId + '</code> · ' +
          d.provider.primary + ' → ' + d.provider.fallback + ' · generation ' + (d.generationMs/1000).toFixed(1) + 's · sandbox ' + (d.runMs) + 'ms</div>';
 
-    if (d.run) {
+    var dockerMissing = d.run && d.run.dockerUnavailable;
+    if (dockerMissing) {
+      h += '<div style="padding:12px 14px;background:rgba(234,168,56,0.12);border:1px solid rgba(234,168,56,0.4);border-radius:6px;margin-bottom:12px;color:#E8A838">';
+      h += '<div style="font-weight:600;margin-bottom:4px">🐳 ' + d.run.dockerUnavailable.reason + ' — tests generated but not run</div>';
+      h += '<div style="font-size:12px;color:#cdbd9a;line-height:1.5">' + d.run.dockerUnavailable.help + '</div>';
+      h += '</div>';
+    } else if (d.run) {
       var bg = d.run.success ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)';
       var fg = d.run.success ? '#22C55E' : '#EF4444';
       h += '<div style="padding:10px 12px;background:'+bg+';border-radius:6px;margin-bottom:12px;color:'+fg+';font-weight:600">';
@@ -325,7 +368,9 @@ async function runTier2() {
       h += '<div class="finding" style="border-color:#a99bff;background:rgba(87,74,125,0.05);margin-bottom:10px">';
       h += '<div class="finding-title">📝 ' + (f ? f.filename : '(no file produced)') + '</div>';
       h += '<div class="finding-file">For: ' + r.finding.title + '</div>';
-      if (fr) {
+      if (fr && fr.status === 'skipped') {
+        h += '<div style="margin-top:6px;font-size:12px;color:#E8A838">→ GENERATED · not run (Docker required)</div>';
+      } else if (fr) {
         var color = fr.status === 'passed' ? '#22C55E' : '#EF4444';
         h += '<div style="margin-top:6px;font-size:12px;color:'+color+'">→ ' + fr.status.toUpperCase() + ' · ' + fr.numPassed + ' passed, ' + fr.numFailed + ' failed</div>';
       }
@@ -381,8 +426,82 @@ async function loadReport(id) {
   } catch(e) { alert('Could not load report: ' + e.message); }
 }
 
-// Load history on page load
+// ── Tier-2 readiness banner + settings panel ──
+var _cfg = null;
+async function loadStatus() {
+  try {
+    var res = await fetch('/status');
+    var s = await res.json();
+    // Docker badge inside the settings panel
+    var ds = document.getElementById('dockerStatus');
+    if (s.docker && s.docker.ok) {
+      ds.innerHTML = '🐳 <strong style="color:#22A06B">Docker detected</strong> — Tier-2 can run generated tests in a sandbox.';
+    } else {
+      ds.innerHTML = '🐳 <strong style="color:#E8A838">' + ((s.docker && s.docker.reason) || 'Docker not available') + '</strong><div style="color:#6B6B6B;margin-top:4px">' + ((s.docker && s.docker.help) || '') + '</div>';
+    }
+    // Top banner only when something needs attention
+    var banner = document.getElementById('statusBanner');
+    var issues = [];
+    if (!s.ai || !s.ai.configured) issues.push('No AI provider configured for Tier-2 test generation.');
+    if (!s.docker || !s.docker.ok) issues.push('Docker not detected — Tier-2 tests will be generated but not run.');
+    if (issues.length) {
+      banner.style.display = 'block';
+      banner.innerHTML = '<div style="padding:12px 14px;background:rgba(234,168,56,0.12);border:1px solid rgba(234,168,56,0.4);border-radius:8px;color:#9a6b15;font-size:13px">' +
+        '⚠ ' + issues.join(' ') + ' <a href="#" onclick="openSettings();return false" style="color:#574a7d;font-weight:600">Open Settings →</a></div>';
+    } else { banner.style.display = 'none'; }
+    return s;
+  } catch (e) { /* status is best-effort */ }
+}
+
+async function openSettings() {
+  document.getElementById('settingsCard').style.display = 'block';
+  document.getElementById('settingsMsg').textContent = '';
+  await loadStatus();
+  try {
+    var res = await fetch('/config');
+    if (res.status === 403) {
+      document.getElementById('settingsMsg').innerHTML = '<span style="color:#E8A838">Settings are managed by the server operator on this deployment.</span>';
+      _cfg = null; return;
+    }
+    _cfg = await res.json();
+    document.querySelector('input[name=prov][value=' + (_cfg.provider === 'local' ? 'local' : 'openrouter') + ']').checked = true;
+    document.getElementById('orKeyState').textContent = _cfg.openrouter.keySet ? ('Current key: ' + _cfg.openrouter.keyMasked + ' (leave blank to keep)') : 'No key set yet.';
+    document.getElementById('localUrl').value = _cfg.local.baseUrl || '';
+    document.getElementById('localModel').value = _cfg.local.model || '';
+    toggleProv();
+  } catch (e) {}
+  document.getElementById('settingsCard').scrollIntoView({ behavior: 'smooth' });
+}
+function closeSettings() { document.getElementById('settingsCard').style.display = 'none'; }
+function toggleProv() {
+  var p = document.querySelector('input[name=prov]:checked').value;
+  document.getElementById('provOpenrouter').style.display = p === 'openrouter' ? 'block' : 'none';
+  document.getElementById('provLocal').style.display = p === 'local' ? 'block' : 'none';
+}
+async function saveSettings() {
+  var btn = document.getElementById('saveSettingsBtn');
+  var msg = document.getElementById('settingsMsg');
+  var p = document.querySelector('input[name=prov]:checked').value;
+  var body = { provider: p };
+  if (p === 'openrouter') { body.openrouterKey = document.getElementById('orKey').value.trim(); }
+  else { body.ollamaBaseUrl = document.getElementById('localUrl').value.trim(); body.model = document.getElementById('localModel').value.trim(); }
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    var res = await fetch('/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    var d = await res.json();
+    if (d.error) throw new Error(d.error);
+    msg.innerHTML = '<span style="color:#22A06B">✓ Saved. Provider: ' + d.provider + (d.configured ? ' · ready for Tier-2.' : ' · still needs a key.') + ' Applied immediately — no restart.</span>';
+    document.getElementById('orKey').value = '';
+    await loadStatus();
+  } catch (e) {
+    msg.innerHTML = '<span style="color:#EF4444">Could not save: ' + e.message + '</span>';
+  }
+  btn.disabled = false; btn.textContent = '💾 Save';
+}
+
+// Load history + readiness on page load
 loadHistory();
+loadStatus();
 </script>
 </body>
 </html>

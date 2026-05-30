@@ -582,6 +582,7 @@ function ApiKeysTab() {
   const [keys, setKeys] = useState<any[]>([]);
   const [newKey, setNewKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [keyError, setKeyError] = useState<string>('');
 
   useEffect(() => {
     fetch('/api/keys').then(r => r.json()).then(d => { if (Array.isArray(d)) setKeys(d); }).catch(() => {});
@@ -589,11 +590,21 @@ function ApiKeysTab() {
 
   const handleGenerate = async () => {
     setLoading(true);
+    setKeyError('');
     try {
       const res = await fetch('/api/keys', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'API Key ' + (keys.length + 1) }) });
-      const data = await res.json();
-      if (data.key) { setNewKey(data.key); fetch('/api/keys').then(r => r.json()).then(d => { if (Array.isArray(d)) setKeys(d); }); }
-    } catch { /* surfaced to user via setLoading(false) below */ }
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.key) {
+        setNewKey(data.key);
+        fetch('/api/keys').then(r => r.json()).then(d => { if (Array.isArray(d)) setKeys(d); });
+      } else if (res.status === 401) {
+        setKeyError('Your session expired — please sign in again, then retry.');
+      } else {
+        setKeyError(data.error || `Could not generate a key (HTTP ${res.status}). Please try again or contact support.`);
+      }
+    } catch {
+      setKeyError('Network error — could not reach the server. Please retry.');
+    }
     setLoading(false);
   };
 
@@ -605,10 +616,24 @@ function ApiKeysTab() {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
       <h2 className="font-heading font-medium text-[28px] text-[#12101A]">API Keys</h2>
-      <p className="text-[16px] text-[#6B6B6B] font-body mt-1">Manage API keys for programmatic access.</p>
+      <p className="text-[16px] text-[#6B6B6B] font-body mt-1">Manage TestForge API keys for programmatic access to the managed API.</p>
+
+      <div className="mt-5 p-4 bg-[rgba(74,144,217,0.06)] border-l-[3px] border-[#4A90D9] rounded-r-lg">
+        <p className="text-[14px] font-body font-semibold text-[#4A90D9] mb-1">Looking to add your own OpenRouter key for Tier-2 (BYOK)?</p>
+        <p className="text-[13px] text-[#333333] font-body leading-[1.6]">
+          That key isn&rsquo;t set here — TestForge API keys above are for our managed API. On the <strong>Free plan, Tier-2 is BYOK via the self-hosted MCP</strong>:
+          run <code className="bg-white border border-[#E8E5FF] px-1.5 py-0.5 rounded font-mono text-[12px]">npx -y @whitenoisenpm/testforge-mcp@latest</code>, open
+          <code className="bg-white border border-[#E8E5FF] px-1.5 py-0.5 rounded font-mono text-[12px]">localhost:33221</code>, click <strong>⚙ Settings</strong>, and paste your OpenRouter key
+          (or point it at a local Ollama / LM Studio model — free, no key). Your code and key never leave your machine.{' '}
+          <a href="#/docs/mcp-server" className="text-[#574a7d] font-medium hover:underline">Self-host setup →</a>
+        </p>
+      </div>
       <button onClick={handleGenerate} disabled={loading} className="mt-6 h-10 px-5 bg-[#574a7d] text-white rounded-lg font-body font-medium text-[14px] flex items-center gap-2 hover:bg-[#4a3d6b] transition-colors disabled:opacity-50">
         <Plus size={16} /> {loading ? 'Generating...' : 'Generate New Key'}
       </button>
+      {keyError && (
+        <div className="mt-4 p-3 bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.3)] rounded-lg text-[13px] text-[#b91c1c] font-body">{keyError}</div>
+      )}
       {newKey && (
         <div className="mt-4 p-4 bg-[#E8E5FF] border border-[#a39fd4] rounded-lg">
           <p className="text-sm font-medium text-[#574a7d] mb-1">New API Key — copy it now:</p>
