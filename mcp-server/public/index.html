@@ -285,6 +285,8 @@ function renderReport(d, source, savedId) {
   // Actions
   h += '<div class="actions" style="display:flex;gap:12px;flex-wrap:wrap">';
   h += '<button class="btn-secondary" onclick="runTier2()" id="tier2Btn" style="flex:1;min-width:200px">🤖 Generate Tests (Tier 2)</button>';
+  h += '<button class="btn-outline" onclick="downloadReport(\'md\')">⬇️ Download Report (Markdown)</button>';
+  h += '<button class="btn-outline" onclick="downloadReport(\'json\')">⬇️ Download JSON</button>';
   h += '<button class="btn-outline" onclick="window.print()">🖨️ Print / Save PDF</button>';
   h += '</div>';
   // Tier-2 result slot
@@ -295,6 +297,86 @@ function renderReport(d, source, savedId) {
   document.getElementById('report').style.display = 'block';
   document.getElementById('inputCard').style.display = 'none';
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ─── Download the analysis report (JSON or a full Markdown breakdown) ───
+function triggerDownload(name, text, mime) {
+  var blob = new Blob([text], { type: mime });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click();
+  document.body.removeChild(a); setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+}
+
+function buildDimRows(d) {
+  var sec = d.security || {};
+  var secScore = Math.max(0, 100 - (sec.critical||0)*40 - (sec.high||0)*20);
+  function fnum(x){ return typeof x === 'number' ? x : null; }
+  function flist(v){ return (v && Array.isArray(v.findings)) ? v.findings : []; }
+  return [
+    ['Security', secScore, sec.items||[]],
+    ['Kubernetes', (d.kubernetes&&d.kubernetes.applicable===false)?null:fnum(d.kubernetes&&d.kubernetes.score), flist(d.kubernetes)],
+    ['OWASP', fnum(d.owasp&&d.owasp.coverage), flist(d.owasp)],
+    ['Supply Chain', fnum(d.supplyChain&&d.supplyChain.score), flist(d.supplyChain)],
+    ['License', fnum(d.license&&d.license.score), flist(d.license)],
+    ['Unit Tests', fnum(d.unit&&d.unit.coverage), []],
+    ['Mutation', fnum(d.mutation&&d.mutation.score), flist(d.mutation)],
+    ['Property-Based', fnum(d.propertyBased&&d.propertyBased.score), flist(d.propertyBased)],
+    ['Edge Cases', fnum(d.edgeCases&&d.edgeCases.score), flist(d.edgeCases)],
+    ['Contract', fnum(d.contract&&d.contract.score), flist(d.contract)],
+    ['Predictive Risk', fnum(d.predictive&&d.predictive.score), flist(d.predictive)],
+    ['N+1 Queries', fnum(d.nPlusOne&&d.nPlusOne.score), flist(d.nPlusOne)],
+    ['Dead Code', fnum(d.deadCode&&d.deadCode.score), flist(d.deadCode)],
+    ['Load', fnum(d.load&&d.load.score), []],
+    ['Chaos', fnum(d.chaos&&d.chaos.score), flist(d.chaos)],
+    ['Agentic Scale', fnum(d.agentic&&d.agentic.score), flist(d.agentic)],
+    ['Accessibility', (d.accessibility&&d.accessibility.applicable===false)?null:fnum(d.accessibility&&d.accessibility.score), []],
+    ['Visual Regression', fnum(d.visualRegression&&d.visualRegression.score), flist(d.visualRegression)],
+    ['Vision', fnum(d.vision&&d.vision.score), flist(d.vision)],
+    ['Scope', (d.scope&&d.scope.coverage!=null)?Math.min(100,d.scope.coverage):null, flist(d.scope)],
+    ['Stack', fnum(d.stack&&d.stack.score), flist(d.stack)],
+    ['DORA', fnum(d.dora&&d.dora.score), flist(d.dora)],
+  ];
+}
+
+function downloadReport(fmt) {
+  if (!reportData) return;
+  var d = reportData;
+  var name = (d.repo || 'report').split('/').pop().replace(/[^a-z0-9._-]/gi,'-');
+  if (fmt === 'json') { triggerDownload('testforge-' + name + '.json', JSON.stringify(d, null, 2), 'application/json'); return; }
+  var cb = d.codebase || {};
+  var rows = buildDimRows(d);
+  var nums = rows.map(function(r){return r[1];}).filter(function(s){return typeof s==='number';});
+  var overall = nums.length ? Math.round(nums.reduce(function(a,b){return a+b;},0)/nums.length) : 0;
+  var L = [];
+  L.push('# TestForge Report — ' + (d.repo || 'project'));
+  L.push('');
+  L.push('**Overall:** ' + overall + '/100  ·  ' + (cb.totalFiles||0) + ' files · ' + (cb.totalLines||0).toLocaleString() + ' lines · ' + (cb.endpoints||0) + ' endpoints');
+  L.push('**Stack:** ' + ((cb.techStack||[]).join(', ') || 'n/a'));
+  L.push('**Analyzed:** ' + (d.analyzedAt || new Date().toISOString()));
+  L.push('');
+  L.push('## Dimension scores');
+  L.push('');
+  L.push('| Dimension | Score | Findings |');
+  L.push('|---|---|---|');
+  rows.forEach(function(r){ L.push('| ' + r[0] + ' | ' + (r[1]==null?'N/A':r[1]+'/100') + ' | ' + r[2].length + ' |'); });
+  L.push('');
+  L.push('## Findings by dimension');
+  rows.forEach(function(r){
+    if (!r[2].length) return;
+    L.push('');
+    L.push('### ' + r[0] + ' (' + (r[1]==null?'N/A':r[1]+'/100') + ')');
+    r[2].forEach(function(f){
+      var loc = f.filePath ? (' — `' + f.filePath + (f.lineNumber?(':'+f.lineNumber):'') + '`') : '';
+      L.push('- **[' + (f.severity||'low').toUpperCase() + ']** ' + (f.title||'') + loc);
+      if (f.description) L.push('  - ' + f.description);
+      if (f.fixSuggestion || f.suggestion) L.push('  - _Fix:_ ' + (f.fixSuggestion || f.suggestion));
+    });
+  });
+  L.push('');
+  L.push('---');
+  L.push('Generated by TestForge MCP (self-hosted) · testforge.run');
+  triggerDownload('testforge-' + name + '.md', L.join('\n'), 'text/markdown');
 }
 
 // ─── Tier 2: generate Vitest files for the top findings + run in sandbox ───

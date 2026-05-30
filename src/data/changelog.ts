@@ -50,6 +50,14 @@ export const TAG_COLORS: Record<ChangelogTag, string> = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '0.36.3',
+    date: '2026-05-30',
+    tag: 'site',
+    title: 'Download Report on the self-hosted dashboard',
+    summary:
+      'The self-hosted dashboard (localhost:33221) only had "Print / Save PDF". It now has "Download Report (Markdown)" and "Download JSON" buttons. The Markdown export is a full report — overall score, a 22-dimension scores table, and every finding grouped by dimension with its location, description, and suggested fix — so you can save, share, or commit it. JSON gives you the complete raw analysis.',
+  },
+  {
     version: '0.36.2',
     date: '2026-05-30',
     tag: 'precision',
