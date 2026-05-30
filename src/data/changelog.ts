@@ -50,6 +50,14 @@ export const TAG_COLORS: Record<ChangelogTag, string> = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '0.36.4',
+    date: '2026-05-31',
+    tag: 'site',
+    title: 'Self-hosted Markdown report now matches the full In-the-Wild format',
+    summary:
+      'The downloadable Markdown report from the self-hosted dashboard was missing detail the curated reports have. It now includes, per dimension, HOW it was tested (Method) and its language Coverage — served from /dimension-meta.json — plus a dedicated Test Coverage section (function coverage, test files, test cases, frameworks) and a Security Findings summary (severity counts + items + fixes). It also appends a Tier-2 section listing the generated tests and their sandbox pass/fail when a Generate & Run was done in the session — so the downloaded report reflects the Tier-2 run, not just Tier-1. Every finding keeps its suggested-fix bullet.',
+  },
+  {
     version: '0.36.3',
     date: '2026-05-30',
     tag: 'site',

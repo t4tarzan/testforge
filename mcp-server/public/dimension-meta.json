@@ -1,0 +1,160 @@
+{
+  "order": [
+    "security",
+    "kubernetes",
+    "owasp",
+    "supplyChain",
+    "license",
+    "unit",
+    "mutation",
+    "propertyBased",
+    "edgeCases",
+    "contract",
+    "predictive",
+    "nPlusOne",
+    "deadCode",
+    "load",
+    "chaos",
+    "agentic",
+    "accessibility",
+    "visualRegression",
+    "vision",
+    "scope",
+    "stack",
+    "dora"
+  ],
+  "meta": {
+    "security": {
+      "label": "Security",
+      "methodology": "Intra-procedural AST taint tracking — JS/TS via Babel, and Python/FastAPI via a stdlib-ast python3 subprocess — tracing request input → SQL/exec/subprocess/open/HTTP sinks with sanitizer awareness; plus dependency-presence + config regex checks.",
+      "languageCoverage": "JS/TS: deep AST taint (Babel). Python (FastAPI/Flask): intra-procedural AST taint for SQLi/RCE/path/SSRF (source→sink, parameterized-query & int()/quote() sanitizer-aware) PLUS 7 edge-case rules. Go: not yet (no Go parser).",
+      "naCriteria": "N/A if: (1) Go code present but no Go AST parser available in codebase (hard limit on feasibility without external tool integration); (2) No k8s manifests/Helm/operators in the project tree (legitimate for non-k8s apps,…"
+    },
+    "kubernetes": {
+      "label": "Kubernetes",
+      "methodology": "Parses every YAML manifest and Helm chart (js-yaml, with Go-template expressions stubbed) and checks PodSpecs + RBAC: securityContext (runAsNonRoot/privileged/allowPrivilegeEscalation), resource requests/limits, liveness/readiness probes, image tags, wildcard RBAC, secrets-in-ConfigMaps, and NetworkPolicy presence.",
+      "languageCoverage": "Kubernetes YAML + Helm charts (multi-doc); CRDs detected.",
+      "naCriteria": "N/A when no Kubernetes manifests or Helm charts are found in the repo."
+    },
+    "owasp": {
+      "label": "OWASP",
+      "methodology": "Maps JS/TS findings to OWASP boxes without infrastructure or polyglot coverage.",
+      "languageCoverage": "JS/TS AST via Babel only. Python/Go not parsed. YAML/Helm not covered.",
+      "naCriteria": "N/A for libraries without web exposure. Not N/A for dkubex K8s platform."
+    },
+    "supplyChain": {
+      "label": "Supply Chain",
+      "methodology": "Resolves exact name@version from lockfiles across npm (package-lock), Python (poetry.lock/Pipfile.lock/requirements.txt) and Go (go.sum), then batch-queries the live OSV.dev vulnerability database; plus non-registry-source + integrity-hash + duplicate-version lockfile checks. Offline-safe (falls back to a built-in CVE list).",
+      "languageCoverage": "npm + PyPI + Go ecosystems via live OSV (cached, network opt-in). Transitive npm deps via lockfile graph. Non-OSV checks (non-registry/integrity/dup) remain npm-lockfile-specific.",
+      "naCriteria": "N/A when no package.json or package-lock.json exists — supply chain audit skips if project declares no dependencies. For polyglot projects without Node.js, state explicitly: \"Python/Go supply chains not yet supported —…"
+    },
+    "license": {
+      "label": "License",
+      "methodology": "Walks installed node_modules for SPDX license strings in package.json metadata, categorizes by pattern matching, reports counts and samples per category — no source-code analysis, no multi-package-manager coverage, no license-compatibility matrix.",
+      "languageCoverage": "npm package-lock.json + node_modules inspection only; no Python/Go/other-language package managers (pip, go.mod, Cargo.toml, requirements.txt, etc.).",
+      "naCriteria": "N/A when the project has zero external dependencies (dependency array is empty AND no package.json and no lock file). Show user: \"N/A — no dependencies declared. License compliance testing requires external package usag…"
+    },
+    "unit": {
+      "label": "Unit Tests",
+      "methodology": "Uses a REAL coverage report when present (lcov / Cobertura / Istanbul) and falls back to a function-name + test-ratio heuristic otherwise. Test quality is AST-classified for both JS/TS (Babel) and Python (stdlib-ast): assertion-free, empty, and skipped tests are detected, not just counted.",
+      "languageCoverage": "Coverage: lcov/Cobertura/Istanbul artifacts (any language). Test quality: JS/TS via Babel + Python (pytest/unittest) via Python AST (assertion/skip/empty). Go: counted only (no Go parser yet).",
+      "naCriteria": "N/A if: (1) codebase has zero test files — no tests to analyze → honest message \"No test files found in project\"; (2) source code is generated or scaffolding-only (no meaningful business logic) → \"Codebase is generated/…"
+    },
+    "mutation": {
+      "label": "Mutation",
+      "methodology": "Walks JS/TS test-file AST to classify assertions by kill-potential (strong: specific value/error/object checks vs weak: truthiness-only), aggregates test-to-source ratio and matcher variety, applies a heuristic scoring formula, then flags per-file anti-patter…",
+      "languageCoverage": "JS/TS AST only (Babel parser on .test.ts/.spec.ts files). Test-file counting includes Python (test_*.py, *_test.py) and Go (*_test.go) by filename convention, but NO assertion-quality analysis for th…",
+      "naCriteria": "N/A when: no test files present at all (returns score=0, testFiles=0 early exit). Current analysis is NOT N/A for dkubex because tests do exist (21 test files, 108 test cases) — the low mutation score (31%) reflects gen…"
+    },
+    "propertyBased": {
+      "label": "Property-Based",
+      "methodology": "Counts framework imports and property-assertion call sites via JS/TS Babel AST; detects invariant guards (type checks) as proxy signals, but makes no distinction between real property-based tests and mere assert/invariant call clustering.",
+      "languageCoverage": "JS/TS AST only via Babel (via isParseable() gate). Python (hypothesis, pytest-check, property-based) — zero coverage (no Python AST introspection). Go (quickcheck, gopter) — zero coverage. Polyglot c…",
+      "naCriteria": "N/A when: no source code (archived project, vendor-only). NOT N/A when the codebase has algorithmic, parsing, encoding, or transformation logic (math, serialization, data-structure manipulation) — those are exactly the…"
+    },
+    "edgeCases": {
+      "label": "Edge Cases",
+      "methodology": "Runs a real per-file Babel AST walk on JS/TS (catching parent-aware context like variable assignment) and spawns python3 ast subprocess for Python to surface exact line-number boundary-condition footguns, but is blind to Go and ignores k8s manifests/Helm/oper…",
+      "languageCoverage": "JS/TS AST coverage is complete (Babel parses both). Python coverage is complete (python3 subprocess with stdin-piped script). Go: zero coverage — no edge-case detection for .go files even though the…",
+      "naCriteria": "Not applicable only when the codebase contains zero runnable code (e.g. pure documentation repo, archived source). This dimension applies to any application-level code (JS/TS/Python/Go) and k8s manifests. For repos with…"
+    },
+    "contract": {
+      "label": "Contract",
+      "methodology": "Discovers endpoints via AST — JS/TS (Babel) and Python/FastAPI/Flask (stdlib-ast subprocess) — and cross-references against an OpenAPI/Swagger spec. For FastAPI (which auto-generates OpenAPI) it checks response_model coverage as the contract signal instead of demanding a static spec file.",
+      "languageCoverage": "JS/TS routes via Babel AST. Python FastAPI/Flask/Starlette routes via Python AST (method/path + response_model/status_code/body-model signals). Go handlers not yet analyzed.",
+      "naCriteria": "N/A when no API specification exists AND no REST/GraphQL/gRPC framework detected in dependencies AND endpoint count ≤ 5. Reason: Can't measure contract adherence without an API spec to compare against, and single-file s…"
+    },
+    "predictive": {
+      "label": "Predictive Risk",
+      "methodology": "Aggregates per-file complexity, N+1, dead-export, size, TODO density, and security findings via weighted linear scoring to rank files by incident likelihood.",
+      "languageCoverage": "**JS/TS (full):** Complexity, N+1, dead exports via Babel AST.  **Python/Go (partial):** Only size (LOC) and TODO/FIXME regex. No AST-based complexity, N+1, or dead-code detection—these analyzers are…",
+      "naCriteria": "**N/A when:** Project has no source code files (purely configuration), or when predictive-analysis inputs are explicitly disabled by the caller.  **Honest reason to show user:** \"N/A when codebase is empty or purely sta…"
+    },
+    "nPlusOne": {
+      "label": "N+1 Queries",
+      "methodology": "Walks Babel AST nodes for loop constructs, collects direct DB call children, and exempts parallelized patterns (Promise.all/allSettled).",
+      "languageCoverage": "JavaScript/TypeScript AST only; Python/FastAPI backends, Go services, and other polyglot components ZERO coverage. The codebase is explicitly polyglot (React/TS frontend + FastAPI/Python backend + Go…",
+      "naCriteria": "N/A when the codebase is a pure frontend (no backend/API), pure library with no HTTP handlers, or purely data-pipeline (no query patterns detected). The dkubex project IS a Kubernetes platform (React + FastAPI + Go per…"
+    },
+    "deadCode": {
+      "label": "Dead Code",
+      "methodology": "Per-file Babel AST walks collect declared and referenced names, cross-referencing to find exports and dependencies with zero external uses; Python/Go are blind spots relying only on package.json presence checks.",
+      "languageCoverage": "JS/TS AST only; Python/Go regex-only via imports (no per-file analysis); other languages: zero coverage",
+      "naCriteria": "N/A when: (1) Pure library/SDK with no clear entry point (call graph reachability would be meaningless without a consumer context); mark as N/A with reason \"Library has no fixed entry point — all exports are public API;…"
+    },
+    "load": {
+      "label": "Load",
+      "methodology": "Static AST pattern matching on middleware/imports yields a load-readiness capability score: credit for rate limiting, caching, connection pooling, health probes, request timeouts, circuit breakers, compression/LB/CDN; penalty for blocking sync I/O in request handlers (baseline 45, bounded 15–95 since static analysis can't confirm real throughput). Live throughput is measured separately by the /simulate engine.",
+      "languageCoverage": "JS/TS AST only via Babel. Python and Go patterns not yet scored.",
+      "naCriteria": "N/A when no Docker/k8s deployment files exist, codebase is a library without server entrypoint, or no web framework dependencies detected."
+    },
+    "chaos": {
+      "label": "Chaos / Resilience",
+      "methodology": "Walks Babel AST for JS/TS resilience patterns (retry, error handlers, graceful shutdown) and substring-matches try/catch; completely silent on Python backends, Go microservices, and k8s manifest-level chaos (probes, PDB, preStop hooks) that are equally critic…",
+      "languageCoverage": "JS/TS AST only. Python FastAPI backend completely unanalyzed for chaos patterns (py-edge-cases.ts covers requests-no-timeout but not retry libraries, circuit breakers, or error handlers). Go complete…",
+      "naCriteria": "N/A when the codebase is a pure frontend SPA (no backend, no infra) — chaos patterns are irrelevant without a network or process lifecycle. Also N/A when the project explicitly opts out of orchestration (no Docker, no k…"
+    },
+    "agentic": {
+      "label": "Agentic Scale",
+      "methodology": "Regex substring matching on dependency names and code tokens (rateLimit, Cache-Control, pool, retry) combined with manual sequential threshold scoring to predict agent capacity.",
+      "languageCoverage": "JS/TS only (regex on allContent, dependency parsing); does NOT check Python (FastAPI backend has no rate-limit analysis), Go (if present), Helm charts, or k8s manifests. For dkubex specifically: Fast…",
+      "naCriteria": "N/A only when: (1) no API/backend endpoints exist (e.g., static site generator, CLI tool with no server) → cannot be hit by agents. OR (2) the system is explicitly single-user/single-agent by design (e.g., local script,…"
+    },
+    "accessibility": {
+      "label": "Accessibility",
+      "methodology": "AST analysis for JSX/TSX attribute structure + regex pattern matching for HTML/Vue/Svelte + static luminance formula (no runtime contrast measurement or rendered pixel analysis).",
+      "languageCoverage": "JS/TS only (JSX/TSX AST via Babel). HTML/Vue/Svelte via regex (no proper AST parser). Python/Go/Java backends ZERO coverage — no a11y checks for server-side rendered templates, API response contracts…",
+      "naCriteria": "N/A when project has zero UI files (.html, .tsx, .jsx, .vue, .svelte) AND zero Jinja2/Django/FastAPI templates AND zero user-facing Kubernetes manifests — i.e., pure CLI tool, pure library, pure backend API with no HTML…"
+    },
+    "visualRegression": {
+      "label": "Visual Regression",
+      "methodology": "Walks JSX AST for inline style attributes and regex-scans their string values for hardcoded pixel units and hex color literals; does not analyze CSS files or test visual-regression setup.",
+      "languageCoverage": "JS/TS only (JSX/TSX via Babel). Sees CSS/SCSS/LESS file COUNTS but does NOT parse them. No Vue/Svelte/Python/Go style analysis.",
+      "naCriteria": "N/A when the repo has zero UI files (.jsx, .tsx, .html, .css, .scss, .less) AND no Dockerfile/k8s manifests that render visual content. Exact honest reason shown: 'No frontend components or UI infrastructure detected —…"
+    },
+    "vision": {
+      "label": "Vision",
+      "methodology": "Vision tests observability/analytics/flags via dependency whitelists and API versioning via regex substring; scope via README keyword matching with word boundaries; stack via Node.js package ecosystem classification — no AST analysis, no dynamic runtime measu…",
+      "languageCoverage": "JS/TS only. Dependency detection works for any polyglot codebase if package.json exists. Scope/feature matching uses generic keyword-based word-boundary regex — works on README in any format. Stack a…",
+      "naCriteria": "N/A when: (1) No README or goal document (vision-doc) exists in the repo at all — Vision assumes a documented product strategy exists to compare code against. Return honest reason: \"N/A: No README/goal document found —…"
+    },
+    "scope": {
+      "label": "Scope",
+      "methodology": "Scope tests whether documented product capabilities (from README) are actually implemented in source code by matching feature keywords via plaintext regex, not by AST taint-tracing or endpoint enumeration.",
+      "languageCoverage": "JS/TS only via string content matching; Python/Go/other languages ignored (the hasAnyKeyword() function operates on plaintext string content, not parsed AST, so any mention of \"api\" or \"auth\" in back…",
+      "naCriteria": "N/A when: 'no README.md or documented feature list exists' — Scope cannot measure documentation/code alignment without explicit product goals in machine-readable form. An undocumented codebase cannot fail this dimension…"
+    },
+    "stack": {
+      "label": "Stack",
+      "methodology": "Flat string set matching with JSON parse and file checks",
+      "languageCoverage": "JS/TS only. No Python tools, no Go, no container config.",
+      "naCriteria": "N/A when no manifests; for dkubex APPLICABLE but incomplete"
+    },
+    "dora": {
+      "label": "DORA",
+      "methodology": "Inspects CI workflow YAML filenames and job/step naming patterns, plus presence/absence of observability and test packages in package.json — no execution metrics, no cross-language analysis, no k8s-native patterns.",
+      "languageCoverage": "JS/TS CI configs only; package.json devDependencies only. Python backend (FastAPI, pytest, observability) completely invisible. Go tooling undetected. Only filesystem and package.json examined — no A…",
+      "naCriteria": "N/A when: (1) no CI workflows exist and no .github/ directory — cannot measure deployment capability; (2) no package.json in root — can still measure file/k8s signals but dependency presence checks fail silently. Honest…"
+    }
+  }
+}

@@ -133,6 +133,9 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 <script>
 var reportData = null;
+var lastTier2 = null;       // last Tier-2 generate-and-run result (for the report download)
+var DIM_META = { meta: {} }; // per-dimension method/coverage, loaded from /dimension-meta.json
+fetch('/dimension-meta.json').then(function(r){ return r.json(); }).then(function(m){ if (m && m.meta) DIM_META = m; }).catch(function(){});
 
 async function runAnalysis() {
   var path = document.getElementById('projectPath').value.trim();
@@ -313,29 +316,30 @@ function buildDimRows(d) {
   var secScore = Math.max(0, 100 - (sec.critical||0)*40 - (sec.high||0)*20);
   function fnum(x){ return typeof x === 'number' ? x : null; }
   function flist(v){ return (v && Array.isArray(v.findings)) ? v.findings : []; }
+  // [key, label, score, findings]
   return [
-    ['Security', secScore, sec.items||[]],
-    ['Kubernetes', (d.kubernetes&&d.kubernetes.applicable===false)?null:fnum(d.kubernetes&&d.kubernetes.score), flist(d.kubernetes)],
-    ['OWASP', fnum(d.owasp&&d.owasp.coverage), flist(d.owasp)],
-    ['Supply Chain', fnum(d.supplyChain&&d.supplyChain.score), flist(d.supplyChain)],
-    ['License', fnum(d.license&&d.license.score), flist(d.license)],
-    ['Unit Tests', fnum(d.unit&&d.unit.coverage), []],
-    ['Mutation', fnum(d.mutation&&d.mutation.score), flist(d.mutation)],
-    ['Property-Based', fnum(d.propertyBased&&d.propertyBased.score), flist(d.propertyBased)],
-    ['Edge Cases', fnum(d.edgeCases&&d.edgeCases.score), flist(d.edgeCases)],
-    ['Contract', fnum(d.contract&&d.contract.score), flist(d.contract)],
-    ['Predictive Risk', fnum(d.predictive&&d.predictive.score), flist(d.predictive)],
-    ['N+1 Queries', fnum(d.nPlusOne&&d.nPlusOne.score), flist(d.nPlusOne)],
-    ['Dead Code', fnum(d.deadCode&&d.deadCode.score), flist(d.deadCode)],
-    ['Load', fnum(d.load&&d.load.score), []],
-    ['Chaos', fnum(d.chaos&&d.chaos.score), flist(d.chaos)],
-    ['Agentic Scale', fnum(d.agentic&&d.agentic.score), flist(d.agentic)],
-    ['Accessibility', (d.accessibility&&d.accessibility.applicable===false)?null:fnum(d.accessibility&&d.accessibility.score), []],
-    ['Visual Regression', fnum(d.visualRegression&&d.visualRegression.score), flist(d.visualRegression)],
-    ['Vision', fnum(d.vision&&d.vision.score), flist(d.vision)],
-    ['Scope', (d.scope&&d.scope.coverage!=null)?Math.min(100,d.scope.coverage):null, flist(d.scope)],
-    ['Stack', fnum(d.stack&&d.stack.score), flist(d.stack)],
-    ['DORA', fnum(d.dora&&d.dora.score), flist(d.dora)],
+    ['security','Security', secScore, sec.items||[]],
+    ['kubernetes','Kubernetes', (d.kubernetes&&d.kubernetes.applicable===false)?null:fnum(d.kubernetes&&d.kubernetes.score), flist(d.kubernetes)],
+    ['owasp','OWASP', fnum(d.owasp&&d.owasp.coverage), flist(d.owasp)],
+    ['supplyChain','Supply Chain', fnum(d.supplyChain&&d.supplyChain.score), flist(d.supplyChain)],
+    ['license','License', fnum(d.license&&d.license.score), flist(d.license)],
+    ['unit','Unit Tests', fnum(d.unit&&d.unit.coverage), []],
+    ['mutation','Mutation', fnum(d.mutation&&d.mutation.score), flist(d.mutation)],
+    ['propertyBased','Property-Based', fnum(d.propertyBased&&d.propertyBased.score), flist(d.propertyBased)],
+    ['edgeCases','Edge Cases', fnum(d.edgeCases&&d.edgeCases.score), flist(d.edgeCases)],
+    ['contract','Contract', fnum(d.contract&&d.contract.score), flist(d.contract)],
+    ['predictive','Predictive Risk', fnum(d.predictive&&d.predictive.score), flist(d.predictive)],
+    ['nPlusOne','N+1 Queries', fnum(d.nPlusOne&&d.nPlusOne.score), flist(d.nPlusOne)],
+    ['deadCode','Dead Code', fnum(d.deadCode&&d.deadCode.score), flist(d.deadCode)],
+    ['load','Load', fnum(d.load&&d.load.score), []],
+    ['chaos','Chaos', fnum(d.chaos&&d.chaos.score), flist(d.chaos)],
+    ['agentic','Agentic Scale', fnum(d.agentic&&d.agentic.score), flist(d.agentic)],
+    ['accessibility','Accessibility', (d.accessibility&&d.accessibility.applicable===false)?null:fnum(d.accessibility&&d.accessibility.score), []],
+    ['visualRegression','Visual Regression', fnum(d.visualRegression&&d.visualRegression.score), flist(d.visualRegression)],
+    ['vision','Vision', fnum(d.vision&&d.vision.score), flist(d.vision)],
+    ['scope','Scope', (d.scope&&d.scope.coverage!=null)?Math.min(100,d.scope.coverage):null, flist(d.scope)],
+    ['stack','Stack', fnum(d.stack&&d.stack.score), flist(d.stack)],
+    ['dora','DORA', fnum(d.dora&&d.dora.score), flist(d.dora)],
   ];
 }
 
@@ -346,8 +350,9 @@ function downloadReport(fmt) {
   if (fmt === 'json') { triggerDownload('testforge-' + name + '.json', JSON.stringify(d, null, 2), 'application/json'); return; }
   var cb = d.codebase || {};
   var rows = buildDimRows(d);
-  var nums = rows.map(function(r){return r[1];}).filter(function(s){return typeof s==='number';});
+  var nums = rows.map(function(r){return r[2];}).filter(function(s){return typeof s==='number';});
   var overall = nums.length ? Math.round(nums.reduce(function(a,b){return a+b;},0)/nums.length) : 0;
+  var meta = (DIM_META && DIM_META.meta) || {};
   var L = [];
   L.push('# TestForge Report — ' + (d.repo || 'project'));
   L.push('');
@@ -355,25 +360,81 @@ function downloadReport(fmt) {
   L.push('**Stack:** ' + ((cb.techStack||[]).join(', ') || 'n/a'));
   L.push('**Analyzed:** ' + (d.analyzedAt || new Date().toISOString()));
   L.push('');
+
+  // Dimension scores table
   L.push('## Dimension scores');
   L.push('');
   L.push('| Dimension | Score | Findings |');
   L.push('|---|---|---|');
-  rows.forEach(function(r){ L.push('| ' + r[0] + ' | ' + (r[1]==null?'N/A':r[1]+'/100') + ' | ' + r[2].length + ' |'); });
+  rows.forEach(function(r){ L.push('| ' + r[1] + ' | ' + (r[2]==null?'N/A':r[2]+'/100') + ' | ' + r[3].length + ' |'); });
   L.push('');
+
+  // Findings by dimension — with how-it's-tested method + coverage per dimension
   L.push('## Findings by dimension');
   rows.forEach(function(r){
-    if (!r[2].length) return;
+    var key=r[0], label=r[1], score=r[2], findings=r[3], m=meta[key];
     L.push('');
-    L.push('### ' + r[0] + ' (' + (r[1]==null?'N/A':r[1]+'/100') + ')');
-    r[2].forEach(function(f){
-      var loc = f.filePath ? (' — `' + f.filePath + (f.lineNumber?(':'+f.lineNumber):'') + '`') : '';
-      L.push('- **[' + (f.severity||'low').toUpperCase() + ']** ' + (f.title||'') + loc);
-      if (f.description) L.push('  - ' + f.description);
-      if (f.fixSuggestion || f.suggestion) L.push('  - _Fix:_ ' + (f.fixSuggestion || f.suggestion));
-    });
+    L.push('### ' + label + ' — ' + (score==null?'N/A':score+'/100'));
+    if (m) {
+      if (m.methodology) L.push('*Method:* ' + m.methodology);
+      if (m.languageCoverage) L.push('*Coverage:* ' + m.languageCoverage);
+      if (score==null && m.naCriteria) L.push('*Why N/A:* ' + m.naCriteria);
+    }
+    if (findings.length) {
+      L.push('');
+      findings.forEach(function(f){
+        var loc = f.filePath ? (' — `' + f.filePath + (f.lineNumber?(':'+f.lineNumber):'') + '`') : '';
+        L.push('- **[' + (f.severity||'low').toUpperCase() + ']** ' + (f.title||'') + loc);
+        if (f.description) L.push('  - ' + f.description);
+        if (f.fixSuggestion || f.suggestion) L.push('  - _Fix:_ ' + (f.fixSuggestion || f.suggestion));
+      });
+    } else if (score!=null) {
+      L.push('');
+      L.push('_No issues found in this dimension._');
+    }
   });
   L.push('');
+
+  // Test coverage
+  var u = d.unit || {};
+  L.push('## Test coverage');
+  L.push('');
+  L.push('| Metric | Value |');
+  L.push('|---|---|');
+  L.push('| Estimated function coverage | ' + (u.coverage!=null?u.coverage+'%':'n/a') + ' |');
+  L.push('| Test files | ' + (u.testFiles!=null?u.testFiles:'n/a') + ' |');
+  L.push('| Test cases | ' + (u.totalTests!=null?u.totalTests:'n/a') + ' |');
+  L.push('| Frameworks | ' + (((u.frameworks||[]).join(', '))||'none') + ' |');
+  L.push('');
+
+  // Security findings (summary of the Security dimension)
+  var sec = d.security || {};
+  L.push('## Security findings');
+  L.push('');
+  L.push((sec.findings!=null?sec.findings:(sec.items||[]).length) + ' total · ' + (sec.critical||0) + ' critical · ' + (sec.high||0) + ' high · ' + (sec.medium||0) + ' medium · ' + (sec.low||0) + ' low');
+  (sec.items||[]).forEach(function(f){
+    var loc = f.filePath ? (' — `' + f.filePath + (f.lineNumber?(':'+f.lineNumber):'') + '`') : '';
+    L.push('- **[' + (f.severity||'low').toUpperCase() + ']** ' + (f.title||'') + loc);
+    if (f.fixSuggestion) L.push('  - _Fix:_ ' + f.fixSuggestion);
+  });
+  L.push('');
+
+  // Tier-2 generated tests (if a Generate & Run was done this session)
+  if (lastTier2 && lastTier2.results) {
+    var t = lastTier2, run = t.run || {};
+    L.push('## Tier 2 — Generated tests');
+    L.push('');
+    L.push('Model: ' + ((t.provider&&(t.provider.byok?'your key':t.provider.primary))||'n/a') +
+      (run.dockerUnavailable ? ' · sandbox: not run (' + run.dockerUnavailable.reason + ')'
+        : (run.numTotalTests!=null ? ' · ' + run.numPassedTests + '/' + run.numTotalTests + ' tests passed' : '')));
+    (t.results||[]).forEach(function(r, i){
+      var fr = (run.files||[])[i];
+      var status = fr ? (fr.status==='skipped' ? 'generated (not run)' : fr.status + ' ' + fr.numPassed + '/' + (fr.numPassed+fr.numFailed)) : 'generated';
+      L.push('- `' + (r.file?r.file.filename:'(no file)') + '` — ' + status + (r.finding&&r.finding.title?(' · for: '+r.finding.title):''));
+    });
+    L.push('');
+  }
+
   L.push('---');
   L.push('Generated by TestForge MCP (self-hosted) · testforge.run');
   triggerDownload('testforge-' + name + '.md', L.join('\n'), 'text/markdown');
@@ -422,6 +483,7 @@ async function runTier2() {
     });
     var d = await res.json();
     if (d.error) throw new Error(d.error);
+    lastTier2 = d; // remember so the downloaded report includes the Tier-2 run
 
     var h = '<div style="padding:16px;background:#12101A;border-radius:8px">';
     h += '<div style="font-size:15px;font-weight:600;color:#a99bff;margin-bottom:6px">🤖 Tier 2 — Generate &amp; Run</div>';
