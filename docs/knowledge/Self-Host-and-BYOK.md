@@ -15,6 +15,25 @@ npx -y @whitenoisenpm/testforge-mcp --help        # env-var reference
   config without it relaunches a stale version forever. Was a real "stuck on
   0.25.2" bug; see [[Evolution]].
 
+## Docker (build from source)
+For servers / keeping Node off the host. Build the image, run with an env file;
+the three mounts enable Tier-2 + local-code analysis (validated workflow):
+```
+git clone https://github.com/t4tarzan/testforge.git && cd testforge
+docker build -t testforge-mcp:selfhost mcp-server/
+printf 'OPENROUTER_API_KEY=sk-or-v1-...\n' > .env
+docker run -d --name testforge -p 33221:3001 \
+  --env-file .env \
+  -v /var/run/docker.sock:/var/run/docker.sock \   # Tier-2 sandbox via host docker
+  -v /root/.testforge/runs:/root/.testforge/runs \  # SAME path in+out (bind-mount must resolve on host daemon)
+  -v /root/your-project:/work/your-project:ro \     # analyze via file:///work/your-project
+  testforge-mcp:selfhost
+```
+Without the socket mount, Tier-1 works and Tier-2 tests are generated but not
+run. The runs dir MUST be mounted at the same path inside and outside (the
+sandbox's `-v hostMountDir:/runner/tests` is resolved by the *host* daemon). See
+[[Tier2-Sandbox]].
+
 ## Config — three ways
 Config lives in `~/.testforge/.env` (the server loads it on startup; real env /
 Docker `-e` always overrides). It is set by:

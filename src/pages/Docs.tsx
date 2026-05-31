@@ -20,7 +20,7 @@ const navGroups = [
   },
   {
     header: 'INSTALLATION',
-    items: ['Web Platform', 'CLI Installation', 'MCP IDE Setup', 'MCP Server', 'Docker'],
+    items: ['Web Platform', 'Install (npx & Docker)', 'MCP IDE Setup', 'MCP Server', 'Docker'],
   },
   {
     header: 'CONFIGURATION',
@@ -59,6 +59,7 @@ const pageIdMap: Record<string, string> = {
   'Your First Test': 'your-first-test',
   'Web Platform': 'web-platform',
   'CLI Installation': 'cli-installation',
+  'Install (npx & Docker)': 'cli-installation',
   'MCP Server': 'mcp-server',
   Docker: 'docker',
   'Repository Setup': 'repository-setup',
@@ -692,53 +693,57 @@ function CliInstallationPage() {
   return (
     <div>
       <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">
-        CLI Installation
+        Install (npx &amp; Docker)
       </h1>
-      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
-        Install TestForge globally via npm:
+      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
+        TestForge ships as one self-contained package: the <strong>MCP server</strong>.
+        It serves a local dashboard, exposes a REST API, and works as an MCP server
+        for AI IDEs — all from a single command. There&rsquo;s no separate login or
+        account needed to run it; everything happens on your machine.
       </p>
-      <DocCodeBlock code="npm install -g @testforge/cli" language="bash" />
 
-      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
-        Verify installation:
-      </p>
-      <DocCodeBlock
-        code={"npx -y @whitenoisenpm/testforge-mcp@latest --help   # commands + full env-var reference"}
-        language="bash"
-      />
-
-      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
-        Authentication
-      </h2>
-      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
-        Log in to link your CLI to your TestForge account:
-      </p>
-      <DocCodeBlock
-        code={"testforge login\n# Opens browser for authentication"}
-        language="bash"
-      />
-
-      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
-        Basic Commands
-      </h2>
-      <DocTable
-        headers={['Command', 'Description']}
-        rows={[
-          [<Code>testforge run {'<repo-url>'}</Code>, 'Run full test suite on a repository'],
-          [<Code>testforge status {'<run-id>'}</Code>, 'Check status of a running test'],
-          [<Code>testforge report {'<run-id>'}</Code>, 'View test report'],
-          [<Code>testforge repos</Code>, 'List connected repositories'],
-          [<Code>testforge config</Code>, 'Open configuration editor'],
-        ]}
-      />
-
-      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
-        Running Your First CLI Test
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-8 mb-4">
+        Option A — npx (fastest)
       </h2>
       <DocCodeBlock
-        code={`# Run tests on a public repository\ntestforge run https://github.com/testforge-demo/express-ecommerce-api\n\n# Run with specific options\ntestforge run https://github.com/user/repo \\\\\n  --branch develop \\\\\n  --depth deep \\\\\n  --tests security,performance \\\\\n  --output json`}
+        code={`# Start the server → http://localhost:33221\nnpx -y @whitenoisenpm/testforge-mcp@latest\n\n# Configure the AI provider for Tier-2 (OpenRouter or local Ollama/LM Studio)\nnpx -y @whitenoisenpm/testforge-mcp@latest setup\n\n# Full env-var reference\nnpx -y @whitenoisenpm/testforge-mcp@latest --help`}
         language="bash"
       />
+      <p className="font-body text-[14px] text-[#666] leading-[1.7] mb-4">
+        Always use <Code>@latest</Code> (and pin it in IDE MCP configs) — npx caches,
+        so a command without it can relaunch a stale version.
+      </p>
+      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
+        Verify: <Code>curl localhost:33221/health</Code> →{' '}
+        <Code>{'{"status":"ok","version":"…"}'}</Code>.
+      </p>
+
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
+        Option B — Docker (build from source)
+      </h2>
+      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
+        Run TestForge as a container — handy for servers, or to keep Node off the host.
+        Build the image from the repo, then run it with an env file. To enable{' '}
+        <strong>Tier-2</strong> (which runs generated tests in a sandbox) the container
+        needs the host Docker socket, a persistent runs directory, and your code
+        mounted read-only:
+      </p>
+      <DocCodeBlock
+        code={`git clone https://github.com/t4tarzan/testforge.git\ncd testforge\n\n# 1. Build the image from source\ndocker build -t testforge-mcp:selfhost mcp-server/\n\n# 2. Put your AI key in an env file (Tier-2 only; Tier-1 needs nothing)\nprintf 'OPENROUTER_API_KEY=sk-or-v1-...\\n' > .env\n# (or a local model:  TESTFORGE_LLM_BASE_URL=http://host.docker.internal:11434/v1)\n\n# 3. Run it\ndocker run -d --name testforge -p 33221:3001 \\\\\n  --env-file .env \\\\\n  -v /var/run/docker.sock:/var/run/docker.sock \\\\\n  -v /root/.testforge/runs:/root/.testforge/runs \\\\\n  -v /root/your-project:/work/your-project:ro \\\\\n  testforge-mcp:selfhost\n\n# Dashboard + MCP server → http://localhost:33221\n# Analyze the mounted code with repoUrl "file:///work/your-project"`}
+        language="bash"
+      />
+      <InfoCallout title="Why those three mounts">
+        <ul className="list-disc list-inside space-y-1 mt-1">
+          <li><Code>/var/run/docker.sock</Code> — lets the container start the Tier-2 sandbox via the host&rsquo;s Docker (it pulls <Code>ghcr.io/t4tarzan/testforge-runner</Code>). Without it, Tier-1 still works; Tier-2 tests are generated but not run.</li>
+          <li><Code>/root/.testforge/runs</Code> — mounted at the <strong>same path</strong> inside and out, so the sandbox&rsquo;s bind-mount resolves on the host daemon. Also persists run history.</li>
+          <li><Code>:/work/your-project:ro</Code> — your code, read-only. Analyze it with <Code>file:///work/your-project</Code> — nothing leaves the box.</li>
+        </ul>
+      </InfoCallout>
+      <p className="font-body text-[14px] text-[#666] leading-[1.7]">
+        See <a href="#/docs/mcp-server" className="text-[#574a7d] hover:underline">MCP Server</a> for
+        the settings panel + all env vars, and the{' '}
+        <a href="https://github.com/t4tarzan/testforge/blob/main/docs/knowledge/Self-Host-and-BYOK.md" className="text-[#574a7d] hover:underline">Self-Host &amp; BYOK</a> note.
+      </p>
     </div>
   );
 }
@@ -1395,85 +1400,65 @@ function CliReferencePage() {
       <h1 className="font-heading font-semibold text-[36px] text-[#12101A] mb-6">
         CLI Reference
       </h1>
+      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-6">
+        TestForge is an <strong>MCP server</strong>, not a multi-command CLI — you
+        run it and drive it from the dashboard, an AI IDE, or its REST API. The
+        command line has exactly three forms:
+      </p>
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
-        Global Options
-      </h2>
-      <DocCodeBlock
-        code={`--version, -v     Show version number\n--help, -h        Show help\n--config          Path to config file\n--verbose         Enable verbose logging`}
-        language="text"
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-8 mb-4">Commands</h2>
+      <DocTable
+        headers={['Command', 'What it does']}
+        rows={[
+          [<Code>npx -y @whitenoisenpm/testforge-mcp@latest</Code>, 'Start the server (dashboard + REST API + MCP) on localhost:33221.'],
+          [<Code>… testforge-mcp@latest setup</Code>, 'Interactive config wizard — AI provider (OpenRouter / local Ollama·LM Studio), port, Tier-2 run secret. Writes ~/.testforge/.env.'],
+          [<Code>… testforge-mcp@latest --help</Code>, 'Print every environment variable and exit.'],
+        ]}
       />
 
-      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">
-        Commands
-      </h2>
-
-      <h3 className="font-heading font-semibold text-[20px] text-[#12101A] mt-8 mb-3">
-        testforge run {'<repo-url>'}
-      </h3>
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">Environment variables</h2>
       <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
-        Run a test suite on a repository.
+        Set directly, or via the <Code>setup</Code> wizard / the dashboard&rsquo;s ⚙ Settings
+        (both write <Code>~/.testforge/.env</Code>; real env always overrides it).
       </p>
-      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-2">
-        Options:
-      </p>
-      <DocCodeBlock
-        code={`--branch, -b        Git branch to test (default: main)\n--depth             Test depth: shallow or deep (default: shallow)\n--tests             Comma-separated test dimensions to run\n--output, -o        Output format: json, markdown, pdf (default: json)\n--timeout           Timeout in seconds (default: 300)\n--fail-on-critical  Exit with error if critical findings`}
-        language="text"
+      <DocTable
+        headers={['Variable', 'Default', 'Description']}
+        rows={[
+          [<Code>OPENROUTER_API_KEY</Code>, '—', 'Cloud AI key (Tier-2 only).'],
+          [<Code>TESTFORGE_LLM_BASE_URL</Code>, 'openrouter.ai', 'OpenAI-compatible endpoint for a local model server (Ollama/LM Studio/vLLM). In Docker use host.docker.internal.'],
+          [<Code>TESTFORGE_LLM_API_KEY</Code>, '—', 'Key for the above (blank for most local servers).'],
+          [<Code>TESTFORGE_PRIMARY_MODEL</Code>, 'deepseek-v4-flash', 'Generation model.'],
+          [<Code>TESTFORGE_FALLBACK_MODEL</Code>, 'kimi-k2.6', 'Used if the primary fails.'],
+          [<Code>TESTFORGE_MCP_PORT</Code>, '33221', 'Port to bind.'],
+          [<Code>TESTFORGE_RUN_SECRET</Code>, '—', 'Bearer that gates Tier-2 (only needed if you expose the port).'],
+          [<Code>TESTFORGE_CLONE_TIMEOUT_MS</Code>, '120000', 'Git-clone timeout — raise for huge monorepos.'],
+          [<Code>TESTFORGE_MAX_FILES</Code>, '8000', 'File cap — raise for large monorepos.'],
+          [<Code>TESTFORGE_MAX_TOTAL_BYTES</Code>, '50000000', 'Total-bytes cap.'],
+        ]}
       />
-      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">Example:</p>
+
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">REST endpoints (running standalone)</h2>
+      <DocTable
+        headers={['Method · Path', 'Purpose']}
+        rows={[
+          [<Code>POST /clone-and-analyze</Code>, 'Tier-1: clone (incl. file://) + run all 22 dimensions → rich report. Body: {repoUrl, branch?}.'],
+          [<Code>POST /generate-and-run</Code>, 'Tier-2: generate + sandbox-run tests for findings. Honors X-LLM-Key (BYOK); gated by TESTFORGE_RUN_SECRET if set.'],
+          [<Code>POST /simulate</Code>, 'Async load/agent/chaos sim → {jobId}; poll GET /simulate/:jobId.'],
+          [<Code>GET /health</Code>, '{status, version}.'],
+          [<Code>GET /status</Code>, 'Docker + AI-provider readiness (drives the dashboard banner).'],
+          [<Code>GET·POST /config</Code>, 'Local-only settings API (loopback; never on a managed deployment).'],
+        ]}
+      />
+
+      <h2 className="font-heading font-semibold text-[26px] text-[#12101A] mt-10 mb-4">Docker (from source)</h2>
+      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
+        Build once, run with an env file. Mount the Docker socket + a same-path runs
+        dir to enable Tier-2, and your code read-only to analyze it via{' '}
+        <Code>file://</Code> — see <a href="#/docs/cli-installation" className="text-[#574a7d] hover:underline">Install (npx &amp; Docker)</a>.
+      </p>
       <DocCodeBlock
-        code={`testforge run https://github.com/user/repo \\\\\n  --branch develop \\\\\n  --depth deep \\\\\n  --tests security,unit,integration \\\\\n  --output markdown`}
+        code={`docker build -t testforge-mcp:selfhost mcp-server/\ndocker run -d --name testforge -p 33221:3001 \\\\\n  --env-file .env \\\\\n  -v /var/run/docker.sock:/var/run/docker.sock \\\\\n  -v /root/.testforge/runs:/root/.testforge/runs \\\\\n  -v /root/your-project:/work/your-project:ro \\\\\n  testforge-mcp:selfhost`}
         language="bash"
-      />
-
-      <h3 className="font-heading font-semibold text-[20px] text-[#12101A] mt-8 mb-3">
-        testforge status {'<run-id>'}
-      </h3>
-      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
-        Check the status of a running or completed test.
-      </p>
-
-      <h3 className="font-heading font-semibold text-[20px] text-[#12101A] mt-8 mb-3">
-        testforge report {'<run-id>'}
-      </h3>
-      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
-        View or download a test report.
-      </p>
-      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-2">
-        Options:
-      </p>
-      <DocCodeBlock
-        code={`--format     Output format: json, markdown, pdf\n--output     File path to save report`}
-        language="text"
-      />
-
-      <h3 className="font-heading font-semibold text-[20px] text-[#12101A] mt-8 mb-3">
-        testforge repos
-      </h3>
-      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
-        List all connected repositories.
-      </p>
-      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-2">
-        Options:
-      </p>
-      <DocCodeBlock
-        code={`--add {'<url>'}     Connect a new repository\n--remove {'<id>'}   Disconnect a repository`}
-        language="text"
-      />
-
-      <h3 className="font-heading font-semibold text-[20px] text-[#12101A] mt-8 mb-3">
-        testforge config
-      </h3>
-      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-4">
-        Open the configuration editor.
-      </p>
-      <p className="font-body text-[16px] text-[#333333] leading-[1.7] mb-2">
-        Options:
-      </p>
-      <DocCodeBlock
-        code={`--get {'<key>'}     Get a config value\n--set {'<key>'} {'<value>'}  Set a config value\n--list          List all config values`}
-        language="text"
       />
     </div>
   );
