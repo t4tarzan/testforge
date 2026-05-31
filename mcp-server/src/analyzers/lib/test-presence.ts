@@ -15,15 +15,22 @@
  * (advanced-analyzer.ts) — patterns kept identical so the three analyzers agree
  * on what counts as a test file.
  */
+/**
+ * True if a single path is a test file. Use this instead of the naive
+ * `path.includes('test')` substring check, which wrongly skips real source
+ * files like `generate-tests.ts` or `test-runner.ts` (that bug hid a `zod`
+ * import from the dead-code analyzer, flagging zod as unused).
+ */
+export function isTestFile(filePath: string): boolean {
+  return (
+    /\.(test|spec)\.[jt]sx?$/.test(filePath)
+    || filePath.includes('/__tests__/')
+    || /(?:^|\/)test_[^/]+\.py$/.test(filePath)
+    || /_test\.py$/.test(filePath)
+    || /_test\.go$/.test(filePath)
+  );
+}
+
 export function hasTestFiles(fileContents: Record<string, string>): boolean {
-  return Object.keys(fileContents).some((fp) => {
-    if (fp.includes('node_modules')) return false;
-    return (
-      /\.(test|spec)\.[jt]sx?$/.test(fp)
-      || fp.includes('/__tests__/')
-      || /(?:^|\/)test_[^/]+\.py$/.test(fp)
-      || /_test\.py$/.test(fp)
-      || /_test\.go$/.test(fp)
-    );
-  });
+  return Object.keys(fileContents).some((fp) => !fp.includes('node_modules') && isTestFile(fp));
 }

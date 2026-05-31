@@ -1032,6 +1032,32 @@ describe('advanced-analyzer — Phase 5: AST-aware dead-code detection', () => {
     // count `lodash` as used.
     expect(report.unusedDeps).not.toContain('lodash');
   });
+
+  // Regression: false unused-dependency flags surfaced by running TestForge on
+  // itself. Dynamic `import()` and source files whose path merely contains the
+  // substring "test" were both invisible to the dep-usage check.
+  it('counts dynamic import() as a usage (serverless lazy-load pattern)', () => {
+    const fc: Record<string, string> = {
+      'package.json': '{"name":"x","dependencies":{"stripe":"^22.0.0","unused-pkg":"^1.0.0"}}',
+      'api/pay.js': "export default async () => { const Stripe = (await import('stripe')).default; return new Stripe('k'); };",
+    };
+    const report = runDeadCodeAnalysis(fc, ['stripe', 'unused-pkg']);
+    expect(report.unusedDeps).not.toContain('stripe');   // dynamically imported → used
+    expect(report.unusedDeps).toContain('unused-pkg');    // truly unused → still flagged
+  });
+
+  it('parses source files whose path contains "test" (not just real test files)', () => {
+    const fc: Record<string, string> = {
+      // path contains the substring "test" but is NOT a test file — its import must count
+      'src/generate-tests.ts': "import { z } from 'zod'; export const s = z.string();",
+      // a real test file IS skipped, so a dep used only there stays flagged
+      'src/only.test.ts': "import x from 'test-only-dep'; void x;",
+      'package.json': '{"name":"x","dependencies":{"zod":"^4.0.0","test-only-dep":"^1.0.0"}}',
+    };
+    const report = runDeadCodeAnalysis(fc, ['zod', 'test-only-dep']);
+    expect(report.unusedDeps).not.toContain('zod');        // generate-tests.ts is real source
+    expect(report.unusedDeps).toContain('test-only-dep');  // only used in a real .test.ts
+  });
 });
 
 describe('unit-analyzer — Phase 5 pass 2: AST-aware test quality', () => {

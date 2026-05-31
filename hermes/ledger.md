@@ -32,3 +32,7 @@ the history stays auditable.
 
 <!-- 2026-05-31 · shipped #1 -->
 - 2026-05-31 | shipped | Fix "no testing framework" false negative on multi-package repos | behavior | added lib/test-presence.ts (hasTestFiles); wired into stack (strategic-analyzer.ts) + dora (lib/dora-signals.ts). Self-grade: stack 79→99, dora 25→55, overall 70→75, weakness cleared. +3 regression tests (326→329 pass), lint 0 errors, build clean.
+
+<!-- 2026-05-31 · shipped #2 -->
+- 2026-05-31 | shipped | Fix dead-code unused-dependency false positives | behavior | two root causes: (1) dynamic import('x') not detected by the AST walker; (2) parse filter skipped any path containing substring "test" (e.g. generate-tests.ts). Added isTestFile() to lib/test-presence.ts; dead-code.ts now detects import(); advanced-analyzer.ts uses isTestFile. Self-grade: deadCode 40→48, unusedDeps 9→4 (cleared stripe/@neondatabase/serverless/@upstash/* via dynamic-import, zod via test-filter); remaining 4 are genuinely unused or the react-router/react-router-dom companion case (deferred). +2 regression tests (329→331), lint 0 errors, build clean.
+- 2026-05-31 | proposed | dead-code: companion-package awareness (react-router vs react-router-dom) | behavior | react-router declared + react-router-dom imported; matcher can't bridge sibling packages. Lower confidence — react-router may be legitimately removable. Needs a curated companion map or dep-graph awareness.

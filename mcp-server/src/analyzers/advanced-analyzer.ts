@@ -4,6 +4,7 @@
 import { parseFile, isParseable, isGeneratedOrVendored } from './lib/parse.js';
 import { findNPlusOneHits } from './lib/n-plus-one.js';
 import { findDeadCode } from './lib/dead-code.js';
+import { isTestFile } from './lib/test-presence.js';
 import { extractOpenApi, canonicalPath } from './lib/openapi-parse.js';
 import { discoverEndpoints, endpointSet, type DiscoveredEndpoint } from './lib/endpoint-discovery.js';
 import { findPythonEndpoints, type PyEndpoint } from './lib/py-endpoints.js';
@@ -1450,7 +1451,10 @@ export function runDeadCodeAnalysis(fileContents: Record<string, string>, depend
   // Parse every parseable file once. Skip oversize / unparseable.
   const asts = new Map<string, t.File>();
   for (const [filePath, content] of Object.entries(fileContents)) {
-    if (filePath.includes('node_modules') || filePath.includes('test')) continue;
+    // Skip real test files — NOT every path containing the substring "test"
+    // (that wrongly skipped source like generate-tests.ts, hiding its imports
+    // and producing unused-dependency false positives). See test-presence.ts.
+    if (filePath.includes('node_modules') || isTestFile(filePath)) continue;
     // Generated/vendored files export a lot that nothing imports → they'd
     // dominate "dead exports" with noise you'd never hand-remove.
     if (isGeneratedOrVendored(filePath)) continue;

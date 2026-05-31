@@ -135,8 +135,12 @@ function collectDeclaredAndReferenced(
         }
       }
     }
-    // ── CJS: const x = require('foo')
-    else if (t.isCallExpression(node) && t.isIdentifier(node.callee, { name: 'require' })
+    // ── CJS require('foo') AND dynamic import('foo'). The dynamic form
+    //    (`await import('stripe')`) is a CallExpression whose callee is an
+    //    `Import` node — common in serverless handlers that lazy-load deps.
+    //    Missing it flagged every dynamically-imported dep as "unused".
+    else if (t.isCallExpression(node)
+             && (t.isIdentifier(node.callee, { name: 'require' }) || t.isImport(node.callee))
              && node.arguments.length >= 1 && t.isStringLiteral(node.arguments[0])) {
       importedModules.add(node.arguments[0].value);
     }
