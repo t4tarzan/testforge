@@ -6,10 +6,10 @@
 > (`src/data/changelog.ts`) → agent memory (deploy/ops)**.
 
 ## Current state
-- **`main` = 0.36.5** (merged 2026-05-31, PR #47). **npm
-  `@whitenoisenpm/testforge-mcp` + live managed MCP `mcp.testforge.run` still =
-  0.36.4** — 0.36.5 is **not yet published / redeployed** (manual step below).
-  Website auto-deploys from `main` (Vercel), so the 0.36.5 changelog is live.
+- **`main` = 0.36.5** (PR #47) · **npm `@whitenoisenpm/testforge-mcp` = 0.36.5**
+  (published 2026-05-31, tag `latest`). **Live managed MCP `mcp.testforge.run`
+  still = 0.36.4** — redeploy pending (step below). Website auto-deploys from
+  `main` (Vercel), so the 0.36.5 changelog is live.
 - Three planes, one analyzer core: web (Vercel) · managed MCP (a VPS) · self-host
   MCP (`npx`). See [[Architecture]].
 - 331 MCP tests pass; CI gates on lint (0 errors) + tests + build. **Run
@@ -18,8 +18,8 @@
 - **Deps/security:** root npm-audit vulns at **14** (was 21; PR #49 took the
   non-breaking fixes). Remaining are two breaking migrations — `@vercel/node`→
   undici and mcp-server fastify v4→v5 — tracked in [[Flywheel]]'s ledger.
-- **Pending publish:** `cd mcp-server && npm publish` (bump already done), then
-  redeploy the live MCP (deploy recipe in agent memory — [[hetzner-oc-server]]).
+- **Pending: redeploy the live MCP** to 0.36.5 (npm already published). Recipe
+  in agent memory [[hetzner-oc-server]]; verify `curl mcp.testforge.run/health`.
 
 ## What's been built (recent arcs — detail in the changelog + [[Evolution]])
 - **Scoring overhaul (0.32–0.33)** — diminishing-returns, no-cry-wolf; killed
@@ -88,8 +88,9 @@ TestForge surfaced *on itself*:
 (not just security) + a `signals` block, so the brain sees the real signal.
 
 ### Next steps (pick up here)
-1. **Publish 0.36.5** — `cd mcp-server && npm publish`, then redeploy the live
-   MCP (recipe in [[hetzner-oc-server]]). Version + changelog already landed.
+1. **Redeploy the live MCP to 0.36.5** — npm is published; `mcp.testforge.run`
+   is still 0.36.4. Recipe in [[hetzner-oc-server]] (git pull on the VPS, rebuild
+   the image, recreate the container with full env), then verify `/health`.
 2. **Automate the brain** — the propose step has only been run manually so far.
    Wire `node hermes/cycle.mjs` (not `--dry`) to invoke `claude -p` for real;
    tune `extractDigest` / `extractLedgerEntries` in `cycle.mjs` if the output
