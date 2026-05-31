@@ -1,10 +1,14 @@
 # TestForge — Architecture & Build Log
 
-> Complete record of everything built. Clone the repo and this document explains it all.
+> **⚠️ Early build log, frozen at v0.28.4 (May 25). Not the live record.**
+> For current state + "what happened / where we are", start with
+> **[`docs/knowledge/Status.md`](./docs/knowledge/Status.md)** → the knowledge
+> graph **[`docs/knowledge/TestForge.md`](./docs/knowledge/TestForge.md)** → the
+> changelog (`src/data/changelog.ts`). A fresh session should read those.
 
-**Started**: May 24, 2026 | **Last Updated**: May 25, 2026  
-**URL**: https://testforge.run | **GitHub**: https://github.com/t4tarzan/testforge  
-**npm**: `@whitenoisenpm/testforge-mcp` (v0.28.4)
+**Started**: May 24, 2026 | **Build-log frozen at**: May 25, 2026 (v0.28.4)  
+**Live status**: `docs/knowledge/Status.md` · **npm / live MCP**: 0.36.4  
+**URL**: https://testforge.run | **GitHub**: https://github.com/t4tarzan/testforge
 
 ---
 

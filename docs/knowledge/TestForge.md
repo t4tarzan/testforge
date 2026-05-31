@@ -10,6 +10,7 @@ running app ([[Simulation-Engine]]). It runs three ways — a hosted web service
 self-hosted `npx` MCP server, and inside an AI IDE (Cursor/Claude/VS Code).
 
 ## Start here
+- **[[Status]]** — current state + "what happened / where we are" handoff. **Fresh context? Read this first.**
 - [[Architecture]] — the three planes (web · managed MCP · self-host MCP) and how a request flows.
 - [[Dimensions]] — the 22 analysis dimensions and what each detects.
 - [[Scoring]] — the diminishing-returns scoring philosophy and the "no cry-wolf" rule.
@@ -17,6 +18,7 @@ self-hosted `npx` MCP server, and inside an AI IDE (Cursor/Claude/VS Code).
 - [[Simulation-Engine]] — load / chaos / agent simulations against the real app.
 - [[Self-Host-and-BYOK]] — running it yourself, the settings panel, and bring-your-own-key.
 - [[Reports]] — the report formats (live, downloadable Markdown, curated In-the-Wild).
+- [[Flywheel]] — the (in-design) autonomous self-improvement loop.
 - [[Evolution]] — the timeline of how all of this came to be.
 
 ## Canonical sources (single source of truth)
