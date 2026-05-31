@@ -88,8 +88,14 @@ The In-the-Wild loop turned inward: **TestForge now grades itself on a schedule.
     `@vercel/node`, fastify v4→v5) deferred as ledger proposals.
 - Shipped through the full gate (CI · self-grade · Playwright/Vercel) as PRs
   #47/#49, published to npm, and **redeployed to the live VPS** — all three
-  planes on 0.36.5. The brain step was run manually this cycle; automating it
-  (`claude -p` on a schedule) is the open next step in [[Status]].
+  planes on 0.36.5.
+- **The brain is now automated** — `cycle.mjs` invokes `claude -p` headless
+  (read-only in practice: print mode auto-denies edits/commands). A live cycle
+  ran scan→brain→parse→ledger→digest end-to-end; the brain verified findings
+  against the code, deduped against the ledger, and proposed the next tier
+  (daemon hardening, DB-pool exhaustion, two analyzer false-negatives it found by
+  reading `build`/`_security.js`). Open next step: schedule it
+  (`register-hermes.sh`) + pick the ledger's home. See [[Status]] / [[Flywheel]].
 
 ## Cross-cutting themes
 - **The In-the-Wild reports are the test harness.** Most precision/cry-wolf bugs
