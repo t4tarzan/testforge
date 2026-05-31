@@ -2179,6 +2179,45 @@ describe('strategic-analyzer — Phase 5 pass 16: stack polish (strict dep sets 
   });
 });
 
+// Regression: the test framework can live in a top-level sibling package the
+// workspace discovery misses (e.g. testforge's own mcp-server/ has vitest, the
+// root package.json has none, and there's no `workspaces` field). The unit
+// analyzer saw the tests via test files; stack + DORA checked only merged
+// root/workspace devDeps and falsely cried "no testing framework." Now a test
+// FILE is a sufficient signal in both. See lib/test-presence.ts.
+describe('test-framework detection — test files count, not just root devDeps', () => {
+  // No framework dep anywhere; the only signal is a .test.ts file in a subdir.
+  const fc: Record<string, string> = {
+    'package.json': '{"name":"root","dependencies":{"express":"^4.18.0"}}',
+    'src/server.ts': "import express from 'express'; express();",
+    'mcp-server/src/foo.test.ts': "import { it, expect } from 'vitest'; it('x', () => expect(1).toBe(1));",
+  };
+
+  it('stack: does NOT flag "No testing framework" when test files exist', async () => {
+    const report = await runStackAnalysis(fc, ['express'], [], ['TypeScript']);
+    expect(report.findings.find((f) => /No testing framework/.test(f.title))).toBeUndefined();
+    expect(report.weaknesses.find((w) => /No testing framework/.test(w))).toBeUndefined();
+    expect(report.strengths.some((s) => /Testing framework configured/.test(s))).toBe(true);
+  });
+
+  it('dora: hasTestFramework is true from test files even with empty root devDeps', () => {
+    const report = runDoraEstimation(fc, []);
+    expect(report.signals.hasTestFramework).toBe(true);
+    expect(report.leadTime).not.toMatch(/no test framework detected/);
+    expect(report.changeFailRate).not.toMatch(/no test framework detected/);
+  });
+
+  it('still flags testless projects (no dep, no test files)', async () => {
+    const bare: Record<string, string> = {
+      'package.json': '{"name":"x","dependencies":{"express":"^4.18.0"}}',
+      'src/server.ts': "import express from 'express'; express();",
+    };
+    const stack = await runStackAnalysis(bare, ['express'], [], ['TypeScript']);
+    expect(stack.findings.find((f) => /No testing framework/.test(f.title))).toBeTruthy();
+    expect(runDoraEstimation(bare, []).signals.hasTestFramework).toBe(false);
+  });
+});
+
 // Go native support — added in v0.28.0. .go files count in totalFiles,
 // go.mod parses to deps, Gin/Echo/Chi/Fiber/Gorilla/stdlib route patterns
 // are counted as endpoints, tech-stack tagger recognizes common Go libs.
