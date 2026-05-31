@@ -15,6 +15,9 @@
 - 331 MCP tests pass; CI gates on lint (0 errors) + tests + build. **Run
   `npm run lint` before every push** ([[feedback_testforge_ci_lints]] in memory).
 - All green and shipped — no known broken state.
+- **Deps/security:** root npm-audit vulns at **14** (was 21; PR #49 took the
+  non-breaking fixes). Remaining are two breaking migrations — `@vercel/node`→
+  undici and mcp-server fastify v4→v5 — tracked in [[Flywheel]]'s ledger.
 - **Pending publish:** `cd mcp-server && npm publish` (bump already done), then
   redeploy the live MCP (deploy recipe in agent memory — [[hetzner-oc-server]]).
 
@@ -70,9 +73,16 @@ TestForge surfaced *on itself*:
 - **#2 ✓ shipped** — dead-code unused-dep false positives: dynamic `import()`
   was invisible to the AST walker + the parse loop skipped any path containing
   the substring `"test"`. **unusedDeps 9→4.**
-- The ledger (`hermes/ledger.md`) records both as `shipped`, plus a deferred
-  **#3 proposed** (dead-code companion-package awareness: react-router ↔
-  react-router-dom) and **#4 proposed** (triage 25 known-vulnerable deps).
+- **#4 ✓ shipped (partial, PR #49)** — supply-chain triage. Verified against
+  `npm audit` (ground truth, not the OSV count): **root 21→14 vulns** via a
+  non-breaking lockfile-only `npm audit fix`. The breaking remainder was
+  *refused/deferred* — npm's only fix for the `@vercel/node`→undici chain
+  downgrades `@vercel/node` 5→4 (a regression), and the mcp-server fastify chain
+  needs a v4→v5 major migration. Both logged as their own proposals.
+- The ledger (`hermes/ledger.md`) records #1/#2/#4 as `shipped`, plus open
+  **proposals**: dead-code companion-package awareness (react-router ↔
+  react-router-dom), the `@vercel/node`→undici bump, and the fastify v4→v5
+  migration.
 
 `scan.mjs` was also widened this cycle: `findings[]` now merges *all* dimensions
 (not just security) + a `signals` block, so the brain sees the real signal.
@@ -87,8 +97,9 @@ TestForge surfaced *on itself*:
 3. **Decide where the ledger lives** — set `$TESTFORGE_LEDGER` to the hermes-
    managed Obsidian note (currently defaults to the in-repo `hermes/ledger.md`).
 4. **Turn it on** — `hermes/register-hermes.sh --create` (schedule + Telegram).
-5. **Pick up the ledger backlog** — #4 (the 25 known-vulnerable deps via
-   `npm audit`), then #3 (companion-package awareness).
+5. **Pick up the ledger backlog** (all bigger, deliberate PRs now): the
+   `@vercel/node`→undici bump (or an `overrides` pin + API testing), the
+   mcp-server fastify v4→v5 migration, and dead-code companion-package awareness.
 6. **Feed `signals.md`** / **local-AI triage** (optional) — `$TESTFORGE_TRIAGE`
    + CI/Vercel/MCP error clusters into `hermes/state/signals.md`.
 
