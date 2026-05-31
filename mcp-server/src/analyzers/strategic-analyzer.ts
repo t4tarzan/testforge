@@ -10,6 +10,7 @@ import {
   hasAnyKeyword,
   extractFeaturesSection,
 } from './lib/strategic-signals.js';
+import { hasTestFiles } from './lib/test-presence.js';
 import { severityScore } from './lib/score.js';
 
 export interface StrategicReport {
@@ -370,10 +371,15 @@ export async function runStackAnalysis(
     } catch { /* unparseable — ignore */ }
   }
 
-  // ── Test framework — strict Set match.
-  const hasTesting = has(TEST_FRAMEWORK_DEPS);
+  // ── Test framework — strict Set match on deps, with a test-FILE fallback so
+  // a monorepo whose framework lives in a top-level sibling package (e.g.
+  // testforge's mcp-server/) isn't mis-flagged as testless. See test-presence.ts.
+  const matchedTestDeps = matched(TEST_FRAMEWORK_DEPS);
+  const hasTesting = matchedTestDeps.length > 0 || hasTestFiles(fileContents);
   if (hasTesting) {
-    strengths.push(`Testing framework configured (${matched(TEST_FRAMEWORK_DEPS).join(', ')})`);
+    strengths.push(matchedTestDeps.length > 0
+      ? `Testing framework configured (${matchedTestDeps.join(', ')})`
+      : 'Testing framework configured (test files detected)');
   } else {
     findings.push({
       severity: 'high',

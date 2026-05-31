@@ -31,28 +31,47 @@
   (gitignored), never deployed.
 
 ## Where we are NOW (in-flight)
-Designing an **autonomous, continuous self-improvement loop** for TestForge.
-Decision so far (2026-05-31): start at **L0 — propose-only**, focus on the
+Building an **autonomous, continuous self-improvement loop** for TestForge.
+Decision (2026-05-31): start at **L0 — propose-only**, focus on the
 **self-flywheel (quality)**, **orchestrated by hermes** (Claude = brain, hermes =
 hands, local AI = routine triage, Telegram = comms).
 
-The loop each cycle: run TestForge on itself + a rotating showcase repo → local
-AI triages findings → Claude does gap analysis → posts a **ranked improvement
-plan + daily digest** (no code changes yet) → appends a ledger so it doesn't
-repeat. Earn autonomy later by graduating *mechanical* change-classes to
-auto-PR/auto-merge behind a four-layer gate (CI · TestForge-self-grade ·
-adversarial-review · E2E). Full design: [[Flywheel]] / `docs/flywheel/`.
+The loop each cycle: run TestForge on itself + a rotating showcase repo → (local
+AI triages findings) → Claude does gap analysis → posts a **ranked improvement
+plan + digest** (no code changes yet) → appends a ledger so it doesn't repeat.
+Earn autonomy later by graduating *mechanical* change-classes to auto-PR/auto-
+merge behind a four-layer gate (CI · TestForge-self-grade · adversarial-review ·
+E2E). Full design: [[Flywheel]] / `docs/flywheel/`.
+
+**The loop is now built and ships with the repo: [`hermes/`](../../hermes/README.md).**
+It's a self-contained Node package, scheduler-agnostic (hermes is just the hands):
+- `hermes/scan.mjs` — **gather** (Status step 1 ✓): ensures the local analyzer
+  (`:33221`), grades the repo's **tracked tree** (a `git archive` export — *not*
+  gitignored `dist/`/`node_modules`, which otherwise drown the proposer in phantom
+  criticals) + a date-rotating showcase repo → proposer-shaped `state/findings.json`.
+- `hermes/cycle.mjs` — **orchestrator**: scan → assemble bundle (findings + ledger
+  + recent changelog) → `claude -p` (configurable via `$TESTFORGE_BRAIN`) → append
+  ledger → print the Telegram digest on stdout.
+- `hermes/register-hermes.sh` — `hermes cron create … --no-agent --deliver telegram`.
+- `hermes/ledger.md` — seeded anti-repeat memory (`$TESTFORGE_LEDGER` to point at
+  the Obsidian note in prod).
+
+Verified 2026-05-31: full `--dry` cycle works against the live 0.36.4 analyzer
+(self overall 70 clean / showcase `lukeed/uvu` 69; 24.9 KB bundle, all sections).
 
 ### Next steps (pick up here)
-1. Build the **flywheel scan** command (one call → ranked-findings JSON for a
-   target repo) — hermes's "gather" step.
-2. The **proposer prompt** exists at `docs/flywheel/proposer-prompt.md` — the
-   brain's instructions. Refine if needed.
-3. **Wire hermes**: cron heartbeat → scan → local-AI triage → `claude -p` with
-   the proposer prompt → append the ledger (in the Obsidian vault) → Telegram
-   digest. Needs a look at the hermes folder to match its task interface.
-4. Define where the **ledger** lives (hermes-managed Obsidian note) + the digest
-   format.
+1. **First live brain run** — `node hermes/cycle.mjs` (not `--dry`): confirm the
+   `claude -p` call, the digest/ledger-entry parsing, and the appended ledger
+   look right. Tune the regexes in `cycle.mjs` (`extractDigest` /
+   `extractLedgerEntries`) if the proposer's output drifts from the prompt shape.
+2. **Decide where the ledger lives** — set `$TESTFORGE_LEDGER` to the hermes-
+   managed Obsidian note (currently defaults to the in-repo `hermes/ledger.md`).
+3. **Turn it on** — `hermes/register-hermes.sh --create` (schedule + Telegram).
+4. **Feed `signals.md`** (optional) — CI/Vercel/MCP error clusters + triaged
+   Telegram user feedback into `hermes/state/signals.md` so the proposer weighs
+   real-world breakage, not just static findings.
+5. **Local-AI triage** (optional) — set `$TESTFORGE_TRIAGE` to an Ollama command
+   to dedupe/cluster findings before the brain (cost control as the pool grows).
 
 ## Operational quick-reference
 - **Test/lint/build:** `cd mcp-server && npx vitest run` · `npm run lint` (repo root) · `npm run build`.

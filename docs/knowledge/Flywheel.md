@@ -1,7 +1,11 @@
 # Flywheel — autonomous self-improvement loop (design)
 
 Back to [[TestForge]]. Status/decisions: [[Status]]. The brain prompt:
-`docs/flywheel/proposer-prompt.md`.
+`docs/flywheel/proposer-prompt.md`. **Implementation:** [`hermes/`](../../hermes/README.md)
+(`scan.mjs` = gather · `cycle.mjs` = orchestrate+brain · `register-hermes.sh` =
+schedule). Self-contained and scheduler-agnostic — ships with the repo; hermes is
+just the hands. Self-scan grades the **tracked tree** (`git archive`), not
+gitignored build artifacts, so the proposer isn't drowned in phantom findings.
 
 **Goal:** hour after hour, surface the highest-value *real* gap in TestForge,
 attempt the safe ones (later), prove them, and report the rest — so quality

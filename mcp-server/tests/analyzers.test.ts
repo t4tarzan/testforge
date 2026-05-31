@@ -1032,6 +1032,32 @@ describe('advanced-analyzer — Phase 5: AST-aware dead-code detection', () => {
     // count `lodash` as used.
     expect(report.unusedDeps).not.toContain('lodash');
   });
+
+  // Regression: false unused-dependency flags surfaced by running TestForge on
+  // itself. Dynamic `import()` and source files whose path merely contains the
+  // substring "test" were both invisible to the dep-usage check.
+  it('counts dynamic import() as a usage (serverless lazy-load pattern)', () => {
+    const fc: Record<string, string> = {
+      'package.json': '{"name":"x","dependencies":{"stripe":"^22.0.0","unused-pkg":"^1.0.0"}}',
+      'api/pay.js': "export default async () => { const Stripe = (await import('stripe')).default; return new Stripe('k'); };",
+    };
+    const report = runDeadCodeAnalysis(fc, ['stripe', 'unused-pkg']);
+    expect(report.unusedDeps).not.toContain('stripe');   // dynamically imported → used
+    expect(report.unusedDeps).toContain('unused-pkg');    // truly unused → still flagged
+  });
+
+  it('parses source files whose path contains "test" (not just real test files)', () => {
+    const fc: Record<string, string> = {
+      // path contains the substring "test" but is NOT a test file — its import must count
+      'src/generate-tests.ts': "import { z } from 'zod'; export const s = z.string();",
+      // a real test file IS skipped, so a dep used only there stays flagged
+      'src/only.test.ts': "import x from 'test-only-dep'; void x;",
+      'package.json': '{"name":"x","dependencies":{"zod":"^4.0.0","test-only-dep":"^1.0.0"}}',
+    };
+    const report = runDeadCodeAnalysis(fc, ['zod', 'test-only-dep']);
+    expect(report.unusedDeps).not.toContain('zod');        // generate-tests.ts is real source
+    expect(report.unusedDeps).toContain('test-only-dep');  // only used in a real .test.ts
+  });
 });
 
 describe('unit-analyzer — Phase 5 pass 2: AST-aware test quality', () => {
@@ -2176,6 +2202,45 @@ describe('strategic-analyzer — Phase 5 pass 16: stack polish (strict dep sets 
     const report = await runStackAnalysis(fc, deps, [], ['Express']);
     const finding = report.findings.find((f) => /without runtime validation library/.test(f.title));
     expect(finding).toBeTruthy();
+  });
+});
+
+// Regression: the test framework can live in a top-level sibling package the
+// workspace discovery misses (e.g. testforge's own mcp-server/ has vitest, the
+// root package.json has none, and there's no `workspaces` field). The unit
+// analyzer saw the tests via test files; stack + DORA checked only merged
+// root/workspace devDeps and falsely cried "no testing framework." Now a test
+// FILE is a sufficient signal in both. See lib/test-presence.ts.
+describe('test-framework detection — test files count, not just root devDeps', () => {
+  // No framework dep anywhere; the only signal is a .test.ts file in a subdir.
+  const fc: Record<string, string> = {
+    'package.json': '{"name":"root","dependencies":{"express":"^4.18.0"}}',
+    'src/server.ts': "import express from 'express'; express();",
+    'mcp-server/src/foo.test.ts': "import { it, expect } from 'vitest'; it('x', () => expect(1).toBe(1));",
+  };
+
+  it('stack: does NOT flag "No testing framework" when test files exist', async () => {
+    const report = await runStackAnalysis(fc, ['express'], [], ['TypeScript']);
+    expect(report.findings.find((f) => /No testing framework/.test(f.title))).toBeUndefined();
+    expect(report.weaknesses.find((w) => /No testing framework/.test(w))).toBeUndefined();
+    expect(report.strengths.some((s) => /Testing framework configured/.test(s))).toBe(true);
+  });
+
+  it('dora: hasTestFramework is true from test files even with empty root devDeps', () => {
+    const report = runDoraEstimation(fc, []);
+    expect(report.signals.hasTestFramework).toBe(true);
+    expect(report.leadTime).not.toMatch(/no test framework detected/);
+    expect(report.changeFailRate).not.toMatch(/no test framework detected/);
+  });
+
+  it('still flags testless projects (no dep, no test files)', async () => {
+    const bare: Record<string, string> = {
+      'package.json': '{"name":"x","dependencies":{"express":"^4.18.0"}}',
+      'src/server.ts': "import express from 'express'; express();",
+    };
+    const stack = await runStackAnalysis(bare, ['express'], [], ['TypeScript']);
+    expect(stack.findings.find((f) => /No testing framework/.test(f.title))).toBeTruthy();
+    expect(runDoraEstimation(bare, []).signals.hasTestFramework).toBe(false);
   });
 });
 

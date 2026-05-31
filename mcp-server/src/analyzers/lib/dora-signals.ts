@@ -24,6 +24,7 @@
 //                            CODEOWNERS file presence (review enforce).
 
 import * as yaml from 'js-yaml';
+import { hasTestFiles } from './test-presence.js';
 
 export interface DoraSignals {
   // Deployment-frequency surface
@@ -141,9 +142,13 @@ export function extractDoraSignals(
   const structuredLoggingDeps = allDeps.filter((d) => STRUCTURED_LOGGING_DEPS.has(d));
   const featureFlagDeps = allDeps.filter((d) => FEATURE_FLAG_DEPS.has(d));
 
+  // A root/workspace devDep is the strongest signal, but the test framework
+  // may live in a top-level sibling package the workspace discovery misses
+  // (see test-presence.ts). Test FILES on disk are the language-agnostic
+  // fallback, consistent with the unit + mutation analyzers.
   const hasTestFramework = devDependencies.some((d) =>
     d === 'jest' || d === 'vitest' || d === 'mocha' || d === 'ava' || d === '@japa/runner'
-  );
+  ) || hasTestFiles(fileContents);
 
   const hasCodeowners =
     paths.includes('.github/CODEOWNERS') || paths.includes('CODEOWNERS') || paths.includes('docs/CODEOWNERS');

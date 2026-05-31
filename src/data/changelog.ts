@@ -50,6 +50,14 @@ export const TAG_COLORS: Record<ChangelogTag, string> = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '0.36.5',
+    date: '2026-05-31',
+    tag: 'precision',
+    title: 'Monorepo-aware test + dependency detection (self-flywheel fixes)',
+    summary:
+      'Running TestForge on itself surfaced two false-positive classes, both rooted in monorepo blind spots. (1) Test framework: the Stack and DORA dimensions reported "no testing framework — cannot verify code correctness" even with 365 passing Vitest tests, because they only checked the root package.json devDeps while the framework lived in a top-level sibling package (mcp-server/) the workspace discovery missed. A test FILE on disk is now a sufficient signal in both, consistent with the unit and mutation analyzers — Stack 79→99, DORA 25→55 on this repo. (2) Unused dependencies: the dead-code analyzer flagged dependencies that are genuinely used — those loaded via dynamic import() (e.g. serverless handlers doing `await import(\'stripe\')`) were invisible to the AST walker, and any source file whose path merely contained the substring "test" (like generate-tests.ts) was skipped, hiding its imports. Now import() counts as a usage and only real test files are skipped — unused-dep false positives dropped from 9 to 4 on this repo, with the genuinely-unused ones still flagged. The flywheel in action: the product graded its own work and the fixes shipped as a release.',
+  },
+  {
     version: '0.36.4',
     date: '2026-05-31',
     tag: 'site',
