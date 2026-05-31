@@ -6,13 +6,17 @@
 > (`src/data/changelog.ts`) → agent memory (deploy/ops)**.
 
 ## Current state
-- **npm `@whitenoisenpm/testforge-mcp` = 0.36.4** (latest). **Live managed MCP
-  `mcp.testforge.run` = 0.36.4.** Website auto-deploys from `main` (Vercel).
+- **`main` = 0.36.5** (merged 2026-05-31, PR #47). **npm
+  `@whitenoisenpm/testforge-mcp` + live managed MCP `mcp.testforge.run` still =
+  0.36.4** — 0.36.5 is **not yet published / redeployed** (manual step below).
+  Website auto-deploys from `main` (Vercel), so the 0.36.5 changelog is live.
 - Three planes, one analyzer core: web (Vercel) · managed MCP (a VPS) · self-host
   MCP (`npx`). See [[Architecture]].
-- 326 MCP tests pass; CI gates on lint (0 errors) + tests + build. **Run
+- 331 MCP tests pass; CI gates on lint (0 errors) + tests + build. **Run
   `npm run lint` before every push** ([[feedback_testforge_ci_lints]] in memory).
 - All green and shipped — no known broken state.
+- **Pending publish:** `cd mcp-server && npm publish` (bump already done), then
+  redeploy the live MCP (deploy recipe in agent memory — [[hetzner-oc-server]]).
 
 ## What's been built (recent arcs — detail in the changelog + [[Evolution]])
 - **Scoring overhaul (0.32–0.33)** — diminishing-returns, no-cry-wolf; killed
@@ -56,22 +60,37 @@ It's a self-contained Node package, scheduler-agnostic (hermes is just the hands
 - `hermes/ledger.md` — seeded anti-repeat memory (`$TESTFORGE_LEDGER` to point at
   the Obsidian note in prod).
 
-Verified 2026-05-31: full `--dry` cycle works against the live 0.36.4 analyzer
-(self overall 70 clean / showcase `lukeed/uvu` 69; 24.9 KB bundle, all sections).
+**First cycle already paid off (2026-05-31, shipped in 0.36.5 via PR #47).** The
+gather step grades the tracked tree; Claude ran the propose step manually and
+the loop's findings drove two real precision fixes — both monorepo blind spots
+TestForge surfaced *on itself*:
+- **#1 ✓ shipped** — Stack/DORA "no testing framework" false negative (checked
+  only root devDeps; vitest lives in the `mcp-server/` sibling). Now a test
+  *file* is sufficient signal. **stack 79→99, dora 25→55.** ([[Scoring]] no-cry-wolf.)
+- **#2 ✓ shipped** — dead-code unused-dep false positives: dynamic `import()`
+  was invisible to the AST walker + the parse loop skipped any path containing
+  the substring `"test"`. **unusedDeps 9→4.**
+- The ledger (`hermes/ledger.md`) records both as `shipped`, plus a deferred
+  **#3 proposed** (dead-code companion-package awareness: react-router ↔
+  react-router-dom) and **#4 proposed** (triage 25 known-vulnerable deps).
+
+`scan.mjs` was also widened this cycle: `findings[]` now merges *all* dimensions
+(not just security) + a `signals` block, so the brain sees the real signal.
 
 ### Next steps (pick up here)
-1. **First live brain run** — `node hermes/cycle.mjs` (not `--dry`): confirm the
-   `claude -p` call, the digest/ledger-entry parsing, and the appended ledger
-   look right. Tune the regexes in `cycle.mjs` (`extractDigest` /
-   `extractLedgerEntries`) if the proposer's output drifts from the prompt shape.
-2. **Decide where the ledger lives** — set `$TESTFORGE_LEDGER` to the hermes-
+1. **Publish 0.36.5** — `cd mcp-server && npm publish`, then redeploy the live
+   MCP (recipe in [[hetzner-oc-server]]). Version + changelog already landed.
+2. **Automate the brain** — the propose step has only been run manually so far.
+   Wire `node hermes/cycle.mjs` (not `--dry`) to invoke `claude -p` for real;
+   tune `extractDigest` / `extractLedgerEntries` in `cycle.mjs` if the output
+   drifts from the prompt shape.
+3. **Decide where the ledger lives** — set `$TESTFORGE_LEDGER` to the hermes-
    managed Obsidian note (currently defaults to the in-repo `hermes/ledger.md`).
-3. **Turn it on** — `hermes/register-hermes.sh --create` (schedule + Telegram).
-4. **Feed `signals.md`** (optional) — CI/Vercel/MCP error clusters + triaged
-   Telegram user feedback into `hermes/state/signals.md` so the proposer weighs
-   real-world breakage, not just static findings.
-5. **Local-AI triage** (optional) — set `$TESTFORGE_TRIAGE` to an Ollama command
-   to dedupe/cluster findings before the brain (cost control as the pool grows).
+4. **Turn it on** — `hermes/register-hermes.sh --create` (schedule + Telegram).
+5. **Pick up the ledger backlog** — #4 (the 25 known-vulnerable deps via
+   `npm audit`), then #3 (companion-package awareness).
+6. **Feed `signals.md`** / **local-AI triage** (optional) — `$TESTFORGE_TRIAGE`
+   + CI/Vercel/MCP error clusters into `hermes/state/signals.md`.
 
 ## Operational quick-reference
 - **Test/lint/build:** `cd mcp-server && npx vitest run` · `npm run lint` (repo root) · `npm run build`.
