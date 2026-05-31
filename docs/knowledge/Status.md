@@ -89,19 +89,25 @@ TestForge surfaced *on itself*:
 `scan.mjs` was also widened this cycle: `findings[]` now merges *all* dimensions
 (not just security) + a `signals` block, so the brain sees the real signal.
 
+**Brain now automated (`claude -p`), verified end-to-end.** `cycle.mjs` invokes
+`claude -p` for real — no more hand-playing the proposer. A live cycle ran
+scan → brain → parse → ledger → digest: the brain read-only-verified findings
+against the code (confirmed `src/db/client.ts:30 max:10`; chaos handlers "only in
+fixtures"), **deduped against the ledger** (saw supplyChain 11→19, said "already
+covered"), and surfaced a *new* analyzer-precision idea (gate chaos findings by
+runtime model — serverless vs long-lived daemon). It's run headless so the
+permission system auto-denies edits/commands (read-only in practice) despite the
+untrusted showcase content in the bundle. (`--permission-mode plan` stalls under
+`-p` — don't use it.)
+
 ### Next steps (pick up here)
-1. **Automate the brain** — the propose step has only been run manually so far
-   (Claude played the proposer by hand for the 0.36.5 fixes). Wire
-   `node hermes/cycle.mjs` (not `--dry`) to invoke `claude -p` for real; tune
-   `extractDigest` / `extractLedgerEntries` in `cycle.mjs` if the output drifts
-   from the prompt shape.
-2. **Decide where the ledger lives** — set `$TESTFORGE_LEDGER` to the hermes-
+1. **Decide where the ledger lives** — set `$TESTFORGE_LEDGER` to the hermes-
    managed Obsidian note (currently defaults to the in-repo `hermes/ledger.md`).
-3. **Turn it on** — `hermes/register-hermes.sh --create` (schedule + Telegram).
-4. **Pick up the ledger backlog** (all bigger, deliberate PRs now): the
+2. **Turn it on** — `hermes/register-hermes.sh --create` (schedule + Telegram).
+3. **Pick up the ledger backlog** (all bigger, deliberate PRs now): the
    `@vercel/node`→undici bump (or an `overrides` pin + API testing), the
    mcp-server fastify v4→v5 migration, and dead-code companion-package awareness.
-5. **Feed `signals.md`** / **local-AI triage** (optional) — `$TESTFORGE_TRIAGE`
+4. **Feed `signals.md`** / **local-AI triage** (optional) — `$TESTFORGE_TRIAGE`
    + CI/Vercel/MCP error clusters into `hermes/state/signals.md`.
 
 ## Operational quick-reference

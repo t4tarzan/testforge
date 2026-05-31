@@ -49,12 +49,23 @@ node hermes/scan.mjs --print            # add --self-only to skip the clone
 # 2. Assemble the brain bundle but DON'T call the brain (inspect state/last-bundle.md):
 node hermes/cycle.mjs --dry
 
-# 3. Full cycle — scan, ask the brain, append the ledger, print the digest:
+# 3. Full cycle — scan, ask the brain (claude -p), append the ledger, print the digest:
 node hermes/cycle.mjs
 ```
 
-Requires Node and the built MCP (`cd mcp-server && npm run build`). `scan.mjs`
-auto-starts `mcp-server/dist/index.js` on `:33221` if nothing answers `/health`.
+Requires Node, the built MCP (`cd mcp-server && npm run build`), and the `claude`
+CLI on PATH. `scan.mjs` auto-starts `mcp-server/dist/index.js` on `:33221` if
+nothing answers `/health`.
+
+**The brain is `claude -p`** (override via `$TESTFORGE_BRAIN`), the bundle piped
+to its stdin. Run **headless**: in non-interactive print mode the permission
+system auto-denies edits/commands (no TTY to approve), so the brain may *read*
+repo files to verify a finding but can never mutate — important because the
+bundle carries **untrusted showcase-repo content** (finding text from arbitrary
+public repos = a prompt-injection surface). In practice it reads the cited files
+(e.g. confirms `src/db/client.ts:30 max:10`), dedupes against the ledger, and
+emits only the ranked plan + digest. *Don't* add `--permission-mode plan` — it
+stalls under `-p` waiting to present its plan for an approval that never comes.
 
 ## Schedule it with Hermes
 
@@ -68,7 +79,7 @@ SCHEDULE='0 9 * * *' hermes/register-hermes.sh --create   # daily 09:00 instead 
 
 | var | default | meaning |
 |---|---|---|
-| `TESTFORGE_BRAIN` | `claude -p` | brain command; receives the bundle on stdin, returns the plan on stdout |
+| `TESTFORGE_BRAIN` | `claude -p` | brain command; receives the bundle on stdin, returns the plan on stdout. Headless = read-only in practice (see above); override only if you understand the injection surface |
 | `TESTFORGE_LEDGER` | `hermes/ledger.md` | ledger path — point at the Obsidian vault note in prod |
 | `TESTFORGE_TRIAGE` | _(unset)_ | optional cheap local-model command; receives findings on stdin, returns filtered JSON |
 | `TESTFORGE_MCP` | `http://localhost:33221` | analyzer base URL |

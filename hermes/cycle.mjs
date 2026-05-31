@@ -22,7 +22,13 @@
 //   node hermes/cycle.mjs --self-only
 //
 // Env:
-//   TESTFORGE_BRAIN   brain command (default "claude -p"); receives the bundle on stdin
+//   TESTFORGE_BRAIN   brain command (default "claude -p"); receives the bundle on
+//                     stdin. Headless print mode auto-denies edits/commands (no
+//                     TTY to approve), so the brain is read-only in practice — it
+//                     can read repo files to verify findings but can't mutate,
+//                     even though the bundle carries UNTRUSTED showcase-repo text
+//                     (a prompt-injection surface). NB: do NOT add
+//                     `--permission-mode plan` — it stalls under -p (see below).
 //   TESTFORGE_LEDGER  ledger path (default hermes/ledger.md; in prod point at the Obsidian note)
 //   TESTFORGE_TRIAGE  optional triage command; receives findings.json on stdin, returns filtered JSON
 //   TESTFORGE_MCP     analyzer base url (default http://localhost:33221)
@@ -46,6 +52,13 @@ const PROMPT_FILE = path.join(REPO_ROOT, 'docs', 'flywheel', 'proposer-prompt.md
 const FINDINGS = path.join(STATE, 'findings.json');
 const LEDGER = process.env.TESTFORGE_LEDGER || path.join(__dirname, 'ledger.md');
 const CHANGELOG = path.join(REPO_ROOT, 'src', 'data', 'changelog.ts');
+// The brain runs HEADLESS: `claude -p`, prompt on stdin. In non-interactive
+// print mode the permission system auto-denies edits/commands (there's no TTY to
+// approve them), so the brain can Read/Grep repo files to verify a finding but
+// cannot mutate — even if untrusted showcase-repo text in the bundle tries to
+// injection its way to a command. (`--permission-mode plan` would add an explicit
+// read-only gate, but it STALLS under -p waiting to present its plan for
+// approval that never comes — don't use it here.)
 const BRAIN = process.env.TESTFORGE_BRAIN || 'claude -p';
 
 const log = (...a) => console.error('[cycle]', ...a);
