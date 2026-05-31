@@ -7,7 +7,7 @@
 > changelog (`src/data/changelog.ts`). A fresh session should read those.
 
 **Started**: May 24, 2026 | **Build-log frozen at**: May 25, 2026 (v0.28.4)  
-**Live status**: `docs/knowledge/Status.md` · **npm / live MCP**: 0.36.4  
+**Live status**: `docs/knowledge/Status.md` · **npm / live MCP**: 0.36.5  
 **URL**: https://testforge.run | **GitHub**: https://github.com/t4tarzan/testforge
 
 ---
