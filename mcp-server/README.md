@@ -141,7 +141,7 @@ Use the Continue / Cline extension and add the same JSON to its MCP config block
 ```bash
 # Health
 curl http://localhost:33221/health
-# → {"status":"ok","version":"0.36.4"}
+# → {"status":"ok","version":"0.36.5"}
 
 # Public-status check (for badges/uptime)
 curl http://localhost:33221/api/reports/latest

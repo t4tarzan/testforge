@@ -1,15 +1,17 @@
 # Status & Handoff
 
 > **Fresh context? Read this first.** It's the "what happened + where we are"
-> entrypoint. Last updated: 2026-05-31.
-> Read order: **this file → [[TestForge]] (knowledge map) → the changelog
-> (`src/data/changelog.ts`) → agent memory (deploy/ops)**.
+> entrypoint. Last updated: 2026-06-01.
+> Read order: **this file → [[TestForge]] (knowledge map) → [[Evolution]] (the
+> dated journey, arc by arc) → the changelog (`src/data/changelog.ts`) → agent
+> memory (deploy/ops)**. The full arc-by-arc history lives in [[Evolution]]; this
+> file is just the latest snapshot + what's next.
 
 ## Current state
-- **`main` = 0.36.5** (PR #47) · **npm `@whitenoisenpm/testforge-mcp` = 0.36.5**
-  (published 2026-05-31, tag `latest`). **Live managed MCP `mcp.testforge.run`
-  still = 0.36.4** — redeploy pending (step below). Website auto-deploys from
-  `main` (Vercel), so the 0.36.5 changelog is live.
+- **All three planes on 0.36.5** (2026-05-31): `main` (PR #47) · **npm
+  `@whitenoisenpm/testforge-mcp` = 0.36.5** (tag `latest`) · **live managed MCP
+  `mcp.testforge.run` = 0.36.5** (VPS redeployed, verified `/health`;
+  `testforge-mcp:prev` kept for rollback). Website auto-deploys from `main`.
 - Three planes, one analyzer core: web (Vercel) · managed MCP (a VPS) · self-host
   MCP (`npx`). See [[Architecture]].
 - 331 MCP tests pass; CI gates on lint (0 errors) + tests + build. **Run
@@ -18,8 +20,8 @@
 - **Deps/security:** root npm-audit vulns at **14** (was 21; PR #49 took the
   non-breaking fixes). Remaining are two breaking migrations — `@vercel/node`→
   undici and mcp-server fastify v4→v5 — tracked in [[Flywheel]]'s ledger.
-- **Pending: redeploy the live MCP** to 0.36.5 (npm already published). Recipe
-  in agent memory [[hetzner-oc-server]]; verify `curl mcp.testforge.run/health`.
+- **No pending deploys** — main, npm, and the live MCP are all 0.36.5. Deploy
+  recipe (when next needed) is in agent memory [[hetzner-oc-server]].
 
 ## What's been built (recent arcs — detail in the changelog + [[Evolution]])
 - **Scoring overhaul (0.32–0.33)** — diminishing-returns, no-cry-wolf; killed
@@ -88,20 +90,18 @@ TestForge surfaced *on itself*:
 (not just security) + a `signals` block, so the brain sees the real signal.
 
 ### Next steps (pick up here)
-1. **Redeploy the live MCP to 0.36.5** — npm is published; `mcp.testforge.run`
-   is still 0.36.4. Recipe in [[hetzner-oc-server]] (git pull on the VPS, rebuild
-   the image, recreate the container with full env), then verify `/health`.
-2. **Automate the brain** — the propose step has only been run manually so far.
-   Wire `node hermes/cycle.mjs` (not `--dry`) to invoke `claude -p` for real;
-   tune `extractDigest` / `extractLedgerEntries` in `cycle.mjs` if the output
-   drifts from the prompt shape.
-3. **Decide where the ledger lives** — set `$TESTFORGE_LEDGER` to the hermes-
+1. **Automate the brain** — the propose step has only been run manually so far
+   (Claude played the proposer by hand for the 0.36.5 fixes). Wire
+   `node hermes/cycle.mjs` (not `--dry`) to invoke `claude -p` for real; tune
+   `extractDigest` / `extractLedgerEntries` in `cycle.mjs` if the output drifts
+   from the prompt shape.
+2. **Decide where the ledger lives** — set `$TESTFORGE_LEDGER` to the hermes-
    managed Obsidian note (currently defaults to the in-repo `hermes/ledger.md`).
-4. **Turn it on** — `hermes/register-hermes.sh --create` (schedule + Telegram).
-5. **Pick up the ledger backlog** (all bigger, deliberate PRs now): the
+3. **Turn it on** — `hermes/register-hermes.sh --create` (schedule + Telegram).
+4. **Pick up the ledger backlog** (all bigger, deliberate PRs now): the
    `@vercel/node`→undici bump (or an `overrides` pin + API testing), the
    mcp-server fastify v4→v5 migration, and dead-code companion-package awareness.
-6. **Feed `signals.md`** / **local-AI triage** (optional) — `$TESTFORGE_TRIAGE`
+5. **Feed `signals.md`** / **local-AI triage** (optional) — `$TESTFORGE_TRIAGE`
    + CI/Vercel/MCP error clusters into `hermes/state/signals.md`.
 
 ## Operational quick-reference

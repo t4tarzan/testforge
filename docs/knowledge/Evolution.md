@@ -65,6 +65,32 @@ checks runtime deps only.
   Markdown (self-host + web export) brought to full In-the-Wild parity:
   method/coverage per dimension, Test Coverage + Security sections, Tier-2 run.
 
+## Arc 8 — the self-improvement flywheel (0.36.5)
+The In-the-Wild loop turned inward: **TestForge now grades itself on a schedule.**
+- **`hermes/` L0 flywheel built + ships with the repo** (scheduler-agnostic;
+  hermes = hands). `scan.mjs` grades the *tracked tree* (`git archive`, so
+  build artifacts don't drown the signal) + a rotating showcase repo →
+  proposer-shaped `findings.json` (all-dimension findings + a `signals` block);
+  `cycle.mjs` feeds it to a brain (`claude -p`) → ranked plan + ledger + digest.
+  Design: [[Flywheel]]. Anti-repeat memory: `hermes/ledger.md`.
+- **First cycle, run on TestForge itself, shipped three fixes** — all monorepo
+  blind spots the product surfaced *on its own code*:
+  - **#1** Stack/DORA "no testing framework" false negative — they checked only
+    root `package.json` devDeps; vitest lives in the `mcp-server/` sibling. Now a
+    test *file* is sufficient signal (`lib/test-presence.ts`). stack 79→99, dora
+    25→55. ([[Scoring]] no-cry-wolf, applied to ourselves.)
+  - **#2** dead-code unused-dep false positives — dynamic `import()` was invisible
+    to the AST walker, and the parse loop skipped any path containing the
+    substring `"test"` (e.g. `generate-tests.ts`). unusedDeps 9→4.
+  - **#4** supply-chain triage — verified vs `npm audit`: root 21→14 via a
+    non-breaking lockfile fix; refused the `npm audit fix --force` regression
+    (it downgrades `@vercel/node` 5→4). Breaking migrations (undici via
+    `@vercel/node`, fastify v4→v5) deferred as ledger proposals.
+- Shipped through the full gate (CI · self-grade · Playwright/Vercel) as PRs
+  #47/#49, published to npm, and **redeployed to the live VPS** — all three
+  planes on 0.36.5. The brain step was run manually this cycle; automating it
+  (`claude -p` on a schedule) is the open next step in [[Status]].
+
 ## Cross-cutting themes
 - **The In-the-Wild reports are the test harness.** Most precision/cry-wolf bugs
   were caught by running real public repos and looking at the output.
