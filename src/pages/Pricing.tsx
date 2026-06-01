@@ -123,7 +123,7 @@ function PricingCardsSection() {
       monthlyPrice: 49,
       yearlyPrice: 39,
       yearlyDiscount: '20% savings',
-      description: 'Managed — we host everything, including the Tier-2 LLM keys and sandbox infra. For solo devs and small teams.',
+      description: 'Managed — we host everything: the Tier-2 LLM keys, sandbox infra, and Simulate runtime clusters. For solo devs and small teams.',
       cta: 'Upgrade to Pro',
       ctaStyle: 'primary' as const,
       features: [
@@ -131,6 +131,7 @@ function PricingCardsSection() {
         '100 Tier-1 tests/mo · 10 repositories',
         'Private repo support',
         '20 Tier-2 iterations/mo (managed AI keys)',
+        'Simulate (managed): runtime load · stress · chaos on a live cluster',
         'Cross-machine history dashboard',
         'CI/CD webhook + Slack/Discord notifications',
         'Priority email support',
@@ -152,6 +153,7 @@ function PricingCardsSection() {
         'Everything in Pro, plus:',
         '500 Tier-1 tests/mo · 50 repositories',
         '200 Tier-2 iterations/mo',
+        'Simulate: runtime load/stress/chaos + live policy-enforcement audit',
         'Iterative test → fix → re-test loop',
         'Multi-user / org accounts',
         'Shared history + audit trail',
@@ -401,6 +403,18 @@ function ComparisonTableSection() {
         { name: 'Managed AI keys (no setup)', free: false, pro: true, team: true, enterprise: true },
         { name: 'Generation history dashboard', free: 'Local SQLite', pro: true, team: 'Shared', enterprise: 'Shared' },
         { name: 'Custom AI model selection', free: 'Edit code', pro: false, team: false, enterprise: true },
+      ],
+    },
+    {
+      name: 'Tier 2 — Simulate (Runtime: Load · Stress · Chaos)',
+      features: [
+        { name: 'Managed runtime simulation (we run the cluster)', free: false, pro: true, team: true, enterprise: true },
+        { name: 'Load ramp — rps ceiling + p50/p99 latency', free: false, pro: true, team: true, enterprise: true },
+        { name: 'Stress / concurrency sweep', free: false, pro: true, team: true, enterprise: true },
+        { name: 'Chaos — pod-kill outage window + MTTR', free: false, pro: true, team: true, enterprise: true },
+        { name: 'Live dependency + ingress/egress audit', free: false, pro: true, team: true, enterprise: true },
+        { name: 'Policy-enforcement verification (static → runtime)', free: false, pro: false, team: true, enterprise: true },
+        { name: 'Full Kubernetes platform / appstore simulation', free: false, pro: false, team: true, enterprise: true },
       ],
     },
     {
