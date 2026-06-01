@@ -1,7 +1,7 @@
 # Status & Handoff
 
 > **Fresh context? Read this first.** It's the "what happened + where we are"
-> entrypoint. Last updated: 2026-06-01.
+> entrypoint. Last updated: 2026-06-02.
 > Read order: **this file → [[TestForge]] (knowledge map) → [[Evolution]] (the
 > dated journey, arc by arc) → the changelog (`src/data/changelog.ts`) → agent
 > memory (deploy/ops)**. The full arc-by-arc history lives in [[Evolution]]; this
@@ -22,6 +22,14 @@
   undici and mcp-server fastify v4→v5 — tracked in [[Flywheel]]'s ledger.
 - **No pending deploys** — main, npm, and the live MCP are all 0.36.5. Deploy
   recipe (when next needed) is in agent memory [[hetzner-oc-server]].
+- **Simulate = Tier-2's runtime half, shipped as managed/paid (0.36.6, PR #57).**
+  Real load/stress/chaos + live runtime audit (incl. static→runtime policy-
+  enforcement verification), extended to full Kubernetes platforms. Validated
+  end-to-end on a production-grade K8s platform (private; specifics live only in
+  the private `dkubex-showcase/` vault + agent memory [[dkubex-simulate-lkgc]] —
+  never in this repo). Design: [[Simulation-Engine]] · journey: [[Evolution]]
+  Arc 9. Operator-run today; self-serve repo→cluster automation is the next code
+  milestone (a replayable LKGC runbook/script already encodes the full sequence).
 
 ## What's been built (recent arcs — detail in the changelog + [[Evolution]])
 - **Scoring overhaul (0.32–0.33)** — diminishing-returns, no-cry-wolf; killed
