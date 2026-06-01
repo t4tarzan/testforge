@@ -97,6 +97,29 @@ The In-the-Wild loop turned inward: **TestForge now grades itself on a schedule.
   reading `build`/`_security.js`). Open next step: schedule it
   (`register-hermes.sh`) + pick the ledger's home. See [[Status]] / [[Flywheel]].
 
+## Arc 9 — Simulate completes Tier-2 (0.36.6)
+Tier-2 was always two halves: **Generate & Run** (LLM-authored tests in a sandbox)
+and **Simulate** (exercise the *running* system). Simulate is now real and shipped
+as a **managed paid capability** (Pro+).
+- The [[Simulation-Engine]] gained a **cluster/runtime tier**: provision a throwaway
+  k3s cluster → deploy the target via *its own* Helm/helmfile → real **load** (rps
+  ceiling + p50/p99), **stress**, and **chaos** (pod-kill → outage window + MTTR) →
+  a **live runtime audit** (dependency health, ingress/egress, and the
+  differentiator: **static→runtime policy-enforcement verification** — deploy a
+  violating pod and check whether admission policy actually blocks it).
+- **Validated end-to-end on a production-grade, multi-service Kubernetes platform**
+  (full appstore install, a measured ~2.2k-rps single-worker ceiling, ~10s MTTR
+  exposing a single-replica SPOF, and a *policy-present-but-not-enforcing* finding
+  static analysis can't see). The target is kept private; only the capability is
+  public.
+- Positioned in the changelog + [[Reports]]/Pricing as Tier-2's runtime half (PR
+  #57). Today it is **operator-run** for paid plans; a private, replayable LKGC
+  runbook + script encodes the full sequence, so **self-serve repo→cluster
+  automation is the next code milestone**.
+- The thesis crystallized here: **TestForge grades your manifests; Simulate grades
+  the running system** — capacity, resilience, dependency health, and whether the
+  security posture is *enforced* or merely *declared*.
+
 ## Cross-cutting themes
 - **The In-the-Wild reports are the test harness.** Most precision/cry-wolf bugs
   were caught by running real public repos and looking at the output.
