@@ -100,10 +100,24 @@ permission system auto-denies edits/commands (read-only in practice) despite the
 untrusted showcase content in the bundle. (`--permission-mode plan` stalls under
 `-p` — don't use it.)
 
+**THE FLYWHEEL IS LIVE (2026-06-01).** `hermes/register-hermes.sh --create`
+registered hermes cron job `TestForge flywheel` (`1fb8883a4361`): **daily 09:00**,
+**`--deliver telegram`**, no-agent mode (cycle.mjs's stdout digest delivered
+verbatim). First run 2026-06-02 09:00. The launcher
+(`~/.hermes/scripts/testforge-flywheel.sh`) exports **`$TESTFORGE_LEDGER` to an
+off-repo Obsidian note** (`~/testforge/vault/notes/testforge-flywheel-ledger.md`,
+seeded from the committed `hermes/ledger.md`) — so unattended appends never dirty
+the git tree. Runs on the Mac Studio hub where the hermes gateway lives. It now
+runs itself; no human in the loop unless a digest prompts action.
+
 ### Next steps (pick up here)
-1. **Decide where the ledger lives** — set `$TESTFORGE_LEDGER` to the hermes-
-   managed Obsidian note (currently defaults to the in-repo `hermes/ledger.md`).
-2. **Turn it on** — `hermes/register-hermes.sh --create` (schedule + Telegram).
+1. **Watch the first scheduled run** (2026-06-02 09:00) — confirm the Telegram
+   digest lands and the vault ledger gets a real appended entry. Tune cadence via
+   `hermes cron edit` if daily feels wrong.
+2. **Act on what the flywheel proposes** — its first automated cycle already
+   flagged daemon hardening (SIGTERM/error-handler), DB-pool exhaustion, and two
+   analyzer false-negatives (DORA type-check, load rate-limiting). These are the
+   next *engineering* PRs, now sourced by the loop rather than by hand.
 3. **Pick up the ledger backlog** (all bigger, deliberate PRs now): the
    `@vercel/node`→undici bump (or an `overrides` pin + API testing), the
    mcp-server fastify v4→v5 migration, and dead-code companion-package awareness.
