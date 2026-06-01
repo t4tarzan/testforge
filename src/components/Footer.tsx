@@ -167,6 +167,16 @@ export default function Footer() {
         <div className="mt-12 pt-6 border-t border-[#3A3A3A] flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-[#9A9A9A] text-sm">
             &copy; 2026 TestForge. All rights reserved.
+            <span className="mx-2 text-[#3A3A3A]">·</span>
+            Powered by{' '}
+            <a
+              href="https://dkube.io"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#a39fd4] hover:text-[#7a6fad] font-medium transition-colors"
+            >
+              Dkube
+            </a>
           </p>
           <div className="flex items-center gap-4">
             <Link to="/privacy" className="text-[#9A9A9A] text-sm hover:text-[#7a6fad] transition-colors">Privacy</Link>
