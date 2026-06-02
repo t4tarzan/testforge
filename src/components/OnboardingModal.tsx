@@ -7,6 +7,11 @@ export default function OnboardingModal() {
   const [step, setStep] = useState(0);
 
   useEffect(() => {
+    // Hub / self-host build (VITE_MCP_URL is set, e.g. `npm run build:hub`)
+    // skips the first-visit onboarding popup — it's a cloud-onboarding nicety,
+    // not wanted when serving the app locally in front of a local mcp-server.
+    // Production/Vercel builds leave VITE_MCP_URL unset → onboarding unchanged.
+    if (import.meta.env.VITE_MCP_URL !== undefined) return;
     const dismissed = localStorage.getItem('onboarding_dismissed');
     if (!dismissed) {
       const timer = setTimeout(() => setShow(true), 1500);
