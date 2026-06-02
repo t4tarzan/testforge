@@ -181,7 +181,12 @@ export function runAgenticScalePrediction(
 
   // Check for authentication rate limiting (agents will hammer auth)
   const hasAuth = allContent.includes('auth') || allContent.includes('jwt') || allContent.includes('token');
-  if (hasAuth && !allContent.includes('maxLoginAttempts') && !allContent.includes('loginRateLimit')) {
+  // Recognize a per-route limiter decorator (slowapi/flask-limiter) or the
+  // legacy markers as evidence auth is rate-limited.
+  const hasAuthRateLimit =
+    allContent.includes('maxLoginAttempts') || allContent.includes('loginRateLimit') ||
+    /@limiter\.limit\(/.test(allContent) || allContent.includes('SlowAPIMiddleware');
+  if (hasAuth && !hasAuthRateLimit) {
     findings.push({
       severity: 'high',
       title: 'Auth Endpoints Not Rate Limited',

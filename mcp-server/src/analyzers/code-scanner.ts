@@ -266,11 +266,19 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
   // use `packages/<name>/package.json` without a workspaces field).
   const pyMemberDirs = [
     '',
+    // Conventional backend dirs (mirrors reqSubdirs) — many full-stack repos
+    // keep the Python app under backend/ with its own pyproject.toml and no
+    // root manifest, so workspace discovery alone misses it.
+    'backend', 'server', 'api',
     ...(await discoverUvWorkspaceMembers(projectPath)),
     ...(await discoverConventionalMembers(projectPath, 'pyproject.toml')),
   ];
   const nodeMemberDirs = [
     '',
+    // Conventional frontend dirs — full-stack repos keep the Next/React app
+    // under frontend/ (or client/web/ui) with its own package.json and no root
+    // manifest, so workspace discovery alone misses the framework/bundler deps.
+    'frontend', 'client', 'web', 'ui',
     ...(await discoverNodeWorkspaceMembers(projectPath)),
     ...(await discoverConventionalMembers(projectPath, 'package.json')),
   ];
