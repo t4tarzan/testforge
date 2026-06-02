@@ -1,7 +1,7 @@
 # Status & Handoff
 
 > **Fresh context? Read this first.** It's the "what happened + where we are"
-> entrypoint. Last updated: 2026-06-01.
+> entrypoint. Last updated: 2026-06-02.
 > Read order: **this file → [[TestForge]] (knowledge map) → [[Evolution]] (the
 > dated journey, arc by arc) → the changelog (`src/data/changelog.ts`) → agent
 > memory (deploy/ops)**. The full arc-by-arc history lives in [[Evolution]]; this
@@ -22,6 +22,14 @@
   undici and mcp-server fastify v4→v5 — tracked in [[Flywheel]]'s ledger.
 - **No pending deploys** — main, npm, and the live MCP are all 0.36.5. Deploy
   recipe (when next needed) is in agent memory [[hetzner-oc-server]].
+- **Simulate = Tier-2's runtime half, shipped as managed/paid (0.36.6, PR #57).**
+  Real load/stress/chaos + live runtime audit (incl. static→runtime policy-
+  enforcement verification), extended to full Kubernetes platforms. Validated
+  end-to-end on a production-grade K8s platform (private; specifics live only in
+  the private `dkubex-showcase/` vault + agent memory [[dkubex-simulate-lkgc]] —
+  never in this repo). Design: [[Simulation-Engine]] · journey: [[Evolution]]
+  Arc 9. Operator-run today; self-serve repo→cluster automation is the next code
+  milestone (a replayable LKGC runbook/script already encodes the full sequence).
 
 ## What's been built (recent arcs — detail in the changelog + [[Evolution]])
 - **Scoring overhaul (0.32–0.33)** — diminishing-returns, no-cry-wolf; killed
@@ -100,10 +108,24 @@ permission system auto-denies edits/commands (read-only in practice) despite the
 untrusted showcase content in the bundle. (`--permission-mode plan` stalls under
 `-p` — don't use it.)
 
+**THE FLYWHEEL IS LIVE (2026-06-01).** `hermes/register-hermes.sh --create`
+registered hermes cron job `TestForge flywheel` (`1fb8883a4361`): **daily 09:00**,
+**`--deliver telegram`**, no-agent mode (cycle.mjs's stdout digest delivered
+verbatim). First run 2026-06-02 09:00. The launcher
+(`~/.hermes/scripts/testforge-flywheel.sh`) exports **`$TESTFORGE_LEDGER` to an
+off-repo Obsidian note** (`~/testforge/vault/notes/testforge-flywheel-ledger.md`,
+seeded from the committed `hermes/ledger.md`) — so unattended appends never dirty
+the git tree. Runs on the Mac Studio hub where the hermes gateway lives. It now
+runs itself; no human in the loop unless a digest prompts action.
+
 ### Next steps (pick up here)
-1. **Decide where the ledger lives** — set `$TESTFORGE_LEDGER` to the hermes-
-   managed Obsidian note (currently defaults to the in-repo `hermes/ledger.md`).
-2. **Turn it on** — `hermes/register-hermes.sh --create` (schedule + Telegram).
+1. **Watch the first scheduled run** (2026-06-02 09:00) — confirm the Telegram
+   digest lands and the vault ledger gets a real appended entry. Tune cadence via
+   `hermes cron edit` if daily feels wrong.
+2. **Act on what the flywheel proposes** — its first automated cycle already
+   flagged daemon hardening (SIGTERM/error-handler), DB-pool exhaustion, and two
+   analyzer false-negatives (DORA type-check, load rate-limiting). These are the
+   next *engineering* PRs, now sourced by the loop rather than by hand.
 3. **Pick up the ledger backlog** (all bigger, deliberate PRs now): the
    `@vercel/node`→undici bump (or an `overrides` pin + API testing), the
    mcp-server fastify v4→v5 migration, and dead-code companion-package awareness.

@@ -50,6 +50,14 @@ export const TAG_COLORS: Record<ChangelogTag, string> = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '0.36.6',
+    date: '2026-06-02',
+    tag: 'platform',
+    title: 'Simulate — runtime load, stress & chaos completes Tier-2 (managed, paid)',
+    summary:
+      'Tier-2 was always meant to be two halves: Generate & Run (LLM-authored tests executed in a sandbox) AND Simulate — exercising the *running* system, not just the code. Simulate is now real. The engine provisions a throwaway Kubernetes cluster, deploys the target through its own Helm/helmfile, and runs a true load ramp (measured requests/sec ceiling + p50/p99 latency knee), a stress/concurrency sweep, and chaos (force-kill a pod under load → measured outage window + MTTR), alongside a live runtime audit: dependency health (does Postgres/Redis/object-store actually answer?), ingress/egress mapping, and the differentiator — *policy enforcement verification*: when the static pass flags run-as-root / privileged / missing-probes, Simulate deploys a violating pod and checks whether the cluster admission policy actually blocks it. TestForge already grades your manifests; Simulate grades the running system. Validated end-to-end on a production-grade, multi-service Kubernetes platform (full appstore install, ~2.2k rps capacity ceiling on a single worker, ~10s MTTR exposing a single-replica SPOF, and a Kyverno-present-but-not-enforcing finding static analysis cannot see). Available as a managed Tier-2 capability on Pro and above — we run the cluster and the simulation for you. Self-serve repo→cluster automation is rolling out next; today it is operator-run for paid plans.',
+  },
+  {
     version: '0.36.5',
     date: '2026-05-31',
     tag: 'precision',
