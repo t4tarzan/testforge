@@ -670,9 +670,9 @@ function ApiKeysTab() {
           </div>
         ) : (
           <div className="space-y-3">
-            <input type="password" value={byokInput} onChange={e => setByokInput(e.target.value)} placeholder="sk-or-v1-…  (get one at openrouter.ai/keys)"
+            <input aria-label="OpenRouter API key" type="password" value={byokInput} onChange={e => setByokInput(e.target.value)} placeholder="sk-or-v1-…  (get one at openrouter.ai/keys)"
               className="w-full h-10 px-3 rounded-lg border border-[#D9D9D3] font-mono text-[13px] focus:outline-none focus:border-[#a39fd4]" />
-            <input type="text" value={byokModel} onChange={e => setByokModel(e.target.value)} placeholder="Model (optional) — default deepseek/deepseek-v4-flash"
+            <input aria-label="Model" type="text" value={byokModel} onChange={e => setByokModel(e.target.value)} placeholder="Model (optional) — default deepseek/deepseek-v4-flash"
               className="w-full h-10 px-3 rounded-lg border border-[#D9D9D3] font-mono text-[13px] focus:outline-none focus:border-[#a39fd4]" />
             <button onClick={saveByok} disabled={byokBusy || !byokInput.trim()} className="h-10 px-5 bg-[#574a7d] text-white rounded-lg font-body font-medium text-[14px] hover:bg-[#4a3d6b] transition-colors disabled:opacity-50">
               {byokBusy ? 'Saving…' : 'Save key'}
