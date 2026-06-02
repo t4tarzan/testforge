@@ -62,30 +62,34 @@ export async function runUnitAnalysis(config: {
   // 1. Find test files — JS/TS .{test,spec} convention PLUS pytest
   //    conventions (test_*.py, *_test.py, anything under tests/). Python
   //    test counts come from a regex (def test_…) since our AST is JS-only.
+  // Exclusions MUST be passed via glob's `ignore:` option — node-glob does
+  // NOT honor `!`-prefixed negation inside the pattern array, so listing them
+  // there silently walks node_modules (a large tree = minutes / OOM).
+  const VENDOR_IGNORE = [
+    '**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**',
+    '**/__pycache__/**', '**/.venv/**', '**/venv/**', '**/.tox/**',
+    '**/.pytest_cache/**', '**/vendor/**',
+  ];
   const testPatterns = [
     '**/*.{test,spec}.{ts,js,tsx,jsx}',
     '**/test_*.py',
     '**/*_test.py',
     '**/tests/**/*.py',
     '**/*_test.go', // Go: convention is foo_test.go next to foo.go
-    '!**/node_modules/**', '!**/dist/**', '!**/__pycache__/**',
-    '!**/.venv/**', '!**/venv/**', '!**/.tox/**', '!**/.pytest_cache/**',
-    '!**/vendor/**',
   ];
-  const testFiles = await glob(testPatterns, { cwd: projectPath, absolute: false });
+  const testFiles = await glob(testPatterns, { cwd: projectPath, absolute: false, ignore: VENDOR_IGNORE });
 
   // 2. Find source files (non-test). Mirrors the test glob so Python source
   //    is counted as source. Excludes any path matched as a test above so
   //    pytest files don't double-count.
-  const sourcePatterns = [
-    '**/*.{ts,js,tsx,jsx,py,go}',
-    '!**/node_modules/**', '!**/.git/**', '!**/dist/**', '!**/build/**',
-    '!**/__pycache__/**', '!**/.venv/**', '!**/venv/**', '!**/vendor/**',
-    '!**/*.{test,spec}.{ts,js,tsx,jsx}',
-    '!**/test_*.py', '!**/*_test.py', '!**/tests/**/*.py',
-    '!**/*_test.go',
-  ];
-  const sourceFiles = await glob(sourcePatterns, { cwd: projectPath, absolute: false });
+  const sourceFiles = await glob('**/*.{ts,js,tsx,jsx,py,go}', {
+    cwd: projectPath, absolute: false,
+    ignore: [
+      ...VENDOR_IGNORE,
+      '**/*.{test,spec}.{ts,js,tsx,jsx}',
+      '**/test_*.py', '**/*_test.py', '**/tests/**/*.py', '**/*_test.go',
+    ],
+  });
 
   // 3. Parse test files (AST) to count tests and gather quality signals.
   const parsedTestFiles: Array<{ path: string; testCount: number }> = [];

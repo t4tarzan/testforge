@@ -66,14 +66,11 @@ export async function runAccessibilityAnalysis(config: {
   let fileContents = config.fileContents;
   if (!fileContents || Object.keys(fileContents).length === 0) {
     fileContents = {};
-    const patterns = [
-      '**/*.{html,tsx,jsx,vue,svelte}',
-      '!**/node_modules/**',
-      '!**/.git/**',
-      '!**/dist/**',
-      '!**/build/**',
-    ];
-    const files = await glob(patterns, { cwd: projectPath, absolute: false });
+    // Exclusions go in `ignore:` — node-glob ignores `!`-negation in the array.
+    const files = await glob('**/*.{html,tsx,jsx,vue,svelte}', {
+      cwd: projectPath, absolute: false,
+      ignore: ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**'],
+    });
     for (const f of files) {
       try {
         fileContents[f] = readFileSync(join(projectPath, f), 'utf-8');

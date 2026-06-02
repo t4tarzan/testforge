@@ -137,7 +137,14 @@ export function categorizeLicense(spdx: string | null): LicenseCategory {
 /* Walking node_modules                                                       */
 /* -------------------------------------------------------------------------- */
 
+// Hard cap on packages inspected. A large node_modules (e.g. a Next.js app's
+// 780MB tree with deep nested copies) would otherwise take minutes and OOM the
+// single-threaded server via the recursive walk below. The license dimension
+// is a categorized COUNT, so a bounded sample is representative.
+const MAX_LICENSE_PKGS = Number(process.env.TESTFORGE_MAX_LICENSE_PKGS) || 3000;
+
 function collectPackages(dir: string, out: PackageLicense[]) {
+  if (out.length >= MAX_LICENSE_PKGS) return;
   let entries: string[];
   try {
     entries = readdirSync(dir);
@@ -145,6 +152,7 @@ function collectPackages(dir: string, out: PackageLicense[]) {
     return;
   }
   for (const entry of entries) {
+    if (out.length >= MAX_LICENSE_PKGS) return;
     if (entry === '.bin' || entry === '.cache') continue;
     const fullPath = join(dir, entry);
 

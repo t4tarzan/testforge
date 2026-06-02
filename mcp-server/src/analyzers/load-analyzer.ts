@@ -60,8 +60,8 @@ export async function runLoadAnalysis(config: {
   let contents = fileContents;
   if (!contents || Object.keys(contents).length === 0) {
     contents = {};
-    const patterns = ['**/*.{ts,js,tsx,jsx}', '!**/node_modules/**', '!**/.git/**', '!**/dist/**', '!**/build/**'];
-    const files = await glob(patterns, { cwd: projectPath, absolute: false });
+    // Exclusions go in `ignore:` — node-glob ignores `!`-negation in the array.
+    const files = await glob('**/*.{ts,js,tsx,jsx}', { cwd: projectPath, absolute: false, ignore: ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**'] });
     for (const f of files) {
       try {
         contents[f] = readFileSync(join(projectPath, f), 'utf-8');

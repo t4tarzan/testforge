@@ -62,13 +62,14 @@ const CANDIDATES: Array<{ globs: string[]; format: CoverageResult['format']; par
   { globs: ['lcov.info', 'coverage/lcov.info', '**/lcov.info'], format: 'lcov', parse: parseLcov },
 ];
 
-const IGNORE = ['!**/node_modules/**', '!**/.venv/**', '!**/venv/**', '!**/dist/**', '!**/build/**'];
+// Exclusions go in `ignore:` — node-glob ignores `!`-negation in the pattern array.
+const IGNORE = ['**/node_modules/**', '**/.venv/**', '**/venv/**', '**/dist/**', '**/build/**'];
 
 /** Find + parse the first usable coverage artifact under projectPath. */
 export async function readRealCoverage(projectPath: string): Promise<CoverageResult | null> {
   for (const cand of CANDIDATES) {
     let matches: string[] = [];
-    try { matches = await glob([...cand.globs, ...IGNORE], { cwd: projectPath, absolute: false, nodir: true }); } catch { continue; }
+    try { matches = await glob(cand.globs, { cwd: projectPath, absolute: false, nodir: true, ignore: IGNORE }); } catch { continue; }
     for (const rel of matches.slice(0, 5)) {
       let content: string;
       try { content = readFileSync(join(projectPath, rel), 'utf8'); } catch { continue; }
