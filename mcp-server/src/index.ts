@@ -44,6 +44,7 @@ import {
 import { runAgenticScalePrediction } from './analyzers/agentic-scale.js';
 import { runKubernetesAnalysis } from './analyzers/k8s-analyzer.js';
 import { generateTestsForFindings, type InputFinding, type LlmOverride } from './generator/generate-tests.js';
+import { filterTestableFindings } from './generator/finding-filter.js';
 import { hasLLMKey, PRIMARY_MODEL, FALLBACK_MODEL, LLM_BASE_URL, LLM_IS_LOCAL } from './generator/llm-client.js';
 import { isFromEnvFile, readEnvFile, writeEnvFile } from './load-env.js';
 import { reloadLLM } from './generator/llm-client.js';
@@ -448,6 +449,18 @@ async function main() {
       });
     }
 
+    // Dimension filter: only generate tests for concrete code findings. Advisory
+    // findings (load/accessibility/chaos/mutation/predictive) have no testable
+    // contract and produce synthetic — sometimes deliberately-failing — tests.
+    const { kept: testableFindings, dropped: droppedFindings } = filterTestableFindings(findings);
+    if (testableFindings.length === 0) {
+      return reply.status(422).send({
+        error: 'No testable findings for Tier-2 generation',
+        hint: 'All findings were advisory (load/accessibility/chaos/mutation/predictive), which have no testable contract. Tier-2 generates tests only for concrete code findings (security/unit). Pass at least one concrete finding.',
+        dropped: droppedFindings,
+      });
+    }
+
     const cluster = body?.cluster ?? 'edge-case';
     const max = Math.min(body?.maxFindings ?? 3, 5);
     const skipRun = (body as { skipRun?: boolean } | undefined)?.skipRun === true;
@@ -455,7 +468,7 @@ async function main() {
     const t0 = Date.now();
     let results: Awaited<ReturnType<typeof generateTestsForFindings>>;
     try {
-      results = await generateTestsForFindings(findings, max, llmOverride);
+      results = await generateTestsForFindings(testableFindings, max, llmOverride);
     } catch (err) {
       // Never let one malformed finding 500 the whole request — return a clean,
       // actionable error instead.
@@ -509,6 +522,8 @@ async function main() {
       generationMs,
       runMs: run?.durationMs ?? 0,
       requested: findings.length,
+      testable: testableFindings.length,
+      dropped: droppedFindings,
       processed: results.length,
       results: results.map((r) => ({
         finding: {
