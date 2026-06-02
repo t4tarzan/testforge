@@ -162,7 +162,7 @@ export function isExampleOrDemoPath(filePath: string): boolean {
 
 // Path markers of third-party / generated bundles we shouldn't scan as
 // the project's own source.
-const VENDOR_PATH_RE = /(?:^|\/)(?:vendor|vendored|third[-_]?party|monaco-editor|codemirror|\.min\.)/i;
+const VENDOR_PATH_RE = /(?:^|\/)(?:node_modules|\.next|dist|build|out|coverage|__pycache__|\.venv|venv|vendor|vendored|third[-_]?party|monaco-editor|codemirror)\/|\.min\.[mc]?jsx?$/i;
 
 /**
  * True for minified or vendored files. Two signals:

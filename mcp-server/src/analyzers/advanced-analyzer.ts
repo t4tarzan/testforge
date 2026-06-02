@@ -1657,18 +1657,20 @@ export interface DoraReport {
 
 export function runDoraEstimation(
   fileContents: Record<string, string>,
-  devDependencies: string[]
+  devDependencies: string[],
+  dependencies: string[] = []
 ): DoraReport {
   const findings: Finding[] = [];
 
-  // Best-effort: caller doesn't pass `dependencies`, so derive direct
-  // deps from the package.json content if present.
-  let direct: string[] = [];
+  // Prefer the caller's parsed runtime deps (covers Python requirements.txt /
+  // pyproject — sentry-sdk, structlog, opentelemetry — which package.json
+  // parsing alone would miss). Also fold in package.json deps when present.
+  const direct: string[] = [...dependencies];
   const pkg = fileContents['package.json'];
   if (pkg) {
     try {
       const parsed = JSON.parse(pkg);
-      direct = Object.keys((parsed.dependencies ?? {}) as Record<string, string>);
+      direct.push(...Object.keys((parsed.dependencies ?? {}) as Record<string, string>));
     } catch { /* ignore */ }
   }
 

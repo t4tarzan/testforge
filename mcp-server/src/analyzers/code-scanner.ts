@@ -2,6 +2,17 @@ import { glob } from 'glob';
 import { readFileSync, existsSync, statSync } from 'fs';
 import { join } from 'path';
 
+// Directories/files never scanned as project source: dependencies, VCS, build
+// output, caches, lockfiles. Passed to glob's `ignore` option — NOT as
+// `!`-negation in the patterns array, which the glob package does not honor.
+export const SCAN_IGNORE_GLOBS = [
+  '**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**',
+  '**/.next/**', '**/out/**', '**/coverage/**', '**/__pycache__/**',
+  '**/.venv/**', '**/venv/**', '**/.tox/**', '**/.pytest_cache/**',
+  '**/vendor/**',
+  '**/package-lock.json', '**/yarn.lock', '**/pnpm-lock.yaml', '**/poetry.lock', '**/go.sum',
+];
+
 export interface CodebaseInfo {
   files: Array<{ path: string; lines: number }>;
   totalFiles: number;
@@ -98,13 +109,14 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
     '**/*.{ts,js,tsx,jsx,mjs,cjs,mts,cts,py,go,yaml,yml,json,toml,md}',
     '**/{Dockerfile,Procfile,CODEOWNERS,requirements.txt,requirements-dev.txt,Pipfile,go.mod,go.sum}',
     '**/.github/**/*',
-    '!**/node_modules/**', '!**/.git/**', '!**/dist/**', '!**/build/**',
-    '!**/.next/**', '!**/coverage/**', '!**/__pycache__/**', '!**/.venv/**',
-    '!**/venv/**', '!**/.tox/**', '!**/.pytest_cache/**',
-    '!**/vendor/**',  // Go's go.mod vendor dir
-    '!**/package-lock.json', '!**/yarn.lock', '!**/pnpm-lock.yaml', '!**/poetry.lock', '!**/go.sum',
   ];
-  const files = await glob(patterns, { cwd: projectPath, absolute: false, dot: true });
+  // IMPORTANT: the `glob` package does NOT honor `!`-negation inside the
+  // patterns array (that's globby/minimatch behavior) — exclusions MUST go in
+  // the `ignore` option. With them in `patterns` they were silently ignored, so
+  // node_modules/.next/dist were scanned: thousands of vendored files producing
+  // garbage findings (react-dom flagged as "SQL injection") and OOMs on large
+  // frontends. See SCAN_IGNORE_GLOBS.
+  const files = await glob(patterns, { cwd: projectPath, absolute: false, dot: true, ignore: SCAN_IGNORE_GLOBS });
 
   // 2. Read each file, count lines, extract function names.
   //
@@ -436,13 +448,8 @@ export async function scanCodebase(projectPath: string): Promise<CodebaseInfo> {
   // fileContents with files we won't read.
   const unsupportedExts = Object.keys(UNSUPPORTED_EXT_TO_LANG);
   if (unsupportedExts.length > 0) {
-    const extraGlob = [
-      `**/*.{${unsupportedExts.join(',')}}`,
-      '!**/node_modules/**', '!**/.git/**', '!**/dist/**', '!**/build/**',
-      '!**/.next/**', '!**/coverage/**', '!**/__pycache__/**', '!**/.venv/**',
-      '!**/venv/**', '!**/vendor/**',
-    ];
-    const extraFiles = await glob(extraGlob, { cwd: projectPath, absolute: false, dot: true });
+    const extraGlob = [`**/*.{${unsupportedExts.join(',')}}`];
+    const extraFiles = await glob(extraGlob, { cwd: projectPath, absolute: false, dot: true, ignore: SCAN_IGNORE_GLOBS });
     for (const ef of extraFiles) {
       const ext = extOf(ef);
       const lang = UNSUPPORTED_EXT_TO_LANG[ext];

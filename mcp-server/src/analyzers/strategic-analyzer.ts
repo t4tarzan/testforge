@@ -273,10 +273,16 @@ const LINT_DEPS = new Set([
 ]);
 
 const ORM_DEPS = new Set([
+  // JS/TS
   'prisma', '@prisma/client', 'drizzle-orm', 'drizzle-kit',
   'typeorm', 'sequelize', 'sequelize-typescript',
   'mongoose', 'mikro-orm', '@mikro-orm/core',
   'kysely', 'knex', 'objection',
+  // Python
+  'sqlalchemy', 'sqlmodel', 'alembic', 'tortoise-orm', 'peewee',
+  'databases', 'pony', 'gino', 'ormar', 'piccolo',
+  // Go
+  'gorm.io/gorm', 'github.com/jmoiron/sqlx', 'entgo.io/ent',
 ]);
 
 const CACHE_DEPS = new Set([
@@ -309,9 +315,12 @@ const MODERN_FRAMEWORK_DEPS = new Set([
 ]);
 
 const VALIDATION_DEPS = new Set([
+  // JS/TS
   'zod', 'yup', 'joi', 'ajv', 'typia',
   'valibot', 'arktype', 'effect', 'io-ts',
   'class-validator', 'superstruct', 'runtypes',
+  // Python — Pydantic (and FastAPI, which enforces request models via Pydantic)
+  'pydantic', 'pydantic-settings', 'fastapi', 'marshmallow', 'cerberus', 'voluptuous',
 ]);
 
 const TRPC_DEPS = new Set([
@@ -332,14 +341,30 @@ export async function runStackAnalysis(
   const recommendations: string[] = [];
 
   const allDeps = [...dependencies, ...devDependencies];
-  const has = (set: Set<string>) => allDeps.some((d) => set.has(d));
-  const matched = (set: Set<string>) => allDeps.filter((d) => set.has(d));
+  // Case-insensitive matching: Python deps keep manifest casing (e.g.
+  // "SQLAlchemy", "Pydantic") while our dep sets are lowercase. Compare lowered.
+  const lowerDeps = allDeps.map((d) => d.toLowerCase());
+  const has = (set: Set<string>) => lowerDeps.some((d) => set.has(d));
+  const matched = (set: Set<string>) => allDeps.filter((d) => set.has(d.toLowerCase()));
 
-  // ── TypeScript adoption (techStack-based, untouched)
-  const hasTypeScript = techStack.includes('TypeScript');
+  // ── TypeScript adoption. techStack OR a tsconfig OR any .ts/.tsx source —
+  //    a Next.js/TS app frequently lists `typescript` only in devDeps and may
+  //    not surface in techStack, so file-level signals avoid a false "no TS".
+  //    Also: Python/Go projects are typed at the language level; don't ding them
+  //    for "missing TypeScript".
+  const fileKeys = Object.keys(fileContents);
+  const isTsProject =
+    techStack.includes('TypeScript') ||
+    allDeps.includes('typescript') ||
+    fileKeys.some((f) => f.endsWith('tsconfig.json')) ||
+    fileKeys.some((f) => /\.(ts|tsx|mts|cts)$/.test(f));
+  const isTypedLang =
+    techStack.includes('Python') || techStack.includes('Go') || techStack.includes('Rust') ||
+    fileKeys.some((f) => /\.(py|go|rs)$/.test(f));
+  const hasTypeScript = isTsProject;
   if (hasTypeScript) {
     strengths.push('TypeScript provides type safety and better developer experience');
-  } else if (dependencies.length > 10) {
+  } else if (!isTypedLang && dependencies.length > 10) {
     findings.push({
       severity: 'medium',
       title: 'JavaScript without TypeScript',

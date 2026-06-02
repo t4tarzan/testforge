@@ -745,7 +745,7 @@ async function main() {
       // always flag "unused", falsely cliffing the score on polyglot repos).
       const deadCodeReport = runDeadCodeAnalysis(codebase.fileContents, codebase.npmDependencies);
       const licenseReport = runLicenseCheck(codebase.dependencies, projectPath);
-      const doraReport = runDoraEstimation(codebase.fileContents, codebase.devDependencies);
+      const doraReport = runDoraEstimation(codebase.fileContents, codebase.devDependencies, codebase.dependencies);
       const owaspReport = runOwaspCoverage(securityFindings.filter(f => f.severity !== 'info') as Parameters<typeof runOwaspCoverage>[0]);
 
       // ── Agentic Scale Prediction (21st dimension) ─────────────────────
