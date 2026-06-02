@@ -20,7 +20,7 @@ import { runSecurityAnalysis } from './analyzers/security-analyzer.js';
 import { runUnitAnalysis } from './analyzers/unit-analyzer.js';
 import { runLoadAnalysis } from './analyzers/load-analyzer.js';
 import { runAccessibilityAnalysis } from './analyzers/accessibility-analyzer.js';
-import { getReports, getReport, saveGeneration, getGenerations, getGeneration } from './local-db.js';
+import { getReports, getReport, saveReport, saveGeneration, getGenerations, getGeneration } from './local-db.js';
 import {
   runVisionAnalysis,
   runScopeAnalysis,
@@ -628,6 +628,22 @@ async function main() {
     const report = getReport(id);
     if (!report) return reply.status(404).send({ error: 'Report not found' });
     return reply.send(report);
+  });
+
+  // ── Save Report ─────────────────────────────────────────────────────
+  // The dashboard POSTs the result of /analyze or /clone-and-analyze here to
+  // persist it to the local history DB and get back an id for the report view.
+  app.post('/save-report', async (request, reply) => {
+    const body = request.body as { data?: Record<string, unknown>; source?: string } | undefined;
+    if (!body?.data || typeof body.data !== 'object') {
+      return reply.status(400).send({ error: 'data: analysis report object required' });
+    }
+    try {
+      const id = saveReport(body.data, body.source ?? 'unknown');
+      return reply.send({ id });
+    } catch (err) {
+      return reply.status(500).send({ error: 'Failed to save report', detail: (err as Error).message });
+    }
   });
 
   // ── Clone & Analyze (accepts git URLs) ─────────────────────────────────
