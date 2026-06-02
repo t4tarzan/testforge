@@ -2,7 +2,10 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { GitBranch, Play, Loader2, AlertCircle } from 'lucide-react';
 
-const MCP_URL = 'https://mcp.testforge.run';
+// Defaults to the managed cloud MCP. Override at build time with VITE_MCP_URL
+// (e.g. '' for same-origin when self-hosting the web app in front of a local
+// mcp-server). Production/Vercel builds leave it unset → cloud default unchanged.
+const MCP_URL = import.meta.env.VITE_MCP_URL ?? 'https://mcp.testforge.run';
 
 interface ConnectStepProps {
   // Receives the analyzer's full result object — dynamic shape, see ReportStep.
