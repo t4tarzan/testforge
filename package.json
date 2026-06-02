@@ -10,6 +10,7 @@
     "dev:web": "vite",
     "dev:api": "node server.js",
     "build": "tsc -b && vite build",
+    "build:hub": "VITE_MCP_URL= npm run build",
     "lint": "eslint .",
     "preview": "vite preview",
     "db:generate": "drizzle-kit generate",
