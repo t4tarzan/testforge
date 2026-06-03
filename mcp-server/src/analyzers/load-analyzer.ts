@@ -102,18 +102,30 @@ export async function runLoadAnalysis(config: {
   // ── Signal aggregation: AST hit OR strong-evidence dep import.
   // Boolean flags are now backed by REAL middleware/call registration,
   // not just substring presence.
+  // Lowercased deps so Python manifest casing (SQLAlchemy, …) matches.
+  const lowDeps = allDeps.map(d => d.toLowerCase());
+  const dep = (...names: string[]) => names.some(n => lowDeps.includes(n));
+
   const hasRateLimiting =
     patterns.rateLimit.length > 0 ||
-    allDeps.some(d => d === 'express-rate-limit' || d === '@fastify/rate-limit' || d === 'koa-ratelimit');
+    dep('express-rate-limit', '@fastify/rate-limit', 'koa-ratelimit',
+        // Python (FastAPI/Starlette)
+        'slowapi', 'fastapi-limiter', 'asgi-ratelimit', 'limits') ||
+    /SlowAPIMiddleware|@limiter\.limit|Limiter\(/.test(allContent);
 
   const hasCaching =
     patterns.cache.length > 0 ||
-    allDeps.some(d => d === 'redis' || d === 'ioredis' || d === 'memcached' || d === 'node-cache' || d === '@upstash/redis');
+    dep('redis', 'ioredis', 'memcached', 'node-cache', '@upstash/redis',
+        // Python
+        'aiocache', 'fastapi-cache2', 'fastapi-cache', 'cachetools', 'aioredis');
 
   const hasConnectionPooling =
     patterns.pool.length > 0 ||
-    // Prisma + Drizzle ship with built-in pooling; Sequelize too.
-    allDeps.some(d => d === 'prisma' || d === '@prisma/client' || d === 'drizzle-orm' || d === 'sequelize' || d === 'pg-pool');
+    // Prisma + Drizzle ship with built-in pooling; Sequelize too. SQLAlchemy's
+    // engine pools by default; asyncpg/psycopg drive pooled async engines.
+    dep('prisma', '@prisma/client', 'drizzle-orm', 'sequelize', 'pg-pool',
+        'sqlalchemy', 'asyncpg', 'psycopg', 'psycopg2', 'psycopg2-binary', 'databases') ||
+    /create_async_engine|create_engine|pool_size|QueuePool|sessionmaker/.test(allContent);
 
   // 4. Check for CDN / static file serving config
   const hasCDNConfig =
@@ -135,7 +147,9 @@ export async function runLoadAnalysis(config: {
   // 6. Check for response compression (AST-confirmed middleware registration)
   const hasCompression =
     patterns.compression.length > 0 ||
-    allDeps.some(d => d === 'compression' || d === '@fastify/compress' || d === 'koa-compress');
+    dep('compression', '@fastify/compress', 'koa-compress', 'brotli-asgi') ||
+    // Python: Starlette/FastAPI GZipMiddleware or brotli-asgi
+    /GZipMiddleware|BrotliMiddleware/.test(allContent);
 
   // Estimate max concurrent users based on architecture
   let estimatedMaxConcurrentUsers = 100; // baseline
@@ -200,8 +214,12 @@ export async function runLoadAnalysis(config: {
     });
   }
 
-  // Check for missing health check endpoint (AST: actual route registration)
-  const hasHealthCheck = patterns.healthEndpoints.length > 0;
+  // Check for missing health check endpoint. AST handles JS/TS route
+  // registration; for Python (FastAPI/Flask) decorators and other frameworks
+  // fall back to a route-path regex on raw content.
+  const hasHealthCheck = patterns.healthEndpoints.length > 0 ||
+    /@(?:app|router)\.(?:get|head)\(\s*["'`]\/(?:health|healthz|readiness|liveness|ready|live|status|ping)\b/i.test(allContent) ||
+    /["'`]\/(?:health|healthz|readyz|livez)\b/.test(allContent);
   if (!hasHealthCheck) {
     findings.push({
       severity: 'medium',
@@ -275,7 +293,7 @@ export async function runLoadAnalysis(config: {
   if (hasRateLimiting) score += 12;
   if (hasCaching) score += 12;
   if (hasConnectionPooling) score += 10;
-  if (patterns.healthEndpoints.length > 0) score += 8;
+  if (hasHealthCheck) score += 8;
   if (patterns.timeout.length > 0) score += 8;
   if (patterns.circuitBreaker.length > 0) score += 5;
   if (hasCompression) score += 5;

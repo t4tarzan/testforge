@@ -20,7 +20,7 @@ import { runSecurityAnalysis } from './analyzers/security-analyzer.js';
 import { runUnitAnalysis } from './analyzers/unit-analyzer.js';
 import { runLoadAnalysis } from './analyzers/load-analyzer.js';
 import { runAccessibilityAnalysis } from './analyzers/accessibility-analyzer.js';
-import { getReports, getReport, saveGeneration, getGenerations, getGeneration } from './local-db.js';
+import { getReports, getReport, saveReport, saveGeneration, getGenerations, getGeneration } from './local-db.js';
 import {
   runVisionAnalysis,
   runScopeAnalysis,
@@ -44,6 +44,7 @@ import {
 import { runAgenticScalePrediction } from './analyzers/agentic-scale.js';
 import { runKubernetesAnalysis } from './analyzers/k8s-analyzer.js';
 import { generateTestsForFindings, type InputFinding, type LlmOverride } from './generator/generate-tests.js';
+import { filterTestableFindings } from './generator/finding-filter.js';
 import { hasLLMKey, PRIMARY_MODEL, FALLBACK_MODEL, LLM_BASE_URL, LLM_IS_LOCAL } from './generator/llm-client.js';
 import { isFromEnvFile, readEnvFile, writeEnvFile } from './load-env.js';
 import { reloadLLM } from './generator/llm-client.js';
@@ -448,6 +449,18 @@ async function main() {
       });
     }
 
+    // Dimension filter: only generate tests for concrete code findings. Advisory
+    // findings (load/accessibility/chaos/mutation/predictive) have no testable
+    // contract and produce synthetic — sometimes deliberately-failing — tests.
+    const { kept: testableFindings, dropped: droppedFindings } = filterTestableFindings(findings);
+    if (testableFindings.length === 0) {
+      return reply.status(422).send({
+        error: 'No testable findings for Tier-2 generation',
+        hint: 'All findings were advisory (load/accessibility/chaos/mutation/predictive), which have no testable contract. Tier-2 generates tests only for concrete code findings (security/unit). Pass at least one concrete finding.',
+        dropped: droppedFindings,
+      });
+    }
+
     const cluster = body?.cluster ?? 'edge-case';
     const max = Math.min(body?.maxFindings ?? 3, 5);
     const skipRun = (body as { skipRun?: boolean } | undefined)?.skipRun === true;
@@ -455,7 +468,7 @@ async function main() {
     const t0 = Date.now();
     let results: Awaited<ReturnType<typeof generateTestsForFindings>>;
     try {
-      results = await generateTestsForFindings(findings, max, llmOverride);
+      results = await generateTestsForFindings(testableFindings, max, llmOverride);
     } catch (err) {
       // Never let one malformed finding 500 the whole request — return a clean,
       // actionable error instead.
@@ -509,6 +522,8 @@ async function main() {
       generationMs,
       runMs: run?.durationMs ?? 0,
       requested: findings.length,
+      testable: testableFindings.length,
+      dropped: droppedFindings,
       processed: results.length,
       results: results.map((r) => ({
         finding: {
@@ -630,6 +645,22 @@ async function main() {
     return reply.send(report);
   });
 
+  // ── Save Report ─────────────────────────────────────────────────────
+  // The dashboard POSTs the result of /analyze or /clone-and-analyze here to
+  // persist it to the local history DB and get back an id for the report view.
+  app.post('/save-report', async (request, reply) => {
+    const body = request.body as { data?: Record<string, unknown>; source?: string } | undefined;
+    if (!body?.data || typeof body.data !== 'object') {
+      return reply.status(400).send({ error: 'data: analysis report object required' });
+    }
+    try {
+      const id = saveReport(body.data, body.source ?? 'unknown');
+      return reply.send({ id });
+    } catch (err) {
+      return reply.status(500).send({ error: 'Failed to save report', detail: (err as Error).message });
+    }
+  });
+
   // ── Clone & Analyze (accepts git URLs) ─────────────────────────────────
   app.post('/clone-and-analyze', async (request, reply) => {
     const { repoUrl, branch } = request.body as { repoUrl: string; branch?: string };
@@ -714,7 +745,7 @@ async function main() {
       // always flag "unused", falsely cliffing the score on polyglot repos).
       const deadCodeReport = runDeadCodeAnalysis(codebase.fileContents, codebase.npmDependencies);
       const licenseReport = runLicenseCheck(codebase.dependencies, projectPath);
-      const doraReport = runDoraEstimation(codebase.fileContents, codebase.devDependencies);
+      const doraReport = runDoraEstimation(codebase.fileContents, codebase.devDependencies, codebase.dependencies);
       const owaspReport = runOwaspCoverage(securityFindings.filter(f => f.severity !== 'info') as Parameters<typeof runOwaspCoverage>[0]);
 
       // ── Agentic Scale Prediction (21st dimension) ─────────────────────

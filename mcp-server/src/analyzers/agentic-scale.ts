@@ -49,14 +49,20 @@ export function runAgenticScalePrediction(
   // ═══════════════════════════════════════════════════════════
   // 1. Rate Limiting Analysis — critical for agentic load
   // ═══════════════════════════════════════════════════════════
-  const hasRateLimit = dependencies.some(d =>
-    d.includes('rate-limit') || d.includes('express-rate-limit') ||
-    d.includes('rate-limiter') || d.includes('bottleneck') ||
-    d.includes('p-limit') || d.includes('throttle')
-  );
+  const hasRateLimit = dependencies.some(d => {
+    const x = d.toLowerCase();
+    return x.includes('rate-limit') || x.includes('express-rate-limit') ||
+      x.includes('rate-limiter') || x.includes('bottleneck') ||
+      x.includes('p-limit') || x.includes('throttle') ||
+      // Python (FastAPI/Starlette)
+      x === 'slowapi' || x === 'fastapi-limiter' || x === 'asgi-ratelimit' || x === 'limits';
+  });
   const hasRateLimitCode = allContent.includes('rateLimit') || allContent.includes('rate_limit') ||
     allContent.includes('maxRequests') || allContent.includes('windowMs') ||
-    allContent.includes('RATE_LIMIT');
+    allContent.includes('RATE_LIMIT') ||
+    // Python slowapi
+    allContent.includes('SlowAPIMiddleware') || allContent.includes('@limiter.limit') ||
+    allContent.includes('Limiter(');
 
   if (!hasRateLimit && !hasRateLimitCode) {
     findings.push({
@@ -175,7 +181,12 @@ export function runAgenticScalePrediction(
 
   // Check for authentication rate limiting (agents will hammer auth)
   const hasAuth = allContent.includes('auth') || allContent.includes('jwt') || allContent.includes('token');
-  if (hasAuth && !allContent.includes('maxLoginAttempts') && !allContent.includes('loginRateLimit')) {
+  // Recognize a per-route limiter decorator (slowapi/flask-limiter) or the
+  // legacy markers as evidence auth is rate-limited.
+  const hasAuthRateLimit =
+    allContent.includes('maxLoginAttempts') || allContent.includes('loginRateLimit') ||
+    /@limiter\.limit\(/.test(allContent) || allContent.includes('SlowAPIMiddleware');
+  if (hasAuth && !hasAuthRateLimit) {
     findings.push({
       severity: 'high',
       title: 'Auth Endpoints Not Rate Limited',

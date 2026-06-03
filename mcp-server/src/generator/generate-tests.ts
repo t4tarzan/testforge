@@ -31,6 +31,13 @@ export interface InputFinding {
   lineNumber: number;
   fixSuggestion: string;
   severity: string;
+  /**
+   * Optional originating analyzer dimension (e.g. 'security', 'unit', 'load',
+   * 'accessibility', 'predictive'). Used by the Tier-2 dimension filter to skip
+   * advisory findings that have no testable contract. Safe to omit — the filter
+   * falls back to title matching. See ./finding-filter.ts.
+   */
+  dimension?: string;
 }
 
 /** Map a finding's source file to the test language we should generate. */

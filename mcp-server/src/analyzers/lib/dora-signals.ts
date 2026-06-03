@@ -63,10 +63,17 @@ const OBSERVABILITY_DEPS = new Set([
   '@logtail/node', '@logtail/winston', 'logflare',
   'rollbar', 'bugsnag', '@bugsnag/js',
   'prom-client', 'statsd-client',
+  // Python
+  'sentry-sdk', 'ddtrace', 'newrelic',
+  'opentelemetry-api', 'opentelemetry-sdk', 'opentelemetry-instrumentation-fastapi',
+  'opentelemetry-instrumentation', 'prometheus-client', 'prometheus-fastapi-instrumentator',
+  'elastic-apm', 'scout-apm',
 ]);
 
 const STRUCTURED_LOGGING_DEPS = new Set([
   'pino', 'pino-http', 'pino-pretty', 'winston', 'bunyan', 'roarr',
+  // Python
+  'structlog', 'loguru', 'python-json-logger', 'json-logging',
 ]);
 
 const FEATURE_FLAG_DEPS = new Set([
@@ -119,7 +126,7 @@ export function extractDoraSignals(
             const run = (step as Record<string, unknown>).run;
             const name = (step as Record<string, unknown>).name;
             const blob = `${typeof run === 'string' ? run : ''} ${typeof name === 'string' ? name : ''}`;
-            if (/\btsc\b|\btype-?check\b|\bcheck-types\b/i.test(blob)) hasTypeCheckStep = true;
+            if (/\btsc\b|\btype-?check\b|\bcheck-types\b|\bmypy\b|\bpyright\b|\bpyre\b|\bpytype\b/i.test(blob)) hasTypeCheckStep = true;
             if (/\b(?:deploy|publish|release|promote)\b/i.test(blob)) hasDeployJob = true;
           }
         }
