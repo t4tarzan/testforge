@@ -521,7 +521,7 @@ async function runTier2() {
   if (top.length === 0) {
     slot.innerHTML = '<div style="padding:16px;background:#12101A;border-radius:8px;color:#EAB308;font-size:13px">No findings produced — nothing to generate against.</div>';
     btn.disabled = false;
-    btn.textContent = '🤖 Generate Tests (Tier 2)';
+    btn.textContent = '🤖 Generate Tests';
     return;
   }
 
@@ -584,7 +584,7 @@ async function runTier2() {
   }
 
   btn.disabled = false;
-  btn.textContent = '🤖 Generate Tests (Tier 2)';
+  btn.textContent = '🤖 Generate Tests';
 }
 
 // ─── Consensus: re-check findings against real source with two models ───
@@ -649,7 +649,7 @@ async function runConsensus() {
     slot.innerHTML = '<div style="padding:16px;background:rgba(239,68,68,0.1);border-radius:8px;color:#EF4444;font-size:13px">Consensus failed: ' + e.message + '</div>';
   }
   btn.disabled = false;
-  btn.textContent = '🔬 Verify Findings (Consensus)';
+  btn.textContent = '🔬 Verify Findings';
 }
 
 async function loadHistory() {
