@@ -26,7 +26,7 @@ function SeverityBadge({ severity }: { severity: string }) {
 }
 
 export default function ManagedTesting() {
-  const [repoUrl, setRepoUrl] = useState('');
+  const [repoUrl, setRepoUrl] = useState('https://github.com/oneconvergence/dkubex-examples');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   // Dynamic analyzer response; see ReportStep AnalysisResults note.

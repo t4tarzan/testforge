@@ -14,17 +14,17 @@ export default function Simulations() {
   return (
     <div className="min-h-screen bg-[#F7F7FB]">
       {/* hero */}
-      <div className="bg-[#12101A] text-white">
+      <div className="bg-white border-b border-[#E5E4F0]">
         <div className="max-w-5xl mx-auto px-6 py-16">
-          <div className="font-mono text-[11px] uppercase tracking-[0.15em] text-white/60 mb-3">Real simulations</div>
-          <h1 className="font-heading font-bold text-[40px] leading-tight tracking-tight mb-4">
+          <div className="font-mono text-[11px] uppercase tracking-[0.15em] text-[#574a7d] mb-3">Real simulations</div>
+          <h1 className="font-heading font-bold text-[40px] leading-tight tracking-tight mb-4 text-[#12101A]">
             We boot the app and hit it for real.
           </h1>
-          <p className="font-mono text-[14px] text-white/70 max-w-2xl leading-relaxed">
+          <p className="font-mono text-[14px] text-[#4A4A55] max-w-2xl leading-relaxed">
             Load, agent-traffic and chaos here aren't static guesses — TestForge builds each repo, boots it in an
             isolated sandbox, and drives live traffic with autocannon: ramping concurrency to find the breaking point,
             scaling a fleet of think-time agents, and crashing the app mid-load to measure recovery. Every number below
-            is a measurement — and you can <span className="text-white">run any of them live</span> right now.
+            is a measurement — and you can <span className="text-[#574a7d] font-semibold">run any of them live</span> right now.
           </p>
         </div>
       </div>
