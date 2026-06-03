@@ -134,6 +134,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 <script>
 var reportData = null;
 var lastTier2 = null;       // last Tier-2 generate-and-run result (for the report download)
+var lastProjectPath = '';   // the analyzed local path — consensus reads its source
 var DIM_META = { meta: {} }; // per-dimension method/coverage, loaded from /dimension-meta.json
 fetch('/dimension-meta.json').then(function(r){ return r.json(); }).then(function(m){ if (m && m.meta) DIM_META = m; }).catch(function(){});
 
@@ -174,6 +175,7 @@ async function runAnalysis() {
     
     if (!res.ok) throw new Error(await res.text());
     reportData = await res.json();
+    lastProjectPath = path; // remember for consensus (empty for repo-URL clones)
     
     document.getElementById('barFill').style.width = '100%';
     document.getElementById('status').textContent = 'Analysis complete!';
@@ -288,12 +290,14 @@ function renderReport(d, source, savedId) {
   // Actions
   h += '<div class="actions" style="display:flex;gap:12px;flex-wrap:wrap">';
   h += '<button class="btn-secondary" onclick="runTier2()" id="tier2Btn" style="flex:1;min-width:200px">🤖 Generate Tests (Tier 2)</button>';
+  h += '<button class="btn-secondary" onclick="runConsensus()" id="consensusBtn" style="flex:1;min-width:200px">🔬 Verify Findings (Consensus)</button>';
   h += '<button class="btn-outline" onclick="downloadReport(\'md\')">⬇️ Download Report (Markdown)</button>';
   h += '<button class="btn-outline" onclick="downloadReport(\'json\')">⬇️ Download JSON</button>';
   h += '<button class="btn-outline" onclick="window.print()">🖨️ Print / Save PDF</button>';
   h += '</div>';
   // Tier-2 result slot
   h += '<div id="tier2Result" style="margin-top:16px;display:none"></div>';
+  h += '<div id="consensusResult" style="margin-top:16px;display:none"></div>';
   h += '</div>';
 
   document.getElementById('report').innerHTML = h;
@@ -535,6 +539,71 @@ async function runTier2() {
 
   btn.disabled = false;
   btn.textContent = '🤖 Generate Tests (Tier 2)';
+}
+
+// ─── Consensus: re-check findings against real source with two models ───
+async function runConsensus() {
+  if (!reportData) return;
+  var btn = document.getElementById('consensusBtn');
+  var slot = document.getElementById('consensusResult');
+  if (!lastProjectPath) {
+    slot.style.display = 'block';
+    slot.innerHTML = '<div style="padding:16px;background:#12101A;border-radius:8px;color:#EAB308;font-size:13px">Consensus needs a local project path (it reads the source). Re-run with a path, not a GitHub URL.</div>';
+    return;
+  }
+  // Collect ALL findings across dimensions (not just top-3).
+  var all = [];
+  Object.keys(reportData).forEach(function(k) {
+    var v = reportData[k];
+    if (v && typeof v === 'object') {
+      var arr = v.findings || v.items || [];
+      if (Array.isArray(arr)) arr.forEach(function(f) {
+        if (f && typeof f === 'object' && f.title) all.push(Object.assign({ dimension: k }, f));
+      });
+    }
+  });
+  if (!all.length) { slot.style.display='block'; slot.innerHTML = '<div style="padding:16px;background:#12101A;border-radius:8px;color:#EAB308;font-size:13px">No findings to verify.</div>'; return; }
+
+  btn.disabled = true;
+  btn.textContent = '🔬 Verifying (' + all.length + ' findings × 2 models)...';
+  slot.style.display = 'block';
+  slot.innerHTML = '<div style="padding:16px;background:#12101A;border-radius:8px;color:#a99bff;font-size:13px">⏳ Two independent models are judging each finding against the real source. Confirmed = both agree it is genuinely present.</div>';
+
+  try {
+    var res = await fetch('/consensus', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectPath: lastProjectPath, findings: all })
+    });
+    var d = await res.json();
+    if (d.error) throw new Error(d.error);
+    var esc = function(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
+    var h = '<div style="padding:16px;background:#12101A;border-radius:8px">';
+    h += '<div style="font-size:15px;font-weight:600;color:#a99bff;margin-bottom:6px">🔬 Consensus — ' + d.models.join(' + ') + '</div>';
+    h += '<div style="font-size:12px;color:#6B6B6B;margin-bottom:12px">' + d.summary.confirmed + ' confirmed · ' + d.summary.rejected + ' rejected · ' + d.summary.split + ' split · ' + (d.durationMs/1000).toFixed(1) + 's</div>';
+    var order = { confirmed:0, split:1, rejected:2 };
+    d.results.sort(function(a,b){ return (order[a.consensus]) - (order[b.consensus]); });
+    d.results.forEach(function(r){
+      var c = r.consensus;
+      var bg = c==='confirmed' ? 'rgba(239,68,68,0.08)' : c==='rejected' ? 'rgba(34,197,94,0.06)' : 'rgba(234,168,56,0.08)';
+      var bd = c==='confirmed' ? '#EF4444' : c==='rejected' ? '#22C55E' : '#E8A838';
+      var tag = c==='confirmed' ? '✅ CONFIRMED' : c==='rejected' ? '❌ rejected (likely false)' : '⚠️ split';
+      h += '<div class="finding" style="border-color:'+bd+';background:'+bg+';margin-bottom:10px">';
+      h += '<div class="finding-title">'+tag+' · ['+esc(r.finding.severity)+'] '+esc(r.finding.title)+'</div>';
+      h += '<div class="finding-file" style="font-size:11px;color:#6B6B6B">'+esc(r.finding.dimension)+'</div>';
+      r.verdicts.forEach(function(v){
+        var vc = v.present===true ? '#EF4444' : v.present===false ? '#22C55E' : '#888';
+        var vt = v.present===null ? 'error' : (v.present?'present':'not present')+'/'+v.confidence;
+        h += '<div style="margin-top:6px;font-size:12px;color:'+vc+'"><b>'+esc(v.model)+':</b> '+vt+' — <span style="color:#9a9a9a">'+esc(v.evidence)+'</span></div>';
+      });
+      h += '</div>';
+    });
+    h += '</div>';
+    slot.innerHTML = h;
+  } catch (e) {
+    slot.innerHTML = '<div style="padding:16px;background:rgba(239,68,68,0.1);border-radius:8px;color:#EF4444;font-size:13px">Consensus failed: ' + e.message + '</div>';
+  }
+  btn.disabled = false;
+  btn.textContent = '🔬 Verify Findings (Consensus)';
 }
 
 async function loadHistory() {
