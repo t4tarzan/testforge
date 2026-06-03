@@ -124,8 +124,8 @@ async function verdict(model: string, f: ConsensusFinding, ev: { type: string; t
   }
 }
 
-export async function runConsensus(projectPath: string, findings: ConsensusFinding[]): Promise<FindingConsensus[]> {
-  const models = consensusModels();
+export async function runConsensus(projectPath: string, findings: ConsensusFinding[], modelsOverride?: string[]): Promise<FindingConsensus[]> {
+  const models = (modelsOverride && modelsOverride.length ? modelsOverride : consensusModels()).slice(0, 4);
   const idx = buildSourceIndex(projectPath);
   const out: FindingConsensus[] = [];
   for (const f of findings) {

@@ -101,6 +101,15 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
       <div style="font-size:12px;color:#6B6B6B;margin-top:4px">Ollama: <code>http://localhost:11434/v1</code> · LM Studio: <code>http://localhost:1234/v1</code>. From Docker use <code>host.docker.internal</code>.</div>
     </div>
 
+    <div style="border-top:1px solid #2a2433;margin-top:18px;padding-top:14px">
+      <label style="font-weight:600">🔬 Consensus verification models <span style="font-weight:400;color:#6B6B6B">— two independent models cross-check each finding</span></label>
+      <div style="display:flex;gap:10px;margin:8px 0 6px">
+        <select id="consModelA" onchange="saveConsensusModels()" style="flex:1;padding:10px;background:#12101A;border:1px solid #3A3A3A;border-radius:8px;color:#fff;font-size:12px;font-family:monospace"></select>
+        <select id="consModelB" onchange="saveConsensusModels()" style="flex:1;padding:10px;background:#12101A;border:1px solid #3A3A3A;border-radius:8px;color:#fff;font-size:12px;font-family:monospace"></select>
+      </div>
+      <div style="font-size:11px;color:#6B6B6B">Listed by performance (desc) then price (asc). Pick two <b>different lineages</b> for the strongest cross-check. Saved in this browser; uses your OpenRouter key.</div>
+    </div>
+
     <div style="display:flex;gap:10px;margin-top:14px">
       <button onclick="saveSettings()" id="saveSettingsBtn">💾 Save</button>
       <button class="btn-secondary" onclick="closeSettings()">Close</button>
@@ -135,6 +144,39 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 var reportData = null;
 var lastTier2 = null;       // last Tier-2 generate-and-run result (for the report download)
 var lastProjectPath = '';   // the analyzed local path — consensus reads its source
+
+// Consensus model catalog — ordered by performance (desc), then price (asc).
+// Prices are OpenRouter $/M tokens (in / out); performance tier is an estimate.
+var CONSENSUS_CATALOG = [
+  { id:'qwen/qwen3.7-max',            tier:'Frontier', in:1.25, out:3.75 },
+  { id:'openai/gpt-5.1',             tier:'Frontier', in:1.25, out:10 },
+  { id:'anthropic/claude-sonnet-4.6', tier:'Frontier', in:3,    out:15 },
+  { id:'anthropic/claude-opus-4.7',   tier:'Frontier', in:5,    out:25 },
+  { id:'deepseek/deepseek-v4-pro',    tier:'Strong',   in:0.43, out:0.87 },
+  { id:'moonshotai/kimi-k2.6',        tier:'Strong',   in:0.68, out:3.42 },
+  { id:'google/gemini-3.5-flash',     tier:'Strong',   in:1.5,  out:9 },
+  { id:'deepseek/deepseek-v4-flash',  tier:'Budget',   in:0.1,  out:0.2 },
+  { id:'qwen/qwen3-coder',            tier:'Budget',   in:0.22, out:1.8 }
+];
+var CONSENSUS_DEFAULT = ['anthropic/claude-sonnet-4.6', 'qwen/qwen3.7-max'];
+function getConsensusModels() {
+  try { var s = JSON.parse(localStorage.getItem('tf_consensus_models')); if (Array.isArray(s) && s.length === 2 && s[0] && s[1]) return s; } catch(e){}
+  return CONSENSUS_DEFAULT.slice();
+}
+function saveConsensusModels() {
+  var a = document.getElementById('consModelA').value, b = document.getElementById('consModelB').value;
+  localStorage.setItem('tf_consensus_models', JSON.stringify([a, b]));
+}
+function populateConsensusModels() {
+  var sel = getConsensusModels();
+  ['consModelA','consModelB'].forEach(function(elId, i){
+    var el = document.getElementById(elId); if (!el) return;
+    el.innerHTML = CONSENSUS_CATALOG.map(function(m){
+      var label = m.id + '  ·  ' + m.tier + '  ·  $' + m.in + '/$' + m.out + ' per M';
+      return '<option value="'+m.id+'"'+(m.id===sel[i]?' selected':'')+'>'+label+'</option>';
+    }).join('');
+  });
+}
 var DIM_META = { meta: {} }; // per-dimension method/coverage, loaded from /dimension-meta.json
 fetch('/dimension-meta.json').then(function(r){ return r.json(); }).then(function(m){ if (m && m.meta) DIM_META = m; }).catch(function(){});
 
@@ -572,7 +614,7 @@ async function runConsensus() {
   try {
     var res = await fetch('/consensus', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ projectPath: lastProjectPath, findings: all })
+      body: JSON.stringify({ projectPath: lastProjectPath, findings: all, models: getConsensusModels() })
     });
     var d = await res.json();
     if (d.error) throw new Error(d.error);
@@ -673,6 +715,7 @@ async function loadStatus() {
 async function openSettings() {
   document.getElementById('settingsCard').style.display = 'block';
   document.getElementById('settingsMsg').textContent = '';
+  populateConsensusModels();
   await loadStatus();
   try {
     var res = await fetch('/config');

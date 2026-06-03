@@ -629,17 +629,20 @@ async function main() {
     if (!hasLLMKey()) {
       return reply.status(503).send({ error: 'No AI provider configured for consensus verification', hint: 'Set OPENROUTER_API_KEY (or a local TESTFORGE_LLM_BASE_URL).' });
     }
-    const body = request.body as { projectPath?: string; findings?: ConsensusFinding[] } | undefined;
+    const body = request.body as { projectPath?: string; findings?: ConsensusFinding[]; models?: string[] } | undefined;
     const projectPath = body?.projectPath?.trim();
     const findings = body?.findings ?? [];
     if (!projectPath) return reply.status(400).send({ error: 'projectPath required (the analyzed local path; consensus reads its source)' });
     if (!Array.isArray(findings) || findings.length === 0) return reply.status(400).send({ error: 'findings[] required' });
+    // Optional per-request model override (the dashboard model picker); else env/default pair.
+    const chosen = Array.isArray(body?.models) ? body!.models.map((m) => String(m).trim()).filter(Boolean).slice(0, 4) : [];
+    const models = chosen.length ? chosen : consensusModels();
     try {
       const t0 = Date.now();
-      const results = await runConsensus(projectPath, findings.slice(0, 40));
+      const results = await runConsensus(projectPath, findings.slice(0, 40), models);
       const count = (c: string) => results.filter((r) => r.consensus === c).length;
       return reply.send({
-        models: consensusModels(),
+        models,
         durationMs: Date.now() - t0,
         summary: { total: results.length, confirmed: count('confirmed'), rejected: count('rejected'), split: count('split') },
         results,
