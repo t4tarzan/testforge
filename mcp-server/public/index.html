@@ -101,15 +101,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
       <div style="font-size:12px;color:#6B6B6B;margin-top:4px">Ollama: <code>http://localhost:11434/v1</code> · LM Studio: <code>http://localhost:1234/v1</code>. From Docker use <code>host.docker.internal</code>.</div>
     </div>
 
-    <div style="border-top:1px solid #2a2433;margin-top:18px;padding-top:14px">
-      <label style="font-weight:600">🔬 Consensus verification models <span style="font-weight:400;color:#6B6B6B">— two independent models cross-check each finding</span></label>
-      <div style="display:flex;gap:10px;margin:8px 0 6px">
-        <select id="consModelA" onchange="saveConsensusModels()" style="flex:1;padding:10px;background:#12101A;border:1px solid #3A3A3A;border-radius:8px;color:#fff;font-size:12px;font-family:monospace"></select>
-        <select id="consModelB" onchange="saveConsensusModels()" style="flex:1;padding:10px;background:#12101A;border:1px solid #3A3A3A;border-radius:8px;color:#fff;font-size:12px;font-family:monospace"></select>
-      </div>
-      <div style="font-size:11px;color:#6B6B6B">Listed by performance (desc) then price (asc). Pick two <b>different lineages</b> for the strongest cross-check. Saved in this browser; uses your OpenRouter key.</div>
-    </div>
-
     <div style="display:flex;gap:10px;margin-top:14px">
       <button onclick="saveSettings()" id="saveSettingsBtn">💾 Save</button>
       <button class="btn-secondary" onclick="closeSettings()">Close</button>
@@ -167,15 +158,18 @@ function saveConsensusModels() {
   var a = document.getElementById('consModelA').value, b = document.getElementById('consModelB').value;
   localStorage.setItem('tf_consensus_models', JSON.stringify([a, b]));
 }
-function populateConsensusModels() {
+function consensusSelectHTML(elId, selectedId) {
+  var opts = CONSENSUS_CATALOG.map(function(m){
+    var label = m.id + '  ·  ' + m.tier + '  ·  $' + m.in + '/$' + m.out + '/M';
+    return '<option value="'+m.id+'"'+(m.id===selectedId?' selected':'')+'>'+label+'</option>';
+  }).join('');
+  return '<select id="'+elId+'" onchange="saveConsensusModels()" style="padding:8px;background:#12101A;border:1px solid #3A3A3A;border-radius:6px;color:#fff;font-size:11px;font-family:monospace;max-width:280px">'+opts+'</select>';
+}
+function consensusPickerHTML() {
   var sel = getConsensusModels();
-  ['consModelA','consModelB'].forEach(function(elId, i){
-    var el = document.getElementById(elId); if (!el) return;
-    el.innerHTML = CONSENSUS_CATALOG.map(function(m){
-      var label = m.id + '  ·  ' + m.tier + '  ·  $' + m.in + '/$' + m.out + ' per M';
-      return '<option value="'+m.id+'"'+(m.id===sel[i]?' selected':'')+'>'+label+'</option>';
-    }).join('');
-  });
+  return '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;font-size:11px;color:#6B6B6B">'
+    + '<span>🔬 Verify with two models (change before clicking):</span>'
+    + consensusSelectHTML('consModelA', sel[0]) + consensusSelectHTML('consModelB', sel[1]) + '</div>';
 }
 var DIM_META = { meta: {} }; // per-dimension method/coverage, loaded from /dimension-meta.json
 fetch('/dimension-meta.json').then(function(r){ return r.json(); }).then(function(m){ if (m && m.meta) DIM_META = m; }).catch(function(){});
@@ -337,6 +331,8 @@ function renderReport(d, source, savedId) {
   h += '<button class="btn-outline" onclick="downloadReport(\'json\')">⬇️ Download JSON</button>';
   h += '<button class="btn-outline" onclick="window.print()">🖨️ Print / Save PDF</button>';
   h += '</div>';
+  // Consensus model picker (inline, so it's visible before clicking Verify).
+  h += consensusPickerHTML();
   // Tier-2 result slot
   h += '<div id="tier2Result" style="margin-top:16px;display:none"></div>';
   h += '<div id="consensusResult" style="margin-top:16px;display:none"></div>';
@@ -715,7 +711,6 @@ async function loadStatus() {
 async function openSettings() {
   document.getElementById('settingsCard').style.display = 'block';
   document.getElementById('settingsMsg').textContent = '';
-  populateConsensusModels();
   await loadStatus();
   try {
     var res = await fetch('/config');
