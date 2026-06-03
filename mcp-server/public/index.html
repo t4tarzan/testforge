@@ -330,9 +330,10 @@ function renderReport(d, source, savedId) {
   
   // Actions — primary actions on top, the consensus picker, then utilities.
   h += '<div class="actions" style="flex-wrap:wrap">';
-  h += '<button class="btn-secondary" onclick="runTier2()" id="tier2Btn" style="min-width:200px">🤖 Generate Tests</button>';
-  h += '<button class="btn-secondary" onclick="runConsensus()" id="consensusBtn" style="min-width:200px">🔬 Verify Findings</button>';
+  h += '<button class="btn-secondary" onclick="runTier2()" id="tier2Btn" style="min-width:200px">🤖 Generate Tests · Tier 2</button>';
+  h += '<button class="btn-secondary" onclick="runConsensus()" id="consensusBtn" style="min-width:200px">🔬 Verify Findings · Tier 2</button>';
   h += '</div>';
+  h += '<div style="font-size:11px;color:#6B6B6B;margin-top:6px">Both are Tier 2 — they need an AI provider key (OpenRouter, set in ⚙ Settings).</div>';
   // Consensus model picker (inline, so it's visible before clicking Verify).
   h += consensusPickerHTML();
   // Utility actions (download / print) on their own row.
@@ -521,7 +522,7 @@ async function runTier2() {
   if (top.length === 0) {
     slot.innerHTML = '<div style="padding:16px;background:#12101A;border-radius:8px;color:#EAB308;font-size:13px">No findings produced — nothing to generate against.</div>';
     btn.disabled = false;
-    btn.textContent = '🤖 Generate Tests';
+    btn.textContent = '🤖 Generate Tests · Tier 2';
     return;
   }
 
@@ -584,7 +585,7 @@ async function runTier2() {
   }
 
   btn.disabled = false;
-  btn.textContent = '🤖 Generate Tests';
+  btn.textContent = '🤖 Generate Tests · Tier 2';
 }
 
 // ─── Consensus: re-check findings against real source with two models ───
@@ -649,7 +650,7 @@ async function runConsensus() {
     slot.innerHTML = '<div style="padding:16px;background:rgba(239,68,68,0.1);border-radius:8px;color:#EF4444;font-size:13px">Consensus failed: ' + e.message + '</div>';
   }
   btn.disabled = false;
-  btn.textContent = '🔬 Verify Findings';
+  btn.textContent = '🔬 Verify Findings · Tier 2';
 }
 
 async function loadHistory() {
