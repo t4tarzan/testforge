@@ -160,16 +160,21 @@ function saveConsensusModels() {
 }
 function consensusSelectHTML(elId, selectedId) {
   var opts = CONSENSUS_CATALOG.map(function(m){
-    var label = m.id + '  ·  ' + m.tier + '  ·  $' + m.in + '/$' + m.out + '/M';
+    var short = m.id.indexOf('/') >= 0 ? m.id.split('/')[1] : m.id;
+    var label = short + '  ·  ' + m.tier + '  ·  $' + m.in + '/$' + m.out;
     return '<option value="'+m.id+'"'+(m.id===selectedId?' selected':'')+'>'+label+'</option>';
   }).join('');
-  return '<select id="'+elId+'" onchange="saveConsensusModels()" style="padding:8px;background:#12101A;border:1px solid #3A3A3A;border-radius:6px;color:#fff;font-size:11px;font-family:monospace;max-width:280px">'+opts+'</select>';
+  return '<select id="'+elId+'" onchange="saveConsensusModels()" style="flex:1;min-width:190px;padding:9px 10px;background:#1E1B2E;border:1px solid #3A3A3A;border-radius:6px;color:#fff;font-size:12px">'+opts+'</select>';
 }
 function consensusPickerHTML() {
   var sel = getConsensusModels();
-  return '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;font-size:11px;color:#6B6B6B">'
-    + '<span>🔬 Verify with two models (change before clicking):</span>'
-    + consensusSelectHTML('consModelA', sel[0]) + consensusSelectHTML('consModelB', sel[1]) + '</div>';
+  return '<div style="margin-top:10px;padding:12px 14px;background:#12101A;border:1px solid #2a2433;border-radius:8px">'
+    + '<div style="font-size:10px;color:#6B6B6B;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🔬 Cross-check models</div>'
+    + '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
+    + consensusSelectHTML('consModelA', sel[0])
+    + '<span style="color:#574a7d;font-weight:700">+</span>'
+    + consensusSelectHTML('consModelB', sel[1]) + '</div>'
+    + '<div style="font-size:11px;color:#6B6B6B;margin-top:8px">Two independent models verify each finding — pick different lineages. Listed by performance, then price.</div></div>';
 }
 var DIM_META = { meta: {} }; // per-dimension method/coverage, loaded from /dimension-meta.json
 fetch('/dimension-meta.json').then(function(r){ return r.json(); }).then(function(m){ if (m && m.meta) DIM_META = m; }).catch(function(){});
@@ -323,16 +328,19 @@ function renderReport(d, source, savedId) {
   h += '<div style="font-size:13px;color:#6B6B6B">'+a.resilienceLevel+'</div>';
   h += '<div style="font-size:12px;color:#6B6B6B;margin-top:4px">Max agents before failure: '+a.maxPredictedAgents+' | Bottleneck: '+(a.predictedBottleneck||'unknown')+'</div></div>';
   
-  // Actions
-  h += '<div class="actions" style="display:flex;gap:12px;flex-wrap:wrap">';
-  h += '<button class="btn-secondary" onclick="runTier2()" id="tier2Btn" style="flex:1;min-width:200px">🤖 Generate Tests (Tier 2)</button>';
-  h += '<button class="btn-secondary" onclick="runConsensus()" id="consensusBtn" style="flex:1;min-width:200px">🔬 Verify Findings (Consensus)</button>';
-  h += '<button class="btn-outline" onclick="downloadReport(\'md\')">⬇️ Download Report (Markdown)</button>';
-  h += '<button class="btn-outline" onclick="downloadReport(\'json\')">⬇️ Download JSON</button>';
-  h += '<button class="btn-outline" onclick="window.print()">🖨️ Print / Save PDF</button>';
+  // Actions — primary actions on top, the consensus picker, then utilities.
+  h += '<div class="actions" style="flex-wrap:wrap">';
+  h += '<button class="btn-secondary" onclick="runTier2()" id="tier2Btn" style="min-width:200px">🤖 Generate Tests</button>';
+  h += '<button class="btn-secondary" onclick="runConsensus()" id="consensusBtn" style="min-width:200px">🔬 Verify Findings</button>';
   h += '</div>';
   // Consensus model picker (inline, so it's visible before clicking Verify).
   h += consensusPickerHTML();
+  // Utility actions (download / print) on their own row.
+  h += '<div class="actions" style="flex-wrap:wrap;margin-top:10px">';
+  h += '<button class="btn-outline" onclick="downloadReport(\'md\')">⬇️ Markdown</button>';
+  h += '<button class="btn-outline" onclick="downloadReport(\'json\')">⬇️ JSON</button>';
+  h += '<button class="btn-outline" onclick="window.print()">🖨️ Print / PDF</button>';
+  h += '</div>';
   // Tier-2 result slot
   h += '<div id="tier2Result" style="margin-top:16px;display:none"></div>';
   h += '<div id="consensusResult" style="margin-top:16px;display:none"></div>';
