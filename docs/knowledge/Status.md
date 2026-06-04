@@ -1,7 +1,7 @@
 # Status & Handoff
 
 > **Fresh context? Read this first.** It's the "what happened + where we are"
-> entrypoint. Last updated: 2026-06-02.
+> entrypoint. Last updated: 2026-06-03.
 > Read order: **this file → [[TestForge]] (knowledge map) → [[Evolution]] (the
 > dated journey, arc by arc) → the changelog (`src/data/changelog.ts`) → agent
 > memory (deploy/ops)**. The full arc-by-arc history lives in [[Evolution]]; this
@@ -22,6 +22,15 @@
   undici and mcp-server fastify v4→v5 — tracked in [[Flywheel]]'s ledger.
 - **No pending deploys** — main, npm, and the live MCP are all 0.36.5. Deploy
   recipe (when next needed) is in agent memory [[hetzner-oc-server]].
+- **Native hub bring-up (2026-06-03, Mirror OS pillar 3)** — TestForge now also
+  runs locally under PM2: `testforge-mcp` :9990 (mcp-server) + `testforge-web`
+  :9991 (full web app, `/full` reports at cloud fidelity, proxied to :9990).
+  Shipped backward-compatibly: `VITE_MCP_URL`-configurable MCP_URL + `build:hub`
+  (PR #58), hub onboarding-skip (PR #59) — **cloud deploys untouched**. Full ops
+  detail (ports, `~/.testforge/` config, the open `/run-test` AuthGuard item) in
+  agent memory [[testforge-hub-bringup]]. **Open next step:** bypass `<AuthGuard>`
+  on the hub build so the interactive run-test UI renders live runs locally (it
+  currently redirects to the Vercel `/auth`, which isn't on the hub).
 - **Simulate = Tier-2's runtime half, shipped as managed/paid (0.36.6, PR #57).**
   Real load/stress/chaos + live runtime audit (incl. static→runtime policy-
   enforcement verification), extended to full Kubernetes platforms. Validated

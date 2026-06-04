@@ -14,7 +14,7 @@ interface ConnectStepProps {
 }
 
 export default function ConnectStep({ onComplete }: ConnectStepProps) {
-  const [repoUrl, setRepoUrl] = useState('');
+  const [repoUrl, setRepoUrl] = useState('https://github.com/oneconvergence/dkubex-examples');
   const [branch, setBranch] = useState('main');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
