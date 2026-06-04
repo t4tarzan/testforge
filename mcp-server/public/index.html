@@ -150,14 +150,18 @@ var CONSENSUS_CATALOG = [
   { id:'deepseek/deepseek-v4-flash',  tier:'Budget',   in:0.1,  out:0.2 },
   { id:'qwen/qwen3-coder',            tier:'Budget',   in:0.22, out:1.8 }
 ];
-var CONSENSUS_DEFAULT = ['anthropic/claude-sonnet-4.6', 'qwen/qwen3.7-max'];
+// Three different lineages → majority vote (no ties, outliers get outvoted).
+var CONSENSUS_DEFAULT = ['anthropic/claude-sonnet-4.6', 'qwen/qwen3.7-max', 'deepseek/deepseek-v4-pro'];
 function getConsensusModels() {
-  try { var s = JSON.parse(localStorage.getItem('tf_consensus_models')); if (Array.isArray(s) && s.length === 2 && s[0] && s[1]) return s; } catch(e){}
-  return CONSENSUS_DEFAULT.slice();
+  // Prefer the live dropdowns; else saved; else default. Always returns 3.
+  var live = ['consModelA','consModelB','consModelC'].map(function(id){ var el=document.getElementById(id); return el?el.value:null; });
+  var arr = live.every(Boolean) ? live : null;
+  if (!arr) { try { var s = JSON.parse(localStorage.getItem('tf_consensus_models')); if (Array.isArray(s) && s.length) arr = s; } catch(e){} }
+  var out = []; for (var i=0;i<3;i++) out.push((arr && arr[i]) || CONSENSUS_DEFAULT[i]);
+  return out;
 }
 function saveConsensusModels() {
-  var a = document.getElementById('consModelA').value, b = document.getElementById('consModelB').value;
-  localStorage.setItem('tf_consensus_models', JSON.stringify([a, b]));
+  localStorage.setItem('tf_consensus_models', JSON.stringify(getConsensusModels()));
 }
 function consensusSelectHTML(elId, selectedId) {
   var opts = CONSENSUS_CATALOG.map(function(m){
@@ -169,13 +173,14 @@ function consensusSelectHTML(elId, selectedId) {
 }
 function consensusPickerHTML() {
   var sel = getConsensusModels();
+  var plus = '<span style="color:#574a7d;font-weight:700">+</span>';
   return '<div style="margin-top:10px;padding:12px 14px;background:#12101A;border:1px solid #2a2433;border-radius:8px">'
-    + '<div style="font-size:10px;color:#6B6B6B;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🔬 Cross-check models</div>'
+    + '<div style="font-size:10px;color:#6B6B6B;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🔬 Cross-check models (majority vote)</div>'
     + '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
-    + consensusSelectHTML('consModelA', sel[0])
-    + '<span style="color:#574a7d;font-weight:700">+</span>'
-    + consensusSelectHTML('consModelB', sel[1]) + '</div>'
-    + '<div style="font-size:11px;color:#6B6B6B;margin-top:8px">Two independent models verify each finding — pick different lineages. Listed by performance, then price.</div></div>';
+    + consensusSelectHTML('consModelA', sel[0]) + plus
+    + consensusSelectHTML('consModelB', sel[1]) + plus
+    + consensusSelectHTML('consModelC', sel[2]) + '</div>'
+    + '<div style="font-size:11px;color:#6B6B6B;margin-top:8px">Three independent models verify each finding — the majority wins (no ties). Pick different lineages. Listed by performance, then price.</div></div>';
 }
 var DIM_META = { meta: {} }; // per-dimension method/coverage, loaded from /dimension-meta.json
 fetch('/dimension-meta.json').then(function(r){ return r.json(); }).then(function(m){ if (m && m.meta) DIM_META = m; }).catch(function(){});
@@ -508,7 +513,7 @@ function downloadReport(fmt) {
       L.push('| ' + tag + ' | ' + (r.finding.severity||'') + ' | ' + (r.finding.title||'').replace(/\|/g,'\\|') + ' | ' + (r.finding.dimension||'') + ' |');
     });
     L.push('');
-    L.push('_Each finding judged against the real source by two independent models; only ✅ confirmed are present in the code._');
+    L.push('_Each finding judged against the real source by ' + (cv.models||[]).length + ' independent models (majority vote); only ✅ confirmed are present in the code._');
     L.push('');
   }
 
@@ -646,9 +651,9 @@ async function runConsensus() {
   if (!all.length) { slot.style.display='block'; slot.innerHTML = '<div style="padding:16px;background:#12101A;border-radius:8px;color:#EAB308;font-size:13px">No findings to verify.</div>'; return; }
 
   btn.disabled = true;
-  btn.textContent = '🔬 Verifying (' + all.length + ' findings × 2 models)...';
+  btn.textContent = '🔬 Verifying (' + all.length + ' findings × ' + getConsensusModels().length + ' models)...';
   slot.style.display = 'block';
-  slot.innerHTML = '<div style="padding:16px;background:#12101A;border-radius:8px;color:#a99bff;font-size:13px">⏳ Two independent models are judging each finding against the real source. Confirmed = both agree it is genuinely present.</div>';
+  slot.innerHTML = '<div style="padding:16px;background:#12101A;border-radius:8px;color:#a99bff;font-size:13px">⏳ Three independent models are judging each finding against the real source. Confirmed = the majority agree it is genuinely present.</div>';
 
   try {
     var res = await fetch('/consensus', {

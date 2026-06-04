@@ -25,8 +25,9 @@ export interface FindingConsensus { finding: ConsensusFinding; verdicts: ModelVe
 
 export function consensusModels(): string[] {
   const env = process.env.TESTFORGE_CONSENSUS_MODELS;
-  if (env) return env.split(',').map((s) => s.trim()).filter(Boolean).slice(0, 4);
-  return ['anthropic/claude-sonnet-4.6', 'qwen/qwen3.7-max'];
+  if (env) return env.split(',').map((s) => s.trim()).filter(Boolean).slice(0, 5);
+  // Three different lineages → a majority vote breaks ties and outvotes outliers.
+  return ['anthropic/claude-sonnet-4.6', 'qwen/qwen3.7-max', 'deepseek/deepseek-v4-pro'];
 }
 
 /* ── Source index (read the project's non-vendor source once per request) ── */
@@ -131,9 +132,12 @@ export async function runConsensus(projectPath: string, findings: ConsensusFindi
   for (const f of findings) {
     const ev = evidenceFor(f, projectPath, idx);
     const verdicts = await Promise.all(models.map((m) => verdict(m, f, ev)));
+    // Majority vote over the valid (non-error) verdicts: with 3 models there's
+    // always a 2-1 or 3-0 majority, so a finding is decisively confirmed or
+    // rejected. `split` only remains for an even tie (e.g. a model errored).
     const yes = verdicts.filter((v) => v.present === true).length;
     const no = verdicts.filter((v) => v.present === false).length;
-    const consensus = yes === verdicts.length ? 'confirmed' : (no === verdicts.length ? 'rejected' : 'split');
+    const consensus = yes > no ? 'confirmed' : (no > yes ? 'rejected' : 'split');
     out.push({ finding: f, verdicts, consensus });
   }
   return out;
