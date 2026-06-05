@@ -32,6 +32,7 @@ import {
   isStringConcatWithVar,
   nodeLoc,
   snippetForLine,
+  snippetWindow,
 } from './lib/visitors.js';
 import {
   collectTaintTable,
@@ -96,6 +97,12 @@ export interface SecurityFinding {
   /** 0-based column where the issue starts. */
   column?: number;
   codeSnippet: string;
+  /**
+   * A wider source window around the finding (±~10 lines, original indentation),
+   * populated for AST-located findings. Display uses `codeSnippet`; this feeds
+   * Tier-2 so generated tests reproduce the ACTUAL code, not a description.
+   */
+  codeContext?: string;
   fixSuggestion: string;
   category: string;
   /** Phase 2: for taint-flagged findings, the data-flow story. */
@@ -402,7 +409,7 @@ function push(
   filePath: string,
   content: string,
   node: t.Node,
-  partial: Omit<SecurityFinding, 'filePath' | 'lineNumber' | 'codeSnippet' | 'column'>
+  partial: Omit<SecurityFinding, 'filePath' | 'lineNumber' | 'codeSnippet' | 'codeContext' | 'column'>
 ) {
   const loc = nodeLoc(node);
   raw.push({
@@ -411,6 +418,7 @@ function push(
     lineNumber: loc.line,
     column: loc.column,
     codeSnippet: snippetForLine(content, loc.line),
+    codeContext: snippetWindow(content, loc.line),
   });
 }
 

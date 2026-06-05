@@ -6,8 +6,11 @@
 //   .ts/.js/.tsx…  → Vitest (the original path)
 // and the runner (docker-runner) executes it in the matching sandbox image.
 //
-// Tests are pattern-level + self-contained (recreate the foot-gun against
-// synthetic inputs); they do NOT import the project under test.
+// Tests are self-contained — they never import the project under test (so they
+// run standalone in the sandbox). When the finding carries the real source
+// (codeContext/codeSnippet, populated at analyze time), the model inlines and
+// tests THAT actual logic; otherwise it falls back to recreating the foot-gun
+// from the finding's description against synthetic inputs.
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { providerFor, PRIMARY_MODEL, FALLBACK_MODEL, ProviderAttempt } from './llm-client.js';
@@ -38,6 +41,15 @@ export interface InputFinding {
    * falls back to title matching. See ./finding-filter.ts.
    */
   dimension?: string;
+  /**
+   * Real source at the finding, captured at analyze time. `codeContext` is a
+   * ±~10-line window (preferred); `codeSnippet` is the single offending line.
+   * When present, the test is grounded in the ACTUAL code rather than just the
+   * finding's textual description. Optional — file-less findings (supply-chain,
+   * license) and older callers omit both, in which case behavior is unchanged.
+   */
+  codeSnippet?: string;
+  codeContext?: string;
 }
 
 /** Map a finding's source file to the test language we should generate. */
@@ -73,7 +85,7 @@ You get ONE static-analysis finding describing a production-risk pattern.
 Output ONE Vitest file as JSON: { filename, content, reasoning }.
 Hard requirements for content:
 - \`import { describe, it, expect } from "vitest"\`
-- Self-contained: do NOT import the project under test — recreate the foot-gun with local synthetic inputs.
+- Self-contained: do NOT import the project under test. If the prompt includes the actual code, inline that REAL logic faithfully and test it; only when no code is given, recreate the foot-gun with local synthetic inputs.
 - ≥2 it() blocks: one demonstrates the failure mode, one asserts the suggested fix.
 - No network, no fs writes, no Date.now()/setTimeout flakiness.
 - filename: kebab-case, ends in .test.ts`,
@@ -90,7 +102,7 @@ You get ONE static-analysis finding describing a production-risk pattern.
 Output ONE pytest file as JSON: { filename, content, reasoning }.
 Hard requirements for content:
 - Use plain pytest: top-level \`def test_xxx():\` functions with \`assert\`. \`import pytest\` only if you use it.
-- Self-contained: do NOT import the project under test — recreate the foot-gun with local synthetic inputs (define small helper functions inline).
+- Self-contained: do NOT import the project under test. If the prompt includes the actual code, inline that REAL logic faithfully and test it; only when no code is given, recreate the foot-gun with local synthetic inputs. Define any helpers inline.
 - ≥2 test functions: one demonstrates the failure mode, one asserts the suggested fix.
 - No network, no file writes, no time-based flakiness.
 - filename: snake_case, ends in _test.py`,
@@ -107,7 +119,7 @@ You get ONE static-analysis finding describing a production-risk pattern.
 Output ONE Go test file as JSON: { filename, content, reasoning }.
 Hard requirements for content:
 - The file MUST declare \`package main\` and \`import "testing"\` (plus only stdlib packages you actually use).
-- Self-contained: do NOT import the project under test — recreate the foot-gun with local synthetic inputs (define small helper funcs inline in the same file).
+- Self-contained: do NOT import the project under test. If the prompt includes the actual code, inline that REAL logic faithfully and test it; only when no code is given, recreate the foot-gun with local synthetic inputs. Define any helper funcs inline in the same file.
 - ≥2 \`func TestXxx(t *testing.T)\` functions: one demonstrates the failure mode, one asserts the suggested fix. Use t.Errorf / t.Fatalf.
 - No network, no file writes, no time-based flakiness.
 - filename: snake_case, ends in _test.go`,
@@ -181,7 +193,17 @@ Rule: ${finding.rule || finding.title}
 Severity: ${finding.severity}
 File: ${finding.filePath}:${finding.lineNumber}
 Description: ${finding.description}
-Suggested fix: ${finding.fixSuggestion}
+Suggested fix: ${finding.fixSuggestion}${
+        finding.codeContext || finding.codeSnippet
+          ? `
+
+Actual code at ${finding.filePath}:${finding.lineNumber} (\`>\` marks the flagged line):
+\`\`\`
+${finding.codeContext || finding.codeSnippet}
+\`\`\`
+Reproduce THIS code's real logic in the test (inline it — do not import the project). Do not invent a different example.`
+          : ''
+      }
 
 Write the ${cfg.language === 'js' ? 'Vitest' : cfg.language === 'python' ? 'pytest' : 'Go test'} file.`,
       temperature: 0.2,

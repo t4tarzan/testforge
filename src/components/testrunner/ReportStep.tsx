@@ -19,6 +19,10 @@ type FindingShape = {
   lineNumber?: number;
   fixSuggestion?: string;
   category?: string;
+  /** Real source at the finding — forwarded to Tier-2 so generated tests are
+   *  grounded in the actual code, not just the finding's text. */
+  codeSnippet?: string;
+  codeContext?: string;
 };
 
 // The analysis result is a dynamic blob — the analyzer's full output
@@ -56,7 +60,7 @@ function collectFindings(results: AnalysisResults): FindingShape[] {
   const out: FindingShape[] = [];
   const push = (f: any, cat: string) => { // eslint-disable-line @typescript-eslint/no-explicit-any
     if (!f || !f.title) return;
-    out.push({ severity: f.severity || 'medium', title: f.title, description: f.description, filePath: f.filePath, lineNumber: f.lineNumber, fixSuggestion: f.fixSuggestion || f.suggestion, category: f.category || cat });
+    out.push({ severity: f.severity || 'medium', title: f.title, description: f.description, filePath: f.filePath, lineNumber: f.lineNumber, fixSuggestion: f.fixSuggestion || f.suggestion, category: f.category || cat, codeSnippet: f.codeSnippet, codeContext: f.codeContext });
   };
   (results.security?.items || []).forEach((f: FindingShape) => push(f, 'Security'));
   ['edgeCases', 'predictive', 'contract', 'supplyChain', 'kubernetes', 'nPlusOne', 'agentic', 'vision', 'chaos', 'dora', 'license'].forEach((k) => {
