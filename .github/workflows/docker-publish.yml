@@ -1,0 +1,36 @@
+name: docker-publish
+
+# Multi-arch (amd64 + arm64) image on native runners → ghcr.io/t4tarzan/testforge.
+on:
+  push:
+    branches: [main]
+    paths: ["Dockerfile", "src/**", "mcp-server/**", "webapp-server.cjs", "package.json", ".github/workflows/docker-publish.yml"]
+    tags: ["v*"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/t4tarzan/testforge:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
