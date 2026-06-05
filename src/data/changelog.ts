@@ -50,6 +50,14 @@ export const TAG_COLORS: Record<ChangelogTag, string> = {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '0.37.0',
+    date: '2026-06-05',
+    tag: 'platform',
+    title: 'Tier-2 runs your real code — plus a browser/E2E lane',
+    summary:
+      'The biggest credibility step yet: generated tests now exercise YOUR code, not a recreation of it. Every Tier-2 finding ships the actual source at the flagged line, so the generated test reproduces your real logic instead of a generic example. For leaf modules (importing only Node built-ins) the test imports and EXECUTES the real module in the sandbox — so a green check means your actual function ran. The new Simulate `wired` lane goes further: it runs node:test files against your real code INSIDE the booted app image, where its dependencies already resolve (covering apps that aren\'t self-contained). And Simulate gains a browser/E2E lane: a Playwright sibling container crawls the running app (console errors, 4xx/5xx responses, axe-core accessibility violations), and with `journeys:N` an LLM authors realistic user journeys as a constrained step DSL (navigate/click/fill/assert) that a deterministic executor runs — the AI decides what to test, a fixed runner decides how, so no model-written code ever touches the browser. One boot engine, many lanes: load · chaos · wired · e2e. New multi-arch, public GHCR images (testforge-loadgen, testforge-e2e) with a local-build fallback; configurable bind host (TESTFORGE_MCP_HOST). Self-host gets all of it via `npx @whitenoisenpm/testforge-mcp@latest`.',
+  },
+  {
     version: '0.36.6',
     date: '2026-06-02',
     tag: 'platform',
