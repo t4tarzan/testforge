@@ -55,6 +55,7 @@ import { prepareComposeSandbox } from './simulation/compose-sandbox.js';
 import { runLoadRamp, type LoadSimResult } from './simulation/load-sim.js';
 import { runChaos, type FaultType } from './simulation/chaos-sim.js';
 import { runAgentLoad } from './simulation/agent-sim.js';
+import { runWiredUnit, type WiredFindingInput } from './simulation/wired-unit.js';
 import { createJob, getJob, listJobs, updateJob } from './simulation/job-store.js';
 import { discoverEndpoints } from './analyzers/lib/endpoint-discovery.js';
 import { parseFile, isParseable } from './analyzers/lib/parse.js';
@@ -133,7 +134,7 @@ function discoverGetPaths(fileContents: Record<string, string>): string[] {
   return ['/', ...[...paths].filter((p) => p !== '/')].slice(0, 4);
 }
 
-type SimDimension = 'load' | 'chaos' | 'agent';
+type SimDimension = 'load' | 'chaos' | 'agent' | 'wired';
 
 interface SimJobBody {
   repoUrl: string;
@@ -202,7 +203,21 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
       score: staticChaos.score, resilienceLevel: staticChaos.resilienceLevel, findings: staticChaos.findings,
     } : null;
 
-    const out: { load?: Record<string, unknown>; chaos?: Record<string, unknown>; agent?: Record<string, unknown> } = {};
+    const out: { load?: Record<string, unknown>; chaos?: Record<string, unknown>; agent?: Record<string, unknown>; wired?: Record<string, unknown> } = {};
+
+    // Wired-unit (Approach C) needs concrete code findings to target. Only run
+    // the (relatively cheap) security pass when the dimension is requested.
+    let wiredFindings: WiredFindingInput[] = [];
+    if (dims.includes('wired')) {
+      const sec = await runSecurityAnalysis({
+        projectPath, fileContents: codebase.fileContents,
+        dependencies: codebase.dependencies, devDependencies: codebase.devDependencies,
+      }).catch(() => [] as Awaited<ReturnType<typeof runSecurityAnalysis>>);
+      wiredFindings = (Array.isArray(sec) ? sec : []).map((f) => ({
+        title: f.title, description: f.description, filePath: f.filePath, lineNumber: f.lineNumber,
+        fixSuggestion: f.fixSuggestion, severity: f.severity, codeContext: f.codeContext,
+      }));
+    }
 
     const canBoot = !!(runnable.runnable && runnable.contextPath && (
       (runnable.method === 'dockerfile' && runnable.dockerfilePath) ||
@@ -231,6 +246,7 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
         if (dims.includes('load')) out.load = { ...fail, static: staticLoadBlock };
         if (dims.includes('chaos')) out.chaos = { ...fail, static: staticChaosBlock };
         if (dims.includes('agent')) out.agent = { ...fail };
+        if (dims.includes('wired')) out.wired = { ...fail, method: 'node-test-in-app-image', results: [] };
       } else {
         const sb = prep.sandbox;
         const paths = body.paths?.length ? body.paths : discoverGetPaths(codebase.fileContents);
@@ -267,6 +283,17 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
             });
             out.chaos = { ...chaos };
           }
+          if (dims.includes('wired')) {
+            updateJob(jobId, { phase: 'wired', detail: 'Running tests against the real code in the app image' });
+            if (sb.kind !== 'single' || !sb.image) {
+              out.wired = { ranReal: false, method: 'node-test-in-app-image', results: [], reason: 'wired-unit v1 supports single-container (Dockerfile) apps; this is a compose stack.' };
+            } else {
+              out.wired = { ...(await runWiredUnit({
+                image: sb.image, projectPath, findings: wiredFindings,
+                onProgress: (detail) => updateJob(jobId, { phase: 'wired', detail }),
+              })) };
+            }
+          }
         } finally {
           await teardownSandbox(sb);
         }
@@ -276,6 +303,7 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
       if (dims.includes('load')) out.load = { ...fail, static: staticLoadBlock };
       if (dims.includes('chaos')) out.chaos = { ...fail, static: staticChaosBlock };
       if (dims.includes('agent')) out.agent = { ...fail };
+      if (dims.includes('wired')) out.wired = { ...fail, method: 'node-test-in-app-image', results: [] };
     }
 
     try { rmSync(projectPath, { recursive: true, force: true }); } catch { /* best-effort */ }
