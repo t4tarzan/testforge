@@ -21,5 +21,7 @@ RUN npm init -y >/dev/null 2>&1 \
  && npm install playwright@^1.49 axe-core@^4 >/dev/null 2>&1 \
  && npx playwright install --with-deps chromium >/dev/null 2>&1
 
-# The crawl script (kept as a real file in runner/ for readability/editing).
+# Crawl (Phase 1) + snapshot/journey (Phase 2) scripts — real files in runner/.
 COPY e2e-crawl.mjs /e2e/crawl.mjs
+COPY e2e-snapshot.mjs /e2e/snapshot.mjs
+COPY e2e-journey.mjs /e2e/journey.mjs
