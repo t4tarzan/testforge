@@ -57,6 +57,7 @@ import { runChaos, type FaultType } from './simulation/chaos-sim.js';
 import { runAgentLoad } from './simulation/agent-sim.js';
 import { runWiredUnit, type WiredFindingInput } from './simulation/wired-unit.js';
 import { runE2ECrawl } from './simulation/e2e-crawl.js';
+import { runE2EJourneys } from './simulation/e2e-journey.js';
 import { createJob, getJob, listJobs, updateJob } from './simulation/job-store.js';
 import { discoverEndpoints } from './analyzers/lib/endpoint-discovery.js';
 import { parseFile, isParseable } from './analyzers/lib/parse.js';
@@ -152,6 +153,8 @@ interface SimJobBody {
   reqsPerAgent?: number;
   /** E2E crawl: max same-origin pages to visit (default 8, capped at 25). */
   maxPages?: number;
+  /** E2E Phase 2: number of LLM-authored user journeys to run (0 = smoke only). */
+  journeys?: number;
 }
 
 // Pick a chaos load level the app can actually sustain: the highest concurrency
@@ -304,6 +307,14 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
               maxPages: body.maxPages,
               onProgress: (detail) => updateJob(jobId, { phase: 'e2e', detail }),
             })) };
+            // Phase 2: LLM-authored user journeys (opt-in via journeys: N).
+            if (body.journeys && body.journeys > 0) {
+              const j = await runE2EJourneys(sb, {
+                count: body.journeys,
+                onProgress: (detail) => updateJob(jobId, { phase: 'e2e', detail }),
+              });
+              out.e2e.journeys = j;
+            }
           }
         } finally {
           await teardownSandbox(sb);
