@@ -75,6 +75,12 @@ const PKG_VERSION: string = (() => {
 // (3001/3000/5173/8080) and conflicts on developer machines that run a lot
 // of services. Override with TESTFORGE_MCP_PORT=… if needed.
 const PORT = Number(process.env.TESTFORGE_MCP_PORT) || 33221;
+// Bind host. Defaults to 0.0.0.0 (managed/docker deploys need the wildcard so
+// the container is reachable). The native hub sets TESTFORGE_MCP_HOST=127.0.0.1
+// so the MCP listens loopback-only and coexists with the Tailscale Serve proxy
+// that already fronts the tailnet on the same port (serve → http://127.0.0.1:9990);
+// a wildcard bind would collide with tailscaled's tailnet-IP listener (EADDRINUSE).
+const HOST = process.env.TESTFORGE_MCP_HOST || '0.0.0.0';
 
 // Git-clone timeout. Default 120s (was a hard 30s, which timed out on large
 // monorepos like supabase — ~1.3 GB even at depth 1). Override for very large
@@ -977,7 +983,7 @@ async function main() {
   });
 
   try {
-    await app.listen({ port: PORT, host: '0.0.0.0' });
+    await app.listen({ port: PORT, host: HOST });
     console.log(`
 ╔══════════════════════════════════════════════╗
 ║                                              ║

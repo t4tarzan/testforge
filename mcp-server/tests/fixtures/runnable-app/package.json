@@ -1,0 +1,10 @@
+{
+  "name": "runnable-app-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dockerized zero-dep HTTP server fixture that boots on :3000, used to exercise the /simulate real load + chaos path end-to-end.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
