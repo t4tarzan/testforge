@@ -202,3 +202,19 @@ export function snippetForLine(content: string, line: number, maxChars = 140): s
   const lines = content.split('\n');
   return (lines[line - 1] ?? '').trim().slice(0, maxChars);
 }
+
+/**
+ * A window of source around `line` (default ±10 lines), capped at maxChars.
+ * Unlike snippetForLine (one trimmed line for display), this keeps original
+ * indentation and a `>` marker on the offending line — enough real context for
+ * Tier-2 to reproduce the actual code's logic rather than a description of it.
+ */
+export function snippetWindow(content: string, line: number, radius = 10, maxChars = 1200): string {
+  if (line <= 0) return '';
+  const lines = content.split('\n');
+  const start = Math.max(0, line - 1 - radius);
+  const end = Math.min(lines.length, line + radius);
+  const out: string[] = [];
+  for (let i = start; i < end; i++) out.push(`${i + 1 === line ? '> ' : '  '}${lines[i]}`);
+  return out.join('\n').slice(0, maxChars);
+}
