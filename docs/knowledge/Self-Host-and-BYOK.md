@@ -8,7 +8,7 @@ npx -y @whitenoisenpm/testforge-mcp@latest        # start → localhost:33221
 npx -y @whitenoisenpm/testforge-mcp setup         # interactive config wizard
 npx -y @whitenoisenpm/testforge-mcp --help        # env-var reference
 ```
-- **Tier-1 (22 dimensions) needs no config.** Tier-2 needs an AI provider + Docker.
+- **Tier-1 (22 dimensions) needs no config.** Tier-2 + Simulate need an AI provider + Docker.
 - **No database to install** — run history auto-stores in SQLite at
   `~/.testforge/history.db`.
 - Always use `@latest` (and pin `@latest` in IDE MCP configs) — npx caches, so a
@@ -46,10 +46,14 @@ Docker `-e` always overrides). It is set by:
 3. **Env vars** directly.
 
 Key env vars: `OPENROUTER_API_KEY`, `TESTFORGE_LLM_BASE_URL` (+ `_API_KEY`),
-`TESTFORGE_PRIMARY_MODEL`/`_FALLBACK_MODEL`, `TESTFORGE_MCP_PORT`,
-`TESTFORGE_RUN_SECRET`, `TESTFORGE_CLONE_TIMEOUT_MS` (default 120s — bumped from a
-hard 30s that timed out on ~1.3 GB monorepos like Supabase),
-`TESTFORGE_MAX_FILES` / `TESTFORGE_MAX_TOTAL_BYTES`.
+`TESTFORGE_PRIMARY_MODEL`/`_FALLBACK_MODEL` (default `deepseek/deepseek-v4-flash`
+/ `moonshotai/kimi-k2.6`), `TESTFORGE_MCP_PORT`, `TESTFORGE_MCP_HOST` (default
+`0.0.0.0`; set `127.0.0.1` for loopback-only behind a proxy), `TESTFORGE_RUN_SECRET`,
+`TESTFORGE_CLONE_TIMEOUT_MS` (default 120s — bumped from a hard 30s that timed out
+on ~1.3 GB monorepos like Supabase), `TESTFORGE_MAX_FILES` /
+`TESTFORGE_MAX_TOTAL_BYTES`, and the sandbox-image overrides
+`TESTFORGE_{RUNNER,LOADGEN,E2E}_IMAGE` (default to the public GHCR images; the
+runner also builds locally if the pull fails — see [[Tier2-Sandbox]]).
 
 ## Local AI
 Point Tier-2 at any OpenAI-compatible endpoint: Ollama

@@ -10,8 +10,14 @@ hardened Docker sandbox. Opt-in; needs an AI provider + Docker.
 ## The pipeline
 1. `POST /generate-and-run {findings, maxFindings}`.
 2. `generate-tests.ts` → `generateObject` (AI SDK, Zod-schema-enforced) per
-   finding, with provider rotation (primary → fallback). Tests must be
-   self-contained (recreate the footgun locally; don't import the project).
+   finding, with provider rotation (primary → fallback). Tests are **grounded in
+   the real source**: each finding carries the actual code at the flagged line
+   (`codeContext`), so the model reproduces *your* logic, not a generic example.
+   For **leaf** files (imports only Node built-ins) the test **imports & executes
+   the real module** — `source-wiring.ts` ships the file as a companion the
+   runner writes next to it. Non-leaf / py / go fall back to a self-contained
+   recreation. (Real-code execution for apps *with* deps is the Simulate
+   **`wired`** lane — see [[Simulation-Engine]].)
 3. `docker-runner.ts` writes the files to a per-run dir and runs the matching
    sandbox image with `--network=none --cap-drop=ALL --no-new-privileges`,
    memory/pids/cpu caps, tmpfs `/tmp`, test files mounted read-only.
@@ -34,8 +40,12 @@ hardened Docker sandbox. Opt-in; needs an AI provider + Docker.
 - **No-filePath findings.** Supply-chain / project-level k8s findings have no
   file; `detectLanguage`/filename-builder must tolerate `undefined` (was a 500).
 - **Multi-arch + versioned runner images.** `ghcr.io/t4tarzan/testforge-runner*`
-  are multi-arch (amd64+arm64) and version-pinned (`v0.36.x`) — Docker caches
+  (unit-test sandboxes), `testforge-loadgen` (Simulate load/chaos), and
+  `testforge-e2e` (Simulate browser lane: Playwright+Chromium+axe) are all
+  multi-arch (amd64+arm64) and version-pinned (`v0.36.x`) — Docker caches
   `:latest` and never re-pulls, so a fix only reaches users on a fresh tag.
+  GHCR packages must be made **public** (web-UI only; no API) so self-host can
+  pull anonymously. Each is overridable via `TESTFORGE_{RUNNER,LOADGEN,E2E}_IMAGE`.
 - **Build-locally fallback.** If the GHCR image can't be pulled
   (private/offline), the runner **builds** it from the Dockerfile shipped in the
   npm package — Tier-2 needs only Docker, no registry access.
