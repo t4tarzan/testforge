@@ -34,6 +34,7 @@ import {
   snippetForLine,
   snippetWindow,
 } from './lib/visitors.js';
+import { wireableLeafSource } from '../generator/source-wiring.js';
 import {
   collectTaintTable,
   confidenceFor,
@@ -103,6 +104,12 @@ export interface SecurityFinding {
    * Tier-2 so generated tests reproduce the ACTUAL code, not a description.
    */
   codeContext?: string;
+  /**
+   * The full source file, attached only when it's a "wireable leaf" (JS/TS,
+   * imports only Node built-ins). Lets Tier-2 import + exercise the REAL code.
+   * See generator/source-wiring.ts.
+   */
+  sourceFile?: { content: string };
   fixSuggestion: string;
   category: string;
   /** Phase 2: for taint-flagged findings, the data-flow story. */
@@ -409,7 +416,7 @@ function push(
   filePath: string,
   content: string,
   node: t.Node,
-  partial: Omit<SecurityFinding, 'filePath' | 'lineNumber' | 'codeSnippet' | 'codeContext' | 'column'>
+  partial: Omit<SecurityFinding, 'filePath' | 'lineNumber' | 'codeSnippet' | 'codeContext' | 'sourceFile' | 'column'>
 ) {
   const loc = nodeLoc(node);
   raw.push({
@@ -419,6 +426,7 @@ function push(
     column: loc.column,
     codeSnippet: snippetForLine(content, loc.line),
     codeContext: snippetWindow(content, loc.line),
+    sourceFile: wireableLeafSource(filePath, content),
   });
 }
 
