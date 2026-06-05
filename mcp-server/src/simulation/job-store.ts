@@ -12,7 +12,7 @@
 // restarts.)
 
 export type SimStatus = 'queued' | 'running' | 'done' | 'error';
-export type SimPhase = 'queued' | 'cloning' | 'detecting' | 'building' | 'booting' | 'load' | 'agent' | 'chaos' | 'wired' | 'done' | 'error';
+export type SimPhase = 'queued' | 'cloning' | 'detecting' | 'building' | 'booting' | 'load' | 'agent' | 'chaos' | 'wired' | 'e2e' | 'done' | 'error';
 
 export interface SimJob {
   jobId: string;

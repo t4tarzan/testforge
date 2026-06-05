@@ -56,6 +56,7 @@ import { runLoadRamp, type LoadSimResult } from './simulation/load-sim.js';
 import { runChaos, type FaultType } from './simulation/chaos-sim.js';
 import { runAgentLoad } from './simulation/agent-sim.js';
 import { runWiredUnit, type WiredFindingInput } from './simulation/wired-unit.js';
+import { runE2ECrawl } from './simulation/e2e-crawl.js';
 import { createJob, getJob, listJobs, updateJob } from './simulation/job-store.js';
 import { discoverEndpoints } from './analyzers/lib/endpoint-discovery.js';
 import { parseFile, isParseable } from './analyzers/lib/parse.js';
@@ -134,7 +135,7 @@ function discoverGetPaths(fileContents: Record<string, string>): string[] {
   return ['/', ...[...paths].filter((p) => p !== '/')].slice(0, 4);
 }
 
-type SimDimension = 'load' | 'chaos' | 'agent' | 'wired';
+type SimDimension = 'load' | 'chaos' | 'agent' | 'wired' | 'e2e';
 
 interface SimJobBody {
   repoUrl: string;
@@ -149,6 +150,8 @@ interface SimJobBody {
   /** Agent-pattern: fleet sizes to ramp + per-agent request rate (think-time = 1/rate). */
   agentLevels?: number[];
   reqsPerAgent?: number;
+  /** E2E crawl: max same-origin pages to visit (default 8, capped at 25). */
+  maxPages?: number;
 }
 
 // Pick a chaos load level the app can actually sustain: the highest concurrency
@@ -203,7 +206,7 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
       score: staticChaos.score, resilienceLevel: staticChaos.resilienceLevel, findings: staticChaos.findings,
     } : null;
 
-    const out: { load?: Record<string, unknown>; chaos?: Record<string, unknown>; agent?: Record<string, unknown>; wired?: Record<string, unknown> } = {};
+    const out: { load?: Record<string, unknown>; chaos?: Record<string, unknown>; agent?: Record<string, unknown>; wired?: Record<string, unknown>; e2e?: Record<string, unknown> } = {};
 
     // Wired-unit (Approach C) needs concrete code findings to target. Only run
     // the (relatively cheap) security pass when the dimension is requested.
@@ -247,6 +250,7 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
         if (dims.includes('chaos')) out.chaos = { ...fail, static: staticChaosBlock };
         if (dims.includes('agent')) out.agent = { ...fail };
         if (dims.includes('wired')) out.wired = { ...fail, method: 'node-test-in-app-image', results: [] };
+        if (dims.includes('e2e')) out.e2e = { ...fail, method: 'playwright-crawl' };
       } else {
         const sb = prep.sandbox;
         const paths = body.paths?.length ? body.paths : discoverGetPaths(codebase.fileContents);
@@ -294,6 +298,13 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
               })) };
             }
           }
+          if (dims.includes('e2e')) {
+            updateJob(jobId, { phase: 'e2e', detail: 'Crawling the booted app (Playwright)' });
+            out.e2e = { ...(await runE2ECrawl(sb, {
+              maxPages: body.maxPages,
+              onProgress: (detail) => updateJob(jobId, { phase: 'e2e', detail }),
+            })) };
+          }
         } finally {
           await teardownSandbox(sb);
         }
@@ -304,6 +315,7 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
       if (dims.includes('chaos')) out.chaos = { ...fail, static: staticChaosBlock };
       if (dims.includes('agent')) out.agent = { ...fail };
       if (dims.includes('wired')) out.wired = { ...fail, method: 'node-test-in-app-image', results: [] };
+      if (dims.includes('e2e')) out.e2e = { ...fail, method: 'playwright-crawl' };
     }
 
     try { rmSync(projectPath, { recursive: true, force: true }); } catch { /* best-effort */ }
