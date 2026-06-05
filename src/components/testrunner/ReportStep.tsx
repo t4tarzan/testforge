@@ -23,6 +23,8 @@ type FindingShape = {
    *  grounded in the actual code, not just the finding's text. */
   codeSnippet?: string;
   codeContext?: string;
+  /** Full source file when it's a wireable leaf — lets Tier-2 import the real code. */
+  sourceFile?: { content: string };
 };
 
 // The analysis result is a dynamic blob — the analyzer's full output
@@ -60,7 +62,7 @@ function collectFindings(results: AnalysisResults): FindingShape[] {
   const out: FindingShape[] = [];
   const push = (f: any, cat: string) => { // eslint-disable-line @typescript-eslint/no-explicit-any
     if (!f || !f.title) return;
-    out.push({ severity: f.severity || 'medium', title: f.title, description: f.description, filePath: f.filePath, lineNumber: f.lineNumber, fixSuggestion: f.fixSuggestion || f.suggestion, category: f.category || cat, codeSnippet: f.codeSnippet, codeContext: f.codeContext });
+    out.push({ severity: f.severity || 'medium', title: f.title, description: f.description, filePath: f.filePath, lineNumber: f.lineNumber, fixSuggestion: f.fixSuggestion || f.suggestion, category: f.category || cat, codeSnippet: f.codeSnippet, codeContext: f.codeContext, sourceFile: f.sourceFile });
   };
   (results.security?.items || []).forEach((f: FindingShape) => push(f, 'Security'));
   ['edgeCases', 'predictive', 'contract', 'supplyChain', 'kubernetes', 'nPlusOne', 'agentic', 'vision', 'chaos', 'dora', 'license'].forEach((k) => {

@@ -324,6 +324,14 @@ export async function runGeneratedTests(files: GeneratedTestFile[]): Promise<Run
         const name = dedupeName(safeName(f), usedNames, f.language);
         usedNames.add(name);
         writeFileSync(join(mountDir, name), f.content, 'utf8');
+        // Wire mode (Approach A): write the real source module(s) the test
+        // imports, verbatim, next to it so the relative import resolves. These
+        // are not *.test.ts, so vitest imports but never collects them as tests.
+        for (const c of f.companionFiles ?? []) {
+          if (usedNames.has(c.filename)) continue;
+          usedNames.add(c.filename);
+          writeFileSync(join(mountDir, c.filename), c.content, 'utf8');
+        }
       }
       const { stdout, stderr, code } = await dockerRun(image, mountDir);
       let parsed: ParsedGroup;

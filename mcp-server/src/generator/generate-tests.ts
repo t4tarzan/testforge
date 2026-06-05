@@ -50,6 +50,13 @@ export interface InputFinding {
    */
   codeSnippet?: string;
   codeContext?: string;
+  /**
+   * The finding's full source file, when it's a "wireable leaf" (JS/TS, imports
+   * only Node built-ins). When present, the generated test IMPORTS this real
+   * module and exercises its actual exports instead of recreating the logic.
+   * See ./source-wiring.ts. Absent → the codeContext/recreate path is used.
+   */
+  sourceFile?: { content: string };
 }
 
 /** Map a finding's source file to the test language we should generate. */
@@ -140,6 +147,13 @@ export interface GeneratedTestFile {
   reasoning: string;
   /** Which sandbox the runner should execute this in. */
   language: TestLanguage;
+  /**
+   * Extra files to materialize next to the test in the sandbox mount (Approach A
+   * wiring): the user's real source module(s) the test imports. The runner
+   * writes these verbatim so the test's relative import resolves. Vitest only
+   * collects `*.test.ts`, so these are imported, never run as tests.
+   */
+  companionFiles?: { filename: string; content: string }[];
 }
 
 /**
@@ -174,6 +188,20 @@ export interface GenerateResult {
   attempts: ProviderAttempt[];
 }
 
+// Wire mode (Approach A): the finding ships its real source module, so the test
+// IMPORTS and exercises the actual exports instead of recreating the logic. JS/TS
+// only for v1 (esbuild/bundler resolution + CJS interop make it robust).
+const WIRE_SYSTEM_JS = `You are a senior test author writing Vitest tests for JavaScript/TypeScript.
+You get a static-analysis finding AND the project's REAL source module.
+Output ONE Vitest file as JSON: { filename, content, reasoning }.
+Hard requirements for content:
+- \`import { describe, it, expect } from "vitest"\`
+- IMPORT the real module from the given specifier and exercise its ACTUAL exported functions. Do NOT recreate, redefine, or mock the code under test.
+- Only use symbols the module actually exports; if something needed isn't exported, test the observable behavior of what is. Do NOT import anything else from the project.
+- ≥2 it() blocks: one drives the input that triggers the finding's failure mode, one asserts correct/safe behavior.
+- No network, no fs writes, no Date.now()/setTimeout flakiness.
+- filename: kebab-case, ends in .test.ts`;
+
 async function generateOne(
   finding: InputFinding,
   cfg: LangConfig,
@@ -182,19 +210,34 @@ async function generateOne(
   provider: Provider
 ): Promise<GeneratedTestFile | null> {
   const started = Date.now();
+  // Wire mode is JS/TS-only for now; other languages use the self-contained path.
+  const wire = cfg.language === 'js' && !!finding.sourceFile?.content;
+  // Deterministic names so the test's import specifier and the companion file we
+  // write into the sandbox always agree (and stay unique across findings).
+  const testFilename = uniqueTestFilename(finding, cfg);
+  const companionBase = '__src_' + testFilename.replace(/\.test\.ts$/i, '');
+  const importSpec = './' + companionBase;
   try {
     const { object } = await generateObject({
       // AI SDK v6: .chat(model) for OpenAI-compatible providers (OpenRouter).
       model: provider.chat(model),
       schema: schemaFor(cfg),
-      system: cfg.system,
+      system: wire ? WIRE_SYSTEM_JS : cfg.system,
       prompt: `Finding: ${finding.title}
 Rule: ${finding.rule || finding.title}
 Severity: ${finding.severity}
 File: ${finding.filePath}:${finding.lineNumber}
 Description: ${finding.description}
 Suggested fix: ${finding.fixSuggestion}${
-        finding.codeContext || finding.codeSnippet
+        wire
+          ? `
+
+The project's REAL source module is saved alongside your test — import it as "${importSpec}":
+\`\`\`
+${finding.sourceFile!.content}
+\`\`\`
+Write a Vitest file that IMPORTS from "${importSpec}" and exercises the real exported code (the flagged behavior at line ${finding.lineNumber} and its safe counterpart). Do not redefine the module.`
+          : finding.codeContext || finding.codeSnippet
           ? `
 
 Actual code at ${finding.filePath}:${finding.lineNumber} (\`>\` marks the flagged line):
@@ -211,8 +254,14 @@ Write the ${cfg.language === 'js' ? 'Vitest' : cfg.language === 'python' ? 'pyte
     });
     attempts.push({ model, ok: true, durationMs: Date.now() - started });
     // Override the model-chosen filename with a deterministic, unique one so
-    // same-rule findings can't overwrite each other in the run dir.
-    return { ...object, filename: uniqueTestFilename(finding, cfg, object.filename), language: cfg.language };
+    // same-rule findings can't overwrite each other in the run dir. In wire mode
+    // ship the real module as a companion the runner writes next to the test.
+    return {
+      ...object,
+      filename: wire ? testFilename : uniqueTestFilename(finding, cfg, object.filename),
+      language: cfg.language,
+      ...(wire ? { companionFiles: [{ filename: companionBase + '.ts', content: finding.sourceFile!.content }] } : {}),
+    };
   } catch (err) {
     attempts.push({ model, ok: false, error: (err as Error).message, durationMs: Date.now() - started });
     return null;
