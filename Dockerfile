@@ -1,7 +1,10 @@
 # Self-contained TestForge image: web SPA (Vite dist) + MCP server (Fastify) in one
 # container. webapp-server.cjs serves dist on :9991 and proxies /api → 127.0.0.1:9990 (MCP).
+# Build stages install python3/make/g++ for native modules (better-sqlite3 via node-gyp).
 FROM node:20-slim AS webbuild
 WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ \
+ && rm -rf /var/lib/apt/lists/*
 COPY package*.json ./
 RUN npm ci
 COPY . .
@@ -9,6 +12,8 @@ RUN npm run build
 
 FROM node:20-slim AS mcpbuild
 WORKDIR /app/mcp-server
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ \
+ && rm -rf /var/lib/apt/lists/*
 COPY mcp-server/package*.json ./
 RUN npm ci
 COPY mcp-server/ ./
