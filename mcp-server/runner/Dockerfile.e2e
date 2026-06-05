@@ -1,0 +1,25 @@
+# TestForge E2E crawler — Playwright + Chromium + axe-core. Runs the smoke crawl
+# (e2e-crawl.mjs) against a booted app from a sibling container on the per-sim
+# docker network. No ENTRYPOINT: the MCP passes the command per invocation, e.g.
+#   node /e2e/crawl.mjs http://app:3000/ 8
+#
+# Build: docker build -t testforge-e2e:local -f runner/Dockerfile.e2e runner
+# node:22-slim base (multi-arch) + `playwright install --with-deps chromium`
+# keeps the image self-contained and the Playwright version under our control.
+FROM node:22-slim
+
+LABEL org.opencontainers.image.source="https://github.com/t4tarzan/testforge"
+LABEL org.opencontainers.image.description="TestForge E2E crawler — Playwright + Chromium + axe-core. Autonomous smoke crawl of a booted app on an isolated per-sim docker network."
+LABEL org.opencontainers.image.licenses="MIT"
+
+WORKDIR /e2e
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+# playwright (browser automation) + axe-core (a11y). `playwright install
+# --with-deps chromium` pulls the matching Chromium build + its OS libraries.
+RUN npm init -y >/dev/null 2>&1 \
+ && npm install playwright@^1.49 axe-core@^4 >/dev/null 2>&1 \
+ && npx playwright install --with-deps chromium >/dev/null 2>&1
+
+# The crawl script (kept as a real file in runner/ for readability/editing).
+COPY e2e-crawl.mjs /e2e/crawl.mjs
