@@ -20,6 +20,19 @@ measures **real behavior** by booting the app and driving traffic at it.
 - **chaos** (opt-in) — baseline load → inject a fault (restart/crash or
   pause/freeze, via docker pause/unpause + restart through the proxy) → measure
   `errorRateDuringFault` → poll until recovered → `recoverySeconds`.
+- **wired** (opt-in) — generates `node:test` files that dynamic-import the
+  app's **real modules by their in-container path** and run them *inside the
+  booted app image* (`wired-unit.ts`): deps resolve from the image's own
+  `node_modules`, `--network none`, zero framework injection (node:test ships
+  with Node ≥18). The deeper counterpart to Tier-2's leaf-wiring — covers any
+  bootable Node app. v1: Node single-container apps.
+- **e2e** (opt-in) — a **Playwright** sibling container (`testforge-e2e` image)
+  crawls the running app (`e2e-crawl.mjs`): per-page console errors, uncaught
+  page errors, 4xx/5xx responses, and axe-core a11y violations. With
+  `journeys:N`, **Phase 2** captures the page's interaction surface
+  (`e2e-snapshot.mjs`), the LLM authors N user journeys as a constrained step
+  DSL (goto/click/fill/expectText/expectUrl — not raw code), and a deterministic
+  executor (`e2e-journey.mjs`) runs each step-by-step.
 
 ## Surfaces
 - `/simulations` page renders real load/agent/chaos charts (recharts) from

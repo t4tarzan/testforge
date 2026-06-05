@@ -20,7 +20,7 @@ npx -y @whitenoisenpm/testforge-mcp --help        # full env-var reference
 | **Product & ops** | Vision/goal alignment (observability, analytics, feature flags), scope coverage, stack quality, DORA estimate, agentic-scale prediction |
 | **UI** | Accessibility (WCAG-ish): alt text, form labels, visual-regression hints |
 
-All Tier-1 analysis is regex/static — fast, no LLM calls, deterministic. Same input → same output. **Tier 2 (Generate & Run)** layers an LLM on top: it writes Vitest tests for the top findings and executes them inside a sandboxed Docker container. See the Tier 2 section below.
+All Tier-1 analysis is regex/static — fast, no LLM calls, deterministic. Same input → same output. **Tier 2 (Generate & Run)** layers an LLM on top: it writes real tests (Vitest / pytest / Go) for the top findings — grounded in your actual source, and importing & executing your real code when it safely can — and runs them in a sandboxed Docker container. **Simulate** goes further: it boots your app and exercises the *running* system (load, chaos, real-code unit tests in the booted image, and a Playwright browser crawl + LLM-authored user journeys). See the Tier 2 and Simulate sections below.
 
 ## Quick Start (Tier 1)
 
@@ -64,7 +64,14 @@ OPENROUTER_API_KEY=$OPENROUTER_API_KEY \
 #    Subsequent calls reuse the local image and run in ~1s.
 ```
 
-**What it does**: takes the top-3 highest-severity findings from a Tier-1 run, sends each to the LLM with a Zod-enforced schema (filename, content, reasoning), then drops the generated `.test.ts` files into a `node:22-slim` container (`--network=none`, `--rm`) where Vitest runs them with the JSON reporter.
+**What it does**: takes the top-3 highest-severity findings from a Tier-1 run, sends each to the LLM with a Zod-enforced schema (filename, content, reasoning), then runs the generated tests in a `node:22-slim` / pytest / Go container (`--network=none`, `--rm`, caps dropped) with the framework's JSON reporter.
+
+**Tests are grounded in your real code, not a description of it:**
+- Each finding ships the **actual source** at the flagged line, so the generated test reproduces *your* logic — not a generic example.
+- When the finding's file is a **leaf module** (imports only Node built-ins), the test **imports and executes the real module** in the sandbox, so the pass/fail reflects your actual code.
+- For deeper coverage (modules with dependencies), the **Simulate `wired` lane** runs tests against the real code *inside the booted app image*, where its dependencies already resolve. See Simulate below.
+
+Polyglot since v0.29: `.ts/.js` → Vitest, `.py` → pytest, `.go` → `go test`, each in its matching sandbox image.
 
 **Provider stack** (default models via OpenRouter; override either, or point at a local server with `TESTFORGE_LLM_BASE_URL`):
 
@@ -101,6 +108,35 @@ History endpoints:
 **Cost** at OpenRouter list prices: roughly **$0.02 per Tier-2 invocation** (3 generations × ~1.5k output tokens at Qwen 3.7 Max pricing). Sandbox compute is free locally.
 
 **Self-host vs managed**: the local MCP runs Tier 2 with no quota — you BYOK OpenRouter and pay them directly. The managed SaaS at [testforge.run](https://testforge.run) gates Tier 2 to the **Forge plan** ($99/mo, 100 iterations/mo) and handles the keys for you.
+
+## Simulate — exercise the *running* app
+
+> Where Tier-2 runs sandboxed unit tests, **Simulate boots your app and drives the running system.** Needs a root `Dockerfile` (or `docker-compose`) it can build, plus Docker running. Async (real sims take minutes): you get a `jobId`, then poll.
+
+```bash
+# Kick off (opt into the lanes you want via "dimensions")
+curl -X POST http://localhost:33221/simulate \
+  -H "Content-Type: application/json" \
+  -d '{"repoUrl":"https://github.com/owner/repo",
+       "dimensions":["load","chaos","wired","e2e"],
+       "journeys":2, "maxPages":8}'
+# → { jobId, statusUrl }
+
+# Poll for phased progress + the final result
+curl http://localhost:33221/simulate/<jobId>
+```
+
+It clones → detects how to boot (Dockerfile/compose) → builds + boots the app once on an isolated network → runs the requested **lanes** against it → tears down. If it can't be auto-booted, each lane returns an honest `ranReal:false` + reason (and a static fallback for load/chaos).
+
+| Lane (`dimensions`) | What it does |
+|---|---|
+| `load` *(default)* | autocannon ramp (10→500 concurrency) → p50/p90/p99, rps, error rate, breaking-point concurrency |
+| `chaos` | baseline load → inject a fault (restart/pause) → `errorRateDuringFault` + `recoverySeconds` |
+| `agent` | ramps a fleet of think-time agents → `maxHealthyAgents` |
+| `wired` | generates **node:test** files that import & run your **real code inside the booted image** (deps resolve from the image; Node apps, v1) |
+| `e2e` | **Playwright** crawls the running app → console errors, 4xx/5xx, axe a11y violations. Add `journeys:N` for **LLM-authored user journeys** (navigate/click/fill/assert) run as a deterministic step-DSL |
+
+`maxPages` bounds the e2e crawl (default 8); `journeys` (0 = smoke only) sets how many user journeys the model authors. `concurrencyLevels`, `durationPerLevelSec`, `faultType` tune load/chaos.
 
 ## Manual MCP Setup
 
@@ -184,16 +220,23 @@ Your source never leaves the machine — the dashboard is local, the analyzers a
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `TESTFORGE_MCP_PORT` | `33221` | Server port. 33221 chosen to avoid common dev-server collisions (3000/3001/5173/8080). |
+| `TESTFORGE_MCP_HOST` | `0.0.0.0` | Bind address. Set `127.0.0.1` to listen loopback-only — e.g. when a reverse proxy / Tailscale Serve already fronts the port and a wildcard bind would collide. Docker/managed deploys keep the wildcard. |
 | `TMP_DIR` | `/tmp/testforge-repos` | Where `/clone-and-analyze` puts temp checkouts. |
 | `LOG_LEVEL` | `info` | Fastify logger level (`debug`, `info`, `warn`, `error`). |
 | `DATABASE_URL` | — | Optional. If set, the server can fall back to Neon for read-replica history. Not required for local-only use. |
 | `OPENROUTER_API_KEY` | — | **Tier 2 only.** OpenRouter key for LLM test generation. Without it, `POST /generate-and-run` returns 503. Get one at https://openrouter.ai/. |
-| `TESTFORGE_PRIMARY_MODEL` | `qwen/qwen3.7-max` | Tier 2 primary model. Any OpenRouter model id works. |
-| `TESTFORGE_FALLBACK_MODEL` | `deepseek/deepseek-v4-flash` | Tier 2 fallback when the primary errors or rejects the schema. |
-| `TESTFORGE_RUNNER_IMAGE` | `ghcr.io/t4tarzan/testforge-runner:latest` | Tier 2 sandbox image — auto-pulled from GHCR on first use. Override to point at a local build (`testforge-runner:local`) if you've made changes. |
+| `TESTFORGE_LLM_BASE_URL` | — | **Tier 2 (local model).** Point at an OpenAI-compatible local server (Ollama `http://localhost:11434/v1`, LM Studio, vLLM) for free, private, keyless generation. From Docker use `host.docker.internal`. |
+| `TESTFORGE_PRIMARY_MODEL` | `deepseek/deepseek-v4-flash` | Tier 2 primary model. Any OpenRouter (or local) model id works. |
+| `TESTFORGE_FALLBACK_MODEL` | `moonshotai/kimi-k2.6` | Tier 2 fallback when the primary errors or rejects the schema. |
+| `TESTFORGE_RUNNER_IMAGE` | `ghcr.io/t4tarzan/testforge-runner:latest` | Tier 2 unit-test sandbox image (+ `_PYTHON` / `_GO` variants). Auto-pulled from GHCR; builds locally from the bundled Dockerfile if the pull fails. |
+| `TESTFORGE_LOADGEN_IMAGE` | `ghcr.io/t4tarzan/testforge-loadgen:latest` | Simulate load/chaos driver (autocannon). Override to a local build if needed. |
+| `TESTFORGE_E2E_IMAGE` | `ghcr.io/t4tarzan/testforge-e2e:latest` | Simulate `e2e` crawler (Playwright + Chromium + axe). Override to a local build if needed. |
+| `TESTFORGE_RUNNER_TAG` | `v0.36.x` | Version tag for the runner images (`:latest` is cached and never re-pulled, so fixes ship on a fresh tag). |
 
 ## Changelog highlights
 
+- **Unreleased (main)** — **Tier-2 runs your real code, and Simulate exercises the running app.** Tier-2 test generation now ships the **actual source** at the flagged line (so tests reproduce your logic, not a generic example), **imports & executes the real module** for leaf findings (Node built-ins only), and the new Simulate **`wired`** lane runs `node:test` files against your **real code inside the booted app image** (dependencies and all). The Simulate engine also gains a **browser/E2E lane** — Playwright crawls the running app (console errors, 4xx/5xx, axe a11y) and, with `journeys:N`, runs **LLM-authored user journeys** as a deterministic step-DSL. New runner images `testforge-loadgen` + `testforge-e2e` (multi-arch GHCR, local-build fallback); `TESTFORGE_MCP_HOST` makes the bind address configurable. (Tier-1 stays at 22 dimensions — this work is all Tier-2 / Simulate.)
+- **0.29.0–0.36.x** — Simulate runtime engine (load/agent/chaos, then the Kubernetes runtime tier), polyglot Tier-2 (pytest + Go test), the analyzer flywheel, and precision passes. Per-release detail in git history and [[Evolution]] (`docs/knowledge/Evolution.md`).
 - **0.28.4** — **Accessibility analyzer skips test paths.** Same suppression the security analyzer got in 0.27.0: a11y per-file checks now skip `tests/`, `__tests__/`, `e2e/`, `*.spec.*`, etc. Test fixtures routinely contain *intentional* a11y violations (TestForge's own `a11y-jsx` fixture is deliberately broken to test the analyzer), so flagging them is noise. Removes 9 fixture findings from the TestForge self-audit + fixes it for any user with a11y component tests.
 - **0.28.3** — **Security + a11y precision pass (false-positive cleanup).** Caught by the Supabase + TestForge self-audit reports, which showed mostly false positives. Four targeted fixes:
    - **SQL/NoSQL sink receiver-awareness:** `isDbQueryCall` matched generic method names (`get`, `find`, `all`, `run`, `count`) regardless of receiver — so `urlParams.get()`, `Promise.all()`, `map.get()`, and an HTTP `get()` helper all tripped the "SQL injection" critical. Now split into STRONG methods (`query`/`exec`/`execute`/`raw`/`findOne`/`findMany`/`findUnique`/`findFirst`/`aggregate` — fire always) vs WEAK methods (`find`/`get`/`all`/`run`/`count` — only when the receiver looks like a DB handle: `db`/`conn`/`client`/`pool`/`knex`/`prisma`/`sequelize`/`collection`/`mongoose`/etc.). Supabase criticals dropped 14 → 1.
