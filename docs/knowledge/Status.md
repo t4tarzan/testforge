@@ -1,17 +1,25 @@
 # Status & Handoff
 
 > **Fresh context? Read this first.** It's the "what happened + where we are"
-> entrypoint. Last updated: 2026-06-03.
+> entrypoint. Last updated: 2026-06-05.
 > Read order: **this file → [[TestForge]] (knowledge map) → [[Evolution]] (the
 > dated journey, arc by arc) → the changelog (`src/data/changelog.ts`) → agent
 > memory (deploy/ops)**. The full arc-by-arc history lives in [[Evolution]]; this
 > file is just the latest snapshot + what's next.
 
 ## Current state
-- **All three planes on 0.36.5** (2026-05-31): `main` (PR #47) · **npm
-  `@whitenoisenpm/testforge-mcp` = 0.36.5** (tag `latest`) · **live managed MCP
-  `mcp.testforge.run` = 0.36.5** (VPS redeployed, verified `/health`;
-  `testforge-mcp:prev` kept for rollback). Website auto-deploys from `main`.
+- **main + npm on 0.37.0** (2026-06-05, PR #69): `main` · **npm
+  `@whitenoisenpm/testforge-mcp` = 0.37.0** (tag `latest`). **The live managed MCP
+  `mcp.testforge.run` is still on 0.36.5 — VPS redeploy pending** (next deploy
+  picks up the 0.37.0 lanes + real-code Tier-2; recipe in [[hetzner-oc-server]]).
+  Website auto-deploys from `main`.
+- **0.37.0 — real-code testing + the browser lane (2026-06-05).** Tier-2 now
+  grounds tests in your real source and **executes real leaf modules**;
+  `/simulate` gains **`wired`** (runs your real code inside the booted image),
+  **`e2e`** (Playwright crawl: console/4xx-5xx/axe), and **`e2e` journeys**
+  (LLM-authored user flows as a deterministic step DSL). New runner images
+  `testforge-loadgen` + `testforge-e2e` are **public + multi-arch on GHCR**. See
+  [[Evolution]] Arc 10, [[Simulation-Engine]], [[Tier2-Sandbox]]. PRs #63–#69.
 - Three planes, one analyzer core: web (Vercel) · managed MCP (a VPS) · self-host
   MCP (`npx`). See [[Architecture]].
 - 331 MCP tests pass; CI gates on lint (0 errors) + tests + build. **Run

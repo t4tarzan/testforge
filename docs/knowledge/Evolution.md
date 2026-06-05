@@ -120,6 +120,29 @@ as a **managed paid capability** (Pro+).
   the running system** — capacity, resilience, dependency health, and whether the
   security posture is *enforced* or merely *declared*.
 
+## Arc 10 — TestForge becomes a real tester (0.37.0)
+Triggered by a competitive gut-check (vs TestSprite): *"we ground tests in real
+code, right?"* The honest answer was **no** — Tier-2 tested an LLM *recreation*
+of the pattern, not your code. Five PRs closed the gap:
+- **Real-source grounding (#63)** — every finding ships the actual code at the
+  flagged line; the generated test reproduces *your* logic, not a generic example.
+- **Leaf-module wiring (#64)** — for files importing only Node built-ins, the
+  test **imports & executes the real module** in the sandbox.
+- **`wired` simulate lane (#65)** — runs `node:test` files against the real code
+  *inside the booted app image*, where dependencies already resolve (covers apps
+  that aren't self-contained leaves).
+- **`e2e` lane (#66)** — a Playwright sibling container crawls the running app:
+  console errors, 4xx/5xx, axe-core a11y violations.
+- **`e2e` journeys (#67)** — the LLM authors user journeys as a constrained step
+  DSL (goto/click/fill/expect), run by a deterministic executor: AI decides
+  *what* to test, a fixed runner decides *how* (no LLM code in the browser).
+- New multi-arch GHCR images `testforge-loadgen` + `testforge-e2e` (public,
+  local-build fallback); `TESTFORGE_MCP_HOST` for loopback binding. Docs refreshed
+  (#68); shipped to npm as **0.37.0** (#69).
+- Throughline: **one boot engine, many lanes** — `sandbox.ts`'s booted app now
+  feeds load · chaos · wired · e2e. Arc 9's thesis deepens: TestForge no longer
+  just *grades* your code — it **runs** it (the real functions, the real UI).
+
 ## Cross-cutting themes
 - **The In-the-Wild reports are the test harness.** Most precision/cry-wolf bugs
   were caught by running real public repos and looking at the output.
