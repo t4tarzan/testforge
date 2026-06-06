@@ -35,7 +35,9 @@ export interface K8sReport {
 
 type Doc = Record<string, unknown>;
 
-const MANIFEST_GLOBS = ['**/*.yaml', '**/*.yml', '!**/node_modules/**', '!**/.git/**', '!**/dist/**', '!**/build/**'];
+const MANIFEST_GLOBS = ['**/*.yaml', '**/*.yml'];
+// Exclusions go in `ignore:` — node-glob ignores `!`-negation in the pattern array.
+const MANIFEST_IGNORE = ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**'];
 const WORKLOAD_KINDS = new Set(['Deployment', 'StatefulSet', 'DaemonSet', 'Job', 'CronJob', 'ReplicaSet', 'Pod']);
 
 /** Strip Helm/Go templating so the structural YAML still parses. */
@@ -79,7 +81,7 @@ function containersOf(podSpec: Doc): Doc[] {
 
 export async function runKubernetesAnalysis(projectPath: string): Promise<K8sReport> {
   let files: string[] = [];
-  try { files = await glob(MANIFEST_GLOBS, { cwd: projectPath, absolute: false, nodir: true }); } catch { /* ignore */ }
+  try { files = await glob(MANIFEST_GLOBS, { cwd: projectPath, absolute: false, nodir: true, ignore: MANIFEST_IGNORE }); } catch { /* ignore */ }
 
   const findings: K8sFinding[] = [];
   const kinds: Record<string, number> = {};

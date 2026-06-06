@@ -1373,17 +1373,11 @@ function checkMissingSecurityHeaders(
 
 async function loadFileContents(projectPath: string): Promise<Record<string, string>> {
   const fileContents: Record<string, string> = {};
-  const patterns = [
-    '**/*.{ts,tsx,js,jsx,mjs,cjs,mts,cts}',
-    '!**/node_modules/**',
-    '!**/.git/**',
-    '!**/dist/**',
-    '!**/build/**',
-    '!**/.next/**',
-    '!**/coverage/**',
-    '!**/*.min.js',
-  ];
-  const files = await glob(patterns, { cwd: projectPath, absolute: false });
+  // Exclusions go in `ignore:` — node-glob ignores `!`-negation in the pattern array.
+  const files = await glob('**/*.{ts,tsx,js,jsx,mjs,cjs,mts,cts}', {
+    cwd: projectPath, absolute: false,
+    ignore: ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**', '**/.next/**', '**/coverage/**', '**/*.min.js'],
+  });
   for (const f of files) {
     try {
       fileContents[f] = readFileSync(join(projectPath, f), 'utf-8');

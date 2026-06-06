@@ -92,7 +92,7 @@ export async function collectEcosystemPackages(projectPath: string, cap = 400): 
     for (const d of parsePipfileLock(read('Pipfile.lock') || '')) pkgs.push({ ecosystem: 'PyPI', ...d });
   }
   try {
-    const reqs = await glob(['**/requirements*.txt', '!**/node_modules/**'], { cwd: projectPath, absolute: false, nodir: true });
+    const reqs = await glob('**/requirements*.txt', { cwd: projectPath, absolute: false, nodir: true, ignore: ['**/node_modules/**'] });
     for (const f of reqs.slice(0, 10)) for (const d of parseRequirementsTxt(read(f) || '')) pkgs.push({ ecosystem: 'PyPI', ...d });
   } catch { /* ignore */ }
 
