@@ -45,6 +45,7 @@ import { runAgenticScalePrediction } from './analyzers/agentic-scale.js';
 import { runKubernetesAnalysis } from './analyzers/k8s-analyzer.js';
 import { generateTestsForFindings, type InputFinding, type LlmOverride } from './generator/generate-tests.js';
 import { filterTestableFindings } from './generator/finding-filter.js';
+import { runConsensus, consensusModels, type ConsensusFinding } from './generator/consensus.js';
 import { hasLLMKey, PRIMARY_MODEL, FALLBACK_MODEL, LLM_BASE_URL, LLM_IS_LOCAL } from './generator/llm-client.js';
 import { isFromEnvFile, readEnvFile, writeEnvFile } from './load-env.js';
 import { reloadLLM } from './generator/llm-client.js';
@@ -618,6 +619,37 @@ async function main() {
     }
 
     return reply.send(responsePayload);
+  });
+
+  // Consensus verification — re-check Tier-1 findings against the real source
+  // with two independent models, keeping only the ones both confirm present.
+  // De-noises false/mis-scoped findings on polyglot repos.
+  app.post('/consensus', async (request, reply) => {
+    if (!runSecretOk(request)) return reply.status(401).send({ error: 'Unauthorized' });
+    if (!hasLLMKey()) {
+      return reply.status(503).send({ error: 'No AI provider configured for consensus verification', hint: 'Set OPENROUTER_API_KEY (or a local TESTFORGE_LLM_BASE_URL).' });
+    }
+    const body = request.body as { projectPath?: string; findings?: ConsensusFinding[]; models?: string[] } | undefined;
+    const projectPath = body?.projectPath?.trim();
+    const findings = body?.findings ?? [];
+    if (!projectPath) return reply.status(400).send({ error: 'projectPath required (the analyzed local path; consensus reads its source)' });
+    if (!Array.isArray(findings) || findings.length === 0) return reply.status(400).send({ error: 'findings[] required' });
+    // Optional per-request model override (the dashboard model picker); else env/default pair.
+    const chosen = Array.isArray(body?.models) ? body!.models.map((m) => String(m).trim()).filter(Boolean).slice(0, 4) : [];
+    const models = chosen.length ? chosen : consensusModels();
+    try {
+      const t0 = Date.now();
+      const results = await runConsensus(projectPath, findings.slice(0, 40), models);
+      const count = (c: string) => results.filter((r) => r.consensus === c).length;
+      return reply.send({
+        models,
+        durationMs: Date.now() - t0,
+        summary: { total: results.length, confirmed: count('confirmed'), rejected: count('rejected'), split: count('split') },
+        results,
+      });
+    } catch (err) {
+      return reply.status(500).send({ error: (err as Error).message });
+    }
   });
 
   // List Tier-2 generations (most-recent first).

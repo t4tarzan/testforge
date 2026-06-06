@@ -134,6 +134,54 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 <script>
 var reportData = null;
 var lastTier2 = null;       // last Tier-2 generate-and-run result (for the report download)
+var lastConsensus = null;   // last consensus-verification result (appended to the report)
+var lastProjectPath = '';   // the analyzed local path — consensus reads its source
+
+// Consensus model catalog — ordered by performance (desc), then price (asc).
+// Prices are OpenRouter $/M tokens (in / out); performance tier is an estimate.
+var CONSENSUS_CATALOG = [
+  { id:'qwen/qwen3.7-max',            tier:'Frontier', in:1.25, out:3.75 },
+  { id:'openai/gpt-5.1',             tier:'Frontier', in:1.25, out:10 },
+  { id:'anthropic/claude-sonnet-4.6', tier:'Frontier', in:3,    out:15 },
+  { id:'anthropic/claude-opus-4.7',   tier:'Frontier', in:5,    out:25 },
+  { id:'deepseek/deepseek-v4-pro',    tier:'Strong',   in:0.43, out:0.87 },
+  { id:'moonshotai/kimi-k2.6',        tier:'Strong',   in:0.68, out:3.42 },
+  { id:'google/gemini-3.5-flash',     tier:'Strong',   in:1.5,  out:9 },
+  { id:'deepseek/deepseek-v4-flash',  tier:'Budget',   in:0.1,  out:0.2 },
+  { id:'qwen/qwen3-coder',            tier:'Budget',   in:0.22, out:1.8 }
+];
+// Three different lineages → majority vote (no ties, outliers get outvoted).
+var CONSENSUS_DEFAULT = ['anthropic/claude-sonnet-4.6', 'qwen/qwen3.7-max', 'deepseek/deepseek-v4-pro'];
+function getConsensusModels() {
+  // Prefer the live dropdowns; else saved; else default. Always returns 3.
+  var live = ['consModelA','consModelB','consModelC'].map(function(id){ var el=document.getElementById(id); return el?el.value:null; });
+  var arr = live.every(Boolean) ? live : null;
+  if (!arr) { try { var s = JSON.parse(localStorage.getItem('tf_consensus_models')); if (Array.isArray(s) && s.length) arr = s; } catch(e){} }
+  var out = []; for (var i=0;i<3;i++) out.push((arr && arr[i]) || CONSENSUS_DEFAULT[i]);
+  return out;
+}
+function saveConsensusModels() {
+  localStorage.setItem('tf_consensus_models', JSON.stringify(getConsensusModels()));
+}
+function consensusSelectHTML(elId, selectedId) {
+  var opts = CONSENSUS_CATALOG.map(function(m){
+    var short = m.id.indexOf('/') >= 0 ? m.id.split('/')[1] : m.id;
+    var label = short + '  ·  ' + m.tier + '  ·  $' + m.in + '/$' + m.out;
+    return '<option value="'+m.id+'"'+(m.id===selectedId?' selected':'')+'>'+label+'</option>';
+  }).join('');
+  return '<select id="'+elId+'" onchange="saveConsensusModels()" style="flex:1;min-width:190px;padding:9px 10px;background:#1E1B2E;border:1px solid #3A3A3A;border-radius:6px;color:#fff;font-size:12px">'+opts+'</select>';
+}
+function consensusPickerHTML() {
+  var sel = getConsensusModels();
+  var plus = '<span style="color:#574a7d;font-weight:700">+</span>';
+  return '<div style="margin-top:10px;padding:12px 14px;background:#12101A;border:1px solid #2a2433;border-radius:8px">'
+    + '<div style="font-size:10px;color:#6B6B6B;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🔬 Cross-check models (majority vote)</div>'
+    + '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
+    + consensusSelectHTML('consModelA', sel[0]) + plus
+    + consensusSelectHTML('consModelB', sel[1]) + plus
+    + consensusSelectHTML('consModelC', sel[2]) + '</div>'
+    + '<div style="font-size:11px;color:#6B6B6B;margin-top:8px">Three independent models verify each finding — the majority wins (no ties). Pick different lineages. Listed by performance, then price.</div></div>';
+}
 var DIM_META = { meta: {} }; // per-dimension method/coverage, loaded from /dimension-meta.json
 fetch('/dimension-meta.json').then(function(r){ return r.json(); }).then(function(m){ if (m && m.meta) DIM_META = m; }).catch(function(){});
 
@@ -174,6 +222,8 @@ async function runAnalysis() {
     
     if (!res.ok) throw new Error(await res.text());
     reportData = await res.json();
+    lastProjectPath = path; // remember for consensus (empty for repo-URL clones)
+    lastTier2 = null; lastConsensus = null; // fresh analysis → drop prior verify/gen results
     
     document.getElementById('barFill').style.width = '100%';
     document.getElementById('status').textContent = 'Analysis complete!';
@@ -285,15 +335,23 @@ function renderReport(d, source, savedId) {
   h += '<div style="font-size:13px;color:#6B6B6B">'+a.resilienceLevel+'</div>';
   h += '<div style="font-size:12px;color:#6B6B6B;margin-top:4px">Max agents before failure: '+a.maxPredictedAgents+' | Bottleneck: '+(a.predictedBottleneck||'unknown')+'</div></div>';
   
-  // Actions
-  h += '<div class="actions" style="display:flex;gap:12px;flex-wrap:wrap">';
-  h += '<button class="btn-secondary" onclick="runTier2()" id="tier2Btn" style="flex:1;min-width:200px">🤖 Generate Tests (Tier 2)</button>';
-  h += '<button class="btn-outline" onclick="downloadReport(\'md\')">⬇️ Download Report (Markdown)</button>';
-  h += '<button class="btn-outline" onclick="downloadReport(\'json\')">⬇️ Download JSON</button>';
-  h += '<button class="btn-outline" onclick="window.print()">🖨️ Print / Save PDF</button>';
+  // Actions — primary actions on top, the consensus picker, then utilities.
+  h += '<div class="actions" style="flex-wrap:wrap">';
+  h += '<button class="btn-secondary" onclick="runTier2()" id="tier2Btn" style="min-width:200px">🤖 Generate Tests · Tier 2</button>';
+  h += '<button class="btn-secondary" onclick="runConsensus()" id="consensusBtn" style="min-width:200px">🔬 Verify Findings · Tier 2</button>';
+  h += '</div>';
+  h += '<div style="font-size:11px;color:#6B6B6B;margin-top:6px">Both are Tier 2 — they need an AI provider key (OpenRouter, set in ⚙ Settings).</div>';
+  // Consensus model picker (inline, so it's visible before clicking Verify).
+  h += consensusPickerHTML();
+  // Utility actions (download / print) on their own row.
+  h += '<div class="actions" style="flex-wrap:wrap;margin-top:10px">';
+  h += '<button class="btn-outline" onclick="downloadReport(\'md\')">⬇️ Markdown</button>';
+  h += '<button class="btn-outline" onclick="downloadReport(\'json\')">⬇️ JSON</button>';
+  h += '<button class="btn-outline" onclick="window.print()">🖨️ Print / PDF</button>';
   h += '</div>';
   // Tier-2 result slot
   h += '<div id="tier2Result" style="margin-top:16px;display:none"></div>';
+  h += '<div id="consensusResult" style="margin-top:16px;display:none"></div>';
   h += '</div>';
 
   document.getElementById('report').innerHTML = h;
@@ -347,7 +405,12 @@ function downloadReport(fmt) {
   if (!reportData) return;
   var d = reportData;
   var name = (d.repo || 'report').split('/').pop().replace(/[^a-z0-9._-]/gi,'-');
-  if (fmt === 'json') { triggerDownload('testforge-' + name + '.json', JSON.stringify(d, null, 2), 'application/json'); return; }
+  if (fmt === 'json') {
+    var bundle = Object.assign({}, d);
+    if (lastTier2) bundle.tier2 = lastTier2;
+    if (lastConsensus) bundle.consensus = lastConsensus;
+    triggerDownload('testforge-' + name + '.json', JSON.stringify(bundle, null, 2), 'application/json'); return;
+  }
   var cb = d.codebase || {};
   var rows = buildDimRows(d);
   var nums = rows.map(function(r){return r[2];}).filter(function(s){return typeof s==='number';});
@@ -435,43 +498,70 @@ function downloadReport(fmt) {
     L.push('');
   }
 
+  // Consensus verification (if Verify Findings was run this session)
+  if (lastConsensus && lastConsensus.results) {
+    var cv = lastConsensus, su = cv.summary || {};
+    L.push('## Consensus verification');
+    L.push('');
+    L.push('Models: ' + (cv.models||[]).join(' + ') + ' · ' + (su.confirmed||0) + ' confirmed · ' + (su.rejected||0) + ' rejected · ' + (su.split||0) + ' split');
+    L.push('');
+    L.push('| Verdict | Severity | Finding | Dimension |');
+    L.push('|---|---|---|---|');
+    var ord = { confirmed:0, split:1, rejected:2 };
+    cv.results.slice().sort(function(a,b){return (ord[a.consensus])-(ord[b.consensus]);}).forEach(function(r){
+      var tag = r.consensus==='confirmed'?'✅ confirmed':r.consensus==='rejected'?'❌ rejected':'⚠️ split';
+      L.push('| ' + tag + ' | ' + (r.finding.severity||'') + ' | ' + (r.finding.title||'').replace(/\|/g,'\\|') + ' | ' + (r.finding.dimension||'') + ' |');
+    });
+    L.push('');
+    L.push('_Each finding judged against the real source by ' + (cv.models||[]).length + ' independent models (majority vote); only ✅ confirmed are present in the code._');
+    L.push('');
+  }
+
   L.push('---');
   L.push('Generated by TestForge MCP (self-hosted) · testforge.run');
   triggerDownload('testforge-' + name + '.md', L.join('\n'), 'text/markdown');
 }
 
 // ─── Tier 2: generate Vitest files for the top findings + run in sandbox ───
-async function runTier2() {
+async function runTier2(findingsOverride) {
   if (!reportData) return;
   var btn = document.getElementById('tier2Btn');
   var slot = document.getElementById('tier2Result');
+  var sevOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+  var bySev = function(a, b){ return (sevOrder[a.severity]||4) - (sevOrder[b.severity]||4); };
+
+  // Source of findings: explicit override → last consensus-confirmed → all findings.
+  var top, confirmed = false;
+  if (findingsOverride && findingsOverride.length) {
+    top = findingsOverride.slice().sort(bySev).slice(0, 3); confirmed = true;
+  } else if (lastConsensus && lastConsensus.results) {
+    // After a Verify run, generate against the consensus-CONFIRMED findings only.
+    top = lastConsensus.results.filter(function(r){ return r.consensus === 'confirmed'; })
+      .map(function(r){ return r.finding; }).sort(bySev).slice(0, 3);
+    confirmed = true;
+  } else {
+    var all = [];
+    Object.keys(reportData).forEach(function(k) {
+      var v = reportData[k];
+      if (v && typeof v === 'object') {
+        var arr = v.findings || v.items || [];
+        if (Array.isArray(arr)) arr.forEach(function(f) {
+          if (f && typeof f === 'object' && f.severity) all.push(Object.assign({ dimension: k, rule: (f.title||'').split('(')[0].trim() }, f));
+        });
+      }
+    });
+    top = all.sort(bySev).slice(0, 3);
+  }
+
   btn.disabled = true;
   btn.textContent = '🤖 Generating + running sandbox...';
   slot.style.display = 'block';
-  slot.innerHTML = '<div style="padding:16px;background:#12101A;border-radius:8px;color:#a99bff;font-size:13px">' +
-    '⏳ Sending top findings to the model (Qwen 3.7 Max → DeepSeek V4 Flash fallback) · then executing the generated tests in a sandboxed Docker container...</div>';
-
-  // Pull top severity findings across dimensions
-  var sevOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-  var all = [];
-  Object.keys(reportData).forEach(function(k) {
-    var v = reportData[k];
-    if (v && typeof v === 'object') {
-      var arr = v.findings || v.items || [];
-      if (Array.isArray(arr)) arr.forEach(function(f) {
-        if (f && typeof f === 'object' && f.severity) {
-          all.push(Object.assign({ dimension: k, rule: (f.title||'').split('(')[0].trim() }, f));
-        }
-      });
-    }
-  });
-  all.sort(function(a, b) { return (sevOrder[a.severity]||4) - (sevOrder[b.severity]||4); });
-  var top = all.slice(0, 3);
+  slot.innerHTML = '<div style="padding:16px;background:#12101A;border-radius:8px;color:#a99bff;font-size:13px">⏳ Generating Vitest tests for the top ' + top.length + (confirmed ? ' <b>consensus-confirmed</b>' : '') + ' findings, then running them in a sandboxed Docker container...</div>';
 
   if (top.length === 0) {
-    slot.innerHTML = '<div style="padding:16px;background:#12101A;border-radius:8px;color:#EAB308;font-size:13px">No findings produced — nothing to generate against.</div>';
+    slot.innerHTML = '<div style="padding:16px;background:#12101A;border-radius:8px;color:#EAB308;font-size:13px">' + (confirmed ? 'No consensus-confirmed findings — nothing to generate tests for.' : 'No findings produced — nothing to generate against.') + '</div>';
     btn.disabled = false;
-    btn.textContent = '🤖 Generate Tests (Tier 2)';
+    btn.textContent = '🤖 Generate Tests · Tier 2';
     return;
   }
 
@@ -534,7 +624,77 @@ async function runTier2() {
   }
 
   btn.disabled = false;
-  btn.textContent = '🤖 Generate Tests (Tier 2)';
+  btn.textContent = '🤖 Generate Tests · Tier 2';
+}
+
+// ─── Consensus: re-check findings against real source with two models ───
+async function runConsensus() {
+  if (!reportData) return;
+  var btn = document.getElementById('consensusBtn');
+  var slot = document.getElementById('consensusResult');
+  if (!lastProjectPath) {
+    slot.style.display = 'block';
+    slot.innerHTML = '<div style="padding:16px;background:#12101A;border-radius:8px;color:#EAB308;font-size:13px">Consensus needs a local project path (it reads the source). Re-run with a path, not a GitHub URL.</div>';
+    return;
+  }
+  // Collect ALL findings across dimensions (not just top-3).
+  var all = [];
+  Object.keys(reportData).forEach(function(k) {
+    var v = reportData[k];
+    if (v && typeof v === 'object') {
+      var arr = v.findings || v.items || [];
+      if (Array.isArray(arr)) arr.forEach(function(f) {
+        if (f && typeof f === 'object' && f.title) all.push(Object.assign({ dimension: k }, f));
+      });
+    }
+  });
+  if (!all.length) { slot.style.display='block'; slot.innerHTML = '<div style="padding:16px;background:#12101A;border-radius:8px;color:#EAB308;font-size:13px">No findings to verify.</div>'; return; }
+
+  btn.disabled = true;
+  btn.textContent = '🔬 Verifying (' + all.length + ' findings × ' + getConsensusModels().length + ' models)...';
+  slot.style.display = 'block';
+  slot.innerHTML = '<div style="padding:16px;background:#12101A;border-radius:8px;color:#a99bff;font-size:13px">⏳ Three independent models are judging each finding against the real source. Confirmed = the majority agree it is genuinely present.</div>';
+
+  try {
+    var res = await fetch('/consensus', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectPath: lastProjectPath, findings: all, models: getConsensusModels() })
+    });
+    var d = await res.json();
+    if (d.error) throw new Error(d.error);
+    lastConsensus = d; // append to the downloadable report
+    var esc = function(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
+    var h = '<div style="padding:16px;background:#12101A;border-radius:8px">';
+    h += '<div style="font-size:15px;font-weight:600;color:#a99bff;margin-bottom:6px">🔬 Consensus — ' + d.models.join(' + ') + '</div>';
+    h += '<div style="font-size:12px;color:#6B6B6B;margin-bottom:12px">' + d.summary.confirmed + ' confirmed · ' + d.summary.rejected + ' rejected · ' + d.summary.split + ' split · ' + (d.durationMs/1000).toFixed(1) + 's</div>';
+    var order = { confirmed:0, split:1, rejected:2 };
+    d.results.sort(function(a,b){ return (order[a.consensus]) - (order[b.consensus]); });
+    d.results.forEach(function(r){
+      var c = r.consensus;
+      var bg = c==='confirmed' ? 'rgba(239,68,68,0.08)' : c==='rejected' ? 'rgba(34,197,94,0.06)' : 'rgba(234,168,56,0.08)';
+      var bd = c==='confirmed' ? '#EF4444' : c==='rejected' ? '#22C55E' : '#E8A838';
+      var tag = c==='confirmed' ? '✅ CONFIRMED' : c==='rejected' ? '❌ rejected (likely false)' : '⚠️ split';
+      h += '<div class="finding" style="border-color:'+bd+';background:'+bg+';margin-bottom:10px">';
+      h += '<div class="finding-title">'+tag+' · ['+esc(r.finding.severity)+'] '+esc(r.finding.title)+'</div>';
+      h += '<div class="finding-file" style="font-size:11px;color:#6B6B6B">'+esc(r.finding.dimension)+'</div>';
+      r.verdicts.forEach(function(v){
+        var vc = v.present===true ? '#EF4444' : v.present===false ? '#22C55E' : '#888';
+        var vt = v.present===null ? 'error' : (v.present?'present':'not present')+'/'+v.confidence;
+        h += '<div style="margin-top:6px;font-size:12px;color:'+vc+'"><b>'+esc(v.model)+':</b> '+vt+' — <span style="color:#9a9a9a">'+esc(v.evidence)+'</span></div>';
+      });
+      h += '</div>';
+    });
+    if (d.summary.confirmed > 0) h += '<div style="margin-top:8px;font-size:12px;color:#a99bff">→ Auto-generating Tier-2 tests for the ' + d.summary.confirmed + ' confirmed finding(s)…</div>';
+    h += '</div>';
+    slot.innerHTML = h;
+    // Chain: Generate Tests runs on the consensus-confirmed findings only.
+    var confirmed = d.results.filter(function(r){ return r.consensus === 'confirmed'; }).map(function(r){ return r.finding; });
+    if (confirmed.length) setTimeout(function(){ runTier2(confirmed); }, 150);
+  } catch (e) {
+    slot.innerHTML = '<div style="padding:16px;background:rgba(239,68,68,0.1);border-radius:8px;color:#EF4444;font-size:13px">Consensus failed: ' + e.message + '</div>';
+  }
+  btn.disabled = false;
+  btn.textContent = '🔬 Verify Findings · Tier 2';
 }
 
 async function loadHistory() {
