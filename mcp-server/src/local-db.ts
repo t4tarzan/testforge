@@ -92,6 +92,19 @@ export function getLocalDb(): DB {
       created_at TEXT DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_sim_baselines_key ON sim_baselines(key, created_at DESC);
+
+    -- Coherence snapshots: per-surface behavior fingerprint (pages + journeys)
+    -- per run, keyed like baselines, so a later run can diff for output divergence.
+    CREATE TABLE IF NOT EXISTS coherence_snapshots (
+      id TEXT PRIMARY KEY,
+      key TEXT NOT NULL,
+      repo TEXT,
+      branch TEXT,
+      base_ref TEXT,
+      snapshot_json TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_coherence_key ON coherence_snapshots(key, created_at DESC);
   `);
   
   console.log(`📁 Local DB: ${DB_PATH}`);
@@ -255,4 +268,44 @@ export function getLatestSimBaseline(key: string): SimBaselineRow | null {
   if (!row) return null;
   const { metrics_json, ...rest } = row;
   return { ...rest, metrics: JSON.parse(metrics_json) };
+}
+
+// ─── Coherence snapshots ────────────────────────────────────────────────
+export interface SaveCoherenceInput {
+  id: string;
+  key: string;
+  repo: string;
+  branch?: string;
+  baseRef?: string;
+  snapshot: unknown;
+}
+
+export interface CoherenceSnapshotRow {
+  id: string;
+  key: string;
+  repo: string;
+  branch: string;
+  base_ref: string | null;
+  snapshot: unknown;
+  created_at: string;
+}
+
+export function saveCoherenceSnapshot(input: SaveCoherenceInput): void {
+  const d = getLocalDb();
+  d.prepare(
+    `INSERT INTO coherence_snapshots (id, key, repo, branch, base_ref, snapshot_json)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(input.id, input.key, input.repo, input.branch || 'default', input.baseRef || null, JSON.stringify(input.snapshot));
+}
+
+/** Most recent coherence snapshot for a key (the previous run, to diff against). */
+export function getLatestCoherenceSnapshot(key: string): CoherenceSnapshotRow | null {
+  const d = getLocalDb();
+  const row = d.prepare(
+    `SELECT id, key, repo, branch, base_ref, snapshot_json, created_at
+     FROM coherence_snapshots WHERE key = ? ORDER BY created_at DESC, id DESC LIMIT 1`
+  ).get(key) as (Omit<CoherenceSnapshotRow, 'snapshot'> & { snapshot_json: string }) | undefined;
+  if (!row) return null;
+  const { snapshot_json, ...rest } = row;
+  return { ...rest, snapshot: JSON.parse(snapshot_json) };
 }

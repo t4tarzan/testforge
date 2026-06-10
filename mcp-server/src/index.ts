@@ -366,6 +366,27 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
       console.error('baseline delta/persist failed (non-fatal):', (e as Error).message);
     }
 
+    // Coherence / differential (tenet #6): fingerprint per-surface behavior
+    // (page status/errors + journey pass/fail), diff vs the previous run for
+    // output divergence, then persist this run. Best-effort.
+    let coherenceDelta = null;
+    try {
+      const { extractCoherenceSnapshot, diffCoherence } = await import('./simulation/coherence.js');
+      const { baselineKey } = await import('./simulation/baselines.js');
+      const { getLatestCoherenceSnapshot, saveCoherenceSnapshot } = await import('./local-db.js');
+      const snapshot = extractCoherenceSnapshot(out as Record<string, unknown>);
+      if (snapshot.pages || snapshot.journeys) {
+        const key = baselineKey(repoUrl, body.branch, dims);
+        const prev = getLatestCoherenceSnapshot(key);
+        if (prev) {
+          coherenceDelta = diffCoherence(prev.snapshot as Parameters<typeof diffCoherence>[0], snapshot);
+        }
+        saveCoherenceSnapshot({ id: `cs_${runId}`, key, repo: repoUrl, branch: body.branch, baseRef: body.baseRef, snapshot });
+      }
+    } catch (e) {
+      console.error('coherence diff/persist failed (non-fatal):', (e as Error).message);
+    }
+
     updateJob(jobId, {
       status: 'done', phase: 'done', detail: 'Simulation complete', finishedAt: new Date().toISOString(),
       result: {
@@ -386,6 +407,7 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
               : { baseRef: body.baseRef, available: false, reason: 'could not fetch/diff the base ref — unknown ref, auth, or network' })
           : undefined,
         baselineDelta,
+        coherenceDelta,
         ...out,
       },
     });
