@@ -2,7 +2,7 @@
 // The parser + intersect are pure, so we test them against a known
 // `git diff --unified=0` fixture — no git invocation needed.
 import { describe, it, expect } from 'vitest';
-import { parseUnifiedDiff, lineInChanged, tagChangedFindings, diffSpecs, prioritizeByChanged, changedPaths } from '../src/analyzers/changed-surface.js';
+import { parseUnifiedDiff, lineInChanged, tagChangedFindings, diffSpecs, prioritizeByChanged, changedPaths, regressionRiskByDimension } from '../src/analyzers/changed-surface.js';
 import { changedHintBlock } from '../src/simulation/e2e-journey.js';
 
 // A representative unified=0 diff: one file modified (a hunk in the middle),
@@ -140,6 +140,27 @@ describe('prioritizeByChanged (slice 3 — lane seeding)', () => {
 describe('changedPaths', () => {
   it('lists the changed files', () => {
     expect(changedPaths(parseUnifiedDiff(DIFF, 'main')).sort()).toEqual(['src/auth.ts', 'src/new-feature.ts']);
+  });
+});
+
+describe('regressionRiskByDimension (slice 4 — all dimensions)', () => {
+  const surface = parseUnifiedDiff(DIFF, 'main');
+
+  it('counts findings on changed lines per dimension, omitting zeros', () => {
+    const risk = regressionRiskByDimension(surface, {
+      security: [
+        { filePath: 'src/auth.ts', lineNumber: 88 },   // changed
+        { filePath: 'src/auth.ts', lineNumber: 10 },    // not
+      ],
+      edgeCases: [{ filePath: 'src/new-feature.ts', lineNumber: 2 }], // changed
+      supplyChain: [{ filePath: undefined, lineNumber: undefined }],  // project-level → drops
+      license: [],                                                    // empty → drops
+    });
+    expect(risk).toEqual({ security: 1, edgeCases: 1 });
+  });
+
+  it('returns an empty object when nothing lands on changed lines', () => {
+    expect(regressionRiskByDimension(surface, { unit: [{ filePath: 'src/untouched.ts', lineNumber: 1 }] })).toEqual({});
   });
 });
 

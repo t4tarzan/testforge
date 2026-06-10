@@ -840,13 +840,21 @@ async function main() {
       // history, so shallow-fetch the base tip, then diff. Findings on changed
       // lines get tagged introducedByDiff. Degrades silently to full analysis.
       // See antirez/news/168 tenet #3 + docs/ANTIREZ-168-GAP-ANALYSIS.md.
-      const { ensureBaseRef, computeChangedSurface, tagChangedFindings } = await import('./analyzers/changed-surface.js');
+      const { ensureBaseRef, computeChangedSurface, tagChangedFindings, regressionRiskByDimension } = await import('./analyzers/changed-surface.js');
       const resolvedBase = baseRef ? ensureBaseRef(projectPath, baseRef) : null;
       const changedSurface = resolvedBase ? computeChangedSurface(projectPath, resolvedBase) : null;
       const securityItems = changedSurface ? tagChangedFindings(changedSurface, securityFindings) : securityFindings;
-      const securityOnChanged = changedSurface
-        ? securityItems.filter((f) => (f as { introducedByDiff?: boolean }).introducedByDiff).length
-        : 0;
+      // Regression risk per dimension across the whole report (all dimensions,
+      // not just security). Dimensions with no locatable hit drop out.
+      const regressionRisk = changedSurface ? regressionRiskByDimension(changedSurface, {
+        security: securityFindings, unit: unitReport.findings ?? [], load: loadReport.findings ?? [],
+        accessibility: a11yReport.findings ?? [], contract: contractReport.findings ?? [],
+        visualRegression: visualReport.findings ?? [], edgeCases: edgeCaseReport.findings ?? [],
+        propertyBased: propertyReport.findings ?? [], chaos: chaosReport.findings ?? [],
+        mutation: mutationReport.findings ?? [], predictive: predictiveReport.findings ?? [],
+        nPlusOne: nPlusOneReport.findings ?? [], deadCode: deadCodeReport.findings ?? [],
+        agentic: agenticReport.findings ?? [], kubernetes: k8sReport?.findings ?? [],
+      }) : {};
 
       // Clean up
       rmSync(projectPath, { recursive: true, force: true });
@@ -873,7 +881,7 @@ async function main() {
         },
         changedSurface: baseRef
           ? (changedSurface
-              ? { baseRef, available: true, comparison: changedSurface.comparison, changedFiles: changedSurface.changedFileCount, files: Object.keys(changedSurface.files), regressionRisk: { security: securityOnChanged } }
+              ? { baseRef, available: true, comparison: changedSurface.comparison, changedFiles: changedSurface.changedFileCount, files: Object.keys(changedSurface.files), regressionRisk }
               : { baseRef, available: false, reason: 'could not fetch/diff the base ref — unknown ref, auth, or network' })
           : undefined,
         unit: {

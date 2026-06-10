@@ -124,6 +124,26 @@ export function changedPaths(surface: ChangedSurface): string[] {
 }
 
 /**
+ * Per-dimension count of findings landing on changed lines, across every
+ * dimension that carries locatable findings. Dimensions with zero hits are
+ * omitted (no-cry-wolf: project-level findings without a line — supply-chain,
+ * license, dora — simply never match a hunk and drop out). The result is the
+ * "regression risk introduced by this diff" view across the whole report.
+ */
+export function regressionRiskByDimension(
+  surface: ChangedSurface,
+  findingsByDimension: Record<string, ReadonlyArray<{ filePath?: string; lineNumber?: number }>>,
+): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [dimension, findings] of Object.entries(findingsByDimension)) {
+    let n = 0;
+    for (const f of findings) if (lineInChanged(surface, f.filePath, f.lineNumber)) n++;
+    if (n > 0) out[dimension] = n;
+  }
+  return out;
+}
+
+/**
  * Ordered git-diff arg sets to try for a base ref, most-precise first. Pure and
  * testable. Each entry is the args appended after `diff --unified=0 --no-color`:
  *  - three-dot `<ref>...HEAD` — merge-base diff (precise; needs shared history)
