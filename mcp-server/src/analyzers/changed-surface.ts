@@ -23,6 +23,13 @@ export interface ChangedSurface {
   /** repo-relative (forward-slash) path → changed line ranges in the new file. */
   files: Record<string, ChangedHunk[]>;
   changedFileCount: number;
+  /**
+   * How the diff was taken. 'merge-base' (three-dot `base...HEAD`) is precise —
+   * only what HEAD added since the common ancestor; needs shared history.
+   * 'direct' (two-dot `base HEAD`) is a tree-vs-tree compare used when there's
+   * no merge-base (shallow clones); it can over-report base-side changes.
+   */
+  comparison?: 'merge-base' | 'direct';
 }
 
 const HUNK_RE = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/;
@@ -95,23 +102,67 @@ export function tagChangedFindings<T extends { filePath?: string; lineNumber?: n
 }
 
 /**
- * Compute the changed surface for a local git repo: everything `<baseRef>`
- * changed up to HEAD (three-dot = since the merge-base, the standard "what this
- * branch changed" view). Returns null on any git failure so the caller falls
- * back to a normal full analysis.
- *
- * Note: a `git clone --depth 1` checkout has no history for `baseRef`, so this
- * returns null there — fetching the base ref before analysis is the next slice.
+ * Ordered git-diff arg sets to try for a base ref, most-precise first. Pure and
+ * testable. Each entry is the args appended after `diff --unified=0 --no-color`:
+ *  - three-dot `<ref>...HEAD` — merge-base diff (precise; needs shared history)
+ *  - two-dot `<ref> HEAD`     — direct tree compare (works on shallow clones)
+ * Branch-name refs also get an `origin/<ref>` candidate (remote-tracking name in
+ * a fresh clone). A resolved `FETCH_HEAD` or any path-like ref is used verbatim.
+ */
+export function diffSpecs(baseRef: string): { args: string[]; comparison: 'merge-base' | 'direct' }[] {
+  const refs = [baseRef];
+  if (baseRef !== 'FETCH_HEAD' && !baseRef.includes('/')) refs.push(`origin/${baseRef}`);
+  const out: { args: string[]; comparison: 'merge-base' | 'direct' }[] = [];
+  for (const r of refs) {
+    out.push({ args: [`${r}...HEAD`], comparison: 'merge-base' });
+    out.push({ args: [r, 'HEAD'], comparison: 'direct' });
+  }
+  return out;
+}
+
+/**
+ * Compute the changed surface for a git repo: what `<baseRef>` changed up to
+ * HEAD. Tries merge-base (three-dot) first for precision, then falls back to a
+ * direct tree compare (two-dot) so it also works on shallow clones whose base
+ * tip was fetched separately (see ensureBaseRef). Returns null on total failure
+ * so the caller falls back to a normal full analysis.
  */
 export function computeChangedSurface(projectPath: string, baseRef: string): ChangedSurface | null {
   if (!baseRef) return null;
+  for (const spec of diffSpecs(baseRef)) {
+    try {
+      const diff = execFileSync(
+        'git',
+        ['-C', projectPath, 'diff', '--unified=0', '--no-color', ...spec.args],
+        { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] },
+      );
+      const surface = parseUnifiedDiff(diff, baseRef);
+      surface.comparison = spec.comparison;
+      return surface;
+    } catch {
+      // try the next spec (unknown ref / no merge-base on a shallow clone)
+    }
+  }
+  return null;
+}
+
+/**
+ * Make `baseRef` diffable inside a (possibly shallow `--depth 1`) clone by
+ * shallow-fetching just its tip. Returns the local ref to diff against
+ * (`FETCH_HEAD`) or null if the fetch fails (unknown ref, network, auth). The
+ * two-dot path in computeChangedSurface then compares the two trees directly —
+ * no shared history required, so a depth-1 clone + a depth-1 base fetch is
+ * enough for change-driven analysis of remote repos.
+ */
+export function ensureBaseRef(projectPath: string, baseRef: string, timeoutMs = 60_000): string | null {
+  if (!baseRef) return null;
   try {
-    const diff = execFileSync(
+    execFileSync(
       'git',
-      ['-C', projectPath, 'diff', '--unified=0', '--no-color', `${baseRef}...HEAD`],
-      { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] },
+      ['-C', projectPath, 'fetch', '--depth', '1', '--no-tags', 'origin', baseRef],
+      { stdio: ['ignore', 'ignore', 'ignore'], timeout: timeoutMs, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } },
     );
-    return parseUnifiedDiff(diff, baseRef);
+    return 'FETCH_HEAD';
   } catch {
     return null;
   }

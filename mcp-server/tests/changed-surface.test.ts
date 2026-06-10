@@ -2,7 +2,7 @@
 // The parser + intersect are pure, so we test them against a known
 // `git diff --unified=0` fixture — no git invocation needed.
 import { describe, it, expect } from 'vitest';
-import { parseUnifiedDiff, lineInChanged, tagChangedFindings } from '../src/analyzers/changed-surface.js';
+import { parseUnifiedDiff, lineInChanged, tagChangedFindings, diffSpecs } from '../src/analyzers/changed-surface.js';
 
 // A representative unified=0 diff: one file modified (a hunk in the middle),
 // one new file, one deleted file (must contribute NO new-file surface).
@@ -75,6 +75,30 @@ describe('lineInChanged', () => {
     expect(lineInChanged(surface, 'src/untouched.ts', 88)).toBe(false);
     expect(lineInChanged(surface, undefined, 88)).toBe(false);
     expect(lineInChanged(surface, 'src/auth.ts', null)).toBe(false);
+  });
+});
+
+describe('diffSpecs (slice 2 — remote/shallow fallback ordering)', () => {
+  it('tries merge-base before direct for a branch name, plus an origin/ candidate', () => {
+    const specs = diffSpecs('main');
+    expect(specs).toEqual([
+      { args: ['main...HEAD'], comparison: 'merge-base' },
+      { args: ['main', 'HEAD'], comparison: 'direct' },
+      { args: ['origin/main...HEAD'], comparison: 'merge-base' },
+      { args: ['origin/main', 'HEAD'], comparison: 'direct' },
+    ]);
+  });
+
+  it('does not prefix origin/ for FETCH_HEAD (resolved shallow base tip)', () => {
+    const specs = diffSpecs('FETCH_HEAD');
+    expect(specs).toEqual([
+      { args: ['FETCH_HEAD...HEAD'], comparison: 'merge-base' },
+      { args: ['FETCH_HEAD', 'HEAD'], comparison: 'direct' },
+    ]);
+  });
+
+  it('does not prefix origin/ for a path-like ref (already qualified)', () => {
+    expect(diffSpecs('origin/dev').every((s) => !s.args.some((a) => a.startsWith('origin/origin/')))).toBe(true);
   });
 });
 

@@ -720,7 +720,7 @@ async function main() {
 
   // ── Clone & Analyze (accepts git URLs) ─────────────────────────────────
   app.post('/clone-and-analyze', async (request, reply) => {
-    const { repoUrl, branch } = request.body as { repoUrl: string; branch?: string };
+    const { repoUrl, branch, baseRef } = request.body as { repoUrl: string; branch?: string; baseRef?: string };
     if (!repoUrl) return reply.status(400).send({ error: 'repoUrl required' });
 
     const repoName = repoUrl.split('/').pop()?.replace('.git', '') || 'repo';
@@ -817,6 +817,18 @@ async function main() {
       // ── Kubernetes (22nd dimension) — parse manifests/Helm + check the YAML ──
       const k8sReport = await runKubernetesAnalysis(projectPath).catch(() => null);
 
+      // Change-driven QA (opt-in via baseRef): a --depth 1 clone has no base
+      // history, so shallow-fetch the base tip, then diff. Findings on changed
+      // lines get tagged introducedByDiff. Degrades silently to full analysis.
+      // See antirez/news/168 tenet #3 + docs/ANTIREZ-168-GAP-ANALYSIS.md.
+      const { ensureBaseRef, computeChangedSurface, tagChangedFindings } = await import('./analyzers/changed-surface.js');
+      const resolvedBase = baseRef ? ensureBaseRef(projectPath, baseRef) : null;
+      const changedSurface = resolvedBase ? computeChangedSurface(projectPath, resolvedBase) : null;
+      const securityItems = changedSurface ? tagChangedFindings(changedSurface, securityFindings) : securityFindings;
+      const securityOnChanged = changedSurface
+        ? securityItems.filter((f) => (f as { introducedByDiff?: boolean }).introducedByDiff).length
+        : 0;
+
       // Clean up
       rmSync(projectPath, { recursive: true, force: true });
 
@@ -838,8 +850,13 @@ async function main() {
           high: securityFindings.filter(f => f.severity === 'high').length,
           medium: securityFindings.filter(f => f.severity === 'medium').length,
           low: securityFindings.filter(f => f.severity === 'low').length,
-          items: securityFindings.slice(0, 10),
+          items: securityItems.slice(0, 10),
         },
+        changedSurface: baseRef
+          ? (changedSurface
+              ? { baseRef, available: true, comparison: changedSurface.comparison, changedFiles: changedSurface.changedFileCount, files: Object.keys(changedSurface.files), regressionRisk: { security: securityOnChanged } }
+              : { baseRef, available: false, reason: 'could not fetch/diff the base ref — unknown ref, auth, or network' })
+          : undefined,
         unit: {
           coverage: unitReport.testCoverage || 0,
           testFiles: unitReport.totalTestFiles || 0,
