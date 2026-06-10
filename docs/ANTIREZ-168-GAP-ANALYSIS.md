@@ -3,7 +3,7 @@
 > Source: https://antirez.com/news/168 · Target: TestForge as of **v0.37.0** (this repo, `origin/main` merged 2026-06-09).
 > Supersedes the earlier draft written against v0.36.6. Scope: methodology fit, not feature parity.
 >
-> **Update (2026-06-10):** tenets #3 (change-driven, PR #73) and #7 (persisted baselines, PR #74) are now **closed**. Scorecard re-graded below: **2 full · 4 partial · 3 gaps.**
+> **Update (2026-06-10):** tenets #3 (change-driven, PR #73), #7 (persisted baselines, PR #74), and #6 (coherence/differential, `feat/coherence-lane`) are now **closed**. Scorecard re-graded below: **3 full · 4 partial · 2 gaps.**
 
 ---
 
@@ -53,12 +53,12 @@ Legend: ✅ covered · 🟡 partial · 🔴 gap. Arrows show movement since the 
 | 3 | **Change-driven** (read commits, target regressions) | ✅ | ↑ from 🔴 | **Closed (PR #73).** Opt-in `baseRef` threads a diff through every layer: `/analyze` + `/clone-and-analyze` tag findings on changed lines (`introducedByDiff`) and report per-dimension `regressionRisk`; `/simulate` biases the wired + journey lanes toward changed code; the `hermes/` flywheel self-scan is diff-scoped. Absent `baseRef` → byte-for-byte unchanged. |
 | 4 | **Operate the real system** w/ handed-in context | 🟡 | ↑ | Crawl + journeys operate the booted app; journeys fill forms. Gap: no "here are creds/SSH/endpoints for the *deployed* system" flow; auth-gated depth shallow. |
 | 5 | **Build apps on top / multi-user, multi-day** | 🔴 | ~ | Journeys are short (2–8 steps), **single-user, single-run**. No realistic multi-actor usage over time. |
-| 6 | **Output coherence across many inputs** | 🔴 | — | No differential / golden-output / coherence testing. |
+| 6 | **Output coherence across many inputs** | ✅ | ↑ from 🔴 | **Closed (`feat/coherence-lane`).** Simulate fingerprints per-surface behavior (each crawled page's status + console/page/a11y errors, each journey's pass/fail) to `coherence_snapshots` and diffs the next run → `coherenceDelta { divergences[] }`: route 2xx→5xx, errors up, route vanished, journey passed→failed. Run-over-run differential, composing with #3/#7. |
 | 7 | **Speed-regression w/ dynamic baseline** | ✅ | ↑ from 🟡 | **Closed (PR #74).** Simulate persists each run's metrics to `sim_baselines` (keyed by repo+branch+dimensions) and diffs the next run against it → `baselineDelta { regressions[], deltas[] }`: latency/errors/recovery up, throughput/healthy-agents/journeys-passed down, app started breaking. Thresholded (no run-to-run noise), never flags improvements. |
 | 8 | **Distributed / multi-node** | 🔴 | — | Single-cluster / single-container; no multi-machine scenario. |
 | 9 | **Psychological / UX quality** | 🟡 | ↑ from 🔴 | Crawl surfaces console/page errors + a11y = real sloppiness signals. Gap: no subjective "surprise / thin docs / feel" judgment — it counts errors, doesn't *opine*. |
 
-**Tally:** **2 full** (3,7) · **4 partial** (1,2,4,9) · **3 gaps** (5,6,8) — change-driven (#3, PR #73) and persisted baselines (#7, PR #74) now closed; the 0.37.0 E2E + wired lanes drove the partials. Remaining gaps are about **realistic-usage depth (#5), output coherence (#6), and distributed/multi-node (#8)**; the strongest next move is the **coherence / differential lane (#6)**, which composes directly with the now-shipped change-driven + baseline layers.
+**Tally:** **3 full** (3,6,7) · **4 partial** (1,2,4,9) · **2 gaps** (5,8) — change-driven (#3, PR #73), persisted baselines (#7, PR #74), and coherence/differential (#6, `feat/coherence-lane`) now closed; the 0.37.0 E2E + wired lanes drove the partials. Remaining gaps: **realistic multi-user/multi-day usage (#5)** and **distributed/multi-node (#8)**. The strongest next move is **deepening the journey lane (#5)** — it directly amplifies #3/#6/#7 (more behavior exercised → more regressions and divergences caught) and lifts the still-partial #1/#2/#4.
 
 ---
 
@@ -76,7 +76,7 @@ Legend: ✅ covered · 🟡 partial · 🔴 gap. Arrows show movement since the 
 
 1. ~~**Change-driven QA (tenet #3).**~~ ✅ **SHIPPED — PR #73 (5 slices).** `baseRef` emits a `changedSurface` (changed files + line ranges), tags findings (`introducedByDiff`) + per-dimension `regressionRisk` on both analyze routes, seeds the wired + journey lanes, and diff-scopes the `hermes/` flywheel self-scan. 349 tests green; fully backward-compatible.
 2. ~~**Persisted baselines + regression deltas (tenet #7).**~~ ✅ **SHIPPED — PR #74.** Simulate metrics persist to `sim_baselines` in `~/.testforge/history.db`; each run reports `baselineDelta` vs the previous run (a journey that passed last run and fails now is the cleanest regression signal — antirez's "dynamic baseline" verbatim). 358 tests green.
-3. **Coherence / differential lane (tenet #6).** Run the same journeys / wired tests against `HEAD` and the prior version; flag output divergence (the GGUF-coherence idea generalized).
+3. ~~**Coherence / differential lane (tenet #6).**~~ ✅ **SHIPPED — `feat/coherence-lane`.** Simulate fingerprints per-surface behavior (page status/errors + journey pass/fail) to `coherence_snapshots` and reports `coherenceDelta` divergences vs the previous run. 367 tests green.
 4. **Deepen journeys → realistic multi-user/multi-day (tenet #5).** Longer, stateful, multi-actor, auth/credential-aware sessions (sign up → create → share → second user acts → revoke → verify), beyond the current 2–8 single-user steps.
 5. **Subjective UX pass (tenet #9).** An agent that reads crawl output + snapshots and *judges* surprise / doc gaps / sloppiness — scored, with examples, kept separate from correctness. Reuse the Tier-3 vote to keep it honest.
 6. **Markdown QA-mission files (tenet #2 → full).** Let a mission = goal + handed-in context + diff under test, so the agent's targets are author-controlled, not just surface-derived. This unifies #1, #4, and #5.
@@ -86,7 +86,7 @@ Legend: ✅ covered · 🟡 partial · 🔴 gap. Arrows show movement since the 
 
 ## 7. The single highest-value move
 
-**The coherence / differential lane (tenet #6) — now the cheapest remaining win.** Change-driven (#3) and baselines (#7) shipped, so TestForge already knows *what changed* and *how this run compares to the last*. The missing piece is **output coherence**: run the same journeys / wired tests against `HEAD` and the prior version and flag where outputs *diverge* (antirez's GGUF-coherence idea, generalized). It reuses the journey lane (#3), the baseline store (#7), and the `baseRef` plumbing — no new engine — and directly attacks the "covering states, not lines" thesis by catching behavior that changed without anyone asserting on it. It also feeds #5 (realistic multi-step usage) and sharpens the still-partial #1/#2.
+**Deepen the journey lane to realistic multi-user / multi-day usage (tenet #5) — now the highest-leverage move.** Change-driven (#3), baselines (#7), and coherence (#6) all read their signal from what the journeys exercise — so the journeys are now the bottleneck. Today they're short (2–8 steps), single-user, single-run. Extending them to longer, **stateful, multi-actor, auth-aware** sessions (sign up → create → share → a *second* user acts → revoke → verify) multiplies the value of everything already shipped: more behavior exercised means more regressions caught (#7), more divergences detected (#6), and more states covered (#1) — directly serving antirez's "covering states, not lines" thesis. It needs no new engine, only a richer journey DSL + a multi-session executor. The remaining gap #8 (distributed/multi-node) is a separate, heavier track.
 
 ---
 
@@ -99,4 +99,5 @@ Legend: ✅ covered · 🟡 partial · 🔴 gap. Arrows show movement since the 
 - Tier-3 consensus: `pathc-3model.py`, `consensus-out/THREE-MODEL-CONSENSUS-REPORT.md` (in the dclaw-agent copy).
 - Change-driven QA (PR #73, `feat/change-driven-qa`): `mcp-server/src/analyzers/changed-surface.ts` wired into `/analyze`, `/clone-and-analyze`, and `/simulate`; `hermes/scan.mjs` diff-scoped self-scan; tests in `mcp-server/tests/changed-surface.test.ts`.
 - Persisted baselines (PR #74, `feat/persisted-baselines`): `mcp-server/src/simulation/baselines.ts` + `sim_baselines` in `mcp-server/src/local-db.ts`, surfaced as `result.baselineDelta` from `/simulate`; tests in `mcp-server/tests/baselines.test.ts`.
+- Coherence / differential (`feat/coherence-lane`): `mcp-server/src/simulation/coherence.ts` + `coherence_snapshots` in `mcp-server/src/local-db.ts`, surfaced as `result.coherenceDelta` from `/simulate`; tests in `mcp-server/tests/coherence.test.ts`.
 - Self-improvement flywheel: `docs/knowledge/Flywheel.md`, `Status.md`.
