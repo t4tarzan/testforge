@@ -3,7 +3,7 @@
 > Source: https://antirez.com/news/168 · Target: TestForge as of **v0.37.0** (this repo, `origin/main` merged 2026-06-09).
 > Supersedes the earlier draft written against v0.36.6. Scope: methodology fit, not feature parity.
 >
-> **Update (2026-06-10):** tenet #3 (change-driven) is now **closed** — implemented across every layer in PR #73 (`feat/change-driven-qa`, 5 slices). Scorecard re-graded below: **1 full · 5 partial · 3 gaps.**
+> **Update (2026-06-10):** tenets #3 (change-driven, PR #73) and #7 (persisted baselines, PR #74) are now **closed**. Scorecard re-graded below: **2 full · 4 partial · 3 gaps.**
 
 ---
 
@@ -54,11 +54,11 @@ Legend: ✅ covered · 🟡 partial · 🔴 gap. Arrows show movement since the 
 | 4 | **Operate the real system** w/ handed-in context | 🟡 | ↑ | Crawl + journeys operate the booted app; journeys fill forms. Gap: no "here are creds/SSH/endpoints for the *deployed* system" flow; auth-gated depth shallow. |
 | 5 | **Build apps on top / multi-user, multi-day** | 🔴 | ~ | Journeys are short (2–8 steps), **single-user, single-run**. No realistic multi-actor usage over time. |
 | 6 | **Output coherence across many inputs** | 🔴 | — | No differential / golden-output / coherence testing. |
-| 7 | **Speed-regression w/ dynamic baseline** | 🟡 | — | Simulate measures p50/p99/rps/MTTR but **per-run**; no persisted baseline, no commit-over-commit delta. |
+| 7 | **Speed-regression w/ dynamic baseline** | ✅ | ↑ from 🟡 | **Closed (PR #74).** Simulate persists each run's metrics to `sim_baselines` (keyed by repo+branch+dimensions) and diffs the next run against it → `baselineDelta { regressions[], deltas[] }`: latency/errors/recovery up, throughput/healthy-agents/journeys-passed down, app started breaking. Thresholded (no run-to-run noise), never flags improvements. |
 | 8 | **Distributed / multi-node** | 🔴 | — | Single-cluster / single-container; no multi-machine scenario. |
 | 9 | **Psychological / UX quality** | 🟡 | ↑ from 🔴 | Crawl surfaces console/page errors + a11y = real sloppiness signals. Gap: no subjective "surprise / thin docs / feel" judgment — it counts errors, doesn't *opine*. |
 
-**Tally:** **1 full** (3) · **5 partial** (1,2,4,7,9) · **3 gaps** (5,6,8) — change-driven (#3) closed in PR #73; the 0.37.0 E2E + wired lanes drove the partials. Remaining gaps are about **realistic-usage depth, output coherence, and subjective judgment**; the strongest partial to close next is **regression baselines (#7)**, which now composes with the shipped change-driven plumbing.
+**Tally:** **2 full** (3,7) · **4 partial** (1,2,4,9) · **3 gaps** (5,6,8) — change-driven (#3, PR #73) and persisted baselines (#7, PR #74) now closed; the 0.37.0 E2E + wired lanes drove the partials. Remaining gaps are about **realistic-usage depth (#5), output coherence (#6), and distributed/multi-node (#8)**; the strongest next move is the **coherence / differential lane (#6)**, which composes directly with the now-shipped change-driven + baseline layers.
 
 ---
 
@@ -75,7 +75,7 @@ Legend: ✅ covered · 🟡 partial · 🔴 gap. Arrows show movement since the 
 ## 6. Remaining recommendations (prioritized for 0.37.0+)
 
 1. ~~**Change-driven QA (tenet #3).**~~ ✅ **SHIPPED — PR #73 (5 slices).** `baseRef` emits a `changedSurface` (changed files + line ranges), tags findings (`introducedByDiff`) + per-dimension `regressionRisk` on both analyze routes, seeds the wired + journey lanes, and diff-scopes the `hermes/` flywheel self-scan. 349 tests green; fully backward-compatible.
-2. **Persisted baselines + regression deltas (tenet #7).** Store per-commit journey pass/fail and Simulate metrics in `~/.testforge/history.db`; report **deltas vs the last green run**. A journey that passed last run and fails now is the cleanest regression signal TestForge could emit — and it's antirez's "dynamic baseline" almost verbatim.
+2. ~~**Persisted baselines + regression deltas (tenet #7).**~~ ✅ **SHIPPED — PR #74.** Simulate metrics persist to `sim_baselines` in `~/.testforge/history.db`; each run reports `baselineDelta` vs the previous run (a journey that passed last run and fails now is the cleanest regression signal — antirez's "dynamic baseline" verbatim). 358 tests green.
 3. **Coherence / differential lane (tenet #6).** Run the same journeys / wired tests against `HEAD` and the prior version; flag output divergence (the GGUF-coherence idea generalized).
 4. **Deepen journeys → realistic multi-user/multi-day (tenet #5).** Longer, stateful, multi-actor, auth/credential-aware sessions (sign up → create → share → second user acts → revoke → verify), beyond the current 2–8 single-user steps.
 5. **Subjective UX pass (tenet #9).** An agent that reads crawl output + snapshots and *judges* surprise / doc gaps / sloppiness — scored, with examples, kept separate from correctness. Reuse the Tier-3 vote to keep it honest.
@@ -86,7 +86,7 @@ Legend: ✅ covered · 🟡 partial · 🔴 gap. Arrows show movement since the 
 
 ## 7. The single highest-value move
 
-**Persisted baselines + regression deltas (tenet #7) — now the cheapest remaining win.** Change-driven targeting shipped in PR #73, so the plumbing already knows *what changed*; the missing half is *comparing to a tracked baseline*. Store per-commit Simulate metrics (p50/p99/rps/MTTR) and journey pass/fail in `~/.testforge/history.db`, and report **deltas vs the last green run** keyed by the same `baseRef`. A journey that passed last run and fails on this diff is the cleanest regression signal TestForge could emit — antirez's "dynamic baseline" almost verbatim — and it composes directly with the change-driven layer rather than needing a new engine. It also sharpens #5/#6.
+**The coherence / differential lane (tenet #6) — now the cheapest remaining win.** Change-driven (#3) and baselines (#7) shipped, so TestForge already knows *what changed* and *how this run compares to the last*. The missing piece is **output coherence**: run the same journeys / wired tests against `HEAD` and the prior version and flag where outputs *diverge* (antirez's GGUF-coherence idea, generalized). It reuses the journey lane (#3), the baseline store (#7), and the `baseRef` plumbing — no new engine — and directly attacks the "covering states, not lines" thesis by catching behavior that changed without anyone asserting on it. It also feeds #5 (realistic multi-step usage) and sharpens the still-partial #1/#2.
 
 ---
 
@@ -98,4 +98,5 @@ Legend: ✅ covered · 🟡 partial · 🔴 gap. Arrows show movement since the 
 - Tier-1: `docs/knowledge/Dimensions.md`, `src/data/dimensionMeta.ts`.
 - Tier-3 consensus: `pathc-3model.py`, `consensus-out/THREE-MODEL-CONSENSUS-REPORT.md` (in the dclaw-agent copy).
 - Change-driven QA (PR #73, `feat/change-driven-qa`): `mcp-server/src/analyzers/changed-surface.ts` wired into `/analyze`, `/clone-and-analyze`, and `/simulate`; `hermes/scan.mjs` diff-scoped self-scan; tests in `mcp-server/tests/changed-surface.test.ts`.
+- Persisted baselines (PR #74, `feat/persisted-baselines`): `mcp-server/src/simulation/baselines.ts` + `sim_baselines` in `mcp-server/src/local-db.ts`, surfaced as `result.baselineDelta` from `/simulate`; tests in `mcp-server/tests/baselines.test.ts`.
 - Self-improvement flywheel: `docs/knowledge/Flywheel.md`, `Status.md`.
