@@ -345,6 +345,27 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
 
     try { rmSync(projectPath, { recursive: true, force: true }); } catch { /* best-effort */ }
 
+    // Persisted baselines (tenet #7): diff this run's metrics against the
+    // previous run for the same repo+branch+dimensions, then store this run as
+    // the new baseline. Best-effort — never fail a sim over telemetry.
+    let baselineDelta = null;
+    try {
+      const { extractSimMetrics, computeBaselineDelta, baselineKey } = await import('./simulation/baselines.js');
+      const { getLatestSimBaseline, saveSimBaseline } = await import('./local-db.js');
+      const metrics = extractSimMetrics(out as Record<string, unknown>);
+      if (Object.keys(metrics).length > 0) {
+        const key = baselineKey(repoUrl, body.branch, dims);
+        const prev = getLatestSimBaseline(key);
+        if (prev) {
+          const d = computeBaselineDelta(prev.metrics as Parameters<typeof computeBaselineDelta>[0], metrics);
+          baselineDelta = { comparedTo: prev.created_at, comparedBaseRef: prev.base_ref, ...d };
+        }
+        saveSimBaseline({ id: `sb_${runId}`, key, repo: repoUrl, branch: body.branch, baseRef: body.baseRef, dimensions: dims, metrics });
+      }
+    } catch (e) {
+      console.error('baseline delta/persist failed (non-fatal):', (e as Error).message);
+    }
+
     updateJob(jobId, {
       status: 'done', phase: 'done', detail: 'Simulation complete', finishedAt: new Date().toISOString(),
       result: {
@@ -364,6 +385,7 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
               ? { baseRef: body.baseRef, available: true, comparison: changedSurface.comparison, changedFiles: changedSurface.changedFileCount, files: changedPaths(changedSurface) }
               : { baseRef: body.baseRef, available: false, reason: 'could not fetch/diff the base ref — unknown ref, auth, or network' })
           : undefined,
+        baselineDelta,
         ...out,
       },
     });

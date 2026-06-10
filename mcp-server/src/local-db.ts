@@ -78,6 +78,20 @@ export function getLocalDb(): DB {
       created_at TEXT DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_generations_created ON generations(created_at DESC);
+
+    -- Simulate baselines: one row per run, keyed by repo+branch+dimensions, so a
+    -- later run can diff its metrics against the previous one (regression deltas).
+    CREATE TABLE IF NOT EXISTS sim_baselines (
+      id TEXT PRIMARY KEY,
+      key TEXT NOT NULL,
+      repo TEXT,
+      branch TEXT,
+      base_ref TEXT,
+      dimensions TEXT,
+      metrics_json TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_sim_baselines_key ON sim_baselines(key, created_at DESC);
   `);
   
   console.log(`📁 Local DB: ${DB_PATH}`);
@@ -196,4 +210,49 @@ export function getGeneration(id: string): GenerationRow | null {
     row.full_data = JSON.parse(row.full_data);
   }
   return row ?? null;
+}
+
+// ─── Simulate baselines ────────────────────────────────────────────────
+export interface SaveSimBaselineInput {
+  id: string;
+  key: string;
+  repo: string;
+  branch?: string;
+  baseRef?: string;
+  dimensions: string[];
+  metrics: unknown;
+}
+
+export interface SimBaselineRow {
+  id: string;
+  key: string;
+  repo: string;
+  branch: string;
+  base_ref: string | null;
+  dimensions: string;
+  metrics: unknown;
+  created_at: string;
+}
+
+export function saveSimBaseline(input: SaveSimBaselineInput): void {
+  const d = getLocalDb();
+  d.prepare(
+    `INSERT INTO sim_baselines (id, key, repo, branch, base_ref, dimensions, metrics_json)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    input.id, input.key, input.repo, input.branch || 'default', input.baseRef || null,
+    JSON.stringify(input.dimensions), JSON.stringify(input.metrics)
+  );
+}
+
+/** Most recent baseline for a key (e.g. the previous run, to diff against). */
+export function getLatestSimBaseline(key: string): SimBaselineRow | null {
+  const d = getLocalDb();
+  const row = d.prepare(
+    `SELECT id, key, repo, branch, base_ref, dimensions, metrics_json, created_at
+     FROM sim_baselines WHERE key = ? ORDER BY created_at DESC, id DESC LIMIT 1`
+  ).get(key) as (Omit<SimBaselineRow, 'metrics'> & { metrics_json: string }) | undefined;
+  if (!row) return null;
+  const { metrics_json, ...rest } = row;
+  return { ...rest, metrics: JSON.parse(metrics_json) };
 }
