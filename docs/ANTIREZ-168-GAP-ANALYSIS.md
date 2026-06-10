@@ -2,6 +2,8 @@
 
 > Source: https://antirez.com/news/168 · Target: TestForge as of **v0.37.0** (this repo, `origin/main` merged 2026-06-09).
 > Supersedes the earlier draft written against v0.36.6. Scope: methodology fit, not feature parity.
+>
+> **Update (2026-06-10):** tenet #3 (change-driven) is now **closed** — implemented across every layer in PR #73 (`feat/change-driven-qa`, 5 slices). Scorecard re-graded below: **1 full · 5 partial · 3 gaps.**
 
 ---
 
@@ -48,7 +50,7 @@ Legend: ✅ covered · 🟡 partial · 🔴 gap. Arrows show movement since the 
 |---|---|:--:|:--:|---|
 | 1 | **States > lines** | 🟡 | ↑ | Wired-unit runs real code; journeys reach multi-step states. Still no *systematic* state-space exploration. |
 | 2 | **AI as QA engineer** | 🟡 | ↑ from 🔴 | Journey lane: LLM authors realistic flows against the live app. Gap: journeys are surface-derived & ephemeral, **not driven by markdown missions + change context**. |
-| 3 | **Change-driven** (read commits, target regressions) | 🔴 | — | **Unchanged — now the #1 gap.** Every lane analyzes a snapshot/whole repo. The `hermes/` flywheel grades the tracked tree on a schedule but **does not diff commits** to focus QA. |
+| 3 | **Change-driven** (read commits, target regressions) | ✅ | ↑ from 🔴 | **Closed (PR #73).** Opt-in `baseRef` threads a diff through every layer: `/analyze` + `/clone-and-analyze` tag findings on changed lines (`introducedByDiff`) and report per-dimension `regressionRisk`; `/simulate` biases the wired + journey lanes toward changed code; the `hermes/` flywheel self-scan is diff-scoped. Absent `baseRef` → byte-for-byte unchanged. |
 | 4 | **Operate the real system** w/ handed-in context | 🟡 | ↑ | Crawl + journeys operate the booted app; journeys fill forms. Gap: no "here are creds/SSH/endpoints for the *deployed* system" flow; auth-gated depth shallow. |
 | 5 | **Build apps on top / multi-user, multi-day** | 🔴 | ~ | Journeys are short (2–8 steps), **single-user, single-run**. No realistic multi-actor usage over time. |
 | 6 | **Output coherence across many inputs** | 🔴 | — | No differential / golden-output / coherence testing. |
@@ -56,7 +58,7 @@ Legend: ✅ covered · 🟡 partial · 🔴 gap. Arrows show movement since the 
 | 8 | **Distributed / multi-node** | 🔴 | — | Single-cluster / single-container; no multi-machine scenario. |
 | 9 | **Psychological / UX quality** | 🟡 | ↑ from 🔴 | Crawl surfaces console/page errors + a11y = real sloppiness signals. Gap: no subjective "surprise / thin docs / feel" judgment — it counts errors, doesn't *opine*. |
 
-**Tally:** 0 full · **5 partial** (1,2,4,7,9) · **4 gaps** (3,5,6,8) — up from 0/4/5 at 0.36.6. The improvements all came from the new E2E + wired lanes. The remaining gaps are about **change-awareness, realistic-usage depth, output coherence, regression baselines, and subjective judgment.**
+**Tally:** **1 full** (3) · **5 partial** (1,2,4,7,9) · **3 gaps** (5,6,8) — change-driven (#3) closed in PR #73; the 0.37.0 E2E + wired lanes drove the partials. Remaining gaps are about **realistic-usage depth, output coherence, and subjective judgment**; the strongest partial to close next is **regression baselines (#7)**, which now composes with the shipped change-driven plumbing.
 
 ---
 
@@ -72,7 +74,7 @@ Legend: ✅ covered · 🟡 partial · 🔴 gap. Arrows show movement since the 
 
 ## 6. Remaining recommendations (prioritized for 0.37.0+)
 
-1. **Change-driven QA — the #1 open gap (tenet #3).** Accept a base ref; have Tier-1 emit a `changedSurface` (endpoints/functions/routes touched) and **seed the crawl, journeys, and wired-unit lanes against it** so they hunt regressions, not the whole app. The `hermes/` flywheel already runs on a schedule — make it **diff-scoped**. Cheapest high-leverage win.
+1. ~~**Change-driven QA (tenet #3).**~~ ✅ **SHIPPED — PR #73 (5 slices).** `baseRef` emits a `changedSurface` (changed files + line ranges), tags findings (`introducedByDiff`) + per-dimension `regressionRisk` on both analyze routes, seeds the wired + journey lanes, and diff-scopes the `hermes/` flywheel self-scan. 349 tests green; fully backward-compatible.
 2. **Persisted baselines + regression deltas (tenet #7).** Store per-commit journey pass/fail and Simulate metrics in `~/.testforge/history.db`; report **deltas vs the last green run**. A journey that passed last run and fails now is the cleanest regression signal TestForge could emit — and it's antirez's "dynamic baseline" almost verbatim.
 3. **Coherence / differential lane (tenet #6).** Run the same journeys / wired tests against `HEAD` and the prior version; flag output divergence (the GGUF-coherence idea generalized).
 4. **Deepen journeys → realistic multi-user/multi-day (tenet #5).** Longer, stateful, multi-actor, auth/credential-aware sessions (sign up → create → share → second user acts → revoke → verify), beyond the current 2–8 single-user steps.
@@ -84,7 +86,7 @@ Legend: ✅ covered · 🟡 partial · 🔴 gap. Arrows show movement since the 
 
 ## 7. The single highest-value move
 
-**Make the agentic lanes change-driven and baseline-aware.** 0.37.0 already built the hard part — autonomous lanes that operate the real running system (crawl, journeys, wired). What they lack is antirez's two cheapest, most defining ideas: *target what changed* and *compare to a tracked baseline*. Adding `changedSurface` seeding + per-commit baselines to the existing lanes flips gaps #3 and #7 and sharpens #5/#6 — without building a new engine. That is the shortest path from "TestForge has antirez-style lanes" to "TestForge does antirez's methodology."
+**Persisted baselines + regression deltas (tenet #7) — now the cheapest remaining win.** Change-driven targeting shipped in PR #73, so the plumbing already knows *what changed*; the missing half is *comparing to a tracked baseline*. Store per-commit Simulate metrics (p50/p99/rps/MTTR) and journey pass/fail in `~/.testforge/history.db`, and report **deltas vs the last green run** keyed by the same `baseRef`. A journey that passed last run and fails on this diff is the cleanest regression signal TestForge could emit — antirez's "dynamic baseline" almost verbatim — and it composes directly with the change-driven layer rather than needing a new engine. It also sharpens #5/#6.
 
 ---
 
@@ -95,6 +97,5 @@ Legend: ✅ covered · 🟡 partial · 🔴 gap. Arrows show movement since the 
 - Lanes: `mcp-server/src/simulation/{e2e-crawl,e2e-journey,wired-unit,load-sim,chaos-sim,agent-sim,sandbox}.ts`; runners `mcp-server/runner/e2e-*.mjs`.
 - Tier-1: `docs/knowledge/Dimensions.md`, `src/data/dimensionMeta.ts`.
 - Tier-3 consensus: `pathc-3model.py`, `consensus-out/THREE-MODEL-CONSENSUS-REPORT.md` (in the dclaw-agent copy).
-- Self-improvement (not yet change-driven): `docs/knowledge/Flywheel.md`, `Status.md`.
-</content>
-</invoke>
+- Change-driven QA (PR #73, `feat/change-driven-qa`): `mcp-server/src/analyzers/changed-surface.ts` wired into `/analyze`, `/clone-and-analyze`, and `/simulate`; `hermes/scan.mjs` diff-scoped self-scan; tests in `mcp-server/tests/changed-surface.test.ts`.
+- Self-improvement flywheel: `docs/knowledge/Flywheel.md`, `Status.md`.
