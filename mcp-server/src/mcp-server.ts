@@ -527,7 +527,7 @@ export async function setupMCPServer(app: FastifyInstance) {
 
   /* -- Full analysis (same as clone-and-analyze but for local paths) -- */
   app.post('/analyze', async (request: FastifyRequest, reply: FastifyReply) => {
-    const { projectPath } = request.body as { projectPath: string };
+    const { projectPath, baseRef } = request.body as { projectPath: string; baseRef?: string };
     if (!projectPath) return reply.status(400).send({ error: 'projectPath required' });
     
     try {
@@ -542,6 +542,17 @@ export async function setupMCPServer(app: FastifyInstance) {
 
       const codebase = await scanCodebase(projectPath);
       const securityFindings = await runSecurityAnalysis({ projectPath, fileContents: codebase.fileContents, dependencies: codebase.dependencies, devDependencies: codebase.devDependencies }).catch(() => []);
+
+      // Change-driven QA (opt-in via baseRef): compute what the diff touched so
+      // findings on changed lines can be flagged as regression risk for THIS
+      // change. Degrades silently to a normal full analysis when the diff isn't
+      // computable (not a git repo, unknown ref, or a shallow clone). See
+      // antirez/news/168 tenet #3 + docs/ANTIREZ-168-GAP-ANALYSIS.md.
+      const { computeChangedSurface, tagChangedFindings, regressionRiskByDimension } = await import('./analyzers/changed-surface.js');
+      const changedSurface = baseRef ? computeChangedSurface(projectPath, baseRef) : null;
+      const securityItems = changedSurface
+        ? tagChangedFindings(changedSurface, securityFindings)
+        : securityFindings;
       // Best-effort empty fallbacks. Downstream uses optional access (`r.x || 0`)
       // so it's safe to degrade quietly when the analyzer throws.
       type UnitR = Awaited<ReturnType<typeof runUnitAnalysis>>;
@@ -574,10 +585,28 @@ export async function setupMCPServer(app: FastifyInstance) {
       const owaspReport = runOwaspCoverage(securityFindings.filter(f => f.severity !== 'info') as Parameters<typeof runOwaspCoverage>[0]);
       const agenticReport = runAgenticScalePrediction(codebase.fileContents, codebase.dependencies, codebase.techStack, codebase.endpoints, codebase.totalLines);
 
+      // Change-driven: regression risk per dimension — how many findings of each
+      // dimension land on lines this diff touched. Dimensions with no locatable
+      // hit (supply-chain/license/dora) drop out. Empty when no baseRef.
+      const regressionRisk = changedSurface ? regressionRiskByDimension(changedSurface, {
+        security: securityFindings, unit: unitReport.findings ?? [], load: loadReport.findings ?? [],
+        accessibility: a11yReport.findings ?? [], contract: contractReport.findings ?? [],
+        visualRegression: visualReport.findings ?? [], edgeCases: edgeReport.findings ?? [],
+        propertyBased: propertyReport.findings ?? [], chaos: chaosReport.findings ?? [],
+        mutation: mutationReport.findings ?? [], predictive: predictiveReport.findings ?? [],
+        nPlusOne: nPlusOneReport.findings ?? [], deadCode: deadReport.findings ?? [],
+        agentic: agenticReport.findings ?? [],
+      }) : {};
+
       return reply.send({
         repo: projectPath, branch: 'local', analyzedAt: new Date().toISOString(),
         codebase: { totalFiles: codebase.totalFiles, totalLines: codebase.totalLines, endpoints: codebase.endpoints, techStack: codebase.techStack, dependencies: codebase.dependencies.length, languageCoverage: codebase.languageCoverage },
-        security: { findings: securityFindings.length, critical: securityFindings.filter((f)=>f.severity==='critical').length, high: securityFindings.filter((f)=>f.severity==='high').length, medium: securityFindings.filter((f)=>f.severity==='medium').length, low: securityFindings.filter((f)=>f.severity==='low').length, items: securityFindings.slice(0,10) },
+        security: { findings: securityFindings.length, critical: securityFindings.filter((f)=>f.severity==='critical').length, high: securityFindings.filter((f)=>f.severity==='high').length, medium: securityFindings.filter((f)=>f.severity==='medium').length, low: securityFindings.filter((f)=>f.severity==='low').length, items: securityItems.slice(0,10) },
+        changedSurface: baseRef
+          ? (changedSurface
+              ? { baseRef, available: true, comparison: changedSurface.comparison, changedFiles: changedSurface.changedFileCount, files: Object.keys(changedSurface.files), regressionRisk }
+              : { baseRef, available: false, reason: 'could not diff — not a git repo, unknown ref, or a shallow clone lacking the base ref' })
+          : undefined,
         unit: { coverage: unitReport.testCoverage||0, testFiles: unitReport.totalTestFiles||0, totalTests: unitReport.totalTests||0, frameworks: unitReport.frameworks||[], findings: unitReport.findings?.length||0 },
         load: { maxUsers: loadReport.estimatedMaxConcurrentUsers||0, rateLimiting: loadReport.hasRateLimiting||false, caching: loadReport.hasCaching||false, recommendations: loadReport.recommendations||[] },
         accessibility: { score: a11yReport.score||0, issues: a11yReport.findings?.length||0, applicable: a11yReport.applicable, totalHtmlFiles: a11yReport.totalHtmlFiles||0 },
