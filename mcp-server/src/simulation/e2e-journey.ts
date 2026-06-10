@@ -81,7 +81,20 @@ async function runOneJourney(sb: Sandbox, steps: unknown[]): Promise<{ ok: boole
   try { return lastJson(r.stdout) as { ok: boolean; results: JourneyStepResult[] }; } catch { return { ok: false, results: [{ action: 'run', ok: false, error: (r.stderr.trim() || 'no output').slice(-180) }] }; }
 }
 
-export interface RunJourneysOptions { count?: number; override?: LlmOverride; onProgress?: (detail: string) => void }
+export interface RunJourneysOptions {
+  count?: number;
+  override?: LlmOverride;
+  onProgress?: (detail: string) => void;
+  /** Recently-changed files (change-driven QA) — bias journeys toward what changed. */
+  changedHint?: string[];
+}
+
+/** Render the changed-files hint appended to the author prompt (empty when none). */
+export function changedHintBlock(changedHint?: string[]): string {
+  if (!changedHint?.length) return '';
+  const list = changedHint.slice(0, 40).map((f) => `- ${f}`).join('\n');
+  return `\n\nThese files changed recently — PRIORITIZE journeys that exercise the user-facing functionality they affect (skip ones unrelated to the change):\n${list}`;
+}
 
 /** Capture surface → LLM authors journeys → execute each. ranReal=false (reason) if surface capture or generation yields nothing. */
 export async function runE2EJourneys(sb: Sandbox, opts: RunJourneysOptions = {}): Promise<E2EJourneysResult> {
@@ -98,7 +111,7 @@ export async function runE2EJourneys(sb: Sandbox, opts: RunJourneysOptions = {})
     try {
       const { object } = await generateObject({
         model: provider.chat(model), schema: journeysSchema, system: SYSTEM,
-        prompt: `App interaction surface:\n${JSON.stringify(surface, null, 2)}\n\nAuthor ${count} realistic user journey(s).`,
+        prompt: `App interaction surface:\n${JSON.stringify(surface, null, 2)}\n\nAuthor ${count} realistic user journey(s).${changedHintBlock(opts.changedHint)}`,
         temperature: 0.3, maxRetries: 1,
       });
       journeys = object.journeys.slice(0, count);

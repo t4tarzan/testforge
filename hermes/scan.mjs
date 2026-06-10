@@ -16,6 +16,8 @@
 //   node hermes/scan.mjs --print         # also print the JSON to stdout
 //   node hermes/scan.mjs --self-only     # skip the showcase repo (faster, offline-ish)
 //   node hermes/scan.mjs --repo owner/x  # force a specific showcase repo (github shorthand or full url)
+//   node hermes/scan.mjs --base origin/main  # diff-scope the self-scan: report regressions vs this ref
+//                                             # (also via TESTFORGE_BASE_REF). Default: whole-tree scan.
 //   flags: --out <path> (default hermes/state/findings.json) --timeout <ms>
 //
 // Exit non-zero only if NOTHING analyzed (so a flaky clone of the showcase repo
@@ -43,6 +45,10 @@ const SELF_ONLY = has('--self-only');
 const FORCE_REPO = val('--repo', null);
 const OUT = path.resolve(val('--out', path.join(__dirname, 'state', 'findings.json')));
 const TIMEOUT = parseInt(val('--timeout', '180000'), 10);
+// Diff-scoped self-scan: when set, grade the self target against this base ref
+// so the proposer sees regressions-per-change, not the whole tracked tree.
+// Default null → whole-tree scan, byte-for-byte as before.
+const BASE_REF = val('--base', process.env.TESTFORGE_BASE_REF || null);
 
 const log = (...a) => console.error('[scan]', ...a); // logs to stderr; stdout is reserved for --print
 
@@ -155,16 +161,26 @@ function distill(raw, meta) {
   // dimension, so the proposer sees the whole picture — security came back
   // clean on self, but chaos/agentic/vision did not. The proposer is still
   // bound by the no-cry-wolf rules in the prompt.
-  const norm = (dim, i) => ({
-    dimension: dim,
-    severity: i.severity || 'info',
-    title: i.title,
-    category: i.category || null,
-    description: (i.description || '').slice(0, 400),
-    filePath: i.filePath ? cleanPath(i.filePath, meta._base) : null,
-    lineNumber: i.lineNumber ?? null,
-    fixSuggestion: (i.fixSuggestion || '').slice(0, 400),
-  });
+  // Diff-scoped: /analyze returns changedSurface.files (repo-relative) when a
+  // baseRef was diffed. Flag findings whose file the diff touched so the
+  // proposer can focus on regressions-per-change (file-level — the API exposes
+  // changed files, not line ranges).
+  const cs = raw.changedSurface && raw.changedSurface.available ? raw.changedSurface : null;
+  const changedFiles = new Set(cs ? cs.files || [] : []);
+  const norm = (dim, i) => {
+    const filePath = i.filePath ? cleanPath(i.filePath, meta._base) : null;
+    return {
+      dimension: dim,
+      severity: i.severity || 'info',
+      title: i.title,
+      category: i.category || null,
+      description: (i.description || '').slice(0, 400),
+      filePath,
+      lineNumber: i.lineNumber ?? null,
+      fixSuggestion: (i.fixSuggestion || '').slice(0, 400),
+      ...(cs ? { changedFile: filePath != null && changedFiles.has(filePath) } : {}),
+    };
+  };
   const findings = [
     // security uses `items`; cap it — a noisy repo can return thousands.
     ...(raw.security?.items || []).slice(0, 25).map((i) => norm('security', i)),
@@ -215,6 +231,9 @@ function distill(raw, meta) {
     },
     findings,
     signals,
+    // Present only on a diff-scoped run: { baseRef, comparison, changedFiles,
+    // files, regressionRisk:{<dim>:count} } — the regressions this change introduced.
+    changedSurface: cs || null,
   };
 }
 
@@ -225,6 +244,18 @@ function distill(raw, meta) {
 // showcase repos are graded (shallow clone = tracked files, no installed deps).
 // Falls back to analyzing REPO_ROOT in place if git/archive is unavailable.
 function cleanSelfTree() {
+  // Diff-scoped mode: a local CLONE carries .git + history (so /analyze can diff
+  // against BASE_REF) while still excluding gitignored build artifacts — a clone
+  // is committed tracked files only, same cleanliness as archive. Slightly
+  // heavier, so only when BASE_REF is set.
+  if (BASE_REF) {
+    const dest = fs.mkdtempSync(path.join(os.tmpdir(), 'testforge-self-'));
+    const r = spawnSync('git', ['clone', '--quiet', '--no-hardlinks', REPO_ROOT, dest], { encoding: 'utf8' });
+    if (r.status === 0) return { dir: dest, cleanup: () => fs.rmSync(dest, { recursive: true, force: true }) };
+    log(`  ! git clone for diff-scope failed (${(r.stderr || '').trim() || 'unknown'}) — falling back to archive (whole-tree)`);
+    fs.rmSync(dest, { recursive: true, force: true });
+  }
+  // Default: export the *tracked* tree (git archive HEAD) — no .git, no diff.
   const dest = fs.mkdtempSync(path.join(os.tmpdir(), 'testforge-self-'));
   const r = spawnSync('bash', ['-c', `git -C ${JSON.stringify(REPO_ROOT)} archive HEAD | tar -x -C ${JSON.stringify(dest)}`], { encoding: 'utf8' });
   if (r.status !== 0) {
@@ -237,12 +268,13 @@ function cleanSelfTree() {
 
 async function analyzeSelf() {
   const { dir, cleanup } = cleanSelfTree();
-  log(`analyzing self (tracked tree) via /analyze${dir === REPO_ROOT ? ' [in place]' : ''}…`);
+  const diffScoped = !!BASE_REF && dir !== REPO_ROOT;
+  log(`analyzing self (tracked tree) via /analyze${dir === REPO_ROOT ? ' [in place]' : ''}${diffScoped ? ` [diff-scoped vs ${BASE_REF}]` : ''}…`);
   try {
     const res = await fetch(`${MCP}/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ projectPath: dir }),
+      body: JSON.stringify(diffScoped ? { projectPath: dir, baseRef: BASE_REF } : { projectPath: dir }),
       signal: AbortSignal.timeout(TIMEOUT),
     });
     const data = await res.json();
@@ -279,7 +311,10 @@ async function main() {
 
   try {
     targets.push(await analyzeSelf());
-    log(`  ✓ self — overall ${targets[0].overall}, ${targets[0].security.findings} sec finding(s)`);
+    const self = targets[0];
+    const cs = self.changedSurface;
+    log(`  ✓ self — overall ${self.overall}, ${self.security.findings} sec finding(s)`
+      + (cs ? ` · diff-scoped vs ${cs.baseRef} (${cs.comparison}): ${cs.changedFiles} changed file(s), regressionRisk ${JSON.stringify(cs.regressionRisk || {})}` : ''));
   } catch (e) {
     log(`  ✗ self — ${e.message}`);
   }

@@ -58,6 +58,7 @@ import { runAgentLoad } from './simulation/agent-sim.js';
 import { runWiredUnit, type WiredFindingInput } from './simulation/wired-unit.js';
 import { runE2ECrawl } from './simulation/e2e-crawl.js';
 import { runE2EJourneys } from './simulation/e2e-journey.js';
+import { ensureBaseRef, computeChangedSurface, prioritizeByChanged, changedPaths } from './analyzers/changed-surface.js';
 import { createJob, getJob, listJobs, updateJob } from './simulation/job-store.js';
 import { discoverEndpoints } from './analyzers/lib/endpoint-discovery.js';
 import { parseFile, isParseable } from './analyzers/lib/parse.js';
@@ -155,6 +156,8 @@ interface SimJobBody {
   maxPages?: number;
   /** E2E Phase 2: number of LLM-authored user journeys to run (0 = smoke only). */
   journeys?: number;
+  /** Change-driven QA: diff base ref. Biases wired findings + journeys toward what changed. */
+  baseRef?: string;
 }
 
 // Pick a chaos load level the app can actually sustain: the highest concurrency
@@ -185,6 +188,13 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
     execSync(`git clone --depth 1 ${branchFlag}${repoUrl} ${projectPath}`, {
       timeout: CLONE_TIMEOUT_MS, stdio: 'pipe', env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
     });
+
+    // Change-driven QA (opt-in via baseRef): fetch the base tip into this
+    // --depth 1 clone and diff, so the wired + journey lanes can target what
+    // changed. Degrades to null (full, unbiased run). See slices 1–2 +
+    // docs/ANTIREZ-168-GAP-ANALYSIS.md.
+    const resolvedBase = body.baseRef ? ensureBaseRef(projectPath, body.baseRef) : null;
+    const changedSurface = resolvedBase ? computeChangedSurface(projectPath, resolvedBase) : null;
 
     updateJob(jobId, { phase: 'detecting', detail: 'Scanning codebase and detecting how to boot it' });
     const codebase = await scanCodebase(projectPath);
@@ -223,6 +233,9 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
         title: f.title, description: f.description, filePath: f.filePath, lineNumber: f.lineNumber,
         fixSuggestion: f.fixSuggestion, severity: f.severity, codeContext: f.codeContext,
       }));
+      // Change-driven: test the findings on changed lines first (the lane caps
+      // how many it generates, so ordering decides what gets covered).
+      if (changedSurface) wiredFindings = prioritizeByChanged(changedSurface, wiredFindings);
     }
 
     const canBoot = !!(runnable.runnable && runnable.contextPath && (
@@ -311,6 +324,7 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
             if (body.journeys && body.journeys > 0) {
               const j = await runE2EJourneys(sb, {
                 count: body.journeys,
+                changedHint: changedSurface ? changedPaths(changedSurface) : undefined,
                 onProgress: (detail) => updateJob(jobId, { phase: 'e2e', detail }),
               });
               out.e2e.journeys = j;
@@ -345,6 +359,11 @@ async function runSimJob(jobId: string, runId: string, body: SimJobBody): Promis
           reason: runnable.reason,
           exposedPorts: runnable.exposedPorts,
         },
+        changedSurface: body.baseRef
+          ? (changedSurface
+              ? { baseRef: body.baseRef, available: true, comparison: changedSurface.comparison, changedFiles: changedSurface.changedFileCount, files: changedPaths(changedSurface) }
+              : { baseRef: body.baseRef, available: false, reason: 'could not fetch/diff the base ref — unknown ref, auth, or network' })
+          : undefined,
         ...out,
       },
     });
@@ -720,7 +739,7 @@ async function main() {
 
   // ── Clone & Analyze (accepts git URLs) ─────────────────────────────────
   app.post('/clone-and-analyze', async (request, reply) => {
-    const { repoUrl, branch } = request.body as { repoUrl: string; branch?: string };
+    const { repoUrl, branch, baseRef } = request.body as { repoUrl: string; branch?: string; baseRef?: string };
     if (!repoUrl) return reply.status(400).send({ error: 'repoUrl required' });
 
     const repoName = repoUrl.split('/').pop()?.replace('.git', '') || 'repo';
@@ -817,6 +836,26 @@ async function main() {
       // ── Kubernetes (22nd dimension) — parse manifests/Helm + check the YAML ──
       const k8sReport = await runKubernetesAnalysis(projectPath).catch(() => null);
 
+      // Change-driven QA (opt-in via baseRef): a --depth 1 clone has no base
+      // history, so shallow-fetch the base tip, then diff. Findings on changed
+      // lines get tagged introducedByDiff. Degrades silently to full analysis.
+      // See antirez/news/168 tenet #3 + docs/ANTIREZ-168-GAP-ANALYSIS.md.
+      const { ensureBaseRef, computeChangedSurface, tagChangedFindings, regressionRiskByDimension } = await import('./analyzers/changed-surface.js');
+      const resolvedBase = baseRef ? ensureBaseRef(projectPath, baseRef) : null;
+      const changedSurface = resolvedBase ? computeChangedSurface(projectPath, resolvedBase) : null;
+      const securityItems = changedSurface ? tagChangedFindings(changedSurface, securityFindings) : securityFindings;
+      // Regression risk per dimension across the whole report (all dimensions,
+      // not just security). Dimensions with no locatable hit drop out.
+      const regressionRisk = changedSurface ? regressionRiskByDimension(changedSurface, {
+        security: securityFindings, unit: unitReport.findings ?? [], load: loadReport.findings ?? [],
+        accessibility: a11yReport.findings ?? [], contract: contractReport.findings ?? [],
+        visualRegression: visualReport.findings ?? [], edgeCases: edgeCaseReport.findings ?? [],
+        propertyBased: propertyReport.findings ?? [], chaos: chaosReport.findings ?? [],
+        mutation: mutationReport.findings ?? [], predictive: predictiveReport.findings ?? [],
+        nPlusOne: nPlusOneReport.findings ?? [], deadCode: deadCodeReport.findings ?? [],
+        agentic: agenticReport.findings ?? [], kubernetes: k8sReport?.findings ?? [],
+      }) : {};
+
       // Clean up
       rmSync(projectPath, { recursive: true, force: true });
 
@@ -838,8 +877,13 @@ async function main() {
           high: securityFindings.filter(f => f.severity === 'high').length,
           medium: securityFindings.filter(f => f.severity === 'medium').length,
           low: securityFindings.filter(f => f.severity === 'low').length,
-          items: securityFindings.slice(0, 10),
+          items: securityItems.slice(0, 10),
         },
+        changedSurface: baseRef
+          ? (changedSurface
+              ? { baseRef, available: true, comparison: changedSurface.comparison, changedFiles: changedSurface.changedFileCount, files: Object.keys(changedSurface.files), regressionRisk }
+              : { baseRef, available: false, reason: 'could not fetch/diff the base ref — unknown ref, auth, or network' })
+          : undefined,
         unit: {
           coverage: unitReport.testCoverage || 0,
           testFiles: unitReport.totalTestFiles || 0,
