@@ -102,6 +102,28 @@ export function tagChangedFindings<T extends { filePath?: string; lineNumber?: n
 }
 
 /**
+ * Stable reorder: findings on changed lines first, everything else after, each
+ * group keeping its original order. Used to point a capped lane (e.g. wired-unit
+ * generates a test per top finding) at the code the diff actually touched.
+ */
+export function prioritizeByChanged<T extends { filePath?: string; lineNumber?: number }>(
+  surface: ChangedSurface,
+  findings: T[],
+): T[] {
+  const changed: T[] = [];
+  const rest: T[] = [];
+  for (const f of findings) {
+    (lineInChanged(surface, f.filePath, f.lineNumber) ? changed : rest).push(f);
+  }
+  return [...changed, ...rest];
+}
+
+/** The changed files (repo-relative). Convenience for seeding lane prompts. */
+export function changedPaths(surface: ChangedSurface): string[] {
+  return Object.keys(surface.files);
+}
+
+/**
  * Ordered git-diff arg sets to try for a base ref, most-precise first. Pure and
  * testable. Each entry is the args appended after `diff --unified=0 --no-color`:
  *  - three-dot `<ref>...HEAD` — merge-base diff (precise; needs shared history)

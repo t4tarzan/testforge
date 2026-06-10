@@ -2,7 +2,8 @@
 // The parser + intersect are pure, so we test them against a known
 // `git diff --unified=0` fixture — no git invocation needed.
 import { describe, it, expect } from 'vitest';
-import { parseUnifiedDiff, lineInChanged, tagChangedFindings, diffSpecs } from '../src/analyzers/changed-surface.js';
+import { parseUnifiedDiff, lineInChanged, tagChangedFindings, diffSpecs, prioritizeByChanged, changedPaths } from '../src/analyzers/changed-surface.js';
+import { changedHintBlock } from '../src/simulation/e2e-journey.js';
 
 // A representative unified=0 diff: one file modified (a hunk in the middle),
 // one new file, one deleted file (must contribute NO new-file surface).
@@ -114,5 +115,46 @@ describe('tagChangedFindings', () => {
     expect(tagged.map((f) => f.introducedByDiff)).toEqual([true, false, false]);
     // input not mutated
     expect((findings[0] as { introducedByDiff?: boolean }).introducedByDiff).toBeUndefined();
+  });
+});
+
+describe('prioritizeByChanged (slice 3 — lane seeding)', () => {
+  const surface = parseUnifiedDiff(DIFF, 'main');
+
+  it('moves findings on changed lines to the front, stably', () => {
+    const findings = [
+      { id: 'a', filePath: 'src/untouched.ts', lineNumber: 1 },
+      { id: 'b', filePath: 'src/auth.ts', lineNumber: 88 },   // changed
+      { id: 'c', filePath: 'src/other.ts', lineNumber: 5 },
+      { id: 'd', filePath: 'src/new-feature.ts', lineNumber: 2 }, // changed
+    ];
+    expect(prioritizeByChanged(surface, findings).map((f) => f.id)).toEqual(['b', 'd', 'a', 'c']);
+  });
+
+  it('is a no-op ordering when nothing is on changed lines', () => {
+    const findings = [{ id: 'x', filePath: 'src/untouched.ts', lineNumber: 1 }];
+    expect(prioritizeByChanged(surface, findings).map((f) => f.id)).toEqual(['x']);
+  });
+});
+
+describe('changedPaths', () => {
+  it('lists the changed files', () => {
+    expect(changedPaths(parseUnifiedDiff(DIFF, 'main')).sort()).toEqual(['src/auth.ts', 'src/new-feature.ts']);
+  });
+});
+
+describe('changedHintBlock (journey author prompt)', () => {
+  it('is empty when there is no hint', () => {
+    expect(changedHintBlock()).toBe('');
+    expect(changedHintBlock([])).toBe('');
+  });
+
+  it('renders a bulleted list and caps at 40 entries', () => {
+    const block = changedHintBlock(['src/a.ts', 'src/b.ts']);
+    expect(block).toContain('PRIORITIZE');
+    expect(block).toContain('- src/a.ts');
+    expect(block).toContain('- src/b.ts');
+    const many = Array.from({ length: 60 }, (_, i) => `f${i}.ts`);
+    expect((changedHintBlock(many).match(/\n- /g) || []).length).toBe(40);
   });
 });
